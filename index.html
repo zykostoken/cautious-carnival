@@ -344,25 +344,24 @@
             border-bottom: 1px solid var(--border-color);
         }
         .team-icon {
-            width: 50px; height: 50px;
+            width: 48px; height: 48px;
             border-radius: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
             flex-shrink: 0;
         }
-        .icon-psiquiatria { background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%); }
-        .icon-psicologia { background: linear-gradient(135deg, #a371f7 0%, #8957e5 100%); }
-        .icon-clinica { background: linear-gradient(135deg, #3fb950 0%, #238636 100%); }
-        .icon-social { background: linear-gradient(135deg, #f0883e 0%, #db6d28 100%); }
-        .icon-talleres { background: linear-gradient(135deg, #f778ba 0%, #db61a2 100%); }
-        .icon-enfermeria { background: linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%); }
-        .icon-nutricion { background: linear-gradient(135deg, #7ee787 0%, #3fb950 100%); }
-        .icon-rrhh { background: linear-gradient(135deg, #d4a853 0%, #b8922e 100%); }
-        .icon-secretariado { background: linear-gradient(135deg, #8b949e 0%, #6e7681 100%); }
-        .icon-servicios { background: linear-gradient(135deg, #6e7681 0%, #484f58 100%); }
-        .icon-sumate { background: linear-gradient(135deg, var(--accent-gold) 0%, #b8922e 100%); }
+        .team-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--accent-gold);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
 
         .team-card h3 {
             font-family: 'Playfair Display', serif;
@@ -486,6 +485,239 @@
         .servicio-item p {
             font-size: 0.9rem;
             color: var(--text-secondary);
+        }
+
+        /* ========== FORMACIÓN ACADÉMICA ========== */
+        .formacion-section {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1) 0%, rgba(88, 166, 255, 0.05) 100%);
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            margin: 0 auto 4rem;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+        .formacion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        .formacion-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        .formacion-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-5px);
+        }
+        .formacion-card h4 {
+            color: var(--accent-green);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        .formacion-card p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .formacion-badge {
+            display: inline-block;
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-green);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        /* ========== INNOVACIÓN ========== */
+        .innovacion-section {
+            text-align: center;
+        }
+        .innovacion-intro {
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        .innovacion-intro strong {
+            color: var(--accent-gold);
+        }
+        .survey-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .survey-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .survey-card:hover {
+            border-color: var(--accent-purple);
+        }
+        .survey-card h4 {
+            color: var(--accent-purple);
+            margin-bottom: 0.5rem;
+        }
+        .survey-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .survey-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .survey-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .survey-btn:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+        .survey-btn.selected {
+            background: var(--accent-purple);
+            color: var(--bg-primary);
+            border-color: var(--accent-purple);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .metric {
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ========== BITÁCORA ========== */
+        .bitacora-section {
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.1) 0%, rgba(240, 136, 62, 0.05) 100%);
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            margin: 0 auto 4rem;
+            border: 1px solid rgba(212, 168, 83, 0.3);
+        }
+        .bitacora-intro {
+            max-width: 800px;
+            margin: 0 auto 3rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            text-align: center;
+        }
+        .bitacora-intro strong {
+            color: var(--accent-gold);
+        }
+        .bitacora-timeline {
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .bitacora-timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent-gold), var(--accent-warm));
+            opacity: 0.3;
+        }
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        .timeline-item:nth-child(odd) {
+            flex-direction: row-reverse;
+        }
+        .timeline-content {
+            width: 45%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            transition: all 0.3s ease;
+        }
+        .timeline-content:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-5px);
+        }
+        .timeline-year {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .timeline-content h4 {
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .timeline-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        @media (max-width: 768px) {
+            .bitacora-timeline::before {
+                left: 20px;
+            }
+            .timeline-item,
+            .timeline-item:nth-child(odd) {
+                flex-direction: column;
+                align-items: flex-start;
+                padding-left: 50px;
+            }
+            .timeline-content {
+                width: 100%;
+            }
+            .timeline-year {
+                left: 20px;
+                transform: translateX(-50%);
+            }
         }
 
         /* ========== CONTACTO ========== */
@@ -704,6 +936,7 @@
             <a href="#metodologia">Metodología</a>
             <a href="#equipo">Equipo</a>
             <a href="#servicios">Servicios</a>
+            <a href="#bitacora">Bitácora</a>
             <a href="#contacto">Contacto</a>
         </nav>
     </header>
@@ -756,7 +989,7 @@
                 <!-- Psiquiatría -->
                 <div class="team-card destacado clickable-card fade-in" onclick="openModal('psiquiatria')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-psiquiatria" style="font-size: 1.2rem; font-weight: bold;">PSI</div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6c-2.21 0-4 1.79-4 4 0 1.1.45 2.1 1.17 2.83L12 15.66l2.83-2.83A3.99 3.99 0 0016 10c0-2.21-1.79-4-4-4z"/><circle cx="10" cy="10" r="1"/><circle cx="14" cy="10" r="1"/></svg></div>
                         <h3>Psiquiatría</h3>
                     </div>
                     <p class="team-description">
@@ -781,7 +1014,7 @@
                 <!-- Psicología -->
                 <div class="team-card destacado clickable-card fade-in" onclick="openModal('psicologia')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-psicologia"></div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                         <h3>Psicología Clínica</h3>
                     </div>
                     <p class="team-description">
@@ -806,7 +1039,7 @@
                 <!-- Clínica Médica -->
                 <div class="team-card clickable-card fade-in" onclick="openModal('clinica')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-clinica" style="font-size: 1.2rem; font-weight: bold;">MED</div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
                         <h3>Clínica Médica</h3>
                     </div>
                     <p class="team-description">
@@ -827,7 +1060,7 @@
                 <!-- Talleres -->
                 <div class="team-card clickable-card fade-in" onclick="openModal('talleres')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-talleres" style="font-size: 1.2rem; font-weight: bold;">TAL</div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
                         <h3>Talleres / Terapia Ocupacional</h3>
                     </div>
                     <p class="team-description">
@@ -852,7 +1085,7 @@
                 <!-- Enfermería -->
                 <div class="team-card destacado clickable-card fade-in" onclick="openModal('enfermeria')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-enfermeria"></div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M19.5 12.572l-7.5 7.428-7.5-7.428A5 5 0 1112 6.006a5 5 0 017.5 6.566z"/></svg></div>
                         <h3>Enfermería Psiquiátrica</h3>
                     </div>
                     <p class="team-description">
@@ -870,7 +1103,7 @@
                 <!-- Servicios Generales -->
                 <div class="team-card clickable-card fade-in" onclick="openModal('servicios')">
                     <div class="team-card-header">
-                        <div class="team-icon icon-servicios"></div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
                         <h3>Servicios Generales</h3>
                     </div>
                     <p class="team-description">
@@ -887,7 +1120,7 @@
                 <!-- Sumate -->
                 <div class="team-card sumate fade-in">
                     <div class="team-card-header" style="justify-content: center; border-bottom: none;">
-                        <div class="team-icon icon-sumate"></div>
+                        <div class="team-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
                     </div>
                     <h3>¿Querés sumarte?</h3>
                     <p>Buscamos profesionales comprometidos con la salud mental.</p>
@@ -929,6 +1162,144 @@
                 <div class="servicio-item fade-in" onclick="openModal('talleres-serv')">
                     <h4>Talleres Terapéuticos</h4>
                     <p>Música, huerta, carpintería, cocina, expresión corporal</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formación Académica -->
+        <section id="formacion" class="formacion-section">
+            <h2 class="section-title fade-in">Formación Académica</h2>
+            <p class="section-subtitle fade-in">Centro formador con reconocimiento ministerial</p>
+            <div class="formacion-grid">
+                <div class="formacion-card fade-in">
+                    <h4>Residencia en Psiquiatría</h4>
+                    <p>Formación de residentes en psiquiatría con rotaciones por los distintos dispositivos de la clínica. Supervisión permanente y participación en ateneos clínicos.</p>
+                    <span class="formacion-badge">Reconocimiento Ministerial</span>
+                </div>
+                <div class="formacion-card fade-in">
+                    <h4>Rotaciones de Terapia Ocupacional</h4>
+                    <p>Rotaciones para estudiantes de Terapia Ocupacional en los talleres terapéuticos y programas de rehabilitación de la clínica.</p>
+                    <span class="formacion-badge">Convenio Universitario</span>
+                </div>
+                <div class="formacion-card fade-in">
+                    <h4>Licenciatura en Enfermería</h4>
+                    <p>Rotaciones prácticas para estudiantes de enfermería especializados en salud mental y psiquiatría.</p>
+                    <span class="formacion-badge">Prácticas Supervisadas</span>
+                </div>
+                <div class="formacion-card fade-in">
+                    <h4>Acompañamiento Terapéutico</h4>
+                    <p>Formación práctica en acompañamiento terapéutico con pacientes internados y ambulatorios bajo supervisión profesional.</p>
+                    <span class="formacion-badge">Formación Práctica</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Innovación + Tecnología -->
+        <section id="innovacion" class="innovacion-section">
+            <h2 class="section-title fade-in">Innovación + Tecnología</h2>
+            <p class="section-subtitle fade-in">El futuro de la salud mental, con el paciente en el centro</p>
+            <p class="innovacion-intro fade-in">
+                Clínica José Ingenieros apoya el uso de las nuevas tecnologías sin olvidarse del centro de nuestra tarea diaria: <strong>el paciente</strong>. Creemos necesaria la incorporación gradual y prudencial de la tecnología digital para el crecimiento y expansión de toda la disciplina.
+            </p>
+            <h4 style="margin-bottom: 1rem; color: var(--accent-purple); text-align: center;" class="fade-in">Tu opinión nos importa</h4>
+            <div class="survey-grid">
+                <div class="survey-card fade-in">
+                    <h4>Servicio Digital</h4>
+                    <p>¿Aceptarías la digitalización del servicio?</p>
+                    <div class="survey-options">
+                        <button class="survey-btn" onclick="selectSurvey(this,'servicio')">Sí, totalmente</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'servicio')">Con reservas</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'servicio')">No por ahora</button>
+                    </div>
+                </div>
+                <div class="survey-card fade-in">
+                    <h4>Terapias Digitales</h4>
+                    <p>¿Te gustaría acceder a terapias online?</p>
+                    <div class="survey-options">
+                        <button class="survey-btn" onclick="selectSurvey(this,'terapias')">Sí, me interesa</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'terapias')">Tal vez</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'terapias')">Prefiero presencial</button>
+                    </div>
+                </div>
+                <div class="survey-card fade-in">
+                    <h4>Monetización Digital</h4>
+                    <p>¿Pagarías por servicios digitales premium?</p>
+                    <div class="survey-options">
+                        <button class="survey-btn" onclick="selectSurvey(this,'monetizacion')">Sí, según el valor</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'monetizacion')">Lo evaluaría</button>
+                        <button class="survey-btn" onclick="selectSurvey(this,'monetizacion')">No pagaría</button>
+                    </div>
+                </div>
+            </div>
+            <div class="metrics-grid fade-in">
+                <div class="metric">
+                    <div class="metric-value" id="m-intencion">0%</div>
+                    <div class="metric-label">Intención de uso</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="m-nav">0</div>
+                    <div class="metric-label">Secciones vistas</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="m-tiempo">0:00</div>
+                    <div class="metric-label">Tiempo en sitio</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="m-enc">0/3</div>
+                    <div class="metric-label">Encuestas</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bitácora -->
+        <section id="bitacora" class="bitacora-section">
+            <h2 class="section-title fade-in">Bitácora</h2>
+            <p class="section-subtitle fade-in">Momentos que forjaron nuestra historia</p>
+            <p class="bitacora-intro fade-in">
+                A lo largo de más de <strong>tres décadas</strong>, la Clínica José Ingenieros ha sido testigo de innumerables historias de recuperación, crecimiento profesional y compromiso con la salud mental. Estos son algunos de los hitos que nos definen.
+            </p>
+            <div class="bitacora-timeline">
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>Fundación de la Clínica</h4>
+                        <p>Nace la Clínica José Ingenieros con la visión de ofrecer atención psiquiátrica humanizada y de excelencia en la zona sur del Gran Buenos Aires.</p>
+                    </div>
+                    <span class="timeline-year">1990</span>
+                </div>
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>Reconocimiento Ministerial</h4>
+                        <p>La clínica obtiene su reconocimiento como centro formador de residentes en psiquiatría por el Ministerio de Salud.</p>
+                    </div>
+                    <span class="timeline-year">1998</span>
+                </div>
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>Inauguración de Talleres Terapéuticos</h4>
+                        <p>Se inauguran los talleres de arte, música y expresión corporal como parte integral del proceso de rehabilitación de los pacientes.</p>
+                    </div>
+                    <span class="timeline-year">2005</span>
+                </div>
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>Expansión de Servicios</h4>
+                        <p>Ampliación de la capacidad de internación y creación del programa de hospital de día para pacientes ambulatorios.</p>
+                    </div>
+                    <span class="timeline-year">2012</span>
+                </div>
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>30 Años de Trayectoria</h4>
+                        <p>Celebramos tres décadas de servicio continuo a la comunidad, con miles de pacientes atendidos y cientos de profesionales formados.</p>
+                    </div>
+                    <span class="timeline-year">2020</span>
+                </div>
+                <div class="timeline-item fade-in">
+                    <div class="timeline-content">
+                        <h4>Hacia el Futuro Digital</h4>
+                        <p>Inicio de la transformación digital con nuevas herramientas tecnológicas para mejorar la atención y el seguimiento de pacientes.</p>
+                    </div>
+                    <span class="timeline-year">2024</span>
                 </div>
             </div>
         </section>
