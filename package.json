@@ -1,0 +1,16 @@
+{
+  "name": "clinica-jose-ingenieros",
+  "version": "1.0.0",
+  "description": "Clinica Psiquiatrica Privada Jose Ingenieros SRL - Web Application",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "@netlify/neon": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
