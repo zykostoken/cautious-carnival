@@ -486,6 +486,148 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
+        .servicio-telemedicina {
+            position: relative;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-color: var(--accent-blue);
+        }
+        .servicio-telemedicina:hover {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        .servicio-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        /* Telemedicina Modal Styles */
+        .telemedicina-horario {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .telemedicina-horario h3 {
+            margin-bottom: 0.5rem;
+            color: var(--accent-blue);
+        }
+        .telemedicina-opciones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .telemedicina-option {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .telemedicina-option:hover {
+            border-color: var(--accent-gold);
+        }
+        .telemedicina-option h4 {
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+        }
+        .telemedicina-option p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        .telemedicina-creditos {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .telemedicina-creditos h3 {
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+        }
+        .creditos-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        .creditos-nota {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+        }
+        .telemedicina-registro {
+            margin-top: 1.5rem;
+        }
+        .telemedicina-registro .form-group {
+            margin-bottom: 1rem;
+        }
+        .telemedicina-registro label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .telemedicina-registro input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .telemedicina-registro input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-outline:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+        }
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .telemedicina-opciones {
+                grid-template-columns: 1fr;
+            }
+            .creditos-info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
 
         /* ========== FORMACIÓN ACADÉMICA ========== */
         .formacion-section {
@@ -1176,6 +1318,11 @@
                 <div class="servicio-item fade-in" onclick="openModal('talleres-serv')">
                     <h4>Talleres Terapéuticos</h4>
                     <p>Música, huerta, carpintería, cocina, expresión corporal</p>
+                </div>
+                <div class="servicio-item servicio-telemedicina fade-in" onclick="openModal('telemedicina')">
+                    <h4>Telemedicina</h4>
+                    <p>Consultas por videollamada. 8 a 20 hs.</p>
+                    <span class="servicio-badge">Nuevo</span>
                 </div>
             </div>
         </section>
@@ -1904,6 +2051,60 @@
                     
                     <p>Los talleres son parte integral del tratamiento y se adaptan a las capacidades e intereses de cada paciente.</p>
                 </div>
+            `,
+            telemedicina: `
+                <div class="modal-header">
+                    <span style="font-size:2rem">📹</span>
+                    <h2>Telemedicina</h2>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Centro de Videoconsultas</strong> - Atención psiquiátrica y psicológica desde la comodidad de tu hogar.</p>
+
+                    <div class="telemedicina-horario">
+                        <h3>Horario de Atención</h3>
+                        <p><strong>Lunes a Sábado:</strong> 8:00 a 20:00 hs</p>
+                    </div>
+
+                    <div class="telemedicina-opciones">
+                        <h3>Opciones de Consulta</h3>
+                        <div class="telemedicina-option" id="tele-inmediata">
+                            <h4>Consulta Inmediata</h4>
+                            <p>Conectate ahora con un profesional disponible</p>
+                            <button class="btn btn-primary" onclick="iniciarConsultaInmediata()">Iniciar Videollamada</button>
+                        </div>
+                        <div class="telemedicina-option" id="tele-agendar">
+                            <h4>Agendar Consulta</h4>
+                            <p>Programá una cita para el momento que te convenga</p>
+                            <button class="btn btn-secondary" onclick="abrirAgendamiento()">Agendar Turno</button>
+                        </div>
+                    </div>
+
+                    <div class="telemedicina-creditos" id="tele-creditos">
+                        <h3>Sistema de Créditos</h3>
+                        <p>Las consultas utilizan un sistema de créditos prepagos.</p>
+                        <div class="creditos-info">
+                            <span class="creditos-balance">Tu saldo: <strong id="user-credits">$0</strong></span>
+                            <span class="creditos-minimo">Mínimo por consulta: <strong>$5.000</strong></span>
+                        </div>
+                        <button class="btn btn-outline" onclick="cargarCreditos()">Cargar Créditos</button>
+                        <p class="creditos-nota"><small>Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
+                    </div>
+
+                    <div class="telemedicina-registro" id="tele-registro" style="display:none;">
+                        <h3>Registrate para Usar Telemedicina</h3>
+                        <form id="form-registro-telemedicina" onsubmit="registrarUsuarioTelemedicina(event)">
+                            <div class="form-group">
+                                <label for="tele-email">Email</label>
+                                <input type="email" id="tele-email" placeholder="tu@email.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="tele-phone">Teléfono</label>
+                                <input type="tel" id="tele-phone" placeholder="2262-123456">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrarme</button>
+                        </form>
+                    </div>
+                </div>
             `
         };
 
@@ -1925,6 +2126,382 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
+        });
+
+        // ========== BACKEND INTEGRATION ==========
+
+        // Session management
+        const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+        localStorage.setItem('sessionId', sessionId);
+
+        // Telemedicine user management
+        let telemedUserId = localStorage.getItem('telemedUserId');
+        let userCredits = 0;
+
+        // Initialize session tracking
+        async function initSession() {
+            try {
+                await fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'session_start',
+                        data: {
+                            userAgent: navigator.userAgent,
+                            referrer: document.referrer
+                        }
+                    })
+                });
+            } catch (e) {
+                console.log('Session tracking unavailable');
+            }
+        }
+
+        // Track section views
+        const observedSections = new Set();
+        const sectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !observedSections.has(entry.target.id)) {
+                    observedSections.add(entry.target.id);
+                    trackSectionView(entry.target.id);
+                    updateMetrics();
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('section[id]').forEach(section => {
+            sectionObserver.observe(section);
+        });
+
+        async function trackSectionView(sectionId) {
+            try {
+                await fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'section_view',
+                        data: { sectionId }
+                    })
+                });
+            } catch (e) {}
+        }
+
+        // Heartbeat for time on site tracking
+        setInterval(async () => {
+            try {
+                await fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'heartbeat'
+                    })
+                });
+            } catch (e) {}
+        }, 30000);
+
+        // Survey tracking
+        const surveysCompleted = new Set(JSON.parse(localStorage.getItem('surveysCompleted') || '[]'));
+
+        async function selectSurvey(button, surveyId) {
+            const response = button.textContent;
+            const container = button.closest('.survey-options');
+
+            // Visual feedback
+            container.querySelectorAll('.survey-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.disabled = true;
+            });
+            button.classList.add('selected');
+
+            try {
+                const res = await fetch('/api/survey', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        surveyId,
+                        response
+                    })
+                });
+
+                if (res.ok) {
+                    surveysCompleted.add(surveyId);
+                    localStorage.setItem('surveysCompleted', JSON.stringify([...surveysCompleted]));
+                    updateMetrics();
+                }
+            } catch (e) {
+                console.log('Survey tracking unavailable');
+            }
+        }
+
+        // Update metrics display
+        const sessionStartTime = Date.now();
+
+        function updateMetrics() {
+            // Sections viewed
+            const sectionsEl = document.getElementById('m-nav');
+            if (sectionsEl) sectionsEl.textContent = observedSections.size;
+
+            // Time on site
+            const tiempoEl = document.getElementById('m-tiempo');
+            if (tiempoEl) {
+                const seconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                tiempoEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            // Surveys completed
+            const encEl = document.getElementById('m-enc');
+            if (encEl) encEl.textContent = `${surveysCompleted.size}/3`;
+
+            // Intention percentage (based on positive responses)
+            const intencionEl = document.getElementById('m-intencion');
+            if (intencionEl) {
+                const positive = [...surveysCompleted].filter(s => {
+                    const btn = document.querySelector(`.survey-btn.selected`);
+                    return btn && (btn.textContent.includes('Sí') || btn.textContent.includes('interesa'));
+                }).length;
+                const pct = surveysCompleted.size > 0 ? Math.round((positive / surveysCompleted.size) * 100) : 0;
+                intencionEl.textContent = `${pct}%`;
+            }
+        }
+
+        // Update time on site every second
+        setInterval(updateMetrics, 1000);
+
+        // Track modal opens
+        const originalOpenModal = openModal;
+        openModal = function(id) {
+            originalOpenModal(id);
+            try {
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'modal_open',
+                        data: { modalId: id }
+                    })
+                });
+            } catch (e) {}
+
+            // If telemedicina modal, check user status
+            if (id === 'telemedicina') {
+                checkTelemedicineUser();
+            }
+        };
+
+        // Track contact clicks
+        document.querySelectorAll('a[href^="tel:"], a[href^="mailto:"]').forEach(link => {
+            link.addEventListener('click', () => {
+                const type = link.href.startsWith('tel:') ? 'phone' : 'email';
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'contact_click',
+                        data: {
+                            contactType: type,
+                            contactValue: link.href.replace(/^(tel:|mailto:)/, '')
+                        }
+                    })
+                }).catch(() => {});
+            });
+        });
+
+        // ========== TELEMEDICINE FUNCTIONS ==========
+
+        async function checkTelemedicineUser() {
+            if (telemedUserId) {
+                try {
+                    const res = await fetch(`/api/telemedicine/credits?userId=${telemedUserId}`);
+                    const data = await res.json();
+                    userCredits = data.creditBalance || 0;
+                    updateCreditDisplay();
+
+                    // Show appropriate UI
+                    const registroDiv = document.getElementById('tele-registro');
+                    const creditosDiv = document.getElementById('tele-creditos');
+                    if (registroDiv) registroDiv.style.display = 'none';
+                    if (creditosDiv) creditosDiv.style.display = 'block';
+                } catch (e) {
+                    console.log('Telemedicine service unavailable');
+                }
+            } else {
+                // Show registration form
+                const registroDiv = document.getElementById('tele-registro');
+                const creditosDiv = document.getElementById('tele-creditos');
+                if (registroDiv) registroDiv.style.display = 'block';
+                if (creditosDiv) creditosDiv.style.display = 'none';
+            }
+        }
+
+        function updateCreditDisplay() {
+            const el = document.getElementById('user-credits');
+            if (el) el.textContent = `$${userCredits.toLocaleString('es-AR')}`;
+        }
+
+        async function registrarUsuarioTelemedicina(event) {
+            event.preventDefault();
+            const email = document.getElementById('tele-email').value;
+            const phone = document.getElementById('tele-phone').value;
+
+            try {
+                const res = await fetch('/api/telemedicine/credits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email,
+                        phone
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    telemedUserId = data.userId;
+                    localStorage.setItem('telemedUserId', telemedUserId);
+                    checkTelemedicineUser();
+                    alert('Registro exitoso. Ya puedes usar el servicio de telemedicina.');
+                } else {
+                    alert('Error en el registro. Por favor, intenta nuevamente.');
+                }
+            } catch (e) {
+                alert('Servicio temporalmente no disponible.');
+            }
+        }
+
+        async function iniciarConsultaInmediata() {
+            if (!telemedUserId) {
+                alert('Primero debes registrarte para usar el servicio de telemedicina.');
+                const registroDiv = document.getElementById('tele-registro');
+                if (registroDiv) registroDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/telemedicine/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'request_call',
+                        userId: telemedUserId,
+                        callType: 'immediate'
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(`${data.message}\n\nSe han reservado $${data.creditsHeld} de tus créditos.\nSi la llamada no se concreta, serán restituidos.`);
+                    // Here you would redirect to the video call interface
+                    // window.location.href = `/videocall?token=${data.sessionToken}`;
+                } else if (data.error === 'outside_hours') {
+                    alert(`${data.message}\n\n${data.nextAvailable}`);
+                } else if (data.error === 'insufficient_credits') {
+                    alert(`${data.message}\n\nSaldo actual: $${data.currentBalance}\nMínimo requerido: $${data.minimumRequired}`);
+                    cargarCreditos();
+                }
+            } catch (e) {
+                alert('Error al conectar con el servicio. Por favor, intenta nuevamente.');
+            }
+        }
+
+        function abrirAgendamiento() {
+            if (!telemedUserId) {
+                alert('Primero debes registrarte para usar el servicio de telemedicina.');
+                const registroDiv = document.getElementById('tele-registro');
+                if (registroDiv) registroDiv.style.display = 'block';
+                return;
+            }
+
+            // Simple date/time picker - in production this would be a proper calendar
+            const fecha = prompt('Ingresa la fecha deseada (YYYY-MM-DD):');
+            if (!fecha) return;
+
+            const hora = prompt('Ingresa la hora deseada (HH:MM, entre 08:00 y 20:00):');
+            if (!hora) return;
+
+            agendarConsulta(fecha, hora);
+        }
+
+        async function agendarConsulta(fecha, hora) {
+            try {
+                const res = await fetch('/api/telemedicine/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'schedule_call',
+                        userId: telemedUserId,
+                        scheduledDate: fecha,
+                        scheduledTime: hora
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(`Cita agendada exitosamente.\n\nFecha y hora: ${new Date(data.scheduledAt).toLocaleString('es-AR')}`);
+                } else if (data.error === 'insufficient_credits') {
+                    alert(`${data.message}\n\nPor favor, carga créditos antes de agendar.`);
+                    cargarCreditos();
+                }
+            } catch (e) {
+                alert('Error al agendar. Por favor, intenta nuevamente.');
+            }
+        }
+
+        function cargarCreditos() {
+            // In production, this would integrate with a payment processor
+            const monto = prompt('Ingresa el monto a cargar (mínimo $5000):');
+            if (!monto) return;
+
+            const montoNum = parseInt(monto.replace(/\D/g, ''));
+            if (montoNum < 5000) {
+                alert('El monto mínimo es $5.000');
+                return;
+            }
+
+            // Simulate payment (in production: redirect to payment gateway)
+            alert(`Serás redirigido al procesador de pagos para cargar $${montoNum.toLocaleString('es-AR')}.\n\n(Esta función requiere integración con pasarela de pagos)`);
+
+            // After successful payment, call:
+            // addCredits(telemedUserId, montoNum, 'payment-reference-123');
+        }
+
+        async function addCredits(userId, amount, paymentRef) {
+            try {
+                const res = await fetch('/api/telemedicine/credits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_credits',
+                        userId,
+                        amount,
+                        paymentReference: paymentRef
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    userCredits = data.newBalance;
+                    updateCreditDisplay();
+                    alert(`Créditos cargados exitosamente.\nNuevo saldo: $${data.newBalance.toLocaleString('es-AR')}`);
+                }
+            } catch (e) {
+                alert('Error al procesar los créditos.');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initSession();
+            updateMetrics();
         });
     </script>
 </body>
