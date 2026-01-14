@@ -4,7 +4,9 @@
   "description": "Clinica Psiquiatrica Privada Jose Ingenieros SRL - Web Application",
   "type": "module",
   "scripts": {
-    "dev": "netlify dev"
+    "dev": "netlify dev",
+    "setup-db": "node scripts/setup-db.mjs",
+    "build": "npm run setup-db"
   },
   "dependencies": {
     "@netlify/functions": "^2.0.0",
