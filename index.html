@@ -128,7 +128,7 @@
             margin-left: 2rem;
             font-size: 0.9rem;
             font-weight: 500;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         nav a:hover { color: var(--accent-gold); }
 
@@ -177,7 +177,7 @@
             border-radius: 8px;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             font-size: 0.95rem;
             cursor: pointer;
             border: none;
@@ -188,8 +188,11 @@
         }
         .btn-primary:hover {
             background: #e5b864;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(212, 168, 83, 0.3);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(212, 168, 83, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(-2px) scale(0.98);
         }
         .btn-secondary {
             background: transparent;
@@ -199,6 +202,11 @@
         .btn-secondary:hover {
             border-color: var(--accent-gold);
             color: var(--accent-gold);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(212, 168, 83, 0.2);
+        }
+        .btn-secondary:active {
+            transform: translateY(-2px);
         }
 
         /* ========== STATS ========== */
@@ -316,24 +324,42 @@
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 2rem;
-            transition: all 0.4s ease;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            transform-style: preserve-3d;
+            perspective: 1000px;
         }
         .team-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 168, 83, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 168, 83, 0.15) 0%, transparent 50%);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .team-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.4s ease;
             pointer-events: none;
         }
         .team-card:hover::before { opacity: 1; }
+        .team-card:hover::after { opacity: 1; }
         .team-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(212, 168, 83, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-10px) rotateX(2deg);
+            border-color: rgba(212, 168, 83, 0.4);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(212, 168, 83, 0.1);
         }
         .team-card-header {
             display: flex;
@@ -393,7 +419,7 @@
         .member-name a {
             color: var(--text-primary);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .member-name a:hover { color: var(--accent-gold); }
         .member-role {
@@ -470,16 +496,28 @@
             border-radius: 12px;
             padding: 1.5rem;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .servicio-item.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
         .servicio-item:hover {
             border-color: var(--accent-gold);
-            transform: translateY(-3px);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(212, 168, 83, 0.15);
         }
         .servicio-item h4 {
             font-family: 'Playfair Display', serif;
             margin-bottom: 0.5rem;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .servicio-item:hover h4 {
+            color: #e5b864;
+        }
             color: var(--accent-gold);
         }
         .servicio-item p {
@@ -900,7 +938,7 @@
             text-decoration: none;
             display: block;
             margin-bottom: 0.5rem;
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .contact-item a:hover { color: var(--accent-gold); }
 
@@ -928,9 +966,14 @@
             align-items: center;
             padding: 2rem;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
         .modal-content {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -940,11 +983,31 @@
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
-            animation: modalSlideIn 0.3s ease;
+            animation: modalSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
         }
         @keyframes modalSlideIn {
-            from { opacity: 0; transform: translateY(-50px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(60px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .modal-overlay.closing .modal-content {
+            animation: modalSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes modalSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(30px) scale(0.97);
+            }
         }
         .modal-header {
             padding: 2rem;
@@ -1051,15 +1114,172 @@
             margin: 0;
         }
 
-        /* ========== FADE IN ========== */
+        /* ========== FADE IN Y ANIMACIONES AVANZADAS ========== */
         .fade-in {
             opacity: 0;
             transform: translateY(30px);
-            transition: all 0.8s ease;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .fade-in.visible {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        /* Animaciones escalonadas para grillas */
+        .team-grid .fade-in:nth-child(1) { transition-delay: 0ms; }
+        .team-grid .fade-in:nth-child(2) { transition-delay: 100ms; }
+        .team-grid .fade-in:nth-child(3) { transition-delay: 200ms; }
+        .team-grid .fade-in:nth-child(4) { transition-delay: 300ms; }
+        .team-grid .fade-in:nth-child(5) { transition-delay: 400ms; }
+        .team-grid .fade-in:nth-child(6) { transition-delay: 500ms; }
+
+        .servicios-grid .servicio-item:nth-child(1) { transition-delay: 0ms; }
+        .servicios-grid .servicio-item:nth-child(2) { transition-delay: 80ms; }
+        .servicios-grid .servicio-item:nth-child(3) { transition-delay: 160ms; }
+        .servicios-grid .servicio-item:nth-child(4) { transition-delay: 240ms; }
+        .servicios-grid .servicio-item:nth-child(5) { transition-delay: 320ms; }
+        .servicios-grid .servicio-item:nth-child(6) { transition-delay: 400ms; }
+        .servicios-grid .servicio-item:nth-child(7) { transition-delay: 480ms; }
+        .servicios-grid .servicio-item:nth-child(8) { transition-delay: 560ms; }
+
+        .stats .stat:nth-child(1) { transition-delay: 0ms; }
+        .stats .stat:nth-child(2) { transition-delay: 150ms; }
+        .stats .stat:nth-child(3) { transition-delay: 300ms; }
+        .stats .stat:nth-child(4) { transition-delay: 450ms; }
+
+        /* Hero entrada animada */
+        .hero h1, .hero p, .hero-cta {
+            opacity: 0;
+            transform: translateY(40px);
+            animation: heroEntrance 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .hero h1 { animation-delay: 0.2s; }
+        .hero p { animation-delay: 0.4s; }
+        .hero-cta { animation-delay: 0.6s; }
+
+        @keyframes heroEntrance {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Efecto ripple para botones */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Efecto pulse para elementos interactivos */
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(212, 168, 83, 0); }
+        }
+        .clickable-card:hover {
+            animation: pulse 2s infinite;
+        }
+
+        /* Efecto magnético suave */
+        .magnetic-hover {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Smooth scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards, bounce 2s ease-in-out infinite;
+            animation-delay: 1.2s, 1.5s;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+        @keyframes fadeInUp {
+            to { opacity: 0.7; }
+        }
+
+        /* Parallax suave para orbes */
+        .orb {
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Texto que brilla al hover */
+        .glow-text {
+            transition: text-shadow 0.3s ease;
+        }
+        .glow-text:hover {
+            text-shadow: 0 0 20px rgba(212, 168, 83, 0.5);
+        }
+
+        /* Transiciones de color suaves en nav */
+        nav a {
+            position: relative;
+        }
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-gold);
+            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        /* Efecto de escala suave para iconos */
+        .team-icon {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .team-card:hover .team-icon {
+            transform: scale(1.1) rotate(5deg);
+            border-color: var(--accent-gold);
+        }
+
+        /* Loading shimmer effect */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* Improved stat hover */
+        .stat {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .stat:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: var(--accent-gold);
+            box-shadow: 0 20px 40px rgba(212, 168, 83, 0.15);
+        }
+        .stat:hover .stat-number {
+            transform: scale(1.1);
+        }
+        .stat-number {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: inline-block;
         }
 
         /* ========== RESPONSIVE ========== */
@@ -1123,6 +1343,13 @@
                     <span class="stat-number">+40</span>
                     <span class="stat-label">Años de trayectoria</span>
                 </div>
+            </div>
+
+            <!-- Scroll Indicator -->
+            <div class="scroll-indicator">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
             </div>
         </section>
 
@@ -1635,6 +1862,64 @@
         }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
         document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
+        // ==================== SERVICIOS OBSERVER ====================
+        const serviciosObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+        document.querySelectorAll('.servicio-item').forEach(el => serviciosObserver.observe(el));
+
+        // ==================== PARALLAX SUAVE PARA ORBES ====================
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const scrollY = window.scrollY;
+                    const orbs = document.querySelectorAll('.orb');
+                    orbs.forEach((orb, index) => {
+                        const speed = 0.05 * (index + 1);
+                        const yPos = scrollY * speed;
+                        orb.style.transform = `translate(${index === 2 ? '-50%' : '0'}, ${index === 2 ? 'calc(-50% + ' + yPos + 'px)' : yPos + 'px'})`;
+                    });
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // ==================== SMOOTH TILT EN TARJETAS ====================
+        document.querySelectorAll('.team-card, .servicio-item').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = (y - centerY) / 20;
+                const rotateY = (centerX - x) / 20;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`;
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
+            });
+        });
+
+        // ==================== MAGNETIC EFFECT EN NAV ====================
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('mousemove', (e) => {
+                const rect = link.getBoundingClientRect();
+                const x = e.clientX - rect.left - rect.width / 2;
+                const y = e.clientY - rect.top - rect.height / 2;
+                link.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
+            });
+            link.addEventListener('mouseleave', () => {
+                link.style.transform = 'translate(0, 0)';
+            });
+        });
+
         // ==================== COUNTERS ====================
         function animateCounter(el) {
             const target = parseInt(el.dataset.target);
@@ -2117,10 +2402,14 @@
             }
         }
 
-        function closeModal(event) {
+function closeModal(event) {
             if (!event || event.target.id === 'modal-overlay') {
-                document.getElementById('modal-overlay').classList.remove('active');
-                document.body.style.overflow = '';
+                const overlay = document.getElementById('modal-overlay');
+                overlay.classList.add('closing');
+                setTimeout(() => {
+                    overlay.classList.remove('active', 'closing');
+                    document.body.style.overflow = '';
+                }, 300);
             }
         }
 
