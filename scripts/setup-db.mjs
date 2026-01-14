@@ -4,6 +4,10 @@
 // Uses Supabase PostgreSQL
 
 import postgres from "postgres";
+import dns from "dns";
+
+// Force IPv4 resolution to avoid Netlify build IPv6 connectivity issues
+dns.setDefaultResultOrder('ipv4first');
 
 const migrationSQL = `
 -- User sessions tracking
