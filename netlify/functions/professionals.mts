@@ -1,6 +1,9 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
+// Admin emails that have full control
+const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+
 // Simple password hashing (in production, use bcrypt)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -17,6 +20,15 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 
 function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
+}
+
+// Helper to check if session belongs to admin
+async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+  const [professional] = await sql`
+    SELECT email FROM healthcare_professionals
+    WHERE session_token = ${sessionToken} AND is_active = TRUE
+  `;
+  return professional && ADMIN_EMAILS.includes(professional.email);
 }
 
 export default async (req: Request, context: Context) => {
@@ -227,6 +239,105 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
+      // ========== ADMIN ACTIONS ==========
+
+      // Admin: Toggle professional active status
+      if (action === "admin_toggle_active") {
+        const { sessionToken, professionalId, isActive } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        // Verify admin privileges
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        const [updated] = await sql`
+          UPDATE healthcare_professionals
+          SET is_active = ${isActive}
+          WHERE id = ${professionalId}
+          RETURNING id, full_name, is_active
+        `;
+
+        if (!updated) {
+          return new Response(JSON.stringify({ error: "Profesional no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          professional: {
+            id: updated.id,
+            fullName: updated.full_name,
+            isActive: updated.is_active
+          },
+          message: updated.is_active ? "Profesional activado" : "Profesional desactivado"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Admin: Create a new professional (pre-approved)
+      if (action === "admin_create_professional") {
+        const { sessionToken, email, password, fullName, specialty, whatsapp } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        // Verify admin privileges
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        if (!email || !password || !fullName) {
+          return new Response(JSON.stringify({
+            error: "Email, contraseña y nombre son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Check if email already exists
+        const [existing] = await sql`
+          SELECT id FROM healthcare_professionals WHERE email = ${email}
+        `;
+
+        if (existing) {
+          return new Response(JSON.stringify({
+            error: "El email ya está registrado"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const passwordHash = await hashPassword(password);
+
+        const [professional] = await sql`
+          INSERT INTO healthcare_professionals (
+            email, password_hash, full_name, specialty, whatsapp,
+            is_active, created_at
+          )
+          VALUES (
+            ${email}, ${passwordHash}, ${fullName},
+            ${specialty || 'Psiquiatría'}, ${whatsapp || null},
+            TRUE, NOW()
+          )
+          RETURNING id, email, full_name, specialty
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          professional: {
+            id: professional.id,
+            email: professional.email,
+            fullName: professional.full_name,
+            specialty: professional.specialty
+          },
+          message: "Profesional creado y activado exitosamente"
+        }), { status: 201, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: "Acción inválida" }),
         { status: 400, headers: corsHeaders });
 
@@ -303,6 +414,43 @@ export default async (req: Request, context: Context) => {
 
       } catch (error) {
         console.error("Get available professionals error:", error);
+        return new Response(JSON.stringify({ error: "Error interno" }),
+          { status: 500, headers: corsHeaders });
+      }
+    }
+
+    // Admin: Get list of all professionals for management
+    if (action === "admin_list" && sessionToken) {
+      try {
+        // Verify admin privileges
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        const professionals = await sql`
+          SELECT id, email, full_name, specialty, is_active, is_available,
+                 created_at, last_login
+          FROM healthcare_professionals
+          ORDER BY is_active DESC, created_at DESC
+        `;
+
+        return new Response(JSON.stringify({
+          professionals: professionals.map(p => ({
+            id: p.id,
+            email: p.email,
+            fullName: p.full_name,
+            specialty: p.specialty,
+            isActive: p.is_active,
+            isAvailable: p.is_available,
+            isPending: !p.is_active && !p.last_login, // Never logged in = pending approval
+            createdAt: p.created_at,
+            lastLogin: p.last_login
+          }))
+        }), { status: 200, headers: corsHeaders });
+
+      } catch (error) {
+        console.error("Admin list error:", error);
         return new Response(JSON.stringify({ error: "Error interno" }),
           { status: 500, headers: corsHeaders });
       }

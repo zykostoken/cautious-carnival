@@ -577,6 +577,287 @@
             font-weight: 600;
             text-transform: uppercase;
         }
+
+        /* ========== BANNER NEÓN TELEMEDICINA ========== */
+        .neon-banner {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 999;
+            cursor: pointer;
+            animation: neonFloat 3s ease-in-out infinite;
+        }
+        .neon-banner-content {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 166, 255, 0.15) 100%);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .neon-banner-content::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6);
+            background-size: 200% auto;
+            animation: neonGlow 2s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        .neon-banner-content::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5),
+                        0 0 60px rgba(88, 166, 255, 0.3),
+                        inset 0 0 30px rgba(139, 92, 246, 0.1);
+            animation: neonPulse 2s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes neonGlow {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        @keyframes neonPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        @keyframes neonFloat {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .neon-banner-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+            animation: iconPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .neon-banner-text {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+        }
+        .neon-banner-subtitle {
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            margin-top: 0.25rem;
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.8);
+        }
+        .neon-banner-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            font-size: 0.6rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            animation: badgePulse 1s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+        }
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+        }
+        .neon-banner-close {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 24px;
+            height: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .neon-banner:hover .neon-banner-close {
+            opacity: 1;
+        }
+        .neon-banner-close:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            border-color: var(--accent-gold);
+        }
+        @media (max-width: 768px) {
+            .neon-banner {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+            }
+            .neon-banner-content {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+            }
+            .neon-banner-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0;
+            }
+        }
+
+        /* ========== ADMIN PANEL STYLES ========== */
+        .admin-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .admin-section h4 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .admin-professional-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .admin-professional-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .admin-professional-item.pending {
+            border-color: var(--accent-gold);
+            background: rgba(212, 168, 83, 0.1);
+        }
+        .admin-professional-item.inactive {
+            opacity: 0.6;
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+        .admin-professional-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .admin-professional-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .admin-professional-specialty {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .admin-professional-status {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .admin-professional-status.active {
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-green);
+        }
+        .admin-professional-status.pending {
+            background: rgba(212, 168, 83, 0.2);
+            color: var(--accent-gold);
+        }
+        .admin-professional-status.inactive {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .admin-professional-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .admin-btn {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .admin-btn-approve {
+            background: var(--accent-green);
+            color: white;
+        }
+        .admin-btn-approve:hover {
+            background: #2ea043;
+        }
+        .admin-btn-deactivate {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        .admin-btn-deactivate:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .admin-btn-activate {
+            background: transparent;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        .admin-btn-activate:hover {
+            background: var(--accent-green);
+            color: white;
+        }
+        .admin-add-professional {
+            margin-top: 1rem;
+        }
+        .admin-add-form {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .admin-add-form .form-group {
+            margin-bottom: 0.75rem;
+        }
+        .admin-add-form label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .admin-add-form input,
+        .admin-add-form select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        .admin-add-form input:focus,
+        .admin-add-form select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
         /* Telemedicina Modal Styles */
         .telemedicina-horario {
             background: rgba(88, 166, 255, 0.1);
@@ -1961,6 +2242,17 @@
         </nav>
     </header>
 
+    <!-- Banner Neón Telemedicina -->
+    <div id="neon-telemedicina-banner" class="neon-banner" onclick="openModal('telemedicina')">
+        <button class="neon-banner-close" onclick="event.stopPropagation(); closeNeonBanner();">&times;</button>
+        <div class="neon-banner-content">
+            <span class="neon-banner-badge">Nuevo</span>
+            <span class="neon-banner-icon">📹</span>
+            <div class="neon-banner-text">Telemedicina</div>
+            <div class="neon-banner-subtitle">Consultas online - Alcance mundial</div>
+        </div>
+    </div>
+
     <!-- Announcements Banner / Cartelera -->
     <div id="announcements-container" class="announcements-banner" style="display: none;">
         <div class="announcements-header">
@@ -2082,6 +2374,58 @@
                             <input type="checkbox" id="notify-whatsapp-check" checked onchange="updateNotificationSettings()">
                             <span style="color: var(--text-secondary); font-size: 0.85rem;">Notificar por WhatsApp</span>
                         </label>
+                    </div>
+                </div>
+
+                <!-- Admin Section (only visible to admins) -->
+                <div id="admin-section" class="admin-section" style="display: none;">
+                    <h4><span>👑</span> Panel de Administración</h4>
+
+                    <!-- Professional list for admin -->
+                    <div class="admin-professional-list" id="admin-professional-list">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;">Cargando profesionales...</p>
+                    </div>
+
+                    <!-- Add external professional -->
+                    <div class="admin-add-professional">
+                        <button class="btn btn-secondary" onclick="toggleAddProfessionalForm()" style="width: 100%; font-size: 0.85rem;">
+                            + Agregar Profesional Externo
+                        </button>
+                        <div id="admin-add-form" class="admin-add-form" style="display: none;">
+                            <form onsubmit="adminAddProfessional(event)">
+                                <div class="form-group">
+                                    <label>Nombre Completo *</label>
+                                    <input type="text" id="admin-add-fullname" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="admin-add-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Contraseña temporal *</label>
+                                    <input type="text" id="admin-add-password" required placeholder="El profesional podrá cambiarla después">
+                                </div>
+                                <div class="form-group">
+                                    <label>Especialidad</label>
+                                    <select id="admin-add-specialty">
+                                        <option value="Psiquiatría">Psiquiatría</option>
+                                        <option value="Psicología">Psicología</option>
+                                        <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                        <option value="Enfermería">Enfermería</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>WhatsApp</label>
+                                    <input type="tel" id="admin-add-whatsapp" placeholder="Ej: 2262656681">
+                                </div>
+                                <div id="admin-add-error" class="login-error"></div>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <button type="submit" class="admin-btn admin-btn-approve" style="flex: 1;">Crear Profesional</button>
+                                    <button type="button" class="admin-btn admin-btn-deactivate" onclick="toggleAddProfessionalForm()">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4289,7 +4633,174 @@ function closeModal(event) {
         // Load announcements on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadAnnouncements();
+            initNeonBanner();
         });
+
+        // ========== NEON BANNER FUNCTIONS ==========
+        function initNeonBanner() {
+            // Check if banner was closed in this session
+            const bannerClosed = sessionStorage.getItem('neonBannerClosed');
+            if (bannerClosed) {
+                const banner = document.getElementById('neon-telemedicina-banner');
+                if (banner) banner.style.display = 'none';
+            }
+        }
+
+        function closeNeonBanner() {
+            const banner = document.getElementById('neon-telemedicina-banner');
+            if (banner) {
+                banner.style.display = 'none';
+                sessionStorage.setItem('neonBannerClosed', 'true');
+            }
+        }
+
+        // ========== ADMIN FUNCTIONS ==========
+        // Admin emails - can be configured via environment or hardcoded
+        const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+
+        function isAdmin() {
+            return professionalData && ADMIN_EMAILS.includes(professionalData.email);
+        }
+
+        function toggleAddProfessionalForm() {
+            const form = document.getElementById('admin-add-form');
+            if (form) {
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        async function loadAdminProfessionalList() {
+            if (!isAdmin()) return;
+
+            const listEl = document.getElementById('admin-professional-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch(`/api/professionals?action=admin_list&sessionToken=${professionalSession}`);
+                const data = await res.json();
+
+                if (data.professionals && data.professionals.length > 0) {
+                    listEl.innerHTML = data.professionals.map(prof => `
+                        <div class="admin-professional-item ${!prof.isActive ? 'inactive' : prof.isPending ? 'pending' : ''}">
+                            <div class="admin-professional-header">
+                                <div>
+                                    <div class="admin-professional-name">${prof.fullName}</div>
+                                    <div class="admin-professional-specialty">${prof.specialty} - ${prof.email}</div>
+                                </div>
+                                <span class="admin-professional-status ${prof.isActive ? 'active' : prof.isPending ? 'pending' : 'inactive'}">
+                                    ${prof.isActive ? 'Activo' : prof.isPending ? 'Pendiente' : 'Inactivo'}
+                                </span>
+                            </div>
+                            <div class="admin-professional-actions">
+                                ${prof.isPending ? `
+                                    <button class="admin-btn admin-btn-approve" onclick="adminApproveProfessional(${prof.id})">Aprobar</button>
+                                ` : ''}
+                                ${prof.isActive ? `
+                                    <button class="admin-btn admin-btn-deactivate" onclick="adminToggleProfessional(${prof.id}, false)">Desactivar</button>
+                                ` : `
+                                    <button class="admin-btn admin-btn-activate" onclick="adminToggleProfessional(${prof.id}, true)">Activar</button>
+                                `}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">No hay profesionales registrados</p>';
+                }
+            } catch (e) {
+                console.error('Error loading admin list:', e);
+                listEl.innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Error al cargar profesionales</p>';
+            }
+        }
+
+        async function adminToggleProfessional(profId, activate) {
+            if (!isAdmin() || !confirm(`¿${activate ? 'Activar' : 'Desactivar'} este profesional?`)) return;
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'admin_toggle_active',
+                        sessionToken: professionalSession,
+                        professionalId: profId,
+                        isActive: activate
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    loadAdminProfessionalList();
+                } else {
+                    alert(data.error || 'Error al actualizar profesional');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function adminApproveProfessional(profId) {
+            if (!isAdmin() || !confirm('¿Aprobar este profesional?')) return;
+            await adminToggleProfessional(profId, true);
+        }
+
+        async function adminAddProfessional(event) {
+            event.preventDefault();
+            if (!isAdmin()) return;
+
+            const fullName = document.getElementById('admin-add-fullname').value;
+            const email = document.getElementById('admin-add-email').value;
+            const password = document.getElementById('admin-add-password').value;
+            const specialty = document.getElementById('admin-add-specialty').value;
+            const whatsapp = document.getElementById('admin-add-whatsapp').value;
+            const errorEl = document.getElementById('admin-add-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'admin_create_professional',
+                        sessionToken: professionalSession,
+                        fullName,
+                        email,
+                        password,
+                        specialty,
+                        whatsapp
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    // Clear form
+                    document.getElementById('admin-add-fullname').value = '';
+                    document.getElementById('admin-add-email').value = '';
+                    document.getElementById('admin-add-password').value = '';
+                    document.getElementById('admin-add-whatsapp').value = '';
+                    toggleAddProfessionalForm();
+                    loadAdminProfessionalList();
+                    alert('Profesional creado exitosamente');
+                } else {
+                    errorEl.textContent = data.error || 'Error al crear profesional';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        // Override showProfessionalDashboard to include admin check
+        const originalShowProfessionalDashboard = showProfessionalDashboard;
+        showProfessionalDashboard = function() {
+            originalShowProfessionalDashboard();
+
+            // Show admin section if user is admin
+            const adminSection = document.getElementById('admin-section');
+            if (adminSection && isAdmin()) {
+                adminSection.style.display = 'block';
+                loadAdminProfessionalList();
+            }
+        };
     </script>
 </body>
 </html>
