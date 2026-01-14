@@ -1,5 +1,5 @@
 import type { Context, Config } from "@netlify/functions";
-import { neon } from "@netlify/neon";
+import { getDatabase } from "./lib/db.mts";
 
 // Migration SQL for all tables
 const migrationSQL = `
@@ -145,17 +145,17 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const sql = neon();
+    const sql = getDatabase();
     const results: string[] = [];
 
     // Run table creation
     results.push("Creating tables...");
-    await sql(migrationSQL);
+    await sql.unsafe(migrationSQL);
     results.push("Tables created successfully");
 
     // Run index creation
     results.push("Creating indexes...");
-    await sql(indexesSQL);
+    await sql.unsafe(indexesSQL);
     results.push("Indexes created successfully");
 
     // Verify tables exist

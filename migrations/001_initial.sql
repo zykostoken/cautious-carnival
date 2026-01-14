@@ -1,5 +1,6 @@
 -- Database Migration for Clinica Jose Ingenieros
--- Run this migration using: psql $NETLIFY_DATABASE_URL -f migrations/001_initial.sql
+-- Run this migration using: psql $SUPABASE_DATABASE_URL -f migrations/001_initial.sql
+-- Also supports: psql $NETLIFY_DATABASE_URL -f migrations/001_initial.sql
 
 -- ===========================================
 -- USER SESSIONS AND ANALYTICS TABLES

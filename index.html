@@ -1326,6 +1326,148 @@
             .team-members li { flex-direction: column; align-items: flex-start; }
             .modal-content { margin: 1rem; }
         }
+
+        /* ========== VIDEO CALL STYLES ========== */
+        .video-call-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .video-call-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+        }
+        .video-call-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-gold);
+        }
+        .video-call-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        .video-call-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+        .video-call-status.connected .status-dot {
+            background: #28a745;
+        }
+        .video-call-status.in-call .status-dot {
+            background: #17a2b8;
+            animation: none;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        #video-status-text {
+            color: white;
+            font-size: 0.85rem;
+        }
+        .video-call-close {
+            background: rgba(220, 53, 69, 0.8);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .video-call-close:hover {
+            background: #dc3545;
+            transform: scale(1.1);
+        }
+        .video-call-body {
+            flex: 1;
+            background: #1a1a2e;
+            overflow: hidden;
+        }
+        #jitsi-container {
+            width: 100%;
+            height: 100%;
+        }
+        #jitsi-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .video-call-footer {
+            background: var(--bg-dark);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .video-call-footer p {
+            margin: 0;
+            color: var(--text-muted);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+        }
+        @media (max-width: 768px) {
+            .video-call-container {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+            .video-call-header {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .video-call-footer {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2415,6 +2557,12 @@
                         <p class="creditos-nota"><small>Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
                     </div>
 
+                    <div class="telemedicina-demo" style="margin-top: 1.5rem; padding: 1rem; background: rgba(212, 168, 83, 0.1); border-radius: 8px; border: 1px dashed var(--accent-gold);">
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--accent-gold);">Modo Demo</h4>
+                        <p style="margin: 0 0 0.75rem 0; font-size: 0.9rem;">Probá la videollamada sin necesidad de registro ni créditos. Usa Jitsi Meet (gratuito, sin descargar apps).</p>
+                        <button class="btn btn-secondary" onclick="probarVideollamadaDemo()">Probar Videollamada Demo</button>
+                    </div>
+
                     <div class="telemedicina-registro" id="tele-registro" style="display:none;">
                         <h3>Registrate para Usar Telemedicina</h3>
                         <form id="form-registro-telemedicina" onsubmit="registrarUsuarioTelemedicina(event)">
@@ -2646,6 +2794,9 @@ function closeModal(event) {
         // ========== TELEMEDICINE FUNCTIONS ==========
 
         async function checkTelemedicineUser() {
+            const registroDiv = document.getElementById('tele-registro');
+            const creditosDiv = document.getElementById('tele-creditos');
+
             if (telemedUserId) {
                 try {
                     const res = await fetch(`/api/telemedicine/credits?userId=${telemedUserId}`);
@@ -2653,20 +2804,19 @@ function closeModal(event) {
                     userCredits = data.creditBalance || 0;
                     updateCreditDisplay();
 
-                    // Show appropriate UI
-                    const registroDiv = document.getElementById('tele-registro');
-                    const creditosDiv = document.getElementById('tele-creditos');
+                    // Show appropriate UI - user is registered
                     if (registroDiv) registroDiv.style.display = 'none';
                     if (creditosDiv) creditosDiv.style.display = 'block';
                 } catch (e) {
-                    console.log('Telemedicine service unavailable');
+                    console.log('Telemedicine service unavailable - showing registration anyway');
+                    // If API fails, still show the form so user can try to register
+                    if (registroDiv) registroDiv.style.display = 'block';
+                    if (creditosDiv) creditosDiv.style.display = 'block';
                 }
             } else {
-                // Show registration form
-                const registroDiv = document.getElementById('tele-registro');
-                const creditosDiv = document.getElementById('tele-creditos');
+                // Show registration form - user not registered
                 if (registroDiv) registroDiv.style.display = 'block';
-                if (creditosDiv) creditosDiv.style.display = 'none';
+                if (creditosDiv) creditosDiv.style.display = 'block';
             }
         }
 
@@ -2728,8 +2878,8 @@ function closeModal(event) {
 
                 if (data.success) {
                     alert(`${data.message}\n\nSe han reservado $${data.creditsHeld} de tus créditos.\nSi la llamada no se concreta, serán restituidos.`);
-                    // Here you would redirect to the video call interface
-                    // window.location.href = `/videocall?token=${data.sessionToken}`;
+                    // Open video call using Jitsi Meet (free, no app needed)
+                    iniciarVideollamadaJitsi(data.sessionToken);
                 } else if (data.error === 'outside_hours') {
                     alert(`${data.message}\n\n${data.nextAvailable}`);
                 } else if (data.error === 'insufficient_credits') {
@@ -2832,6 +2982,147 @@ function closeModal(event) {
             initSession();
             updateMetrics();
         });
+
+        // ========== JITSI MEET VIDEO CALL INTEGRATION ==========
+        // Jitsi is free, open-source, no app download needed, works in browser
+
+        function iniciarVideollamadaJitsi(sessionToken) {
+            // Generate a unique room name using the session token
+            const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
+            const displayName = telemedUserId ? `Paciente_${telemedUserId}` : 'Paciente';
+
+            // Create the video call container
+            const videoModal = document.createElement('div');
+            videoModal.id = 'video-call-modal';
+            videoModal.innerHTML = `
+                <div class="video-call-overlay">
+                    <div class="video-call-container">
+                        <div class="video-call-header">
+                            <h3>Videoconsulta - Clínica José Ingenieros</h3>
+                            <div class="video-call-status">
+                                <span class="status-dot"></span>
+                                <span id="video-status-text">Conectando...</span>
+                            </div>
+                            <button class="video-call-close" onclick="cerrarVideollamada('${sessionToken}')" title="Finalizar llamada">&times;</button>
+                        </div>
+                        <div class="video-call-body">
+                            <div id="jitsi-container"></div>
+                        </div>
+                        <div class="video-call-footer">
+                            <p><small>La videollamada utiliza Jitsi Meet (tecnología segura y cifrada). No se requiere descargar ninguna aplicación.</small></p>
+                            <button class="btn btn-danger" onclick="cerrarVideollamada('${sessionToken}')">Finalizar Consulta</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(videoModal);
+
+            // Load Jitsi Meet API
+            if (!window.JitsiMeetExternalAPI) {
+                const script = document.createElement('script');
+                script.src = 'https://meet.jit.si/external_api.js';
+                script.onload = () => cargarJitsi(roomName, displayName);
+                document.head.appendChild(script);
+            } else {
+                cargarJitsi(roomName, displayName);
+            }
+        }
+
+        function cargarJitsi(roomName, displayName) {
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-container'),
+                userInfo: {
+                    displayName: displayName
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true,
+                    defaultLanguage: 'es'
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    DEFAULT_BACKGROUND: '#1a1a2e',
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
+                        'videoquality', 'tileview'
+                    ],
+                    SETTINGS_SECTIONS: ['devices', 'language'],
+                    MOBILE_APP_PROMO: false,
+                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+                }
+            };
+
+            const api = new JitsiMeetExternalAPI(domain, options);
+
+            // Event handlers
+            api.addEventListener('videoConferenceJoined', () => {
+                const statusText = document.getElementById('video-status-text');
+                if (statusText) {
+                    statusText.textContent = 'Conectado - Esperando al profesional';
+                    statusText.parentElement.classList.add('connected');
+                }
+            });
+
+            api.addEventListener('participantJoined', (participant) => {
+                const statusText = document.getElementById('video-status-text');
+                if (statusText) {
+                    statusText.textContent = 'En consulta';
+                    statusText.parentElement.classList.add('in-call');
+                }
+            });
+
+            api.addEventListener('readyToClose', () => {
+                const modal = document.getElementById('video-call-modal');
+                if (modal) modal.remove();
+            });
+
+            // Store API reference for cleanup
+            window.jitsiApi = api;
+        }
+
+        async function cerrarVideollamada(sessionToken) {
+            if (confirm('¿Deseas finalizar la videoconsulta?')) {
+                // Dispose Jitsi
+                if (window.jitsiApi) {
+                    window.jitsiApi.dispose();
+                    window.jitsiApi = null;
+                }
+
+                // Remove modal
+                const modal = document.getElementById('video-call-modal');
+                if (modal) modal.remove();
+
+                // Notify backend that call ended
+                try {
+                    await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'complete_call',
+                            sessionToken: sessionToken
+                        })
+                    });
+                    alert('Consulta finalizada. Los créditos han sido procesados.');
+                    checkTelemedicineUser(); // Refresh credits
+                } catch (e) {
+                    console.log('Error notifying backend:', e);
+                }
+            }
+        }
+
+        // Function to test video call without backend (for development/demo)
+        function probarVideollamadaDemo() {
+            const testToken = 'demo_' + Date.now().toString(36);
+            iniciarVideollamadaJitsi(testToken);
+        }
     </script>
 </body>
 </html>

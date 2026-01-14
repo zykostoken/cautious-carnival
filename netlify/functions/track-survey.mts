@@ -1,5 +1,5 @@
 import type { Context, Config } from "@netlify/functions";
-import { neon } from "@netlify/neon";
+import { getDatabase } from "./lib/db.mts";
 
 export default async (req: Request, context: Context) => {
   if (req.method !== "POST") {
@@ -10,7 +10,7 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const sql = neon();
+    const sql = getDatabase();
     const body = await req.json();
     const { surveyId, response, sessionId } = body;
 
