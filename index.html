@@ -577,6 +577,287 @@
             font-weight: 600;
             text-transform: uppercase;
         }
+
+        /* ========== BANNER NEÓN TELEMEDICINA ========== */
+        .neon-banner {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 999;
+            cursor: pointer;
+            animation: neonFloat 3s ease-in-out infinite;
+        }
+        .neon-banner-content {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 166, 255, 0.15) 100%);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .neon-banner-content::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6);
+            background-size: 200% auto;
+            animation: neonGlow 2s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+        .neon-banner-content::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5),
+                        0 0 60px rgba(88, 166, 255, 0.3),
+                        inset 0 0 30px rgba(139, 92, 246, 0.1);
+            animation: neonPulse 2s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes neonGlow {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        @keyframes neonPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        @keyframes neonFloat {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .neon-banner-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+            animation: iconPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .neon-banner-text {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+        }
+        .neon-banner-subtitle {
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            margin-top: 0.25rem;
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.8);
+        }
+        .neon-banner-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: white;
+            font-size: 0.6rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            animation: badgePulse 1s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+        }
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+        }
+        .neon-banner-close {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 24px;
+            height: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .neon-banner:hover .neon-banner-close {
+            opacity: 1;
+        }
+        .neon-banner-close:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            border-color: var(--accent-gold);
+        }
+        @media (max-width: 768px) {
+            .neon-banner {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+            }
+            .neon-banner-content {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem 1rem;
+            }
+            .neon-banner-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0;
+            }
+        }
+
+        /* ========== ADMIN PANEL STYLES ========== */
+        .admin-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .admin-section h4 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .admin-professional-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .admin-professional-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .admin-professional-item.pending {
+            border-color: var(--accent-gold);
+            background: rgba(212, 168, 83, 0.1);
+        }
+        .admin-professional-item.inactive {
+            opacity: 0.6;
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+        .admin-professional-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .admin-professional-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .admin-professional-specialty {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .admin-professional-status {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .admin-professional-status.active {
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-green);
+        }
+        .admin-professional-status.pending {
+            background: rgba(212, 168, 83, 0.2);
+            color: var(--accent-gold);
+        }
+        .admin-professional-status.inactive {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .admin-professional-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .admin-btn {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .admin-btn-approve {
+            background: var(--accent-green);
+            color: white;
+        }
+        .admin-btn-approve:hover {
+            background: #2ea043;
+        }
+        .admin-btn-deactivate {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+        .admin-btn-deactivate:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .admin-btn-activate {
+            background: transparent;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        .admin-btn-activate:hover {
+            background: var(--accent-green);
+            color: white;
+        }
+        .admin-add-professional {
+            margin-top: 1rem;
+        }
+        .admin-add-form {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .admin-add-form .form-group {
+            margin-bottom: 0.75rem;
+        }
+        .admin-add-form label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .admin-add-form input,
+        .admin-add-form select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        .admin-add-form input:focus,
+        .admin-add-form select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
         /* Telemedicina Modal Styles */
         .telemedicina-horario {
             background: rgba(88, 166, 255, 0.1);
@@ -1101,6 +1382,473 @@
             left: 0;
             color: var(--accent-gold);
         }
+
+        /* ========== CARTELERA / ANNOUNCEMENTS ========== */
+        .announcements-banner {
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.15) 0%, rgba(88, 166, 255, 0.1) 100%);
+            border: 1px solid rgba(212, 168, 83, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 2rem;
+            position: relative;
+            z-index: 10;
+        }
+        .announcements-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+        .announcement-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .announcement-item.pinned {
+            border-left: 3px solid var(--accent-gold);
+        }
+        .announcement-type {
+            font-size: 1.2rem;
+        }
+        .announcement-content h4 {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        .announcement-content p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin: 0;
+            line-height: 1.5;
+        }
+        .announcement-meta {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* ========== PANEL PROFESIONAL ========== */
+        .professional-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            z-index: 1100;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+        }
+        .professional-panel.active {
+            right: 0;
+        }
+        .professional-panel-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1) 0%, transparent 100%);
+        }
+        .professional-panel-header h3 {
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+        .professional-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+        }
+        .status-indicator.online {
+            background: var(--accent-green);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(63, 185, 80, 0); }
+        }
+        .professional-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        .call-queue-section h4 {
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .queue-count {
+            background: var(--accent-warm);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        .call-queue-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .call-queue-item:hover {
+            border-color: var(--accent-green);
+        }
+        .call-queue-item .patient-info {
+            margin-bottom: 0.75rem;
+        }
+        .call-queue-item .patient-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .call-queue-item .waiting-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .call-queue-item .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-take-call {
+            background: var(--accent-green);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-take-call:hover {
+            background: #45c95a;
+            transform: translateY(-2px);
+        }
+        .btn-transfer {
+            background: transparent;
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+        .btn-transfer:hover {
+            background: rgba(88, 166, 255, 0.1);
+        }
+        .professional-panel-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toggle-availability {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--bg-card);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-switch.active {
+            background: var(--accent-green);
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+        .toggle-switch.active::after {
+            left: 27px;
+        }
+        .professional-panel-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        .professional-panel-close:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+        }
+
+        /* ========== LOGIN PROFESIONAL ========== */
+        .login-form {
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .login-form .form-group {
+            margin-bottom: 1rem;
+        }
+        .login-form label {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+        .login-form .btn {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .login-error {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .login-error.visible {
+            display: block;
+        }
+
+        /* ========== VIDEO CALL STYLES ========== */
+        .video-call-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-call-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .video-call-header {
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .video-call-header h3 {
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .video-call-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+        .video-call-status .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-warm);
+            animation: blink 1s infinite;
+        }
+        .video-call-status.connected .status-dot {
+            background: var(--accent-green);
+            animation: none;
+        }
+        .video-call-status.in-call .status-dot {
+            background: var(--accent-green);
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .video-call-close {
+            background: rgba(255, 100, 100, 0.2);
+            border: none;
+            color: #ff6b6b;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+        .video-call-close:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+        .video-call-body {
+            flex: 1;
+            position: relative;
+        }
+        #jitsi-container {
+            width: 100%;
+            height: 100%;
+        }
+        .video-call-footer {
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .video-call-footer p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        /* ========== TELEMEDICINA STYLES ========== */
+        .telemedicina-horario {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .telemedicina-horario h3 {
+            color: var(--accent-green) !important;
+            margin: 0 0 0.5rem 0 !important;
+        }
+        .telemedicina-opciones {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .telemedicina-option {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .telemedicina-option:hover {
+            border-color: var(--accent-gold);
+        }
+        .telemedicina-option h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .telemedicina-option p {
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .telemedicina-creditos {
+            background: rgba(212, 168, 83, 0.1);
+            border: 1px solid rgba(212, 168, 83, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .creditos-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .creditos-balance, .creditos-minimo {
+            font-size: 0.9rem;
+        }
+        .creditos-nota {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+        .btn-outline:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+        }
+        .telemedicina-registro {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .telemedicina-registro .form-group {
+            margin-bottom: 1rem;
+        }
+        .telemedicina-registro label {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .telemedicina-registro input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .telemedicina-registro input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+
         .modal-linkedin {
             display: inline-flex;
             align-items: center;
@@ -1490,8 +2238,206 @@
             <a href="#servicios">Servicios</a>
             <a href="#bitacora">Bitácora</a>
             <a href="#contacto">Contacto</a>
+            <a href="#" onclick="openProfessionalLogin(); return false;" style="color: var(--accent-green);">Profesionales</a>
         </nav>
     </header>
+
+    <!-- Banner Neón Telemedicina -->
+    <div id="neon-telemedicina-banner" class="neon-banner" onclick="openModal('telemedicina')">
+        <button class="neon-banner-close" onclick="event.stopPropagation(); closeNeonBanner();">&times;</button>
+        <div class="neon-banner-content">
+            <span class="neon-banner-badge">Nuevo</span>
+            <span class="neon-banner-icon">📹</span>
+            <div class="neon-banner-text">Telemedicina</div>
+            <div class="neon-banner-subtitle">Consultas online - Alcance mundial</div>
+        </div>
+    </div>
+
+    <!-- Announcements Banner / Cartelera -->
+    <div id="announcements-container" class="announcements-banner" style="display: none;">
+        <div class="announcements-header">
+            <span>📋</span> Cartelera del Día
+        </div>
+        <div id="announcements-list">
+            <!-- Announcements will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Professional Panel (side drawer) -->
+    <div id="professional-panel" class="professional-panel">
+        <button class="professional-panel-close" onclick="closeProfessionalPanel()">&times;</button>
+
+        <!-- Login View -->
+        <div id="prof-login-view">
+            <div class="professional-panel-header">
+                <h3>Acceso Profesionales</h3>
+                <p style="color: var(--text-secondary); margin: 0;">Ingresá con tus credenciales</p>
+            </div>
+            <div class="professional-panel-body">
+                <div class="login-form">
+                    <form id="professional-login-form" onsubmit="loginProfessional(event)">
+                        <div class="form-group">
+                            <label for="prof-email">Email</label>
+                            <input type="email" id="prof-email" placeholder="tu@email.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prof-password">Contraseña</label>
+                            <input type="password" id="prof-password" placeholder="••••••••" required>
+                        </div>
+                        <div class="login-error" id="login-error">Credenciales inválidas</div>
+                        <button type="submit" class="btn btn-primary">Ingresar</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                        ¿Nuevo profesional? <a href="#" onclick="showRegisterForm(); return false;" style="color: var(--accent-gold);">Registrarse</a>
+                    </p>
+                </div>
+
+                <!-- Registration Form (hidden by default) -->
+                <div id="register-form-container" style="display: none;">
+                    <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Registro de Profesional</h4>
+                    <form id="professional-register-form" onsubmit="registerProfessional(event)">
+                        <div class="form-group">
+                            <label>Nombre Completo</label>
+                            <input type="text" id="reg-fullname" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="reg-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="reg-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Especialidad</label>
+                            <select id="reg-specialty" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                <option value="Psiquiatría">Psiquiatría</option>
+                                <option value="Psicología">Psicología</option>
+                                <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                <option value="Enfermería">Enfermería</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>WhatsApp (para notificaciones)</label>
+                            <input type="tel" id="reg-whatsapp" placeholder="2262656681">
+                        </div>
+                        <div class="login-error" id="register-error"></div>
+                        <button type="submit" class="btn btn-primary">Registrarse</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem;">
+                        <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View (hidden by default) -->
+        <div id="prof-dashboard-view" style="display: none;">
+            <div class="professional-panel-header">
+                <h3 id="prof-name">Dr. Profesional</h3>
+                <div class="professional-status">
+                    <span class="status-indicator" id="prof-status-indicator"></span>
+                    <span id="prof-status-text">Desconectado</span>
+                </div>
+            </div>
+            <div class="professional-panel-body">
+                <!-- Waiting Queue -->
+                <div class="call-queue-section">
+                    <h4>
+                        <span>📞 Llamadas en Espera</span>
+                        <span class="queue-count" id="queue-count">0</span>
+                    </h4>
+                    <div id="call-queue-list">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">No hay llamadas en espera</p>
+                    </div>
+                </div>
+
+                <!-- Active Calls -->
+                <div class="call-queue-section" style="margin-top: 2rem;">
+                    <h4 style="color: var(--accent-green);">
+                        <span>📹 Mis Llamadas Activas</span>
+                    </h4>
+                    <div id="active-calls-list">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Sin llamadas activas</p>
+                    </div>
+                </div>
+
+                <!-- Notification Settings -->
+                <div style="margin-top: 2rem; padding: 1rem; background: var(--bg-card); border-radius: 8px;">
+                    <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">Configuración de Notificaciones</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="notify-email-check" checked onchange="updateNotificationSettings()">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Notificar por Email</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="notify-whatsapp-check" checked onchange="updateNotificationSettings()">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">Notificar por WhatsApp</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Admin Section (only visible to admins) -->
+                <div id="admin-section" class="admin-section" style="display: none;">
+                    <h4><span>👑</span> Panel de Administración</h4>
+
+                    <!-- Professional list for admin -->
+                    <div class="admin-professional-list" id="admin-professional-list">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;">Cargando profesionales...</p>
+                    </div>
+
+                    <!-- Add external professional -->
+                    <div class="admin-add-professional">
+                        <button class="btn btn-secondary" onclick="toggleAddProfessionalForm()" style="width: 100%; font-size: 0.85rem;">
+                            + Agregar Profesional Externo
+                        </button>
+                        <div id="admin-add-form" class="admin-add-form" style="display: none;">
+                            <form onsubmit="adminAddProfessional(event)">
+                                <div class="form-group">
+                                    <label>Nombre Completo *</label>
+                                    <input type="text" id="admin-add-fullname" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="admin-add-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Contraseña temporal *</label>
+                                    <input type="text" id="admin-add-password" required placeholder="El profesional podrá cambiarla después">
+                                </div>
+                                <div class="form-group">
+                                    <label>Especialidad</label>
+                                    <select id="admin-add-specialty">
+                                        <option value="Psiquiatría">Psiquiatría</option>
+                                        <option value="Psicología">Psicología</option>
+                                        <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                        <option value="Enfermería">Enfermería</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>WhatsApp</label>
+                                    <input type="tel" id="admin-add-whatsapp" placeholder="Ej: 2262656681">
+                                </div>
+                                <div id="admin-add-error" class="login-error"></div>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <button type="submit" class="admin-btn admin-btn-approve" style="flex: 1;">Crear Profesional</button>
+                                    <button type="button" class="admin-btn admin-btn-deactivate" onclick="toggleAddProfessionalForm()">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="professional-panel-footer">
+                <div class="toggle-availability">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Disponible</span>
+                    <div class="toggle-switch" id="availability-toggle" onclick="toggleAvailability()"></div>
+                </div>
+                <button class="btn btn-secondary" onclick="logoutProfessional()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
 
     <main>
         <!-- Hero -->
@@ -3123,6 +4069,738 @@ function closeModal(event) {
             const testToken = 'demo_' + Date.now().toString(36);
             iniciarVideollamadaJitsi(testToken);
         }
+
+        // ========== ANNOUNCEMENTS / CARTELERA ==========
+
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch('/api/announcements');
+                const data = await res.json();
+
+                if (data.announcements && data.announcements.length > 0) {
+                    const container = document.getElementById('announcements-container');
+                    const list = document.getElementById('announcements-list');
+
+                    list.innerHTML = data.announcements.map(a => {
+                        const typeEmoji = {
+                            'info': 'ℹ️',
+                            'event': '📅',
+                            'alert': '⚠️',
+                            'celebration': '🎉'
+                        }[a.type] || '📢';
+
+                        const date = new Date(a.createdAt).toLocaleDateString('es-AR');
+
+                        return `
+                            <div class="announcement-item ${a.isPinned ? 'pinned' : ''}">
+                                <span class="announcement-type">${typeEmoji}</span>
+                                <div class="announcement-content">
+                                    <h4>${a.title}</h4>
+                                    <p>${a.content}</p>
+                                    <span class="announcement-meta">${date}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    container.style.display = 'block';
+                }
+            } catch (e) {
+                console.log('Announcements not available');
+            }
+        }
+
+        // ========== PROFESSIONAL PANEL ==========
+
+        let professionalSession = localStorage.getItem('professionalSession');
+        let professionalData = null;
+        let queueRefreshInterval = null;
+
+        function openProfessionalLogin() {
+            const panel = document.getElementById('professional-panel');
+            panel.classList.add('active');
+
+            // If already logged in, show dashboard
+            if (professionalSession) {
+                verifyProfessionalSession();
+            }
+        }
+
+        function closeProfessionalPanel() {
+            const panel = document.getElementById('professional-panel');
+            panel.classList.remove('active');
+        }
+
+        function showRegisterForm() {
+            document.querySelector('.login-form').style.display = 'none';
+            document.getElementById('register-form-container').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.querySelector('.login-form').style.display = 'block';
+            document.getElementById('register-form-container').style.display = 'none';
+        }
+
+        async function loginProfessional(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('prof-email').value;
+            const password = document.getElementById('prof-password').value;
+            const errorEl = document.getElementById('login-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        email,
+                        password
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    professionalSession = data.sessionToken;
+                    professionalData = data.professional;
+                    localStorage.setItem('professionalSession', professionalSession);
+
+                    showProfessionalDashboard();
+                    errorEl.classList.remove('visible');
+                } else {
+                    errorEl.textContent = data.error || 'Error de autenticación';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        async function registerProfessional(event) {
+            event.preventDefault();
+
+            const fullName = document.getElementById('reg-fullname').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const specialty = document.getElementById('reg-specialty').value;
+            const whatsapp = document.getElementById('reg-whatsapp').value;
+            const errorEl = document.getElementById('register-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        fullName,
+                        email,
+                        password,
+                        specialty,
+                        whatsapp
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    professionalSession = data.sessionToken;
+                    professionalData = data.professional;
+                    localStorage.setItem('professionalSession', professionalSession);
+
+                    showProfessionalDashboard();
+                    alert('Registro exitoso. ¡Bienvenido!');
+                } else {
+                    errorEl.textContent = data.error || 'Error en el registro';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        async function verifyProfessionalSession() {
+            if (!professionalSession) return;
+
+            try {
+                const res = await fetch(`/api/professionals?action=verify&sessionToken=${professionalSession}`);
+                const data = await res.json();
+
+                if (data.valid) {
+                    professionalData = data.professional;
+                    showProfessionalDashboard();
+                } else {
+                    // Session expired, clear it
+                    localStorage.removeItem('professionalSession');
+                    professionalSession = null;
+                    professionalData = null;
+                }
+            } catch (e) {
+                console.log('Session verification failed');
+            }
+        }
+
+        function showProfessionalDashboard() {
+            document.getElementById('prof-login-view').style.display = 'none';
+            document.getElementById('prof-dashboard-view').style.display = 'block';
+
+            if (professionalData) {
+                document.getElementById('prof-name').textContent = professionalData.fullName;
+
+                // Update availability toggle
+                const toggle = document.getElementById('availability-toggle');
+                const indicator = document.getElementById('prof-status-indicator');
+                const statusText = document.getElementById('prof-status-text');
+
+                if (professionalData.isAvailable) {
+                    toggle.classList.add('active');
+                    indicator.classList.add('online');
+                    statusText.textContent = 'Disponible';
+                } else {
+                    toggle.classList.remove('active');
+                    indicator.classList.remove('online');
+                    statusText.textContent = 'No disponible';
+                }
+
+                // Update notification checkboxes
+                if (professionalData.notifications) {
+                    document.getElementById('notify-email-check').checked = professionalData.notifications.email;
+                    document.getElementById('notify-whatsapp-check').checked = professionalData.notifications.whatsapp;
+                }
+            }
+
+            // Start refreshing call queue
+            loadCallQueue();
+            loadActiveCalls();
+            queueRefreshInterval = setInterval(() => {
+                loadCallQueue();
+                loadActiveCalls();
+            }, 10000); // Refresh every 10 seconds
+        }
+
+        async function logoutProfessional() {
+            if (professionalSession) {
+                try {
+                    await fetch('/api/professionals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'logout',
+                            sessionToken: professionalSession
+                        })
+                    });
+                } catch (e) {
+                    console.log('Logout notification failed');
+                }
+            }
+
+            localStorage.removeItem('professionalSession');
+            professionalSession = null;
+            professionalData = null;
+
+            if (queueRefreshInterval) {
+                clearInterval(queueRefreshInterval);
+                queueRefreshInterval = null;
+            }
+
+            document.getElementById('prof-login-view').style.display = 'block';
+            document.getElementById('prof-dashboard-view').style.display = 'none';
+        }
+
+        async function toggleAvailability() {
+            const toggle = document.getElementById('availability-toggle');
+            const isAvailable = !toggle.classList.contains('active');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'toggle_availability',
+                        sessionToken: professionalSession,
+                        isAvailable
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const indicator = document.getElementById('prof-status-indicator');
+                    const statusText = document.getElementById('prof-status-text');
+
+                    if (data.isAvailable) {
+                        toggle.classList.add('active');
+                        indicator.classList.add('online');
+                        statusText.textContent = 'Disponible';
+                    } else {
+                        toggle.classList.remove('active');
+                        indicator.classList.remove('online');
+                        statusText.textContent = 'No disponible';
+                    }
+
+                    if (professionalData) {
+                        professionalData.isAvailable = data.isAvailable;
+                    }
+                }
+            } catch (e) {
+                console.log('Toggle availability failed');
+            }
+        }
+
+        async function updateNotificationSettings() {
+            const notifyEmail = document.getElementById('notify-email-check').checked;
+            const notifyWhatsapp = document.getElementById('notify-whatsapp-check').checked;
+
+            try {
+                await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_notifications',
+                        sessionToken: professionalSession,
+                        notifyEmail,
+                        notifyWhatsapp
+                    })
+                });
+            } catch (e) {
+                console.log('Update notifications failed');
+            }
+        }
+
+        async function loadCallQueue() {
+            try {
+                const res = await fetch(`/api/call-queue?sessionToken=${professionalSession}&status=waiting`);
+                const data = await res.json();
+
+                const queueList = document.getElementById('call-queue-list');
+                const queueCount = document.getElementById('queue-count');
+
+                queueCount.textContent = data.waitingCount || 0;
+
+                if (data.queue && data.queue.length > 0) {
+                    queueList.innerHTML = data.queue.map(call => {
+                        const waitTime = Math.floor((Date.now() - new Date(call.createdAt).getTime()) / 60000);
+                        return `
+                            <div class="call-queue-item">
+                                <div class="patient-info">
+                                    <span class="patient-name">${call.patientName || 'Paciente'}</span>
+                                    <span class="waiting-time">Esperando: ${waitTime} min</span>
+                                </div>
+                                <div class="actions">
+                                    <button class="btn-take-call" onclick="takeCall(${call.id})">Atender</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    queueList.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">No hay llamadas en espera</p>';
+                }
+            } catch (e) {
+                console.log('Load queue failed');
+            }
+        }
+
+        async function loadActiveCalls() {
+            try {
+                const res = await fetch(`/api/call-queue?sessionToken=${professionalSession}&status=assigned`);
+                const data = await res.json();
+
+                const activeList = document.getElementById('active-calls-list');
+
+                if (data.queue && data.queue.length > 0) {
+                    activeList.innerHTML = data.queue.map(call => `
+                        <div class="call-queue-item" style="border-color: var(--accent-green);">
+                            <div class="patient-info">
+                                <span class="patient-name">${call.patientName || 'Paciente'}</span>
+                                ${call.patientEmail ? `<br><small style="color: var(--text-secondary);">${call.patientEmail}</small>` : ''}
+                            </div>
+                            <div class="actions">
+                                <button class="btn-take-call" onclick="joinCall('${call.roomName}')">Unirse</button>
+                                <button class="btn-transfer" onclick="showTransferDialog(${call.id})">Derivar</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    activeList.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">Sin llamadas activas</p>';
+                }
+            } catch (e) {
+                console.log('Load active calls failed');
+            }
+        }
+
+        async function takeCall(queueId) {
+            try {
+                const res = await fetch('/api/call-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'take',
+                        sessionToken: professionalSession,
+                        queueId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Join the video call
+                    joinCall(data.roomName);
+                    // Refresh the queue
+                    loadCallQueue();
+                    loadActiveCalls();
+                } else {
+                    alert(data.error || 'No se pudo tomar la llamada');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        function joinCall(roomName) {
+            // Create the professional video call interface
+            const videoModal = document.createElement('div');
+            videoModal.id = 'video-call-modal';
+            videoModal.innerHTML = `
+                <div class="video-call-overlay">
+                    <div class="video-call-container">
+                        <div class="video-call-header">
+                            <h3>Videoconsulta - Profesional</h3>
+                            <div class="video-call-status">
+                                <span class="status-dot"></span>
+                                <span id="video-status-text">Conectando...</span>
+                            </div>
+                            <button class="video-call-close" onclick="endProfessionalCall('${roomName}')" title="Finalizar llamada">&times;</button>
+                        </div>
+                        <div class="video-call-body">
+                            <div id="jitsi-container"></div>
+                        </div>
+                        <div class="video-call-footer">
+                            <p><small>Sala: ${roomName}</small></p>
+                            <button class="btn btn-danger" onclick="endProfessionalCall('${roomName}')">Finalizar Consulta</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(videoModal);
+
+            // Load Jitsi
+            if (!window.JitsiMeetExternalAPI) {
+                const script = document.createElement('script');
+                script.src = 'https://meet.jit.si/external_api.js';
+                script.onload = () => loadJitsiForProfessional(roomName);
+                document.head.appendChild(script);
+            } else {
+                loadJitsiForProfessional(roomName);
+            }
+        }
+
+        function loadJitsiForProfessional(roomName) {
+            const displayName = professionalData ? professionalData.fullName : 'Profesional';
+
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-container'),
+                userInfo: {
+                    displayName: displayName
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true,
+                    defaultLanguage: 'es'
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    DEFAULT_BACKGROUND: '#1a1a2e',
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
+                        'videoquality', 'tileview', 'recording'
+                    ],
+                    MOBILE_APP_PROMO: false
+                }
+            };
+
+            const api = new JitsiMeetExternalAPI('meet.jit.si', options);
+
+            api.addEventListener('videoConferenceJoined', () => {
+                const statusText = document.getElementById('video-status-text');
+                if (statusText) {
+                    statusText.textContent = 'En consulta';
+                    statusText.parentElement.classList.add('in-call');
+                }
+            });
+
+            window.jitsiApi = api;
+        }
+
+        async function endProfessionalCall(roomName) {
+            if (confirm('¿Deseas finalizar esta consulta?')) {
+                if (window.jitsiApi) {
+                    window.jitsiApi.dispose();
+                    window.jitsiApi = null;
+                }
+
+                const modal = document.getElementById('video-call-modal');
+                if (modal) modal.remove();
+
+                // Refresh lists
+                loadCallQueue();
+                loadActiveCalls();
+            }
+        }
+
+        async function showTransferDialog(queueId) {
+            // Get available professionals
+            try {
+                const res = await fetch('/api/professionals?action=available');
+                const data = await res.json();
+
+                if (data.professionals && data.professionals.length > 0) {
+                    const options = data.professionals
+                        .filter(p => p.id !== professionalData?.id)
+                        .map(p => `${p.id}: ${p.fullName} (${p.specialty})`);
+
+                    if (options.length === 0) {
+                        alert('No hay otros profesionales disponibles para derivar');
+                        return;
+                    }
+
+                    const selection = prompt(
+                        `Selecciona profesional para derivar:\n\n${options.join('\n')}\n\nIngresa el número ID:`
+                    );
+
+                    if (selection) {
+                        const targetId = parseInt(selection.split(':')[0]);
+                        const reason = prompt('Motivo de la derivación (opcional):');
+
+                        await transferCall(queueId, targetId, reason);
+                    }
+                } else {
+                    alert('No hay profesionales disponibles para derivar');
+                }
+            } catch (e) {
+                alert('Error al cargar profesionales');
+            }
+        }
+
+        async function transferCall(queueId, targetProfessionalId, reason) {
+            try {
+                const res = await fetch('/api/call-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'transfer',
+                        sessionToken: professionalSession,
+                        queueId,
+                        targetProfessionalId,
+                        reason
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    loadCallQueue();
+                    loadActiveCalls();
+                } else {
+                    alert(data.error || 'Error al transferir');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+
+        // Check for professional hash in URL
+        if (window.location.hash === '#profesional') {
+            setTimeout(() => openProfessionalLogin(), 500);
+        }
+
+        // Auto-verify professional session on load
+        if (professionalSession) {
+            verifyProfessionalSession();
+        }
+
+        // Load announcements on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnnouncements();
+            initNeonBanner();
+        });
+
+        // ========== NEON BANNER FUNCTIONS ==========
+        function initNeonBanner() {
+            // Check if banner was closed in this session
+            const bannerClosed = sessionStorage.getItem('neonBannerClosed');
+            if (bannerClosed) {
+                const banner = document.getElementById('neon-telemedicina-banner');
+                if (banner) banner.style.display = 'none';
+            }
+        }
+
+        function closeNeonBanner() {
+            const banner = document.getElementById('neon-telemedicina-banner');
+            if (banner) {
+                banner.style.display = 'none';
+                sessionStorage.setItem('neonBannerClosed', 'true');
+            }
+        }
+
+        // ========== ADMIN FUNCTIONS ==========
+        // Admin emails - can be configured via environment or hardcoded
+        const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+
+        function isAdmin() {
+            return professionalData && ADMIN_EMAILS.includes(professionalData.email);
+        }
+
+        function toggleAddProfessionalForm() {
+            const form = document.getElementById('admin-add-form');
+            if (form) {
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        async function loadAdminProfessionalList() {
+            if (!isAdmin()) return;
+
+            const listEl = document.getElementById('admin-professional-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch(`/api/professionals?action=admin_list&sessionToken=${professionalSession}`);
+                const data = await res.json();
+
+                if (data.professionals && data.professionals.length > 0) {
+                    listEl.innerHTML = data.professionals.map(prof => `
+                        <div class="admin-professional-item ${!prof.isActive ? 'inactive' : prof.isPending ? 'pending' : ''}">
+                            <div class="admin-professional-header">
+                                <div>
+                                    <div class="admin-professional-name">${prof.fullName}</div>
+                                    <div class="admin-professional-specialty">${prof.specialty} - ${prof.email}</div>
+                                </div>
+                                <span class="admin-professional-status ${prof.isActive ? 'active' : prof.isPending ? 'pending' : 'inactive'}">
+                                    ${prof.isActive ? 'Activo' : prof.isPending ? 'Pendiente' : 'Inactivo'}
+                                </span>
+                            </div>
+                            <div class="admin-professional-actions">
+                                ${prof.isPending ? `
+                                    <button class="admin-btn admin-btn-approve" onclick="adminApproveProfessional(${prof.id})">Aprobar</button>
+                                ` : ''}
+                                ${prof.isActive ? `
+                                    <button class="admin-btn admin-btn-deactivate" onclick="adminToggleProfessional(${prof.id}, false)">Desactivar</button>
+                                ` : `
+                                    <button class="admin-btn admin-btn-activate" onclick="adminToggleProfessional(${prof.id}, true)">Activar</button>
+                                `}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">No hay profesionales registrados</p>';
+                }
+            } catch (e) {
+                console.error('Error loading admin list:', e);
+                listEl.innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Error al cargar profesionales</p>';
+            }
+        }
+
+        async function adminToggleProfessional(profId, activate) {
+            if (!isAdmin() || !confirm(`¿${activate ? 'Activar' : 'Desactivar'} este profesional?`)) return;
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'admin_toggle_active',
+                        sessionToken: professionalSession,
+                        professionalId: profId,
+                        isActive: activate
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    loadAdminProfessionalList();
+                } else {
+                    alert(data.error || 'Error al actualizar profesional');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function adminApproveProfessional(profId) {
+            if (!isAdmin() || !confirm('¿Aprobar este profesional?')) return;
+            await adminToggleProfessional(profId, true);
+        }
+
+        async function adminAddProfessional(event) {
+            event.preventDefault();
+            if (!isAdmin()) return;
+
+            const fullName = document.getElementById('admin-add-fullname').value;
+            const email = document.getElementById('admin-add-email').value;
+            const password = document.getElementById('admin-add-password').value;
+            const specialty = document.getElementById('admin-add-specialty').value;
+            const whatsapp = document.getElementById('admin-add-whatsapp').value;
+            const errorEl = document.getElementById('admin-add-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'admin_create_professional',
+                        sessionToken: professionalSession,
+                        fullName,
+                        email,
+                        password,
+                        specialty,
+                        whatsapp
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    // Clear form
+                    document.getElementById('admin-add-fullname').value = '';
+                    document.getElementById('admin-add-email').value = '';
+                    document.getElementById('admin-add-password').value = '';
+                    document.getElementById('admin-add-whatsapp').value = '';
+                    toggleAddProfessionalForm();
+                    loadAdminProfessionalList();
+                    alert('Profesional creado exitosamente');
+                } else {
+                    errorEl.textContent = data.error || 'Error al crear profesional';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        // Override showProfessionalDashboard to include admin check
+        const originalShowProfessionalDashboard = showProfessionalDashboard;
+        showProfessionalDashboard = function() {
+            originalShowProfessionalDashboard();
+
+            // Show admin section if user is admin
+            const adminSection = document.getElementById('admin-section');
+            if (adminSection && isAdmin()) {
+                adminSection.style.display = 'block';
+                loadAdminProfessionalList();
+            }
+        };
     </script>
 </body>
 </html>

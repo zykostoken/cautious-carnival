@@ -89,12 +89,48 @@ export default async (req: Request, context: Context) => {
           WHERE id = ${userId}
         `;
 
+        // Get patient info for the queue
+        const [patientInfo] = await sql`
+          SELECT email, phone, full_name FROM telemedicine_users WHERE id = ${userId}
+        `;
+
+        // Add to call queue and notify professionals
+        const [queueEntry] = await sql`
+          INSERT INTO call_queue (
+            video_session_id, user_id, patient_name, patient_email, patient_phone,
+            status, created_at
+          )
+          VALUES (
+            ${session.id}, ${userId},
+            ${patientInfo?.full_name || 'Paciente'},
+            ${patientInfo?.email || null},
+            ${patientInfo?.phone || null},
+            'waiting',
+            NOW()
+          )
+          RETURNING id
+        `;
+
+        // Trigger notification to professionals (async, don't wait)
+        const roomName = `ClinicaJoseIngenieros_${session.session_token.substring(0, 12)}`;
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'notify_new_call',
+            callQueueId: queueEntry.id,
+            patientName: patientInfo?.full_name || 'Paciente',
+            roomName
+          })
+        }).catch(e => console.log('Notification trigger failed:', e));
+
         return new Response(JSON.stringify({
           success: true,
           sessionId: session.id,
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
-          message: "Sesión creada. Un profesional se conectará en breve.",
+          queueId: queueEntry.id,
+          message: "Sesión creada. Los profesionales han sido notificados y uno se conectará en breve.",
           creditsHeld: minimumCredits
         }), {
           status: 200,
