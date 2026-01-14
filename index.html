@@ -3497,7 +3497,7 @@
                         <p>Las consultas utilizan un sistema de créditos prepagos.</p>
                         <div class="creditos-info">
                             <span class="creditos-balance">Tu saldo: <strong id="user-credits">$0</strong></span>
-                            <span class="creditos-minimo">Mínimo por consulta: <strong>$5.000</strong></span>
+                            <span class="creditos-minimo">Mínimo por consulta: <strong>$50.000</strong></span>
                         </div>
                         <button class="btn btn-outline" onclick="cargarCreditos()">Cargar Créditos</button>
                         <p class="creditos-nota"><small>Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
@@ -3883,12 +3883,12 @@ function closeModal(event) {
 
         function cargarCreditos() {
             // In production, this would integrate with a payment processor
-            const monto = prompt('Ingresa el monto a cargar (mínimo $5000):');
+            const monto = prompt('Ingresa el monto a cargar (mínimo $50.000):');
             if (!monto) return;
 
             const montoNum = parseInt(monto.replace(/\D/g, ''));
-            if (montoNum < 5000) {
-                alert('El monto mínimo es $5.000');
+            if (montoNum < 50000) {
+                alert('El monto mínimo es $50.000');
                 return;
             }
 
