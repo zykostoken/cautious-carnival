@@ -42,13 +42,13 @@ export default async (req: Request, context: Context) => {
           SELECT credit_balance FROM telemedicine_users WHERE id = ${userId}
         `;
 
-        const minimumCredits = 5000;
+        const minimumCredits = 50000;
 
         if (!user || user.credit_balance < minimumCredits) {
           return new Response(JSON.stringify({
             success: false,
             error: "insufficient_credits",
-            message: "Créditos insuficientes. Mínimo requerido: $5.000",
+            message: "Créditos insuficientes. Mínimo requerido: $50.000",
             currentBalance: user?.credit_balance || 0,
             minimumRequired: minimumCredits
           }), {
@@ -154,13 +154,13 @@ export default async (req: Request, context: Context) => {
           SELECT credit_balance FROM telemedicine_users WHERE id = ${userId}
         `;
 
-        const minimumCredits = 5000;
+        const minimumCredits = 50000;
 
         if (!user || user.credit_balance < minimumCredits) {
           return new Response(JSON.stringify({
             success: false,
             error: "insufficient_credits",
-            message: "Para agendar necesita al menos $5.000 en créditos",
+            message: "Para agendar necesita al menos $50.000 en créditos",
             currentBalance: user?.credit_balance || 0
           }), {
             status: 200,

@@ -27,14 +27,14 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({
           creditBalance: 0,
           hasCredits: false,
-          minimumRequired: 5000  // Minimum credits for a consultation
+          minimumRequired: 50000  // Minimum credits for a consultation ($50.000 ARS)
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
         });
       }
 
-      const minimumRequired = 5000; // $5000 ARS minimum for consultation
+      const minimumRequired = 50000; // $50.000 ARS minimum for consultation
 
       return new Response(JSON.stringify({
         creditBalance: user.credit_balance,
