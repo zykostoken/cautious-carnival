@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@netlify/functions": "^2.0.0",
-    "@netlify/neon": "^0.1.0"
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

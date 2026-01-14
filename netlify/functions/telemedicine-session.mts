@@ -1,9 +1,9 @@
 import type { Context, Config } from "@netlify/functions";
-import { neon } from "@netlify/neon";
+import { getDatabase } from "./lib/db.mts";
 
 // Video call session management
 export default async (req: Request, context: Context) => {
-  const sql = neon();
+  const sql = getDatabase();
 
   if (req.method === "POST") {
     try {

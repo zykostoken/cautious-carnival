@@ -1,5 +1,5 @@
 import type { Context, Config } from "@netlify/functions";
-import { neon } from "@netlify/neon";
+import { getDatabase } from "./lib/db.mts";
 
 export default async (req: Request, context: Context) => {
   if (req.method !== "GET") {
@@ -10,7 +10,7 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    const sql = neon();
+    const sql = getDatabase();
     const url = new URL(req.url);
     const sessionId = url.searchParams.get("sessionId");
 

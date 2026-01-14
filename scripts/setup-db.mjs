@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Database setup script for Clinica Jose Ingenieros
 // Run this script during build to create tables if they don't exist
+// Uses Supabase PostgreSQL
 
-import { neon } from "@netlify/neon";
+import postgres from "postgres";
 
 const migrationSQL = `
 -- User sessions tracking
@@ -139,17 +140,25 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_user ON credit_transactions(u
 async function runMigration() {
   console.log("Starting database migration...");
 
-  if (!process.env.NETLIFY_DATABASE_URL) {
-    console.log("NETLIFY_DATABASE_URL not set - skipping migration");
-    console.log("Database will be provisioned when Netlify DB is initialized");
+  // Use SUPABASE_DATABASE_URL exclusively
+  const databaseUrl = process.env.SUPABASE_DATABASE_URL;
+
+  if (!databaseUrl) {
+    console.log("SUPABASE_DATABASE_URL not set - skipping migration");
+    console.log("Database will be provisioned when SUPABASE_DATABASE_URL is configured");
     return;
   }
 
+  console.log("Connecting to Supabase PostgreSQL...");
+
   try {
-    const sql = neon();
+    const sql = postgres(databaseUrl, {
+      ssl: 'require',
+      connect_timeout: 10,
+    });
 
     console.log("Creating tables...");
-    await sql(migrationSQL);
+    await sql.unsafe(migrationSQL);
 
     // Verify tables exist
     const tables = await sql`
@@ -162,6 +171,9 @@ async function runMigration() {
     const tableNames = tables.map((t) => t.table_name);
     console.log("Migration completed successfully!");
     console.log("Tables in database:", tableNames.join(", "));
+
+    // Close connection
+    await sql.end();
 
   } catch (error) {
     console.error("Migration error:", error.message);
