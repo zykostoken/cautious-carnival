@@ -4,6 +4,10 @@
 // Uses Supabase PostgreSQL
 
 import postgres from "postgres";
+import dns from "dns";
+
+// Force IPv4 resolution to avoid Netlify build IPv6 connectivity issues
+dns.setDefaultResultOrder('ipv4first');
 
 const migrationSQL = `
 -- User sessions tracking
@@ -135,6 +139,83 @@ CREATE INDEX IF NOT EXISTS idx_video_sessions_token ON video_sessions(session_to
 CREATE INDEX IF NOT EXISTS idx_scheduled_appointments_user ON scheduled_appointments(user_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_appointments_date ON scheduled_appointments(scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_user ON credit_transactions(user_id);
+
+-- Healthcare professionals (psychiatrists, psychologists, etc.)
+CREATE TABLE IF NOT EXISTS healthcare_professionals (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    specialty VARCHAR(100) NOT NULL DEFAULT 'Psiquiatría',
+    license_number VARCHAR(50),
+    phone VARCHAR(32),
+    whatsapp VARCHAR(32),
+    is_active BOOLEAN DEFAULT TRUE,
+    is_available BOOLEAN DEFAULT FALSE,
+    max_concurrent_calls INTEGER DEFAULT 1,
+    current_calls INTEGER DEFAULT 0,
+    notify_email BOOLEAN DEFAULT TRUE,
+    notify_whatsapp BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_login TIMESTAMP WITH TIME ZONE,
+    session_token VARCHAR(255)
+);
+
+-- Call queue for managing incoming call requests
+CREATE TABLE IF NOT EXISTS call_queue (
+    id SERIAL PRIMARY KEY,
+    video_session_id INTEGER NOT NULL REFERENCES video_sessions(id),
+    user_id INTEGER NOT NULL REFERENCES telemedicine_users(id),
+    patient_name VARCHAR(255),
+    patient_email VARCHAR(255),
+    patient_phone VARCHAR(32),
+    status VARCHAR(32) NOT NULL DEFAULT 'waiting',
+    priority INTEGER DEFAULT 0,
+    assigned_professional_id INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    assigned_at TIMESTAMP WITH TIME ZONE,
+    answered_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT
+);
+
+-- Notification log for tracking sent notifications
+CREATE TABLE IF NOT EXISTS notification_log (
+    id SERIAL PRIMARY KEY,
+    recipient_type VARCHAR(32) NOT NULL,
+    recipient_id INTEGER NOT NULL,
+    channel VARCHAR(32) NOT NULL,
+    destination VARCHAR(255) NOT NULL,
+    message_type VARCHAR(64) NOT NULL,
+    message_content TEXT,
+    status VARCHAR(32) DEFAULT 'pending',
+    external_id VARCHAR(255),
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    sent_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Bulletin board / announcements
+CREATE TABLE IF NOT EXISTS announcements (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    type VARCHAR(32) DEFAULT 'info',
+    is_active BOOLEAN DEFAULT TRUE,
+    is_pinned BOOLEAN DEFAULT FALSE,
+    show_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    show_until TIMESTAMP WITH TIME ZONE,
+    created_by INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes for healthcare_professionals
+CREATE INDEX IF NOT EXISTS idx_healthcare_professionals_email ON healthcare_professionals(email);
+CREATE INDEX IF NOT EXISTS idx_healthcare_professionals_available ON healthcare_professionals(is_available);
+CREATE INDEX IF NOT EXISTS idx_call_queue_status ON call_queue(status);
+CREATE INDEX IF NOT EXISTS idx_call_queue_professional ON call_queue(assigned_professional_id);
+CREATE INDEX IF NOT EXISTS idx_notification_log_recipient ON notification_log(recipient_type, recipient_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active, show_from, show_until);
 `;
 
 async function runMigration() {

@@ -1,6 +1,10 @@
 // Database connection helper for Supabase PostgreSQL
 // Uses postgres (postgresjs) - a fast PostgreSQL client for Node.js
 import postgres from "postgres";
+import dns from "dns";
+
+// Force IPv4 resolution to avoid IPv6 connectivity issues
+dns.setDefaultResultOrder('ipv4first');
 
 let sql: ReturnType<typeof postgres> | null = null;
 
