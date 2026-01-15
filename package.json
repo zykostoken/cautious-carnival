@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@netlify/functions": "^2.0.0",
-    "@netlify/neon": "^0.1.0"
+    "@netlify/neon": "^0.1.0",
+    "mercadopago": "^2.0.15"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

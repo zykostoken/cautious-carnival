@@ -2371,8 +2371,9 @@
                             <span class="creditos-balance">Tu saldo: <strong id="user-credits">$0</strong></span>
                             <span class="creditos-minimo">Mínimo por consulta: <strong>$5.000</strong></span>
                         </div>
-                        <button class="btn btn-outline" onclick="cargarCreditos()">Cargar Créditos</button>
-                        <p class="creditos-nota"><small>Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
+                        <button class="btn btn-outline" onclick="cargarCreditos()">Cargar Créditos con Mercado Pago</button>
+                        <p class="creditos-nota" style="margin-top: 0.75rem;"><strong>Alias Mercado Pago: gonzalopsiquiatra</strong></p>
+                        <p class="creditos-nota"><small>Aceptamos tarjetas, transferencias, crypto y cualquier medio homologado. Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
                     </div>
 
                     <div class="telemedicina-registro" id="tele-registro" style="display:none;">
@@ -2688,8 +2689,8 @@ function closeModal(event) {
 
                 if (data.success) {
                     alert(`${data.message}\n\nSe han reservado $${data.creditsHeld} de tus créditos.\nSi la llamada no se concreta, serán restituidos.`);
-                    // Here you would redirect to the video call interface
-                    // window.location.href = `/videocall?token=${data.sessionToken}`;
+                    // Create video room and redirect
+                    await iniciarVideoLlamada(data.sessionToken);
                 } else if (data.error === 'outside_hours') {
                     alert(`${data.message}\n\n${data.nextAvailable}`);
                 } else if (data.error === 'insufficient_credits') {
@@ -2745,9 +2746,13 @@ function closeModal(event) {
             }
         }
 
-        function cargarCreditos() {
-            // In production, this would integrate with a payment processor
-            const monto = prompt('Ingresa el monto a cargar (mínimo $5000):');
+        async function cargarCreditos() {
+            if (!telemedUserId) {
+                alert('Primero debes registrarte para usar el servicio de telemedicina.');
+                return;
+            }
+
+            const monto = prompt('Ingresa el monto a cargar (mínimo $5000):\n\nAlias de Mercado Pago: gonzalopsiquiatra\nAceptamos: Tarjetas, transferencias, crypto y otros medios homologados.');
             if (!monto) return;
 
             const montoNum = parseInt(monto.replace(/\D/g, ''));
@@ -2756,11 +2761,135 @@ function closeModal(event) {
                 return;
             }
 
-            // Simulate payment (in production: redirect to payment gateway)
-            alert(`Serás redirigido al procesador de pagos para cargar $${montoNum.toLocaleString('es-AR')}.\n\n(Esta función requiere integración con pasarela de pagos)`);
+            try {
+                // Create Mercado Pago checkout preference
+                const res = await fetch('/api/mercadopago/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: telemedUserId,
+                        amount: montoNum,
+                        description: `Créditos Telemedicina - $${montoNum.toLocaleString('es-AR')}`
+                    })
+                });
 
-            // After successful payment, call:
-            // addCredits(telemedUserId, montoNum, 'payment-reference-123');
+                const data = await res.json();
+
+                if (data.success && data.initPoint) {
+                    // Redirect to Mercado Pago checkout
+                    alert(`Serás redirigido a Mercado Pago para completar el pago de $${montoNum.toLocaleString('es-AR')}.\n\nTambién puedes transferir al alias: gonzalopsiquiatra\n\nAceptamos: Tarjetas, transferencias, crypto y todos los medios de pago homologados.`);
+                    window.location.href = data.initPoint;
+                } else {
+                    // Fallback: Show manual transfer option
+                    alert(`Para cargar créditos, realiza una transferencia a:\n\nAlias: gonzalopsiquiatra\nMonto: $${montoNum.toLocaleString('es-AR')}\n\nUna vez acreditado el pago, tus créditos se cargarán automáticamente.\n\nAceptamos cualquier medio de pago homologado: tarjetas, transferencias, crypto, etc.`);
+                }
+            } catch (e) {
+                // Show manual payment option if API fails
+                alert(`Para cargar créditos, realiza una transferencia a:\n\nAlias: gonzalopsiquiatra\nMonto: $${montoNum.toLocaleString('es-AR')}\n\nUna vez acreditado el pago, contactanos para activar tus créditos.\n\nAceptamos cualquier medio de pago homologado: tarjetas, transferencias, crypto, etc.`);
+            }
+        }
+
+        async function iniciarVideoLlamada(sessionToken) {
+            try {
+                // Create video room
+                const res = await fetch('/api/video/room', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_room',
+                        sessionToken
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success && data.roomUrl) {
+                    // Store session token for later use (end call)
+                    sessionStorage.setItem('currentVideoSession', sessionToken);
+
+                    // Open video call in new window/tab or show in modal
+                    const videoWindow = window.open(data.roomUrl, '_blank', 'width=1024,height=768');
+
+                    if (!videoWindow) {
+                        // Popup blocked - show link
+                        alert(`Tu videollamada está lista.\n\nHaz clic en OK y se abrirá la sala de videoconsulta.\n\nSi no se abre automáticamente, copia este enlace:\n${data.roomUrl}`);
+                        window.location.href = data.roomUrl;
+                    } else {
+                        // Monitor when video window closes
+                        const checkWindow = setInterval(async () => {
+                            if (videoWindow.closed) {
+                                clearInterval(checkWindow);
+                                // Ask if call was completed
+                                if (confirm('¿La videoconsulta se realizó correctamente?\n\nPresiona OK si la consulta fue exitosa.\nPresiona Cancelar si hubo problemas técnicos.')) {
+                                    await finalizarVideoLlamada(sessionToken, true);
+                                } else {
+                                    await finalizarVideoLlamada(sessionToken, false);
+                                }
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    alert('Error al crear la sala de video. Tus créditos serán restituidos.');
+                    // Cancel the session
+                    await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'call_failed',
+                            sessionToken,
+                            reason: 'room_creation_failed'
+                        })
+                    });
+                }
+            } catch (e) {
+                alert('Error al iniciar la videollamada. Por favor, intenta nuevamente.');
+                console.error('Video call error:', e);
+            }
+        }
+
+        async function finalizarVideoLlamada(sessionToken, exitosa) {
+            try {
+                if (exitosa) {
+                    // Call was successful - charge credits
+                    const res = await fetch('/api/video/room', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'end_call',
+                            sessionToken
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`Consulta finalizada exitosamente.\n\nSe han debitado $${data.charged.toLocaleString('es-AR')} de tu saldo.\n\nGracias por usar nuestro servicio de telemedicina.`);
+                        // Refresh credit balance
+                        const credRes = await fetch(`/api/telemedicine/credits?userId=${telemedUserId}`);
+                        const credData = await credRes.json();
+                        userCredits = credData.creditBalance || 0;
+                        updateCreditDisplay();
+                    }
+                } else {
+                    // Call failed - refund credits
+                    const res = await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'call_failed',
+                            sessionToken,
+                            reason: 'technical_issues'
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`Lamentamos los inconvenientes.\n\nTus créditos ($${data.creditsReleased.toLocaleString('es-AR')}) han sido restituidos.\n\nPor favor, intenta nuevamente o contactanos para asistencia.`);
+                    }
+                }
+            } catch (e) {
+                console.error('Error finalizing video call:', e);
+            }
+            sessionStorage.removeItem('currentVideoSession');
         }
 
         async function addCredits(userId, amount, paymentRef) {
@@ -2787,10 +2916,42 @@ function closeModal(event) {
             }
         }
 
+        // Handle Mercado Pago payment callback
+        function handlePaymentCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentStatus = urlParams.get('payment');
+            const userId = urlParams.get('userId');
+            const amount = urlParams.get('amount');
+
+            if (paymentStatus) {
+                // Clean URL
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+
+                if (paymentStatus === 'success') {
+                    alert(`¡Pago exitoso!\n\nSe han acreditado $${parseInt(amount).toLocaleString('es-AR')} a tu cuenta.\n\nYa puedes iniciar una videoconsulta.`);
+                    // Store user ID and refresh credits
+                    if (userId) {
+                        telemedUserId = userId;
+                        localStorage.setItem('telemedUserId', userId);
+                        // Open telemedicina modal and refresh balance
+                        setTimeout(() => {
+                            openModal('telemedicina');
+                        }, 500);
+                    }
+                } else if (paymentStatus === 'pending') {
+                    alert('Tu pago está siendo procesado.\n\nUna vez confirmado, los créditos se acreditarán automáticamente.\n\nEsto puede tomar unos minutos.');
+                } else if (paymentStatus === 'failure') {
+                    alert('El pago no pudo completarse.\n\nPor favor, intenta nuevamente o usa otro medio de pago.\n\nTambién puedes transferir al alias: gonzalopsiquiatra');
+                }
+            }
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             initSession();
             updateMetrics();
+            handlePaymentCallback();
         });
     </script>
 </body>
