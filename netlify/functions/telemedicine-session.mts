@@ -37,27 +37,23 @@ export default async (req: Request, context: Context) => {
           });
         }
 
-        // Check user credits
+        // Verify user exists (credits no longer required - payment handled externally)
         const [user] = await sql`
-          SELECT credit_balance FROM telemedicine_users WHERE id = ${userId}
+          SELECT id FROM telemedicine_users WHERE id = ${userId}
         `;
 
-        const minimumCredits = 50000;
-
-        if (!user || user.credit_balance < minimumCredits) {
+        if (!user) {
           return new Response(JSON.stringify({
             success: false,
-            error: "insufficient_credits",
-            message: "Créditos insuficientes. Mínimo requerido: $50.000",
-            currentBalance: user?.credit_balance || 0,
-            minimumRequired: minimumCredits
+            error: "user_not_found",
+            message: "Usuario no encontrado. Por favor regístrese primero."
           }), {
             status: 200,
             headers: { "Content-Type": "application/json" }
           });
         }
 
-        // Create a pending call session with pre-authorization hold
+        // Create a pending call session (no credits held - payment handled externally)
         const sessionToken = crypto.randomUUID();
 
         const [session] = await sql`
@@ -75,18 +71,11 @@ export default async (req: Request, context: Context) => {
             ${sessionToken},
             'pending',
             ${callType || 'immediate'},
-            ${minimumCredits},
+            0,
             NOW(),
             NOW() + INTERVAL '15 minutes'
           )
           RETURNING id, session_token, expires_at
-        `;
-
-        // Place hold on credits
-        await sql`
-          UPDATE telemedicine_users
-          SET credits_on_hold = credits_on_hold + ${minimumCredits}
-          WHERE id = ${userId}
         `;
 
         // Get patient info for the queue
@@ -130,8 +119,7 @@ export default async (req: Request, context: Context) => {
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
           queueId: queueEntry.id,
-          message: "Sesión creada. Los profesionales han sido notificados y uno se conectará en breve.",
-          creditsHeld: minimumCredits
+          message: "Sesión creada. Los profesionales han sido notificados y uno se conectará en breve."
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
@@ -149,19 +137,16 @@ export default async (req: Request, context: Context) => {
           });
         }
 
-        // Check credits
+        // Verify user exists (credits no longer required)
         const [user] = await sql`
-          SELECT credit_balance FROM telemedicine_users WHERE id = ${userId}
+          SELECT id FROM telemedicine_users WHERE id = ${userId}
         `;
 
-        const minimumCredits = 50000;
-
-        if (!user || user.credit_balance < minimumCredits) {
+        if (!user) {
           return new Response(JSON.stringify({
             success: false,
-            error: "insufficient_credits",
-            message: "Para agendar necesita al menos $50.000 en créditos",
-            currentBalance: user?.credit_balance || 0
+            error: "user_not_found",
+            message: "Usuario no encontrado. Por favor regístrese primero."
           }), {
             status: 200,
             headers: { "Content-Type": "application/json" }
@@ -200,7 +185,7 @@ export default async (req: Request, context: Context) => {
       }
 
       if (action === "complete_call") {
-        // Call completed successfully - charge credits
+        // Call completed successfully (no credits charged - payment handled externally)
         const { sessionToken, durationMinutes } = body;
 
         if (!sessionToken) {
@@ -211,7 +196,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const [session] = await sql`
-          SELECT id, user_id, credits_held, status
+          SELECT id, user_id, status
           FROM video_sessions
           WHERE session_token = ${sessionToken}
         `;
@@ -223,38 +208,17 @@ export default async (req: Request, context: Context) => {
           });
         }
 
-        // Calculate actual charge based on duration
-        const chargeAmount = session.credits_held; // Could be pro-rated
-
-        // Deduct from balance and release hold
-        await sql`
-          UPDATE telemedicine_users
-          SET credit_balance = credit_balance - ${chargeAmount},
-              credits_on_hold = credits_on_hold - ${session.credits_held}
-          WHERE id = ${session.user_id}
-        `;
-
-        // Record transaction
-        await sql`
-          INSERT INTO credit_transactions (
-            user_id, amount, transaction_type, session_id, created_at
-          )
-          VALUES (${session.user_id}, -${chargeAmount}, 'debit', ${session.id}, NOW())
-        `;
-
         // Update session status
         await sql`
           UPDATE video_sessions
           SET status = 'completed',
               completed_at = NOW(),
-              duration_minutes = ${durationMinutes || 0},
-              credits_charged = ${chargeAmount}
+              duration_minutes = ${durationMinutes || 0}
           WHERE id = ${session.id}
         `;
 
         return new Response(JSON.stringify({
           success: true,
-          charged: chargeAmount,
           message: "Consulta finalizada. Gracias por usar nuestro servicio."
         }), {
           status: 200,
@@ -263,7 +227,7 @@ export default async (req: Request, context: Context) => {
       }
 
       if (action === "cancel_call" || action === "call_failed") {
-        // Call didn't happen - refund credits
+        // Call didn't happen (no credits to refund - payment handled externally)
         const { sessionToken, reason } = body;
 
         if (!sessionToken) {
@@ -274,7 +238,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const [session] = await sql`
-          SELECT id, user_id, credits_held, status
+          SELECT id, user_id, status
           FROM video_sessions
           WHERE session_token = ${sessionToken}
         `;
@@ -286,19 +250,12 @@ export default async (req: Request, context: Context) => {
           });
         }
 
-        if (session.status === 'completed' || session.status === 'refunded') {
+        if (session.status === 'completed' || session.status === 'cancelled' || session.status === 'failed') {
           return new Response(JSON.stringify({ error: "Session already processed" }), {
             status: 400,
             headers: { "Content-Type": "application/json" }
           });
         }
-
-        // Release held credits
-        await sql`
-          UPDATE telemedicine_users
-          SET credits_on_hold = credits_on_hold - ${session.credits_held}
-          WHERE id = ${session.user_id}
-        `;
 
         // Update session status
         const newStatus = action === "call_failed" ? "failed" : "cancelled";
@@ -312,10 +269,9 @@ export default async (req: Request, context: Context) => {
 
         return new Response(JSON.stringify({
           success: true,
-          creditsReleased: session.credits_held,
           message: action === "call_failed"
-            ? "La llamada no pudo concretarse. Sus créditos han sido restituidos."
-            : "Sesión cancelada. Créditos liberados."
+            ? "La llamada no pudo concretarse."
+            : "Sesión cancelada."
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }

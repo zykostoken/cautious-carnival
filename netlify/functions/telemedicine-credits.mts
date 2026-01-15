@@ -1,11 +1,13 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
+// Telemedicine user management endpoint
+// Note: Credit system removed - consultations are free, payment handled externally if needed
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
 
   if (req.method === "GET") {
-    // Check credits for a user
+    // Check user registration status
     const url = new URL(req.url);
     const userId = url.searchParams.get("userId");
 
@@ -18,35 +20,30 @@ export default async (req: Request, context: Context) => {
 
     try {
       const [user] = await sql`
-        SELECT credit_balance, email, phone
+        SELECT id, email, phone
         FROM telemedicine_users
         WHERE id = ${userId}
       `;
 
       if (!user) {
         return new Response(JSON.stringify({
-          creditBalance: 0,
-          hasCredits: false,
-          minimumRequired: 50000  // Minimum credits for a consultation ($50.000 ARS)
+          registered: false
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
         });
       }
 
-      const minimumRequired = 50000; // $50.000 ARS minimum for consultation
-
       return new Response(JSON.stringify({
-        creditBalance: user.credit_balance,
-        hasCredits: user.credit_balance >= minimumRequired,
-        minimumRequired
+        registered: true,
+        userId: user.id
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
 
     } catch (error) {
-      console.error("Credits check error:", error);
+      console.error("User check error:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" }
@@ -55,10 +52,10 @@ export default async (req: Request, context: Context) => {
   }
 
   if (req.method === "POST") {
-    // Add credits or create user
+    // Register user
     try {
       const body = await req.json();
-      const { action, email, phone, amount, paymentReference } = body;
+      const { action, email, phone } = body;
 
       if (action === "register") {
         // Register new user
@@ -93,46 +90,9 @@ export default async (req: Request, context: Context) => {
 
         return new Response(JSON.stringify({
           success: true,
-          userId: newUser.id,
-          creditBalance: 0
+          userId: newUser.id
         }), {
           status: 201,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
-
-      if (action === "add_credits") {
-        // Add credits (after payment verification - simplified for now)
-        const { userId } = body;
-
-        if (!userId || !amount || amount <= 0) {
-          return new Response(JSON.stringify({ error: "userId and positive amount required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
-
-        // Record the transaction
-        await sql`
-          INSERT INTO credit_transactions (
-            user_id, amount, transaction_type, payment_reference, created_at
-          )
-          VALUES (${userId}, ${amount}, 'credit', ${paymentReference || null}, NOW())
-        `;
-
-        // Update user balance
-        const [updated] = await sql`
-          UPDATE telemedicine_users
-          SET credit_balance = credit_balance + ${amount}
-          WHERE id = ${userId}
-          RETURNING credit_balance
-        `;
-
-        return new Response(JSON.stringify({
-          success: true,
-          newBalance: updated?.credit_balance || 0
-        }), {
-          status: 200,
           headers: { "Content-Type": "application/json" }
         });
       }
@@ -143,7 +103,7 @@ export default async (req: Request, context: Context) => {
       });
 
     } catch (error) {
-      console.error("Credits management error:", error);
+      console.error("User management error:", error);
       return new Response(JSON.stringify({ error: "Internal server error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" }
