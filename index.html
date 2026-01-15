@@ -132,6 +132,64 @@
         }
         nav a:hover { color: var(--accent-gold); }
 
+        /* ========== LANGUAGE SELECTOR ========== */
+        .lang-selector {
+            position: relative;
+            display: inline-block;
+            margin-left: 1rem;
+        }
+        .lang-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        .lang-btn:hover {
+            border-color: var(--accent-gold);
+            background: rgba(212, 168, 83, 0.1);
+        }
+        .lang-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            display: none;
+            min-width: 140px;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .lang-menu.active {
+            display: block;
+        }
+        .lang-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .lang-option:hover {
+            background: rgba(212, 168, 83, 0.1);
+            color: var(--accent-gold);
+        }
+        .lang-option span {
+            font-size: 1rem;
+        }
+
         /* ========== MAIN ========== */
         main { position: relative; z-index: 1; }
 
@@ -577,6 +635,22 @@
             font-weight: 600;
             text-transform: uppercase;
         }
+        .servicio-badge-pronto {
+            background: linear-gradient(135deg, #d4a853, #f59e0b);
+            animation: pulseBadge 2s ease-in-out infinite;
+        }
+        @keyframes pulseBadge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .servicio-proximamente {
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+            border-color: var(--accent-gold) !important;
+        }
+        .servicio-proximamente:hover {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.4);
+        }
 
         /* ========== BANNER NEÓN TELEMEDICINA ========== */
         .neon-banner {
@@ -719,6 +793,35 @@
                 font-size: 1.5rem;
                 margin-bottom: 0;
             }
+        }
+
+        /* ========== BANNER PRÓXIMAMENTE STYLES ========== */
+        .neon-banner-proximamente .neon-banner-content {
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.2) 0%, rgba(245, 158, 11, 0.15) 50%, rgba(139, 92, 246, 0.15) 100%);
+        }
+        .neon-banner-proximamente .neon-banner-content::before {
+            background: linear-gradient(135deg, #d4a853, #f59e0b, #8b5cf6, #d4a853);
+        }
+        .neon-banner-proximamente .neon-banner-content::after {
+            box-shadow: 0 0 30px rgba(212, 168, 83, 0.6),
+                        0 0 60px rgba(245, 158, 11, 0.3),
+                        inset 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+        .neon-banner-proximamente .neon-banner-icon {
+            text-shadow: 0 0 20px rgba(212, 168, 83, 0.8);
+            animation: rocketPulse 2s ease-in-out infinite;
+        }
+        @keyframes rocketPulse {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-5px) scale(1.1); }
+        }
+        .neon-badge-soon {
+            background: linear-gradient(135deg, #d4a853, #f59e0b) !important;
+            animation: badgePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(212, 168, 83, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
         }
 
         /* ========== ADMIN PANEL STYLES ========== */
@@ -2233,23 +2336,33 @@
     <header id="header">
         <div class="logo">José <span>Ingenieros</span></div>
         <nav>
-            <a href="#metodologia">Metodología</a>
-            <a href="#equipo">Equipo</a>
-            <a href="#servicios">Servicios</a>
-            <a href="#bitacora">Bitácora</a>
-            <a href="#contacto">Contacto</a>
-            <a href="#" onclick="openProfessionalLogin(); return false;" style="color: var(--accent-green);">Profesionales</a>
+            <a href="#metodologia" data-i18n="nav.methodology">Metodología</a>
+            <a href="#equipo" data-i18n="nav.team">Equipo</a>
+            <a href="#servicios" data-i18n="nav.services">Servicios</a>
+            <a href="#bitacora" data-i18n="nav.timeline">Bitácora</a>
+            <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+            <a href="#" onclick="openProfessionalLogin(); return false;" style="color: var(--accent-green);" data-i18n="nav.professionals">Profesionales</a>
+            <div class="lang-selector">
+                <button class="lang-btn" onclick="toggleLangMenu()" title="Idioma">
+                    <span id="current-lang-flag">🇪🇸</span>
+                </button>
+                <div class="lang-menu" id="lang-menu">
+                    <button onclick="setLanguage('es')" class="lang-option"><span>🇪🇸</span> Español</button>
+                    <button onclick="setLanguage('en')" class="lang-option"><span>🇺🇸</span> English</button>
+                    <button onclick="setLanguage('pt')" class="lang-option"><span>🇧🇷</span> Português</button>
+                </div>
+            </div>
         </nav>
     </header>
 
-    <!-- Banner Neón Telemedicina -->
-    <div id="neon-telemedicina-banner" class="neon-banner" onclick="openModal('telemedicina')">
+    <!-- Banner Neón Telemedicina - PRÓXIMAMENTE -->
+    <div id="neon-telemedicina-banner" class="neon-banner neon-banner-proximamente" onclick="openModal('telemedicina')">
         <button class="neon-banner-close" onclick="event.stopPropagation(); closeNeonBanner();">&times;</button>
         <div class="neon-banner-content">
-            <span class="neon-banner-badge">Nuevo</span>
-            <span class="neon-banner-icon">📹</span>
-            <div class="neon-banner-text">Telemedicina</div>
-            <div class="neon-banner-subtitle">Consultas online - Alcance mundial</div>
+            <span class="neon-banner-badge neon-badge-soon">Pronto</span>
+            <span class="neon-banner-icon">🚀</span>
+            <div class="neon-banner-text">Telemedicina Internacional</div>
+            <div class="neon-banner-subtitle">Pagos con MercadoPago + Crypto</div>
         </div>
     </div>
 
@@ -2672,10 +2785,10 @@
                     <h4>Talleres Terapéuticos</h4>
                     <p>Música, huerta, carpintería, cocina, expresión corporal</p>
                 </div>
-                <div class="servicio-item servicio-telemedicina fade-in" onclick="openModal('telemedicina')">
-                    <h4>Telemedicina</h4>
-                    <p>Consultas por videollamada. 8 a 20 hs.</p>
-                    <span class="servicio-badge">Nuevo</span>
+                <div class="servicio-item servicio-telemedicina servicio-proximamente fade-in" onclick="openModal('telemedicina')">
+                    <h4>Telemedicina Internacional</h4>
+                    <p>Videoconsultas con pagos MercadoPago + Crypto</p>
+                    <span class="servicio-badge servicio-badge-pronto">Pronto</span>
                 </div>
             </div>
         </section>
@@ -2879,6 +2992,170 @@
     </div>
 
     <script>
+        // ==================== SISTEMA i18n ====================
+        const i18n = {
+            es: {
+                nav: {
+                    methodology: 'Metodología',
+                    team: 'Equipo',
+                    services: 'Servicios',
+                    timeline: 'Bitácora',
+                    contact: 'Contacto',
+                    professionals: 'Profesionales'
+                },
+                telemedicine: {
+                    title: 'Telemedicina Internacional',
+                    subtitle: 'Primera clínica psiquiátrica de Argentina con pagos internacionales',
+                    preparing: 'Estamos preparando algo único',
+                    description: 'Sistema de videoconsultas con pago seguro integrado - accesible desde cualquier parte del mundo',
+                    mercadopago: 'MercadoPago',
+                    mercadopagoDesc: 'Tarjetas de crédito/débito, transferencias',
+                    crypto: 'Criptomonedas',
+                    cryptoDesc: 'Bitcoin, USDT, USDC - Sin fronteras',
+                    whatIncludes: '¿Qué incluirá?',
+                    videoHD: 'Videoconsulta HD con Jitsi Meet (sin apps)',
+                    prepayment: 'Pago previo obligatorio (protección anti-abuse)',
+                    qrPayment: 'QR para pagar desde celular',
+                    history: 'Historial de consultas y recibos',
+                    multiLang: 'Multi-idioma (ES/EN/PT)',
+                    hours: 'Atención 8:00 a 20:00 hs (GMT-3)',
+                    preregister: 'Pre-registro (opcional)',
+                    preregisterDesc: 'Dejá tu email para ser de los primeros en acceder cuando lancemos:',
+                    notifyMe: 'Avisame',
+                    meanwhile: 'Mientras tanto, podés contactarnos por teléfono:',
+                    soon: 'PRÓXIMAMENTE'
+                },
+                banner: {
+                    telemedicineIntl: 'Telemedicina Internacional',
+                    payments: 'Pagos con MercadoPago + Crypto',
+                    soon: 'Pronto'
+                }
+            },
+            en: {
+                nav: {
+                    methodology: 'Methodology',
+                    team: 'Team',
+                    services: 'Services',
+                    timeline: 'Timeline',
+                    contact: 'Contact',
+                    professionals: 'Professionals'
+                },
+                telemedicine: {
+                    title: 'International Telemedicine',
+                    subtitle: 'First psychiatric clinic in Argentina with international payments',
+                    preparing: 'We are preparing something unique',
+                    description: 'Video consultation system with integrated secure payment - accessible from anywhere in the world',
+                    mercadopago: 'MercadoPago',
+                    mercadopagoDesc: 'Credit/debit cards, transfers',
+                    crypto: 'Cryptocurrency',
+                    cryptoDesc: 'Bitcoin, USDT, USDC - No borders',
+                    whatIncludes: 'What will it include?',
+                    videoHD: 'HD Video consultation with Jitsi Meet (no apps)',
+                    prepayment: 'Mandatory prepayment (anti-abuse protection)',
+                    qrPayment: 'QR to pay from your phone',
+                    history: 'Consultation history and receipts',
+                    multiLang: 'Multi-language (ES/EN/PT)',
+                    hours: 'Service 8:00 AM to 8:00 PM (GMT-3)',
+                    preregister: 'Pre-register (optional)',
+                    preregisterDesc: 'Leave your email to be among the first to access when we launch:',
+                    notifyMe: 'Notify me',
+                    meanwhile: 'Meanwhile, you can contact us by phone:',
+                    soon: 'COMING SOON'
+                },
+                banner: {
+                    telemedicineIntl: 'International Telemedicine',
+                    payments: 'MercadoPago + Crypto payments',
+                    soon: 'Soon'
+                }
+            },
+            pt: {
+                nav: {
+                    methodology: 'Metodologia',
+                    team: 'Equipe',
+                    services: 'Serviços',
+                    timeline: 'Linha do tempo',
+                    contact: 'Contato',
+                    professionals: 'Profissionais'
+                },
+                telemedicine: {
+                    title: 'Telemedicina Internacional',
+                    subtitle: 'Primeira clínica psiquiátrica da Argentina com pagamentos internacionais',
+                    preparing: 'Estamos preparando algo único',
+                    description: 'Sistema de videoconsultas com pagamento seguro integrado - acessível de qualquer lugar do mundo',
+                    mercadopago: 'MercadoPago',
+                    mercadopagoDesc: 'Cartões de crédito/débito, transferências',
+                    crypto: 'Criptomoedas',
+                    cryptoDesc: 'Bitcoin, USDT, USDC - Sem fronteiras',
+                    whatIncludes: 'O que incluirá?',
+                    videoHD: 'Videoconsulta HD com Jitsi Meet (sem apps)',
+                    prepayment: 'Pagamento prévio obrigatório (proteção anti-abuso)',
+                    qrPayment: 'QR para pagar do celular',
+                    history: 'Histórico de consultas e recibos',
+                    multiLang: 'Multi-idioma (ES/EN/PT)',
+                    hours: 'Atendimento 8:00 às 20:00 hs (GMT-3)',
+                    preregister: 'Pré-registro (opcional)',
+                    preregisterDesc: 'Deixe seu email para ser um dos primeiros a acessar quando lançarmos:',
+                    notifyMe: 'Avise-me',
+                    meanwhile: 'Enquanto isso, você pode nos contatar por telefone:',
+                    soon: 'EM BREVE'
+                },
+                banner: {
+                    telemedicineIntl: 'Telemedicina Internacional',
+                    payments: 'Pagamentos MercadoPago + Crypto',
+                    soon: 'Em breve'
+                }
+            }
+        };
+
+        const langFlags = { es: '🇪🇸', en: '🇺🇸', pt: '🇧🇷' };
+        let currentLang = localStorage.getItem('lang') || 'es';
+
+        function toggleLangMenu() {
+            document.getElementById('lang-menu').classList.toggle('active');
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            document.getElementById('current-lang-flag').textContent = langFlags[lang];
+            document.getElementById('lang-menu').classList.remove('active');
+            document.documentElement.lang = lang;
+            updateI18n();
+        }
+
+        function updateI18n() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const keys = key.split('.');
+                let value = i18n[currentLang];
+                for (const k of keys) {
+                    if (value) value = value[k];
+                }
+                if (value) el.textContent = value;
+            });
+            // Update banner text
+            const bannerText = document.querySelector('.neon-banner-text');
+            const bannerSubtitle = document.querySelector('.neon-banner-subtitle');
+            const bannerBadge = document.querySelector('.neon-badge-soon');
+            if (bannerText) bannerText.textContent = i18n[currentLang].banner.telemedicineIntl;
+            if (bannerSubtitle) bannerSubtitle.textContent = i18n[currentLang].banner.payments;
+            if (bannerBadge) bannerBadge.textContent = i18n[currentLang].banner.soon;
+        }
+
+        // Close lang menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.lang-selector')) {
+                document.getElementById('lang-menu')?.classList.remove('active');
+            }
+        });
+
+        // Initialize language on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-lang-flag').textContent = langFlags[currentLang];
+            document.documentElement.lang = currentLang;
+            if (currentLang !== 'es') updateI18n();
+        });
+
         // ==================== PARTÍCULAS INTERACTIVAS ====================
         const canvas = document.getElementById('particles-canvas');
         const ctx = canvas.getContext('2d');
@@ -3467,61 +3744,60 @@
             `,
             telemedicina: `
                 <div class="modal-header">
-                    <span style="font-size:2rem">📹</span>
-                    <h2>Telemedicina</h2>
+                    <span style="font-size:2rem">🚀</span>
+                    <h2>Telemedicina Internacional</h2>
+                    <span style="background: linear-gradient(135deg, #d4a853, #f59e0b); color: #0a0d12; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 10px;">PRÓXIMAMENTE</span>
                 </div>
                 <div class="modal-body">
-                    <p><strong>Centro de Videoconsultas</strong> - Atención psiquiátrica y psicológica desde la comodidad de tu hogar.</p>
+                    <p style="font-size: 1.1rem; margin-bottom: 1.5rem;"><strong>Primera clínica psiquiátrica de Argentina con pagos internacionales</strong></p>
 
-                    <div class="telemedicina-horario">
-                        <h3>Horario de Atención</h3>
-                        <p><strong>Lunes a Sábado:</strong> 8:00 a 20:00 hs</p>
-                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid var(--accent-gold); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; text-align: center;">
+                        <h3 style="color: var(--accent-gold); margin-bottom: 1rem; font-size: 1.5rem;">Estamos preparando algo único</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Sistema de videoconsultas con pago seguro integrado - accesible desde cualquier parte del mundo</p>
 
-                    <div class="telemedicina-opciones">
-                        <h3>Opciones de Consulta</h3>
-                        <div class="telemedicina-option" id="tele-inmediata">
-                            <h4>Consulta Inmediata</h4>
-                            <p>Conectate ahora con un profesional disponible</p>
-                            <button class="btn btn-primary" onclick="iniciarConsultaInmediata()">Iniciar Videollamada</button>
-                        </div>
-                        <div class="telemedicina-option" id="tele-agendar">
-                            <h4>Agendar Consulta</h4>
-                            <p>Programá una cita para el momento que te convenga</p>
-                            <button class="btn btn-secondary" onclick="abrirAgendamiento()">Agendar Turno</button>
-                        </div>
-                    </div>
-
-                    <div class="telemedicina-creditos" id="tele-creditos">
-                        <h3>Sistema de Créditos</h3>
-                        <p>Las consultas utilizan un sistema de créditos prepagos.</p>
-                        <div class="creditos-info">
-                            <span class="creditos-balance">Tu saldo: <strong id="user-credits">$0</strong></span>
-                            <span class="creditos-minimo">Mínimo por consulta: <strong>$50.000</strong></span>
-                        </div>
-                        <button class="btn btn-outline" onclick="cargarCreditos()">Cargar Créditos</button>
-                        <p class="creditos-nota"><small>Si la llamada no se concreta por problemas técnicos, los créditos se restituyen automáticamente.</small></p>
-                    </div>
-
-                    <div class="telemedicina-demo" style="margin-top: 1.5rem; padding: 1rem; background: rgba(212, 168, 83, 0.1); border-radius: 8px; border: 1px dashed var(--accent-gold);">
-                        <h4 style="margin: 0 0 0.5rem 0; color: var(--accent-gold);">Modo Demo</h4>
-                        <p style="margin: 0 0 0.75rem 0; font-size: 0.9rem;">Probá la videollamada sin necesidad de registro ni créditos. Usa Jitsi Meet (gratuito, sin descargar apps).</p>
-                        <button class="btn btn-secondary" onclick="probarVideollamadaDemo()">Probar Videollamada Demo</button>
-                    </div>
-
-                    <div class="telemedicina-registro" id="tele-registro" style="display:none;">
-                        <h3>Registrate para Usar Telemedicina</h3>
-                        <form id="form-registro-telemedicina" onsubmit="registrarUsuarioTelemedicina(event)">
-                            <div class="form-group">
-                                <label for="tele-email">Email</label>
-                                <input type="email" id="tele-email" placeholder="tu@email.com" required>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                                <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">💳</span>
+                                <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;">MercadoPago</h4>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary);">Tarjetas de crédito/débito, transferencias</p>
                             </div>
-                            <div class="form-group">
-                                <label for="tele-phone">Teléfono</label>
-                                <input type="tel" id="tele-phone" placeholder="2262-123456">
+                            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                                <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🪙</span>
+                                <h4 style="color: var(--accent-purple); margin-bottom: 0.5rem;">Criptomonedas</h4>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary);">Bitcoin, USDT, USDC - Sin fronteras</p>
                             </div>
-                            <button type="submit" class="btn btn-primary">Registrarme</button>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h4 style="color: var(--accent-green); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>✓</span> ¿Qué incluirá?
+                        </h4>
+                        <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary);">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📹 Videoconsulta HD con Jitsi Meet (sin apps)</li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">🔐 Pago previo obligatorio (protección anti-abuse)</li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📱 QR para pagar desde celular</li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📋 Historial de consultas y recibos</li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">🌍 Multi-idioma (ES/EN/PT)</li>
+                            <li style="padding: 0.5rem 0;">⏰ Atención 8:00 a 20:00 hs (GMT-3)</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h4 style="color: var(--accent-blue); margin-bottom: 1rem;">📬 Pre-registro (opcional)</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Dejá tu email para ser de los primeros en acceder cuando lancemos:</p>
+                        <form id="form-preregistro-telemedicina" onsubmit="preregistrarTelemedicina(event)" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <input type="email" id="preregistro-email" placeholder="tu@email.com" required style="flex: 1; min-width: 200px; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Avisame</button>
                         </form>
+                        <p id="preregistro-mensaje" style="display: none; margin-top: 0.75rem; color: var(--accent-green); font-size: 0.9rem;"></p>
+                    </div>
+
+                    <div style="text-align: center; padding: 1rem; background: rgba(212, 168, 83, 0.05); border-radius: 8px; border: 1px dashed var(--accent-gold);">
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">
+                            Mientras tanto, podés contactarnos por teléfono:<br>
+                            <a href="tel:+542262301515" style="color: var(--accent-gold); font-size: 1.1rem; font-weight: 600;">📞 2262-301515</a>
+                        </p>
                     </div>
                 </div>
             `
@@ -3559,7 +3835,6 @@ function closeModal(event) {
 
         // Telemedicine user management
         let telemedUserId = localStorage.getItem('telemedUserId');
-        let userCredits = 0;
 
         // Initialize session tracking
         async function initSession() {
@@ -3741,34 +4016,23 @@ function closeModal(event) {
 
         async function checkTelemedicineUser() {
             const registroDiv = document.getElementById('tele-registro');
-            const creditosDiv = document.getElementById('tele-creditos');
 
             if (telemedUserId) {
                 try {
                     const res = await fetch(`/api/telemedicine/credits?userId=${telemedUserId}`);
                     const data = await res.json();
-                    userCredits = data.creditBalance || 0;
-                    updateCreditDisplay();
 
-                    // Show appropriate UI - user is registered
+                    // User is registered
                     if (registroDiv) registroDiv.style.display = 'none';
-                    if (creditosDiv) creditosDiv.style.display = 'block';
                 } catch (e) {
                     console.log('Telemedicine service unavailable - showing registration anyway');
                     // If API fails, still show the form so user can try to register
                     if (registroDiv) registroDiv.style.display = 'block';
-                    if (creditosDiv) creditosDiv.style.display = 'block';
                 }
             } else {
                 // Show registration form - user not registered
                 if (registroDiv) registroDiv.style.display = 'block';
-                if (creditosDiv) creditosDiv.style.display = 'block';
             }
-        }
-
-        function updateCreditDisplay() {
-            const el = document.getElementById('user-credits');
-            if (el) el.textContent = `$${userCredits.toLocaleString('es-AR')}`;
         }
 
         async function registrarUsuarioTelemedicina(event) {
@@ -3801,6 +4065,39 @@ function closeModal(event) {
             }
         }
 
+        // Pre-registro para telemedicina (lista de espera)
+        async function preregistrarTelemedicina(event) {
+            event.preventDefault();
+            const email = document.getElementById('preregistro-email').value;
+            const mensajeEl = document.getElementById('preregistro-mensaje');
+
+            try {
+                // Guardar en tracking como evento genérico
+                await fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId,
+                        eventType: 'telemedicina_preregistro',
+                        data: { email, timestamp: new Date().toISOString() }
+                    })
+                });
+
+                // Mostrar mensaje de éxito
+                mensajeEl.textContent = '¡Listo! Te avisaremos cuando lancemos. Gracias por tu interés.';
+                mensajeEl.style.display = 'block';
+                mensajeEl.style.color = 'var(--accent-green)';
+                document.getElementById('preregistro-email').value = '';
+
+                // Guardar localmente
+                localStorage.setItem('telemedPreregistro', email);
+            } catch (e) {
+                mensajeEl.textContent = 'Error al registrar. Por favor, intenta más tarde.';
+                mensajeEl.style.display = 'block';
+                mensajeEl.style.color = 'var(--accent-warm)';
+            }
+        }
+
         async function iniciarConsultaInmediata() {
             if (!telemedUserId) {
                 alert('Primero debes registrarte para usar el servicio de telemedicina.');
@@ -3823,14 +4120,15 @@ function closeModal(event) {
                 const data = await res.json();
 
                 if (data.success) {
-                    alert(`${data.message}\n\nSe han reservado $${data.creditsHeld} de tus créditos.\nSi la llamada no se concreta, serán restituidos.`);
+                    alert(data.message);
                     // Open video call using Jitsi Meet (free, no app needed)
                     iniciarVideollamadaJitsi(data.sessionToken);
                 } else if (data.error === 'outside_hours') {
                     alert(`${data.message}\n\n${data.nextAvailable}`);
-                } else if (data.error === 'insufficient_credits') {
-                    alert(`${data.message}\n\nSaldo actual: $${data.currentBalance}\nMínimo requerido: $${data.minimumRequired}`);
-                    cargarCreditos();
+                } else if (data.error === 'user_not_found') {
+                    alert(data.message);
+                    const registroDiv = document.getElementById('tele-registro');
+                    if (registroDiv) registroDiv.style.display = 'block';
                 }
             } catch (e) {
                 alert('Error al conectar con el servicio. Por favor, intenta nuevamente.');
@@ -3872,54 +4170,13 @@ function closeModal(event) {
 
                 if (data.success) {
                     alert(`Cita agendada exitosamente.\n\nFecha y hora: ${new Date(data.scheduledAt).toLocaleString('es-AR')}`);
-                } else if (data.error === 'insufficient_credits') {
-                    alert(`${data.message}\n\nPor favor, carga créditos antes de agendar.`);
-                    cargarCreditos();
+                } else if (data.error === 'user_not_found') {
+                    alert(data.message);
+                    const registroDiv = document.getElementById('tele-registro');
+                    if (registroDiv) registroDiv.style.display = 'block';
                 }
             } catch (e) {
                 alert('Error al agendar. Por favor, intenta nuevamente.');
-            }
-        }
-
-        function cargarCreditos() {
-            // In production, this would integrate with a payment processor
-            const monto = prompt('Ingresa el monto a cargar (mínimo $50.000):');
-            if (!monto) return;
-
-            const montoNum = parseInt(monto.replace(/\D/g, ''));
-            if (montoNum < 50000) {
-                alert('El monto mínimo es $50.000');
-                return;
-            }
-
-            // Simulate payment (in production: redirect to payment gateway)
-            alert(`Serás redirigido al procesador de pagos para cargar $${montoNum.toLocaleString('es-AR')}.\n\n(Esta función requiere integración con pasarela de pagos)`);
-
-            // After successful payment, call:
-            // addCredits(telemedUserId, montoNum, 'payment-reference-123');
-        }
-
-        async function addCredits(userId, amount, paymentRef) {
-            try {
-                const res = await fetch('/api/telemedicine/credits', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'add_credits',
-                        userId,
-                        amount,
-                        paymentReference: paymentRef
-                    })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    userCredits = data.newBalance;
-                    updateCreditDisplay();
-                    alert(`Créditos cargados exitosamente.\nNuevo saldo: $${data.newBalance.toLocaleString('es-AR')}`);
-                }
-            } catch (e) {
-                alert('Error al procesar los créditos.');
             }
         }
 
@@ -4056,8 +4313,7 @@ function closeModal(event) {
                             sessionToken: sessionToken
                         })
                     });
-                    alert('Consulta finalizada. Los créditos han sido procesados.');
-                    checkTelemedicineUser(); // Refresh credits
+                    alert('Consulta finalizada. Gracias por usar nuestro servicio.');
                 } catch (e) {
                     console.log('Error notifying backend:', e);
                 }
