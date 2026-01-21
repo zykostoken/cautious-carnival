@@ -213,6 +213,18 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             position: relative;
         }
+        .hero-image-container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10%;
+            width: 120%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent 0%, var(--accent-gold) 15%, var(--accent-gold) 85%, transparent 100%);
+            transform: rotate(-8deg);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.6), 0 0 40px rgba(212, 168, 83, 0.3);
+        }
         .hero-image-container img {
             width: 100%;
             height: auto;
@@ -722,115 +734,124 @@
             box-shadow: 0 0 20px rgba(212, 168, 83, 0.4);
         }
 
-        /* ========== BANNER NEÓN TELEMEDICINA ========== */
+        /* ========== BANNER TELEMEDICINA SOBRIO DORADO ========== */
         .neon-banner {
             position: fixed;
             top: 80px;
             right: 20px;
             z-index: 999;
             cursor: pointer;
-            animation: neonFloat 3s ease-in-out infinite;
+            animation: bannerFloat 4s ease-in-out infinite;
         }
         .neon-banner-content {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 166, 255, 0.15) 100%);
-            border: 2px solid transparent;
-            border-radius: 16px;
-            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, rgba(15, 15, 20, 0.95) 0%, rgba(25, 25, 35, 0.95) 100%);
+            border: 1px solid rgba(212, 168, 83, 0.4);
+            border-radius: 12px;
+            padding: 1.25rem 1.75rem;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
         }
         .neon-banner-content::before {
             content: '';
             position: absolute;
-            inset: -2px;
-            border-radius: 16px;
-            padding: 2px;
-            background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6);
-            background-size: 200% auto;
-            animation: neonGlow 2s linear infinite;
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
+            inset: 0;
+            border-radius: 12px;
+            background: radial-gradient(ellipse at 30% 20%, rgba(212, 168, 83, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(212, 168, 83, 0.1) 0%, transparent 40%);
+            pointer-events: none;
         }
         .neon-banner-content::after {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 16px;
-            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5),
-                        0 0 60px rgba(88, 166, 255, 0.3),
-                        inset 0 0 30px rgba(139, 92, 246, 0.1);
-            animation: neonPulse 2s ease-in-out infinite;
+            border-radius: 12px;
+            box-shadow: inset 0 1px 0 rgba(212, 168, 83, 0.2),
+                        0 4px 20px rgba(0, 0, 0, 0.4),
+                        0 0 40px rgba(212, 168, 83, 0.15);
             pointer-events: none;
         }
-        @keyframes neonGlow {
-            0% { background-position: 0% center; }
-            100% { background-position: 200% center; }
+        /* Subtle light particles effect */
+        .neon-banner-lights {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: 12px;
+            pointer-events: none;
         }
-        @keyframes neonPulse {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
+        .neon-banner-lights::before,
+        .neon-banner-lights::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            opacity: 0;
+            animation: lightFloat 3s ease-in-out infinite;
         }
-        @keyframes neonFloat {
-            0%, 100% { transform: translateY(0) rotate(-2deg); }
-            50% { transform: translateY(-10px) rotate(2deg); }
+        .neon-banner-lights::before {
+            left: 20%;
+            bottom: 10%;
+            animation-delay: 0s;
+        }
+        .neon-banner-lights::after {
+            right: 25%;
+            bottom: 20%;
+            animation-delay: 1.5s;
+        }
+        @keyframes lightFloat {
+            0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+            50% { opacity: 0.8; transform: translateY(-20px) scale(1); }
+        }
+        @keyframes bannerFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
         .neon-banner-icon {
-            font-size: 2rem;
+            font-size: 1.75rem;
             display: block;
             margin-bottom: 0.5rem;
-            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
-            animation: iconPulse 1.5s ease-in-out infinite;
-        }
-        @keyframes iconPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            filter: drop-shadow(0 0 8px rgba(212, 168, 83, 0.5));
         }
         .neon-banner-text {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: #fff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--accent-gold);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+            letter-spacing: 1.5px;
         }
         .neon-banner-subtitle {
             font-size: 0.7rem;
-            color: var(--accent-blue);
-            margin-top: 0.25rem;
-            text-shadow: 0 0 10px rgba(88, 166, 255, 0.8);
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+            letter-spacing: 0.5px;
         }
         .neon-banner-badge {
             position: absolute;
-            top: -8px;
-            right: -8px;
-            background: linear-gradient(135deg, #ef4444, #f97316);
-            color: white;
-            font-size: 0.6rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 20px;
-            font-weight: 700;
+            top: -6px;
+            right: -6px;
+            background: linear-gradient(135deg, var(--accent-gold), #c9a227);
+            color: var(--bg-primary);
+            font-size: 0.55rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
             text-transform: uppercase;
-            animation: badgePulse 1s ease-in-out infinite;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-        }
-        @keyframes badgePulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(212, 168, 83, 0.4);
         }
         .neon-banner-close {
             position: absolute;
             top: -10px;
             left: -10px;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(212, 168, 83, 0.3);
             border-radius: 50%;
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -860,30 +881,27 @@
                 padding: 0.75rem 1rem;
             }
             .neon-banner-icon {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
                 margin-bottom: 0;
             }
         }
 
-        /* ========== BANNER PRÓXIMAMENTE STYLES ========== */
+        /* ========== BANNER PRÓXIMAMENTE STYLES - SOBRIO DORADO ========== */
         .neon-banner-proximamente .neon-banner-content {
-            background: linear-gradient(135deg, rgba(212, 168, 83, 0.2) 0%, rgba(245, 158, 11, 0.15) 50%, rgba(139, 92, 246, 0.15) 100%);
+            background: linear-gradient(135deg, rgba(10, 10, 15, 0.97) 0%, rgba(20, 18, 15, 0.97) 100%);
+            border-color: rgba(212, 168, 83, 0.5);
         }
         .neon-banner-proximamente .neon-banner-content::before {
-            background: linear-gradient(135deg, #d4a853, #f59e0b, #8b5cf6, #d4a853);
+            background: radial-gradient(ellipse at 20% 30%, rgba(212, 168, 83, 0.2) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 70%, rgba(212, 168, 83, 0.15) 0%, transparent 40%);
         }
         .neon-banner-proximamente .neon-banner-content::after {
-            box-shadow: 0 0 30px rgba(212, 168, 83, 0.6),
-                        0 0 60px rgba(245, 158, 11, 0.3),
-                        inset 0 0 15px rgba(139, 92, 246, 0.2);
+            box-shadow: inset 0 1px 0 rgba(212, 168, 83, 0.25),
+                        0 4px 25px rgba(0, 0, 0, 0.5),
+                        0 0 50px rgba(212, 168, 83, 0.2);
         }
         .neon-banner-proximamente .neon-banner-icon {
-            text-shadow: 0 0 20px rgba(212, 168, 83, 0.8);
-            animation: rocketPulse 2s ease-in-out infinite;
-        }
-        @keyframes rocketPulse {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-5px) scale(1.1); }
+            filter: drop-shadow(0 0 12px rgba(212, 168, 83, 0.6));
         }
         .neon-badge-soon {
             background: linear-gradient(135deg, #d4a853, #f59e0b) !important;
@@ -2425,14 +2443,15 @@
         </nav>
     </header>
 
-    <!-- Banner Neón Telemedicina - PRÓXIMAMENTE -->
+    <!-- Banner Telemedicina - Sobrio Dorado -->
     <div id="neon-telemedicina-banner" class="neon-banner neon-banner-proximamente" onclick="openModal('telemedicina')">
         <button class="neon-banner-close" onclick="event.stopPropagation(); closeNeonBanner();">&times;</button>
         <div class="neon-banner-content">
+            <div class="neon-banner-lights"></div>
             <span class="neon-banner-badge neon-badge-soon">Pronto</span>
-            <span class="neon-banner-icon">🚀</span>
-            <div class="neon-banner-text">Telemedicina Internacional</div>
-            <div class="neon-banner-subtitle">Pagos con MercadoPago + Crypto</div>
+            <span class="neon-banner-icon">💫</span>
+            <div class="neon-banner-text">Telemedicina</div>
+            <div class="neon-banner-subtitle">Consultas online • MercadoPago + Crypto</div>
         </div>
     </div>
 
@@ -2701,13 +2720,13 @@
                     <p>Psiquiatría, Psicología, TO, Estimulación Neurocognitiva</p>
                     <span class="servicio-cta">Ver más</span>
                 </div>
-                <div class="servicio-item servicio-principal fade-in" onclick="openModal('hospitaldia')">
+                <div class="servicio-item servicio-principal fade-in" onclick="window.open('https://hdd.joseingenieros.netlify.app', '_blank')">
                     <div class="servicio-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                     </div>
                     <h4>Hospital de Día</h4>
                     <p>Dispositivo de tratamiento intensivo ambulatorio. Media jornada, jornada completa y extendida.</p>
-                    <span class="servicio-cta">Conocer programa</span>
+                    <span class="servicio-cta">Visitar sitio ↗</span>
                 </div>
                 <div class="servicio-item fade-in" onclick="openModal('hospitalnoche')">
                     <div class="servicio-icon">
