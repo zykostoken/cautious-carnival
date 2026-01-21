@@ -577,19 +577,24 @@
         /* ========== SERVICIOS ========== */
         .servicios-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
         }
         .servicio-item {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
+            border-radius: 16px;
+            padding: 2rem;
             text-align: center;
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
             opacity: 0;
             transform: translateY(20px);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 200px;
         }
         .servicio-item.visible {
             opacity: 1;
@@ -597,22 +602,87 @@
         }
         .servicio-item:hover {
             border-color: var(--accent-gold);
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(212, 168, 83, 0.15);
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 25px 50px rgba(212, 168, 83, 0.2);
+        }
+        .servicio-icon {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 1rem;
+            color: var(--accent-gold);
+            transition: all 0.3s ease;
+        }
+        .servicio-item:hover .servicio-icon {
+            transform: scale(1.15);
+            color: #e5b864;
+        }
+        .servicio-icon svg {
+            width: 100%;
+            height: 100%;
         }
         .servicio-item h4 {
             font-family: 'Playfair Display', serif;
-            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
             transition: color 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .servicio-item:hover h4 {
-            color: #e5b864;
-        }
             color: var(--accent-gold);
         }
         .servicio-item p {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-secondary);
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+        .servicio-cta {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        .servicio-item:hover .servicio-cta {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Principal services - larger and highlighted */
+        .servicio-principal {
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.08) 0%, rgba(88, 166, 255, 0.05) 100%);
+            border: 2px solid rgba(212, 168, 83, 0.3);
+            grid-column: span 1;
+        }
+        .servicio-principal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--accent-blue));
+            border-radius: 16px 16px 0 0;
+        }
+        .servicio-principal:hover {
+            border-color: var(--accent-gold);
+            box-shadow: 0 30px 60px rgba(212, 168, 83, 0.25), 0 0 30px rgba(212, 168, 83, 0.1);
+        }
+        .servicio-principal .servicio-icon {
+            width: 64px;
+            height: 64px;
+        }
+        .servicio-principal h4 {
+            font-size: 1.4rem;
+        }
+        /* Destacado services */
+        .servicio-destacado {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.05) 0%, rgba(22, 27, 34, 0.8) 100%);
+            border-color: rgba(63, 185, 80, 0.2);
+        }
+        .servicio-destacado:hover {
+            border-color: var(--accent-green);
+            box-shadow: 0 25px 50px rgba(63, 185, 80, 0.15);
         }
         .servicio-telemedicina {
             position: relative;
@@ -2337,8 +2407,8 @@
         <div class="logo">José <span>Ingenieros</span></div>
         <nav>
             <a href="#metodologia" data-i18n="nav.methodology">Metodología</a>
-            <a href="#equipo" data-i18n="nav.team">Equipo</a>
             <a href="#servicios" data-i18n="nav.services">Servicios</a>
+            <a href="#equipo" data-i18n="nav.team">Equipo</a>
             <a href="#bitacora" data-i18n="nav.timeline">Bitácora</a>
             <a href="#contacto" data-i18n="nav.contact">Contacto</a>
             <a href="#" onclick="openProfessionalLogin(); return false;" style="color: var(--accent-green);" data-i18n="nav.professionals">Profesionales</a>
@@ -2563,7 +2633,7 @@
             <p>Más de 40 años especializados en salud mental. 45 camas de internación y una nueva sede en pleno centro, proyectando el próximo paso en la gestión de servicios sanitarios.</p>
             <div class="hero-cta">
                 <a href="#contacto" class="btn btn-primary">Contactar</a>
-                <a href="#equipo" class="btn btn-secondary">Conocer al equipo</a>
+                <a href="#servicios" class="btn btn-secondary">Ver servicios</a>
             </div>
             <div class="stats">
                 <div class="stat fade-in">
@@ -2599,6 +2669,71 @@
                 <p>
                     El dispositivo de <strong>Comunidad Terapéutica</strong> constituye el eje vertebrador de nuestra práctica institucional. Un modelo donde el ambiente mismo es agente de cambio: la convivencia estructurada, los roles definidos, las normas compartidas y la <strong>participación activa del paciente</strong> en su proceso de recuperación.
                 </p>
+            </div>
+        </section>
+
+        <!-- Servicios -->
+        <section id="servicios">
+            <h2 class="section-title fade-in">Servicios</h2>
+            <p class="section-subtitle fade-in">Cobertura integral en salud mental</p>
+            <div class="servicios-grid">
+                <div class="servicio-item servicio-destacado fade-in" onclick="openModal('internacion')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </div>
+                    <h4>Internación</h4>
+                    <p>40 camas con atención 24/7. Puertas abiertas.</p>
+                    <span class="servicio-cta">Ver más</span>
+                </div>
+                <div class="servicio-item servicio-destacado fade-in" onclick="openModal('guardia')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h4>Guardia Permanente</h4>
+                    <p>Guardia interna 24/7. Derivación de guardia clínica general.</p>
+                    <span class="servicio-cta">Ver más</span>
+                </div>
+                <div class="servicio-item fade-in" onclick="openModal('externos')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <h4>Consultorios Externos</h4>
+                    <p>Psiquiatría, Psicología, TO, Estimulación Neurocognitiva</p>
+                    <span class="servicio-cta">Ver más</span>
+                </div>
+                <div class="servicio-item servicio-principal fade-in" onclick="openModal('hospitaldia')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </div>
+                    <h4>Hospital de Día</h4>
+                    <p>Dispositivo de tratamiento intensivo ambulatorio. Media jornada, jornada completa y extendida.</p>
+                    <span class="servicio-cta">Conocer programa</span>
+                </div>
+                <div class="servicio-item fade-in" onclick="openModal('hospitalnoche')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    </div>
+                    <h4>Hospital de Tarde y Noche</h4>
+                    <p>Dispositivo de reinserción laboral y social</p>
+                    <span class="servicio-cta">Ver más</span>
+                </div>
+                <div class="servicio-item fade-in" onclick="openModal('talleres-serv')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    </div>
+                    <h4>Talleres Terapéuticos</h4>
+                    <p>Música, huerta, carpintería, cocina, expresión corporal</p>
+                    <span class="servicio-cta">Ver más</span>
+                </div>
+                <div class="servicio-item servicio-telemedicina servicio-principal fade-in" onclick="openModal('telemedicina')">
+                    <div class="servicio-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h4>Telemedicina Internacional</h4>
+                    <p>Videoconsultas con pagos MercadoPago + Crypto. Primera clínica psiquiátrica argentina con pagos internacionales.</p>
+                    <span class="servicio-badge servicio-badge-pronto">Pronto</span>
+                    <span class="servicio-cta">Ver detalles</span>
+                </div>
             </div>
         </section>
 
@@ -2753,43 +2888,6 @@
             <div class="interdisciplina fade-in">
                 <h4> Trabajo Interdisciplinario</h4>
                 <p>Retroalimentación dinámica continua entre psiquiatría y psicología. Staff entrenado en reconocer interacciones farmacológicas y organicidad causante.</p>
-            </div>
-        </section>
-
-        <!-- Servicios -->
-        <section id="servicios">
-            <h2 class="section-title fade-in">Servicios</h2>
-            <p class="section-subtitle fade-in">Cobertura integral en salud mental</p>
-            <div class="servicios-grid">
-                <div class="servicio-item fade-in" onclick="openModal('internacion')">
-                    <h4>Internación</h4>
-                    <p>40 camas con atención 24/7. Puertas abiertas.</p>
-                </div>
-                <div class="servicio-item fade-in" onclick="openModal('guardia')">
-                    <h4>Guardia Permanente</h4>
-                    <p>Guardia interna. Derivación de guardia clínica general.</p>
-                </div>
-                <div class="servicio-item fade-in" onclick="openModal('externos')">
-                    <h4>Consultorios Externos</h4>
-                    <p>Psiquiatría, Psicología, TO, Estimulación Neurocognitiva</p>
-                </div>
-                <div class="servicio-item fade-in" onclick="openModal('hospitaldia')">
-                    <h4>Hospital de Día</h4>
-                    <p>Media jornada, jornada completa y extendida</p>
-                </div>
-                <div class="servicio-item fade-in" onclick="openModal('hospitalnoche')">
-                    <h4>Hospital de Tarde y Noche</h4>
-                    <p>Dispositivo de reinserción laboral y social</p>
-                </div>
-                <div class="servicio-item fade-in" onclick="openModal('talleres-serv')">
-                    <h4>Talleres Terapéuticos</h4>
-                    <p>Música, huerta, carpintería, cocina, expresión corporal</p>
-                </div>
-                <div class="servicio-item servicio-telemedicina servicio-proximamente fade-in" onclick="openModal('telemedicina')">
-                    <h4>Telemedicina Internacional</h4>
-                    <p>Videoconsultas con pagos MercadoPago + Crypto</p>
-                    <span class="servicio-badge servicio-badge-pronto">Pronto</span>
-                </div>
             </div>
         </section>
 
@@ -3686,27 +3784,59 @@
                 </div>
             `,
             hospitaldia: `
-                <div class="modal-header">
-                    
+                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);">
+                    <span style="font-size:2rem; margin-bottom: 0.5rem; display: block;">☀️</span>
                     <h2>Hospital de Día</h2>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.95rem;">Dispositivo de tratamiento intensivo ambulatorio</p>
                 </div>
                 <div class="modal-body">
-                    <p>Dispositivo de tratamiento intensivo ambulatorio.</p>
-                    
-                    <h3>Modalidades</h3>
-                    <ul>
-                        <li><strong>Media jornada:</strong> 4 horas</li>
-                        <li><strong>Jornada completa:</strong> 8 horas</li>
-                        <li><strong>Jornada extendida:</strong> Según necesidad clínica</li>
-                    </ul>
-                    
-                    <h3>Incluye</h3>
-                    <ul>
-                        <li>Actividades terapéuticas grupales</li>
-                        <li>Talleres de rehabilitación</li>
-                        <li>Seguimiento psiquiátrico</li>
-                        <li>Almuerzo institucional</li>
-                    </ul>
+                    <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.1), rgba(88, 166, 255, 0.05)); border: 2px solid rgba(212, 168, 83, 0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: center;">
+                        <h3 style="color: var(--accent-gold); margin-bottom: 1rem; font-size: 1.3rem;">Un espacio de recuperación integral</h3>
+                        <p style="color: var(--text-secondary);">El Hospital de Día ofrece un ambiente terapéutico estructurado donde los pacientes participan activamente en su proceso de recuperación, manteniendo su vinculación con el entorno familiar y social.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 12px; padding: 1.25rem; text-align: center;">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;">🕐</span>
+                            <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem; font-size: 1rem;">Media Jornada</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary);">4 horas diarias</p>
+                        </div>
+                        <div style="background: rgba(212, 168, 83, 0.1); border: 1px solid rgba(212, 168, 83, 0.3); border-radius: 12px; padding: 1.25rem; text-align: center;">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;">⏰</span>
+                            <h4 style="color: var(--accent-gold); margin-bottom: 0.5rem; font-size: 1rem;">Jornada Completa</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary);">8 horas diarias</p>
+                        </div>
+                        <div style="background: rgba(163, 113, 247, 0.1); border: 1px solid rgba(163, 113, 247, 0.3); border-radius: 12px; padding: 1.25rem; text-align: center;">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;">📅</span>
+                            <h4 style="color: var(--accent-purple); margin-bottom: 0.5rem; font-size: 1rem;">Jornada Extendida</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-secondary);">Según necesidad clínica</p>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 1.5rem;">
+                        <h4 style="color: var(--accent-green); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>✓</span> El programa incluye
+                        </h4>
+                        <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary);">
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="color: var(--accent-gold);">→</span> Actividades terapéuticas grupales
+                            </li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="color: var(--accent-gold);">→</span> Talleres de rehabilitación psicosocial
+                            </li>
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="color: var(--accent-gold);">→</span> Seguimiento psiquiátrico continuo
+                            </li>
+                            <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="color: var(--accent-gold);">→</span> Almuerzo institucional incluido
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; text-align: center; padding: 1rem; background: rgba(212, 168, 83, 0.05); border-radius: 12px;">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Para más información o solicitar turno:</p>
+                        <p style="margin-top: 0.5rem;"><strong style="color: var(--accent-gold);">2262-301515</strong></p>
+                    </div>
                 </div>
             `,
             hospitalnoche: `
