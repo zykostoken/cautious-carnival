@@ -187,6 +187,92 @@ CREATE TABLE IF NOT EXISTS announcements (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Consultations / Inquiries from visitors
+CREATE TABLE IF NOT EXISTS consultations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(32),
+    subject VARCHAR(255) DEFAULT 'Consulta General',
+    message TEXT NOT NULL,
+    consultation_type VARCHAR(32) DEFAULT 'general',
+    session_id VARCHAR(64),
+    status VARCHAR(32) DEFAULT 'pending',
+    responded_by INTEGER REFERENCES healthcare_professionals(id),
+    response TEXT,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    archived_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Telemedicine interest / pre-registration
+CREATE TABLE IF NOT EXISTS telemedicine_interest (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    session_id VARCHAR(64),
+    source VARCHAR(64) DEFAULT 'modal',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Hospital de Día (HDD) patients
+CREATE TABLE IF NOT EXISTS hdd_patients (
+    id SERIAL PRIMARY KEY,
+    dni VARCHAR(20) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(32),
+    admission_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    discharge_date DATE,
+    notes TEXT,
+    status VARCHAR(32) DEFAULT 'active',
+    password_hash VARCHAR(255),
+    session_token VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- HDD Community posts
+CREATE TABLE IF NOT EXISTS hdd_community_posts (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    content TEXT NOT NULL,
+    post_type VARCHAR(32) DEFAULT 'text',
+    image_url TEXT,
+    is_approved BOOLEAN DEFAULT TRUE,
+    likes_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- HDD Post comments
+CREATE TABLE IF NOT EXISTS hdd_post_comments (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL REFERENCES hdd_community_posts(id) ON DELETE CASCADE,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- HDD Post likes
+CREATE TABLE IF NOT EXISTS hdd_post_likes (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL REFERENCES hdd_community_posts(id) ON DELETE CASCADE,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(post_id, patient_id)
+);
+
+-- HDD Activities log
+CREATE TABLE IF NOT EXISTS hdd_activities (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES hdd_patients(id),
+    activity_type VARCHAR(64) NOT NULL,
+    description TEXT,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
 `;
 
 // Indexes SQL
@@ -209,6 +295,16 @@ CREATE INDEX IF NOT EXISTS idx_call_queue_status ON call_queue(status);
 CREATE INDEX IF NOT EXISTS idx_call_queue_professional ON call_queue(assigned_professional_id);
 CREATE INDEX IF NOT EXISTS idx_notification_log_recipient ON notification_log(recipient_type, recipient_id);
 CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active, show_from, show_until);
+CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
+CREATE INDEX IF NOT EXISTS idx_consultations_type ON consultations(consultation_type);
+CREATE INDEX IF NOT EXISTS idx_telemedicine_interest_email ON telemedicine_interest(email);
+CREATE INDEX IF NOT EXISTS idx_hdd_patients_dni ON hdd_patients(dni);
+CREATE INDEX IF NOT EXISTS idx_hdd_patients_status ON hdd_patients(status);
+CREATE INDEX IF NOT EXISTS idx_hdd_community_posts_patient ON hdd_community_posts(patient_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_community_posts_approved ON hdd_community_posts(is_approved);
+CREATE INDEX IF NOT EXISTS idx_hdd_post_comments_post ON hdd_post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_post_likes_post ON hdd_post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_activities_patient ON hdd_activities(patient_id);
 `;
 
 export default async (req: Request, context: Context) => {

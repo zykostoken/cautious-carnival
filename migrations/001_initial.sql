@@ -344,3 +344,34 @@ EXCEPTION WHEN duplicate_object THEN
 END $$;
 
 COMMENT ON TABLE telemedicine_interest IS 'Email registrations for telemedicine launch notifications';
+
+-- ===========================================
+-- CONSULTATIONS / INQUIRIES TABLE
+-- ===========================================
+
+-- Contact inquiries from interested people
+CREATE TABLE IF NOT EXISTS consultations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(32),
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    consultation_type VARCHAR(64) DEFAULT 'general', -- 'general', 'telemedicina', 'internacion', 'hdd', 'turnos'
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'read', 'responded', 'archived'
+    session_id VARCHAR(64),
+    is_read BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    responded_by INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for consultations
+CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
+CREATE INDEX IF NOT EXISTS idx_consultations_type ON consultations(consultation_type);
+CREATE INDEX IF NOT EXISTS idx_consultations_email ON consultations(email);
+CREATE INDEX IF NOT EXISTS idx_consultations_created ON consultations(created_at);
+CREATE INDEX IF NOT EXISTS idx_consultations_read ON consultations(is_read);
+
+COMMENT ON TABLE consultations IS 'Contact inquiries and questions from interested people';
