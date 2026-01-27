@@ -23,6 +23,9 @@ export function getDatabase() {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
+      // Disable prepared statements for Supabase Transaction Pooler compatibility
+      // Transaction pooler (port 6543) does not support PREPARE statements
+      prepare: false,
     });
   }
 
