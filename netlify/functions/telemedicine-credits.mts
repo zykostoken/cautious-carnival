@@ -55,7 +55,7 @@ export default async (req: Request, context: Context) => {
     // Register user
     try {
       const body = await req.json();
-      const { action, email, phone } = body;
+      const { action, email, phone, full_name } = body;
 
       if (action === "register") {
         // Register new user
@@ -83,8 +83,8 @@ export default async (req: Request, context: Context) => {
         }
 
         const [newUser] = await sql`
-          INSERT INTO telemedicine_users (email, phone, credit_balance, created_at)
-          VALUES (${email || null}, ${phone || null}, 0, NOW())
+          INSERT INTO telemedicine_users (email, phone, full_name, credit_balance, created_at)
+          VALUES (${email || null}, ${phone || null}, ${full_name || null}, 0, NOW())
           RETURNING id
         `;
 
