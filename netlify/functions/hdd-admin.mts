@@ -1,0 +1,455 @@
+import type { Context, Config } from "@netlify/functions";
+import { getDatabase } from "./lib/db.mts";
+
+// Admin emails that have full control
+const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+
+// Helper to check if session belongs to admin
+async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+  const [professional] = await sql`
+    SELECT email FROM healthcare_professionals
+    WHERE session_token = ${sessionToken} AND is_active = TRUE
+  `;
+  return professional && ADMIN_EMAILS.includes(professional.email);
+}
+
+export default async (req: Request, context: Context) => {
+  const sql = getDatabase();
+  const corsHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  };
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (req.method === "POST") {
+    try {
+      const body = await req.json();
+      const { action, sessionToken } = body;
+
+      // Verify admin session for all operations
+      if (!sessionToken) {
+        return new Response(JSON.stringify({ error: "Token requerido" }),
+          { status: 400, headers: corsHeaders });
+      }
+
+      if (!(await isAdminSession(sql, sessionToken))) {
+        return new Response(JSON.stringify({ error: "No autorizado" }),
+          { status: 403, headers: corsHeaders });
+      }
+
+      // Add new HDD patient
+      if (action === "add_patient") {
+        const { dni, fullName, email, phone, admissionDate, notes } = body;
+
+        if (!dni || !fullName || !admissionDate) {
+          return new Response(JSON.stringify({
+            error: "DNI, nombre completo y fecha de ingreso son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Check if DNI already exists
+        const [existing] = await sql`
+          SELECT id FROM hdd_patients WHERE dni = ${dni}
+        `;
+
+        if (existing) {
+          return new Response(JSON.stringify({
+            error: "Ya existe un paciente con ese DNI"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          INSERT INTO hdd_patients (
+            dni, full_name, email, phone, admission_date, notes, status, created_at
+          )
+          VALUES (
+            ${dni}, ${fullName}, ${email || null}, ${phone || null},
+            ${admissionDate}, ${notes || null}, 'active', NOW()
+          )
+          RETURNING id, dni, full_name, email, admission_date, status
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          patient: {
+            id: patient.id,
+            dni: patient.dni,
+            fullName: patient.full_name,
+            email: patient.email,
+            admissionDate: patient.admission_date,
+            status: patient.status
+          },
+          message: "Paciente agregado exitosamente"
+        }), { status: 201, headers: corsHeaders });
+      }
+
+      // Update patient
+      if (action === "update_patient") {
+        const { patientId, fullName, email, phone, notes, status } = body;
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          UPDATE hdd_patients
+          SET
+            full_name = COALESCE(${fullName}, full_name),
+            email = COALESCE(${email}, email),
+            phone = COALESCE(${phone}, phone),
+            notes = COALESCE(${notes}, notes),
+            status = COALESCE(${status}, status),
+            updated_at = NOW()
+          WHERE id = ${patientId}
+          RETURNING id, dni, full_name, email, status
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          patient,
+          message: "Paciente actualizado"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Discharge patient (set discharge date and inactive status)
+      if (action === "discharge_patient") {
+        const { patientId, dischargeDate } = body;
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          UPDATE hdd_patients
+          SET
+            status = 'discharged',
+            discharge_date = ${dischargeDate || sql`CURRENT_DATE`},
+            session_token = NULL,
+            updated_at = NOW()
+          WHERE id = ${patientId}
+          RETURNING id, dni, full_name, discharge_date, status
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          patient,
+          message: "Paciente dado de alta"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Readmit patient
+      if (action === "readmit_patient") {
+        const { patientId, admissionDate } = body;
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          UPDATE hdd_patients
+          SET
+            status = 'active',
+            admission_date = ${admissionDate || sql`CURRENT_DATE`},
+            discharge_date = NULL,
+            updated_at = NOW()
+          WHERE id = ${patientId}
+          RETURNING id, dni, full_name, admission_date, status
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          patient,
+          message: "Paciente readmitido"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Reset patient password (allows re-setup on next login)
+      if (action === "reset_password") {
+        const { patientId } = body;
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          UPDATE hdd_patients
+          SET
+            password_hash = NULL,
+            session_token = NULL,
+            updated_at = NOW()
+          WHERE id = ${patientId}
+          RETURNING id, dni, full_name
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Contraseña reseteada. El paciente puede configurar una nueva contraseña en su próximo inicio de sesión."
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Bulk import patients (for initial setup or sync from external system)
+      if (action === "bulk_import") {
+        const { patients } = body;
+
+        if (!patients || !Array.isArray(patients) || patients.length === 0) {
+          return new Response(JSON.stringify({
+            error: "Lista de pacientes requerida"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        let imported = 0;
+        let skipped = 0;
+        const errors: string[] = [];
+
+        for (const p of patients) {
+          if (!p.dni || !p.fullName) {
+            errors.push(`Paciente sin DNI o nombre: ${JSON.stringify(p)}`);
+            skipped++;
+            continue;
+          }
+
+          try {
+            await sql`
+              INSERT INTO hdd_patients (
+                dni, full_name, email, phone, admission_date, notes, status, created_at
+              )
+              VALUES (
+                ${p.dni}, ${p.fullName}, ${p.email || null}, ${p.phone || null},
+                ${p.admissionDate || sql`CURRENT_DATE`}, ${p.notes || null}, 'active', NOW()
+              )
+              ON CONFLICT (dni) DO UPDATE SET
+                full_name = ${p.fullName},
+                email = COALESCE(${p.email || null}, hdd_patients.email),
+                phone = COALESCE(${p.phone || null}, hdd_patients.phone),
+                updated_at = NOW()
+            `;
+            imported++;
+          } catch (err: any) {
+            errors.push(`Error con DNI ${p.dni}: ${err.message}`);
+            skipped++;
+          }
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          imported,
+          skipped,
+          errors: errors.length > 0 ? errors : undefined,
+          message: `${imported} pacientes importados, ${skipped} omitidos`
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      return new Response(JSON.stringify({ error: "Acción inválida" }),
+        { status: 400, headers: corsHeaders });
+
+    } catch (error) {
+      console.error("HDD Admin error:", error);
+      return new Response(JSON.stringify({ error: "Error interno del servidor" }),
+        { status: 500, headers: corsHeaders });
+    }
+  }
+
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const sessionToken = url.searchParams.get("sessionToken");
+    const action = url.searchParams.get("action");
+    const status = url.searchParams.get("status") || "active";
+
+    if (!sessionToken) {
+      return new Response(JSON.stringify({ error: "Token requerido" }),
+        { status: 400, headers: corsHeaders });
+    }
+
+    if (!(await isAdminSession(sql, sessionToken))) {
+      return new Response(JSON.stringify({ error: "No autorizado" }),
+        { status: 403, headers: corsHeaders });
+    }
+
+    try {
+      // List all patients
+      if (action === "list" || !action) {
+        let patients;
+
+        if (status === "all") {
+          patients = await sql`
+            SELECT
+              id, dni, full_name, email, phone, admission_date, discharge_date,
+              status, notes, created_at, last_login,
+              (password_hash IS NOT NULL) as has_password
+            FROM hdd_patients
+            ORDER BY status ASC, full_name ASC
+          `;
+        } else {
+          patients = await sql`
+            SELECT
+              id, dni, full_name, email, phone, admission_date, discharge_date,
+              status, notes, created_at, last_login,
+              (password_hash IS NOT NULL) as has_password
+            FROM hdd_patients
+            WHERE status = ${status}
+            ORDER BY full_name ASC
+          `;
+        }
+
+        return new Response(JSON.stringify({
+          patients: patients.map((p: any) => ({
+            id: p.id,
+            dni: p.dni,
+            fullName: p.full_name,
+            email: p.email,
+            phone: p.phone,
+            admissionDate: p.admission_date,
+            dischargeDate: p.discharge_date,
+            status: p.status,
+            notes: p.notes,
+            hasPassword: p.has_password,
+            hasLoggedIn: !!p.last_login,
+            lastLogin: p.last_login,
+            createdAt: p.created_at
+          }))
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Get single patient details
+      if (action === "detail") {
+        const patientId = url.searchParams.get("patientId");
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          SELECT
+            id, dni, full_name, email, phone, admission_date, discharge_date,
+            status, notes, created_at, last_login,
+            (password_hash IS NOT NULL) as has_password
+          FROM hdd_patients
+          WHERE id = ${patientId}
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        // Get patient's posts count
+        const [postsCount] = await sql`
+          SELECT COUNT(*) as count FROM hdd_community_posts WHERE patient_id = ${patientId}
+        `;
+
+        return new Response(JSON.stringify({
+          patient: {
+            id: patient.id,
+            dni: patient.dni,
+            fullName: patient.full_name,
+            email: patient.email,
+            phone: patient.phone,
+            admissionDate: patient.admission_date,
+            dischargeDate: patient.discharge_date,
+            status: patient.status,
+            notes: patient.notes,
+            hasPassword: patient.has_password,
+            lastLogin: patient.last_login,
+            createdAt: patient.created_at,
+            postsCount: parseInt(postsCount.count)
+          }
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Get activities
+      if (action === "activities") {
+        const activities = await sql`
+          SELECT id, name, description, day_of_week, start_time, end_time, is_active
+          FROM hdd_activities
+          ORDER BY day_of_week ASC, start_time ASC
+        `;
+
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        return new Response(JSON.stringify({
+          activities: activities.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            description: a.description,
+            dayOfWeek: a.day_of_week,
+            dayName: dayNames[a.day_of_week] || 'No definido',
+            startTime: a.start_time,
+            endTime: a.end_time,
+            isActive: a.is_active
+          }))
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Get statistics
+      if (action === "stats") {
+        const [activeCount] = await sql`
+          SELECT COUNT(*) as count FROM hdd_patients WHERE status = 'active'
+        `;
+        const [dischargedCount] = await sql`
+          SELECT COUNT(*) as count FROM hdd_patients WHERE status = 'discharged'
+        `;
+        const [postsCount] = await sql`
+          SELECT COUNT(*) as count FROM hdd_community_posts
+        `;
+        const [loggedInCount] = await sql`
+          SELECT COUNT(*) as count FROM hdd_patients
+          WHERE status = 'active' AND last_login IS NOT NULL
+        `;
+
+        return new Response(JSON.stringify({
+          stats: {
+            activePatients: parseInt(activeCount.count),
+            dischargedPatients: parseInt(dischargedCount.count),
+            totalPosts: parseInt(postsCount.count),
+            patientsLoggedIn: parseInt(loggedInCount.count)
+          }
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      return new Response(JSON.stringify({ error: "Acción requerida" }),
+        { status: 400, headers: corsHeaders });
+
+    } catch (error) {
+      console.error("HDD Admin GET error:", error);
+      return new Response(JSON.stringify({ error: "Error interno del servidor" }),
+        { status: 500, headers: corsHeaders });
+    }
+  }
+
+  return new Response(JSON.stringify({ error: "Método no permitido" }),
+    { status: 405, headers: corsHeaders });
+};
+
+export const config: Config = {
+  path: "/api/hdd/admin"
+};
