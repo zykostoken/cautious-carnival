@@ -1444,6 +1444,118 @@
         }
         .contact-item a:hover { color: var(--accent-gold); }
 
+        /* ========== CONTACT FORM ========== */
+        .contact-form-container {
+            margin-top: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2.5rem;
+        }
+        .contact-form-container h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-gold);
+        }
+        .contact-form-container p.form-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        .contact-form {
+            text-align: left;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        @media (max-width: 500px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+        .form-submit-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+        .form-submit-btn:hover {
+            background: #e5b864;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 168, 83, 0.3);
+        }
+        .form-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .form-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .form-message.success {
+            background: rgba(63, 185, 80, 0.15);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        .form-message.error {
+            background: rgba(248, 81, 73, 0.15);
+            border: 1px solid #f85149;
+            color: #f85149;
+        }
+
         /* ========== FOOTER ========== */
         footer {
             text-align: center;
@@ -3084,6 +3196,48 @@
                     <p>Miembro de FECLIBA</p>
                 </div>
             </div>
+
+            <!-- Contact Form -->
+            <div class="contact-form-container fade-in">
+                <h3>Envianos tu consulta</h3>
+                <p class="form-subtitle">Completá el formulario y te responderemos a la brevedad</p>
+                <form id="contact-form" class="contact-form" onsubmit="submitContactForm(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contact-name">Nombre *</label>
+                            <input type="text" id="contact-name" name="name" required placeholder="Tu nombre">
+                        </div>
+                        <div class="form-group">
+                            <label for="contact-phone">Teléfono</label>
+                            <input type="tel" id="contact-phone" name="phone" placeholder="Ej: 2262-123456">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-email">Email *</label>
+                        <input type="email" id="contact-email" name="email" required placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-type">Tipo de consulta</label>
+                        <select id="contact-type" name="consultationType">
+                            <option value="general">Consulta General</option>
+                            <option value="telemedicina">Telemedicina</option>
+                            <option value="internacion">Internación</option>
+                            <option value="hdd">Hospital de Día</option>
+                            <option value="turnos">Turnos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-subject">Asunto</label>
+                        <input type="text" id="contact-subject" name="subject" placeholder="Asunto de tu consulta">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-message">Mensaje *</label>
+                        <textarea id="contact-message" name="message" required placeholder="Escribí tu consulta aquí..."></textarea>
+                    </div>
+                    <button type="submit" class="form-submit-btn" id="contact-submit-btn">Enviar Consulta</button>
+                    <div id="contact-form-message" class="form-message" style="display: none;"></div>
+                </form>
+            </div>
         </section>
     </main>
 
@@ -4048,6 +4202,91 @@ function closeModal(event) {
                     })
                 });
             } catch (e) {}
+        }
+
+        // Contact Form Submission
+        async function submitContactForm(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('contact-form');
+            const submitBtn = document.getElementById('contact-submit-btn');
+            const messageEl = document.getElementById('contact-form-message');
+
+            const name = document.getElementById('contact-name').value.trim();
+            const email = document.getElementById('contact-email').value.trim();
+            const phone = document.getElementById('contact-phone').value.trim();
+            const consultationType = document.getElementById('contact-type').value;
+            const subject = document.getElementById('contact-subject').value.trim();
+            const message = document.getElementById('contact-message').value.trim();
+
+            if (!name || !message) {
+                messageEl.textContent = 'Por favor completá los campos requeridos';
+                messageEl.className = 'form-message error';
+                messageEl.style.display = 'block';
+                return;
+            }
+
+            if (!email && !phone) {
+                messageEl.textContent = 'Por favor proporcioná un email o teléfono para contactarte';
+                messageEl.className = 'form-message error';
+                messageEl.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+            messageEl.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/consultations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'submit',
+                        name,
+                        email: email || null,
+                        phone: phone || null,
+                        consultationType,
+                        subject: subject || null,
+                        message,
+                        sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    messageEl.textContent = data.message || 'Su consulta ha sido enviada. Nos pondremos en contacto a la brevedad.';
+                    messageEl.className = 'form-message success';
+                    messageEl.style.display = 'block';
+                    form.reset();
+
+                    // Track the event
+                    try {
+                        await fetch('/api/track', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sessionId,
+                                eventType: 'consultation_submitted',
+                                data: { consultationType }
+                            })
+                        });
+                    } catch (e) {}
+                } else {
+                    messageEl.textContent = data.error || 'Hubo un error al enviar tu consulta. Por favor intentá nuevamente.';
+                    messageEl.className = 'form-message error';
+                    messageEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Contact form error:', error);
+                messageEl.textContent = 'Error de conexión. Por favor intentá nuevamente.';
+                messageEl.className = 'form-message error';
+                messageEl.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Consulta';
+            }
         }
 
         // Heartbeat for time on site tracking

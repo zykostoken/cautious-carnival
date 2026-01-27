@@ -263,6 +263,74 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
+      // Notify staff of new consultation/inquiry
+      if (action === "notify_new_consultation") {
+        const { consultationId, name, email, phone, subject, consultationType } = body;
+
+        // Get admin emails
+        const admins = await sql`
+          SELECT id, email, full_name
+          FROM healthcare_professionals
+          WHERE is_active = TRUE AND notify_email = TRUE
+          LIMIT 5
+        `;
+
+        const typeLabels: Record<string, string> = {
+          'general': 'Consulta General',
+          'telemedicina': 'Telemedicina',
+          'internacion': 'Internación',
+          'hdd': 'Hospital de Día',
+          'turnos': 'Turnos'
+        };
+
+        const emailSubject = `📬 Nueva Consulta: ${subject || 'Sin asunto'} - Clínica José Ingenieros`;
+        const emailBody = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #3fb950, #58a6ff); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="color: white; margin: 0;">📬 Nueva Consulta</h1>
+            </div>
+            <div style="padding: 30px; background: #f5f5f5;">
+              <p style="font-size: 16px;"><strong>Ha recibido una nueva consulta</strong></p>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Nombre:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email || 'No proporcionado'}</p>
+                <p><strong>Teléfono:</strong> ${phone || 'No proporcionado'}</p>
+                <p><strong>Tipo:</strong> ${typeLabels[consultationType] || consultationType}</p>
+                <p><strong>Asunto:</strong> ${subject || 'Sin asunto'}</p>
+              </div>
+              <a href="https://joseingenieros.netlify.app/#profesional"
+                 style="display: inline-block; background: #3fb950; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                Ver Consulta
+              </a>
+            </div>
+            <div style="padding: 15px; text-align: center; color: #666; font-size: 12px;">
+              Clínica Psiquiátrica José Ingenieros - Calle 52 #2990, Necochea
+            </div>
+          </div>
+        `;
+
+        let notified = 0;
+        const errors: string[] = [];
+
+        for (const admin of admins) {
+          if (admin.email) {
+            const result = await sendEmailNotification(admin.email, emailSubject, emailBody);
+            await logNotification(
+              sql, 'professional', admin.id, 'email', admin.email,
+              'new_consultation', emailSubject, result
+            );
+            if (result.success) notified++;
+            else errors.push(`Email a ${admin.full_name}: ${result.error}`);
+          }
+        }
+
+        return new Response(JSON.stringify({
+          success: notified > 0,
+          notified,
+          errors
+        }), { status: 200, headers: corsHeaders });
+      }
+
       // Get notification status
       if (action === "status") {
         const { notificationId } = body;

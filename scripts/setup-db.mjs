@@ -362,6 +362,62 @@ ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_mp_payments_user ON mp_payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_mp_payments_status ON mp_payments(status);
 CREATE INDEX IF NOT EXISTS idx_mp_payments_mp_id ON mp_payments(mp_payment_id);
+
+-- =============================================
+-- CONSULTATIONS / INQUIRIES TABLE
+-- =============================================
+
+-- Contact inquiries from interested people
+CREATE TABLE IF NOT EXISTS consultations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(32),
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    consultation_type VARCHAR(64) DEFAULT 'general',
+    status VARCHAR(32) DEFAULT 'pending',
+    session_id VARCHAR(64),
+    is_read BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    responded_by INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Telemedicine interest / pre-registration for service launch notifications
+CREATE TABLE IF NOT EXISTS telemedicine_interest (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(32),
+    full_name VARCHAR(255),
+    session_id VARCHAR(64),
+    source VARCHAR(64) DEFAULT 'web',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notified_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT
+);
+
+-- Indexes for consultations
+CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
+CREATE INDEX IF NOT EXISTS idx_consultations_type ON consultations(consultation_type);
+CREATE INDEX IF NOT EXISTS idx_consultations_email ON consultations(email);
+CREATE INDEX IF NOT EXISTS idx_consultations_created ON consultations(created_at);
+CREATE INDEX IF NOT EXISTS idx_telemedicine_interest_email ON telemedicine_interest(email);
+CREATE INDEX IF NOT EXISTS idx_telemedicine_interest_created ON telemedicine_interest(created_at);
+
+-- Add unique constraint on email if not exists (for telemedicine_interest)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'telemedicine_interest_email_key'
+    ) THEN
+        ALTER TABLE telemedicine_interest ADD CONSTRAINT telemedicine_interest_email_key UNIQUE (email);
+    END IF;
+EXCEPTION WHEN duplicate_object THEN
+    NULL;
+END $$;
 `;
 
 async function runMigration() {
