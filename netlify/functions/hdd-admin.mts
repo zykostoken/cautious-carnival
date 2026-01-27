@@ -1,8 +1,12 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
-// Admin emails that have full control
-const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+// Admin emails that have full control (institutional domain: clinicajoseingenieros.com.ar)
+const ADMIN_EMAILS = [
+  'direccionmedica@clinicajoseingenieros.com.ar',
+  'gerencia@clinicajoseingenieros.com.ar',
+  'rrhh@clinicajoseingenieros.com.ar'
+];
 
 // Helper to check if session belongs to admin
 async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {

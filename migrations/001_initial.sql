@@ -319,7 +319,7 @@ COMMENT ON TABLE telemedicine_plans IS 'Pricing plans for telemedicine consultat
 
 CREATE TABLE IF NOT EXISTS telemedicine_interest (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     session_id VARCHAR(64),
     source VARCHAR(64) DEFAULT 'web', -- 'web', 'banner', 'modal'
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -329,5 +329,18 @@ CREATE TABLE IF NOT EXISTS telemedicine_interest (
 
 CREATE INDEX IF NOT EXISTS idx_telemedicine_interest_email ON telemedicine_interest(email);
 CREATE INDEX IF NOT EXISTS idx_telemedicine_interest_created ON telemedicine_interest(created_at);
+
+-- Add unique constraint if table exists without it (for existing deployments)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'telemedicine_interest_email_key'
+    ) THEN
+        ALTER TABLE telemedicine_interest ADD CONSTRAINT telemedicine_interest_email_key UNIQUE (email);
+    END IF;
+EXCEPTION WHEN duplicate_object THEN
+    NULL;
+END $$;
 
 COMMENT ON TABLE telemedicine_interest IS 'Email registrations for telemedicine launch notifications';

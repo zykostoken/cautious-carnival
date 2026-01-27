@@ -81,7 +81,7 @@ export default async (req: Request, context: Context) => {
           await sql`
             INSERT INTO telemedicine_interest (email, session_id, source, created_at)
             VALUES (${data.email}, ${sessionId}, ${data?.source || 'modal'}, NOW())
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (email) DO UPDATE SET session_id = EXCLUDED.session_id
           `;
           // Also log in generic_events for audit purposes
           await sql`
