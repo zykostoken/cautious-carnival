@@ -75,6 +75,22 @@ export default async (req: Request, context: Context) => {
         `;
         break;
 
+      case "telemedicina_preregistro":
+        // Save to dedicated telemedicine_interest table
+        if (data?.email) {
+          await sql`
+            INSERT INTO telemedicine_interest (email, session_id, source, created_at)
+            VALUES (${data.email}, ${sessionId}, ${data?.source || 'modal'}, NOW())
+            ON CONFLICT DO NOTHING
+          `;
+          // Also log in generic_events for audit purposes
+          await sql`
+            INSERT INTO generic_events (session_id, event_type, event_data, created_at)
+            VALUES (${sessionId}, ${eventType}, ${JSON.stringify(data || {})}, NOW())
+          `;
+        }
+        break;
+
       case "heartbeat":
         await sql`
           UPDATE user_sessions
