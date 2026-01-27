@@ -723,6 +723,10 @@
             background: linear-gradient(135deg, #d4a853, #f59e0b);
             animation: pulseBadge 2s ease-in-out infinite;
         }
+        .servicio-badge-activo {
+            background: linear-gradient(135deg, #3fb950, #22c55e);
+            animation: pulseBadge 2s ease-in-out infinite;
+        }
         @keyframes pulseBadge {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
@@ -894,6 +898,34 @@
         .neon-banner-proximamente .neon-banner-icon {
             text-shadow: 0 0 20px rgba(212, 168, 83, 0.8);
             animation: rocketPulse 2s ease-in-out infinite;
+        }
+        /* Active neon banner styles */
+        .neon-banner-activo .neon-banner-content {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.2) 0%, rgba(34, 197, 94, 0.15) 50%, rgba(88, 166, 255, 0.15) 100%);
+        }
+        .neon-banner-activo .neon-banner-content::before {
+            background: linear-gradient(135deg, #3fb950, #22c55e, #58a6ff, #3fb950);
+        }
+        .neon-banner-activo .neon-banner-content::after {
+            box-shadow: 0 0 30px rgba(63, 185, 80, 0.6),
+                        0 0 60px rgba(34, 197, 94, 0.3),
+                        inset 0 0 15px rgba(88, 166, 255, 0.2);
+        }
+        .neon-banner-activo .neon-banner-icon {
+            text-shadow: 0 0 20px rgba(63, 185, 80, 0.8);
+            animation: videoPulse 2s ease-in-out infinite;
+        }
+        @keyframes videoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .neon-badge-active {
+            background: linear-gradient(135deg, #3fb950, #22c55e) !important;
+            animation: activeBadgePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes activeBadgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(63, 185, 80, 0.5); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
         }
         @keyframes rocketPulse {
             0%, 100% { transform: translateY(0) scale(1); }
@@ -2551,14 +2583,14 @@
         </nav>
     </header>
 
-    <!-- Banner Neón Telemedicina - PRÓXIMAMENTE -->
-    <div id="neon-telemedicina-banner" class="neon-banner neon-banner-proximamente" onclick="openModal('telemedicina')">
+    <!-- Banner Neón Telemedicina - ACTIVO -->
+    <div id="neon-telemedicina-banner" class="neon-banner neon-banner-activo" onclick="openModal('telemedicina')">
         <button class="neon-banner-close" onclick="event.stopPropagation(); closeNeonBanner();">&times;</button>
         <div class="neon-banner-content">
-            <span class="neon-banner-badge neon-badge-soon">Pronto</span>
-            <span class="neon-banner-icon">🚀</span>
+            <span class="neon-banner-badge neon-badge-active">Activo</span>
+            <span class="neon-banner-icon">📹</span>
             <div class="neon-banner-text">Telemedicina Internacional</div>
-            <div class="neon-banner-subtitle">Pagos con MercadoPago + Crypto</div>
+            <div class="neon-banner-subtitle">¡Consultá ahora! MercadoPago + Crypto</div>
         </div>
     </div>
 
@@ -2827,14 +2859,15 @@
                     <p>Psiquiatría, Psicología, TO, Estimulación Neurocognitiva</p>
                     <span class="servicio-cta">Ver más</span>
                 </div>
-                <a href="https://psiquiatriajoseoing.netlify.app/" target="_blank" class="servicio-item servicio-principal fade-in">
+                <div class="servicio-item servicio-principal fade-in" onclick="openHospitalDeDia()">
                     <div class="servicio-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                     </div>
                     <h4>Hospital de Día</h4>
                     <p>Dispositivo de tratamiento intensivo ambulatorio. Media jornada, jornada completa y extendida.</p>
-                    <span class="servicio-cta">Conocer programa</span>
-                </a>
+                    <span class="servicio-badge servicio-badge-activo">Comunidad Activa</span>
+                    <span class="servicio-cta">Acceder al Portal</span>
+                </div>
                 <div class="servicio-item fade-in" onclick="openModal('hospitalnoche')">
                     <div class="servicio-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
@@ -2857,8 +2890,8 @@
                     </div>
                     <h4>Telemedicina Internacional</h4>
                     <p>Videoconsultas con pagos MercadoPago + Crypto. Primera clínica psiquiátrica argentina con pagos internacionales.</p>
-                    <span class="servicio-badge servicio-badge-pronto">Pronto</span>
-                    <span class="servicio-cta">Ver detalles</span>
+                    <span class="servicio-badge servicio-badge-activo">Activo</span>
+                    <span class="servicio-cta">Iniciar Consulta</span>
                 </div>
             </div>
         </section>
@@ -4042,39 +4075,157 @@
             `,
             telemedicina: `
                 <div class="modal-header">
-                    <span style="font-size:2rem">🚀</span>
+                    <span style="font-size:2rem">📹</span>
                     <h2>Telemedicina Internacional</h2>
-                    <span style="background: linear-gradient(135deg, #d4a853, #f59e0b); color: #0a0d12; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 10px;">PRÓXIMAMENTE</span>
+                    <span style="background: linear-gradient(135deg, #3fb950, #22c55e); color: #0a0d12; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 10px;">ACTIVO</span>
                 </div>
                 <div class="modal-body">
                     <p style="font-size: 1.1rem; margin-bottom: 1.5rem;"><strong>Primera clínica psiquiátrica de Argentina con pagos internacionales</strong></p>
 
-                    <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid var(--accent-gold); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;">
-                        <h3 style="color: var(--accent-gold); margin-bottom: 1.5rem; font-size: 1.3rem; text-align: center;">Nuestros Servicios</h3>
-
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; border: 2px solid var(--accent-green); text-align: center;">
-                                <span style="font-size: 2.5rem; display: block; margin-bottom: 0.75rem;">⚡</span>
-                                <h4 style="color: var(--accent-green); margin-bottom: 0.75rem; font-size: 1.1rem;">Consulta Inmediata</h4>
-                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Videoconsulta inmediata con profesional de salud mental (~30 minutos)</p>
-                                <div style="background: rgba(63, 185, 80, 0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">$150.000 ARS</span>
-                                </div>
-                                <p style="font-size: 0.75rem; color: var(--text-muted);">Acepta ARS, USD o Crypto</p>
+                    <!-- Telemedicine App Container -->
+                    <div id="telemed-container">
+                        <!-- Step 1: Registration/Login -->
+                        <div id="telemed-step-register" class="telemed-step">
+                            <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid var(--accent-gold); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;">
+                                <h3 style="color: var(--accent-gold); margin-bottom: 1rem; font-size: 1.2rem; text-align: center;">Ingresá tus datos para comenzar</h3>
+                                <form id="telemed-register-form" onsubmit="telemedRegister(event)" style="max-width: 400px; margin: 0 auto;">
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Nombre completo *</label>
+                                        <input type="text" id="telemed-fullname" required placeholder="Tu nombre" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Email *</label>
+                                        <input type="email" id="telemed-email" required placeholder="tu@email.com" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Teléfono (WhatsApp preferido)</label>
+                                        <input type="tel" id="telemed-phone" placeholder="Ej: 2262656681" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                    </div>
+                                    <p id="telemed-register-error" style="display: none; color: var(--accent-warm); font-size: 0.85rem; margin-bottom: 1rem;"></p>
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem;">Continuar</button>
+                                </form>
                             </div>
-                            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; border: 2px solid var(--accent-blue); text-align: center;">
-                                <span style="font-size: 2.5rem; display: block; margin-bottom: 0.75rem;">📅</span>
-                                <h4 style="color: var(--accent-blue); margin-bottom: 0.75rem; font-size: 1.1rem;">Consulta Diferida en el Día</h4>
-                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Videoconsulta programada para el mismo día (~30 minutos)</p>
-                                <div style="background: rgba(88, 166, 255, 0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--accent-blue);">$80.000 ARS</span>
+                        </div>
+
+                        <!-- Step 2: Service Selection -->
+                        <div id="telemed-step-services" class="telemed-step" style="display: none;">
+                            <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid var(--accent-gold); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;">
+                                <p style="text-align: center; margin-bottom: 1rem; color: var(--text-secondary);">Bienvenido/a, <strong id="telemed-user-name" style="color: var(--accent-gold);"></strong></p>
+                                <h3 style="color: var(--accent-gold); margin-bottom: 1.5rem; font-size: 1.2rem; text-align: center;">Elegí tu tipo de consulta</h3>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                                    <div onclick="telemedSelectService('immediate')" class="telemed-service-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; border: 2px solid var(--accent-green); text-align: center; cursor: pointer; transition: all 0.3s;">
+                                        <span style="font-size: 2.5rem; display: block; margin-bottom: 0.75rem;">⚡</span>
+                                        <h4 style="color: var(--accent-green); margin-bottom: 0.75rem; font-size: 1.1rem;">Consulta Inmediata</h4>
+                                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Videoconsulta inmediata con profesional de salud mental (~30 minutos)</p>
+                                        <div style="background: rgba(63, 185, 80, 0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">$150.000 ARS</span>
+                                        </div>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Disponible 8:00-20:00 hs</p>
+                                    </div>
+                                    <div onclick="telemedSelectService('scheduled')" class="telemed-service-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; border: 2px solid var(--accent-blue); text-align: center; cursor: pointer; transition: all 0.3s;">
+                                        <span style="font-size: 2.5rem; display: block; margin-bottom: 0.75rem;">📅</span>
+                                        <h4 style="color: var(--accent-blue); margin-bottom: 0.75rem; font-size: 1.1rem;">Agendar Consulta</h4>
+                                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Programá tu videoconsulta para cuando te quede cómodo</p>
+                                        <div style="background: rgba(88, 166, 255, 0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--accent-blue);">$80.000 ARS</span>
+                                        </div>
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Elegí fecha y hora</p>
+                                    </div>
                                 </div>
-                                <p style="font-size: 0.75rem; color: var(--text-muted);">Acepta ARS, USD o Crypto</p>
+
+                                <div style="margin-top: 1.5rem; text-align: center;">
+                                    <button onclick="telemedLogout()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">Cerrar sesión</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3a: Immediate Call - Waiting Room -->
+                        <div id="telemed-step-waiting" class="telemed-step" style="display: none;">
+                            <div style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(34, 197, 94, 0.1)); border: 2px solid var(--accent-green); border-radius: 16px; padding: 2rem; text-align: center;">
+                                <div class="telemed-spinner" style="width: 60px; height: 60px; border: 4px solid var(--border-color); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
+                                <h3 style="color: var(--accent-green); margin-bottom: 1rem;">Sala de Espera</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Conectándote con un profesional...<br>Los profesionales han sido notificados y uno se unirá en breve.</p>
+                                <div id="telemed-queue-position" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Posición en cola: <strong id="telemed-position" style="color: var(--accent-gold);">1</strong></p>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem;">Tu sesión expira en: <span id="telemed-timer" style="color: var(--accent-gold); font-weight: bold;">15:00</span></p>
+                                <button onclick="telemedCancelCall()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3b: Schedule Call -->
+                        <div id="telemed-step-schedule" class="telemed-step" style="display: none;">
+                            <div style="background: linear-gradient(135deg, rgba(88, 166, 255, 0.15), rgba(59, 130, 246, 0.1)); border: 2px solid var(--accent-blue); border-radius: 16px; padding: 2rem;">
+                                <h3 style="color: var(--accent-blue); margin-bottom: 1.5rem; text-align: center;">Agendar Consulta</h3>
+                                <form id="telemed-schedule-form" onsubmit="telemedScheduleCall(event)" style="max-width: 400px; margin: 0 auto;">
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Fecha *</label>
+                                        <input type="date" id="telemed-date" required min="" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hora *</label>
+                                        <select id="telemed-time" required style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                                            <option value="">Seleccionar hora</option>
+                                            <option value="08:00">08:00</option>
+                                            <option value="09:00">09:00</option>
+                                            <option value="10:00">10:00</option>
+                                            <option value="11:00">11:00</option>
+                                            <option value="12:00">12:00</option>
+                                            <option value="13:00">13:00</option>
+                                            <option value="14:00">14:00</option>
+                                            <option value="15:00">15:00</option>
+                                            <option value="16:00">16:00</option>
+                                            <option value="17:00">17:00</option>
+                                            <option value="18:00">18:00</option>
+                                            <option value="19:00">19:00</option>
+                                        </select>
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Notas adicionales (opcional)</label>
+                                        <textarea id="telemed-notes" placeholder="Motivo de consulta, síntomas, etc." rows="3" style="width: 100%; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); resize: vertical;"></textarea>
+                                    </div>
+                                    <p id="telemed-schedule-error" style="display: none; color: var(--accent-warm); font-size: 0.85rem; margin-bottom: 1rem;"></p>
+                                    <div style="display: flex; gap: 1rem;">
+                                        <button type="button" onclick="telemedBackToServices()" class="btn btn-secondary" style="flex: 1; padding: 1rem;">Volver</button>
+                                        <button type="submit" class="btn btn-primary" style="flex: 2; padding: 1rem;">Confirmar Cita</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Video Call -->
+                        <div id="telemed-step-call" class="telemed-step" style="display: none;">
+                            <div style="background: rgba(0,0,0,0.5); border: 2px solid var(--accent-green); border-radius: 16px; overflow: hidden;">
+                                <div style="padding: 1rem; background: rgba(63, 185, 80, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: var(--accent-green); font-weight: 600;">📹 Videoconsulta en progreso</span>
+                                    <span id="telemed-call-duration" style="color: var(--text-secondary); font-size: 0.9rem;">00:00</span>
+                                </div>
+                                <div id="telemed-jitsi-container" style="width: 100%; height: 500px; background: #000;"></div>
+                                <div style="padding: 1rem; display: flex; justify-content: center; gap: 1rem;">
+                                    <button onclick="telemedEndCall()" class="btn btn-danger" style="padding: 0.75rem 2rem;">Finalizar llamada</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Confirmation -->
+                        <div id="telemed-step-confirmed" class="telemed-step" style="display: none;">
+                            <div style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(34, 197, 94, 0.1)); border: 2px solid var(--accent-green); border-radius: 16px; padding: 2rem; text-align: center;">
+                                <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">✅</span>
+                                <h3 style="color: var(--accent-green); margin-bottom: 1rem;">¡Cita Confirmada!</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Tu consulta ha sido agendada exitosamente.</p>
+                                <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Fecha y hora:</p>
+                                    <p id="telemed-confirmed-datetime" style="color: var(--accent-gold); font-size: 1.2rem; font-weight: 600;"></p>
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Te enviaremos un recordatorio por email/WhatsApp antes de tu cita.</p>
+                                <button onclick="telemedBackToServices()" class="btn btn-primary" style="padding: 0.75rem 2rem;">Volver al inicio</button>
                             </div>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <!-- Payment Methods Info -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
                         <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
                             <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">💳</span>
                             <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;">MercadoPago</h4>
@@ -4087,37 +4238,26 @@
                         </div>
                     </div>
 
-                    <div style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                        <h4 style="color: var(--accent-green); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <span>✓</span> ¿Qué incluye?
-                        </h4>
-                        <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary);">
-                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📹 Videoconsulta HD con Jitsi Meet (sin apps)</li>
-                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">🔐 Pago previo obligatorio (protección anti-abuse)</li>
-                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📱 QR para pagar desde celular</li>
-                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">📋 Historial de consultas y recibos</li>
-                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">🌍 Multi-idioma (ES/EN/PT)</li>
-                            <li style="padding: 0.5rem 0;">⏰ Atención 8:00 a 20:00 hs (GMT-3)</li>
+                    <div style="margin-top: 1.5rem; background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 1rem;">
+                        <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary); font-size: 0.85rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+                            <li>📹 Videoconsulta HD con Jitsi Meet</li>
+                            <li>🔐 Conexión segura y privada</li>
+                            <li>📋 Historial de consultas</li>
+                            <li>⏰ Atención 8:00 a 20:00 hs (GMT-3)</li>
                         </ul>
                     </div>
 
-                    <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                        <h4 style="color: var(--accent-blue); margin-bottom: 1rem;">📬 Pre-registro (opcional)</h4>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Dejá tu email para ser de los primeros en acceder cuando lancemos:</p>
-                        <form id="form-preregistro-telemedicina" onsubmit="preregistrarTelemedicina(event)" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <input type="email" id="preregistro-email" placeholder="tu@email.com" required style="flex: 1; min-width: 200px; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
-                            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">Avisame</button>
-                        </form>
-                        <p id="preregistro-mensaje" style="display: none; margin-top: 0.75rem; color: var(--accent-green); font-size: 0.9rem;"></p>
-                    </div>
-
-                    <div style="text-align: center; padding: 1rem; background: rgba(212, 168, 83, 0.05); border-radius: 8px; border: 1px dashed var(--accent-gold);">
+                    <div style="text-align: center; padding: 1rem; margin-top: 1rem; background: rgba(212, 168, 83, 0.05); border-radius: 8px; border: 1px dashed var(--accent-gold);">
                         <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem;">
-                            Mientras tanto, podés contactarnos por teléfono:<br>
+                            ¿Preferís atención telefónica?<br>
                             <a href="tel:+542262301515" style="color: var(--accent-gold); font-size: 1.1rem; font-weight: 600;">📞 2262-301515</a>
                         </p>
                     </div>
                 </div>
+                <style>
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                    .telemed-service-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+                </style>
             `
         };
 
@@ -4417,25 +4557,365 @@ function closeModal(event) {
 
         // ========== TELEMEDICINE FUNCTIONS ==========
 
-        async function checkTelemedicineUser() {
-            const registroDiv = document.getElementById('tele-registro');
+        // Telemedicine state
+        let telemedCurrentUser = JSON.parse(localStorage.getItem('telemedUser') || 'null');
+        let telemedSessionToken = null;
+        let telemedTimerInterval = null;
+        let telemedCallDurationInterval = null;
 
-            if (telemedUserId) {
+        async function checkTelemedicineUser() {
+            // Show the appropriate step based on user state
+            if (telemedCurrentUser && telemedCurrentUser.id) {
+                telemedShowStep('services');
+                document.getElementById('telemed-user-name').textContent = telemedCurrentUser.fullName || telemedCurrentUser.email;
+            } else {
+                telemedShowStep('register');
+            }
+
+            // Set min date for scheduling
+            const dateInput = document.getElementById('telemed-date');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.min = today;
+            }
+        }
+
+        function telemedShowStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.telemed-step').forEach(el => el.style.display = 'none');
+            // Show requested step
+            const stepEl = document.getElementById(`telemed-step-${step}`);
+            if (stepEl) stepEl.style.display = 'block';
+        }
+
+        async function telemedRegister(event) {
+            event.preventDefault();
+            const fullname = document.getElementById('telemed-fullname').value.trim();
+            const email = document.getElementById('telemed-email').value.trim();
+            const phone = document.getElementById('telemed-phone').value.trim();
+            const errorEl = document.getElementById('telemed-register-error');
+
+            if (!fullname || !email) {
+                errorEl.textContent = 'Por favor completá nombre y email.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/telemedicine/credits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email,
+                        phone: phone || null,
+                        full_name: fullname
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success && data.userId) {
+                    telemedCurrentUser = {
+                        id: data.userId,
+                        email,
+                        fullName: fullname,
+                        phone
+                    };
+                    localStorage.setItem('telemedUser', JSON.stringify(telemedCurrentUser));
+                    telemedUserId = data.userId;
+                    localStorage.setItem('telemedUserId', data.userId);
+
+                    telemedShowStep('services');
+                    document.getElementById('telemed-user-name').textContent = fullname;
+                    errorEl.style.display = 'none';
+                } else {
+                    errorEl.textContent = data.error || 'Error al registrar. Intentá nuevamente.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Registration error:', e);
+                errorEl.textContent = 'Error de conexión. Intentá nuevamente.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function telemedLogout() {
+            telemedCurrentUser = null;
+            telemedSessionToken = null;
+            localStorage.removeItem('telemedUser');
+            localStorage.removeItem('telemedUserId');
+            telemedUserId = null;
+            telemedShowStep('register');
+        }
+
+        async function telemedSelectService(type) {
+            if (!telemedCurrentUser) {
+                telemedShowStep('register');
+                return;
+            }
+
+            if (type === 'immediate') {
+                // Request immediate call
                 try {
-                    const res = await fetch(`/api/telemedicine/credits?userId=${telemedUserId}`);
+                    const res = await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'request_call',
+                            userId: telemedCurrentUser.id,
+                            callType: 'immediate'
+                        })
+                    });
+
                     const data = await res.json();
 
-                    // User is registered
-                    if (registroDiv) registroDiv.style.display = 'none';
+                    if (data.success) {
+                        telemedSessionToken = data.sessionToken;
+                        telemedShowStep('waiting');
+                        telemedStartWaitingTimer(data.expiresAt);
+                    } else if (data.error === 'outside_hours') {
+                        alert(`${data.message}\n\nPróximo horario disponible: ${data.nextAvailable}`);
+                    } else {
+                        alert(data.message || 'Error al solicitar consulta.');
+                    }
                 } catch (e) {
-                    console.log('Telemedicine service unavailable - showing registration anyway');
-                    // If API fails, still show the form so user can try to register
-                    if (registroDiv) registroDiv.style.display = 'block';
+                    alert('Error de conexión. Por favor intentá nuevamente.');
                 }
-            } else {
-                // Show registration form - user not registered
-                if (registroDiv) registroDiv.style.display = 'block';
+            } else if (type === 'scheduled') {
+                telemedShowStep('schedule');
             }
+        }
+
+        function telemedStartWaitingTimer(expiresAt) {
+            const expiryTime = new Date(expiresAt).getTime();
+            const timerEl = document.getElementById('telemed-timer');
+
+            if (telemedTimerInterval) clearInterval(telemedTimerInterval);
+
+            telemedTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const remaining = expiryTime - now;
+
+                if (remaining <= 0) {
+                    clearInterval(telemedTimerInterval);
+                    timerEl.textContent = '00:00';
+                    alert('La sesión ha expirado. Por favor, solicitá una nueva consulta.');
+                    telemedBackToServices();
+                    return;
+                }
+
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+
+            // Poll for professional joining (in production, use WebSocket)
+            telemedPollForProfessional();
+        }
+
+        async function telemedPollForProfessional() {
+            // Simple polling every 5 seconds to check if a professional took the call
+            const checkInterval = setInterval(async () => {
+                if (!telemedSessionToken) {
+                    clearInterval(checkInterval);
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/api/call-queue?sessionToken=${telemedSessionToken}`);
+                    const data = await res.json();
+
+                    if (data.status === 'in_progress' || data.professionalJoined) {
+                        clearInterval(checkInterval);
+                        if (telemedTimerInterval) clearInterval(telemedTimerInterval);
+                        telemedStartVideoCall();
+                    }
+                } catch (e) {
+                    // Continue polling
+                }
+            }, 5000);
+        }
+
+        async function telemedCancelCall() {
+            if (telemedTimerInterval) clearInterval(telemedTimerInterval);
+
+            if (telemedSessionToken) {
+                try {
+                    await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'cancel_call',
+                            sessionToken: telemedSessionToken
+                        })
+                    });
+                } catch (e) {
+                    // Continue with cancellation
+                }
+            }
+
+            telemedSessionToken = null;
+            telemedBackToServices();
+        }
+
+        async function telemedScheduleCall(event) {
+            event.preventDefault();
+            const date = document.getElementById('telemed-date').value;
+            const time = document.getElementById('telemed-time').value;
+            const notes = document.getElementById('telemed-notes').value;
+            const errorEl = document.getElementById('telemed-schedule-error');
+
+            if (!date || !time) {
+                errorEl.textContent = 'Por favor seleccioná fecha y hora.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/telemedicine/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'schedule_call',
+                        userId: telemedCurrentUser.id,
+                        scheduledDate: date,
+                        scheduledTime: time,
+                        notes
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const scheduledDate = new Date(data.scheduledAt);
+                    document.getElementById('telemed-confirmed-datetime').textContent =
+                        scheduledDate.toLocaleDateString('es-AR', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    telemedShowStep('confirmed');
+                    errorEl.style.display = 'none';
+                } else {
+                    errorEl.textContent = data.message || 'Error al agendar. Intentá nuevamente.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión. Intentá nuevamente.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function telemedBackToServices() {
+            telemedShowStep('services');
+        }
+
+        function telemedStartVideoCall() {
+            telemedShowStep('call');
+
+            // Start call duration timer
+            const startTime = Date.now();
+            const durationEl = document.getElementById('telemed-call-duration');
+
+            telemedCallDurationInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                durationEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+
+            // Initialize Jitsi Meet in the container
+            const roomName = `ClinicaJoseIngenieros_${telemedSessionToken.substring(0, 12)}`;
+            const container = document.getElementById('telemed-jitsi-container');
+
+            // Load Jitsi API if not loaded
+            if (!window.JitsiMeetExternalAPI) {
+                const script = document.createElement('script');
+                script.src = 'https://meet.jit.si/external_api.js';
+                script.onload = () => initJitsiInModal(roomName, container);
+                document.head.appendChild(script);
+            } else {
+                initJitsiInModal(roomName, container);
+            }
+        }
+
+        function initJitsiInModal(roomName, container) {
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: container,
+                userInfo: {
+                    displayName: telemedCurrentUser?.fullName || 'Paciente'
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true,
+                    defaultLanguage: 'es'
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    DEFAULT_BACKGROUND: '#1a1a2e',
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
+                        'videoquality', 'tileview'
+                    ],
+                    SETTINGS_SECTIONS: ['devices', 'language'],
+                    MOBILE_APP_PROMO: false,
+                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+                }
+            };
+
+            window.telemedJitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            window.telemedJitsiApi.addEventListener('readyToClose', () => {
+                telemedEndCall();
+            });
+        }
+
+        async function telemedEndCall() {
+            if (telemedCallDurationInterval) clearInterval(telemedCallDurationInterval);
+
+            if (window.telemedJitsiApi) {
+                window.telemedJitsiApi.dispose();
+                window.telemedJitsiApi = null;
+            }
+
+            // Notify backend
+            if (telemedSessionToken) {
+                try {
+                    await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'complete_call',
+                            sessionToken: telemedSessionToken
+                        })
+                    });
+                } catch (e) {
+                    console.log('Error notifying call completion:', e);
+                }
+            }
+
+            telemedSessionToken = null;
+            alert('¡Gracias por tu consulta! Esperamos haberte ayudado.');
+            telemedBackToServices();
+        }
+
+        // ========== HOSPITAL DE DÍA FUNCTIONS ==========
+
+        function openHospitalDeDia() {
+            // Open the HDD community portal
+            window.location.href = '/hdd/';
         }
 
         async function registrarUsuarioTelemedicina(event) {
