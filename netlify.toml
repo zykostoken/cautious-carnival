@@ -12,10 +12,16 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# HDD Portal - serve hdd directory
+# HDD Public page
 [[redirects]]
   from = "/hdd"
   to = "/hdd/index.html"
+  status = 200
+
+# HDD Patient Portal
+[[redirects]]
+  from = "/hdd/portal"
+  to = "/hdd/portal/index.html"
   status = 200
 
 [[redirects]]

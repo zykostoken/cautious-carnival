@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital de Día - Clínica José Ingenieros</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Header */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+
+    .logo-text {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .logo-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-success {
+      background: var(--secondary);
+      color: white;
+    }
+
+    /* Login Section */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-error {
+      color: var(--error);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .form-hint {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Feed / Community */
+    .feed-container {
+      padding: 1rem 0;
+    }
+
+    .create-post {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .create-post textarea {
+      width: 100%;
+      border: none;
+      resize: none;
+      font-size: 1rem;
+      min-height: 80px;
+    }
+
+    .create-post textarea:focus {
+      outline: none;
+    }
+
+    .create-post-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .post-options {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .post-option {
+      padding: 0.5rem;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .post-option:hover {
+      background: var(--background);
+      color: var(--primary);
+    }
+
+    /* Post Card */
+    .post-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .post-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .post-author {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .post-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .post-content {
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      white-space: pre-wrap;
+    }
+
+    .post-image {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .post-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .post-action:hover {
+      background: var(--background);
+    }
+
+    .post-action.liked {
+      color: var(--error);
+    }
+
+    /* Comments */
+    .comments-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .comment {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .comment-avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .comment-content {
+      background: var(--background);
+      border-radius: 12px;
+      padding: 0.5rem 0.75rem;
+      flex: 1;
+    }
+
+    .comment-author {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .comment-text {
+      font-size: 0.9rem;
+    }
+
+    .comment-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .add-comment {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .add-comment input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .nav-tab:hover:not(.active) {
+      background: var(--background);
+    }
+
+    /* Activities */
+    .activity-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .activity-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .activity-info {
+      flex: 1;
+    }
+
+    .activity-name {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .activity-schedule {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Loading & Messages */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .alert-success {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .alert-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .modal-body {
+      padding: 1rem;
+    }
+
+    .modal-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    /* Back to main site link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Hidden utility */
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .user-menu {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login View -->
+  <div id="login-view" class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon" style="width: 60px; height: 60px; font-size: 1.75rem; margin: 0 auto 1rem;">HdD</div>
+        <h1>Hospital de Día</h1>
+        <p>Clínica Psiquiátrica José Ingenieros</p>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="dni">DNI</label>
+          <input type="text" id="dni" name="dni" placeholder="Ingrese su DNI" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
+          <p class="form-hint">Si es su primer inicio de sesión, esta será su nueva contraseña.</p>
+        </div>
+
+        <div id="login-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+          Iniciar Sesión
+        </button>
+      </form>
+
+      <div style="margin-top: 2rem; text-align: center;">
+        <a href="/hdd" class="back-link">← Volver a Hospital de Día</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App View -->
+  <div id="app-view" class="hidden">
+    <header class="header">
+      <div class="header-content">
+        <a href="/hdd/portal" class="logo">
+          <div class="logo-icon">HdD</div>
+          <div>
+            <div class="logo-text">Hospital de Día</div>
+            <div class="logo-subtitle">Comunidad</div>
+          </div>
+        </a>
+
+        <div class="user-menu">
+          <span class="user-name" id="user-name"></span>
+          <button class="btn btn-secondary" onclick="showProfileModal()">Perfil</button>
+          <button class="btn btn-secondary" onclick="logout()">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="feed" onclick="switchTab('feed')">Comunidad</button>
+        <button class="nav-tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
+        <button class="nav-tab" data-tab="my-posts" onclick="switchTab('my-posts')">Mis Publicaciones</button>
+      </div>
+
+      <!-- Feed Tab -->
+      <div id="tab-feed" class="feed-container">
+        <div class="create-post">
+          <textarea id="new-post-content" placeholder="¿Qué quieres compartir hoy?"></textarea>
+          <div class="create-post-actions">
+            <div class="post-options">
+              <button class="post-option" onclick="document.getElementById('image-upload').click()" title="Agregar imagen">
+                📷
+              </button>
+              <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+            </div>
+            <button class="btn btn-primary" onclick="createPost()">Publicar</button>
+          </div>
+          <div id="image-preview" class="hidden" style="margin-top: 0.5rem;">
+            <img id="preview-img" style="max-height: 150px; border-radius: 8px;">
+            <button class="btn btn-secondary" onclick="clearImagePreview()" style="margin-left: 0.5rem;">✕</button>
+          </div>
+        </div>
+
+        <div id="feed-posts">
+          <div class="loading">Cargando publicaciones...</div>
+        </div>
+      </div>
+
+      <!-- Activities Tab -->
+      <div id="tab-activities" class="feed-container hidden">
+        <h2 style="margin-bottom: 1rem;">Actividades Semanales</h2>
+        <div id="activities-list">
+          <div class="activity-card">
+            <div class="activity-icon">🎵</div>
+            <div class="activity-info">
+              <div class="activity-name">Música</div>
+              <div class="activity-schedule">Lunes 10:00 - 11:30</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🌱</div>
+            <div class="activity-info">
+              <div class="activity-name">Huerta</div>
+              <div class="activity-schedule">Martes 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🪵</div>
+            <div class="activity-info">
+              <div class="activity-name">Carpintería</div>
+              <div class="activity-schedule">Miércoles 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🍳</div>
+            <div class="activity-info">
+              <div class="activity-name">Cocina</div>
+              <div class="activity-schedule">Jueves 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">💃</div>
+            <div class="activity-info">
+              <div class="activity-name">Expresión Corporal</div>
+              <div class="activity-schedule">Viernes 10:00 - 11:30</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+          <h3 style="margin-bottom: 1rem;">Galería de Productos</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+            <img src="/hdd/img/kits-verduras.jpg" alt="Kits de Verduras" style="width: 100%; border-radius: 8px;">
+            <img src="/hdd/img/flores-papel.jpg" alt="Flores de Papel" style="width: 100%; border-radius: 8px;">
+            <img src="/hdd/img/masa-tortas.jpg" alt="Masa para Tortas" style="width: 100%; border-radius: 8px;">
+            <img src="/hdd/img/ensalada-frutas.jpg" alt="Ensalada de Frutas" style="width: 100%; border-radius: 8px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- My Posts Tab -->
+      <div id="tab-my-posts" class="feed-container hidden">
+        <h2 style="margin-bottom: 1rem;">Mis Publicaciones</h2>
+        <div id="my-posts-list">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="modal-overlay hidden" onclick="closeModal(event, 'profile-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Mi Perfil</h3>
+        <button class="modal-close" onclick="hideProfileModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="profile-form">
+          <div class="form-group">
+            <label>DNI</label>
+            <input type="text" id="profile-dni" disabled>
+          </div>
+          <div class="form-group">
+            <label for="profile-email">Email</label>
+            <input type="email" id="profile-email" placeholder="tu@email.com">
+          </div>
+          <div class="form-group">
+            <label for="profile-phone">Teléfono</label>
+            <input type="tel" id="profile-phone" placeholder="+54 11 1234-5678">
+          </div>
+        </form>
+
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
+
+        <h4 style="margin-bottom: 1rem;">Cambiar Contraseña</h4>
+        <form id="password-form">
+          <div class="form-group">
+            <label for="current-password">Contraseña Actual</label>
+            <input type="password" id="current-password">
+          </div>
+          <div class="form-group">
+            <label for="new-password">Nueva Contraseña</label>
+            <input type="password" id="new-password">
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width: 100%;">Cambiar Contraseña</button>
+        </form>
+
+        <div id="profile-message" class="hidden" style="margin-top: 1rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideProfileModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProfile()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments Modal -->
+  <div id="comments-modal" class="modal-overlay hidden" onclick="closeModal(event, 'comments-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Comentarios</h3>
+        <button class="modal-close" onclick="hideCommentsModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="comments-modal-content">
+        <div class="loading">Cargando comentarios...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentUser = null;
+    let sessionToken = null;
+    let uploadedImageUrl = null;
+
+    // API helpers
+    const API_BASE = '/api/hdd';
+
+    async function api(endpoint, options = {}) {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      return response.json();
+    }
+
+    // Auth
+    async function login(dni, password) {
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'login', dni, password })
+      });
+
+      if (result.success) {
+        sessionToken = result.sessionToken;
+        currentUser = result.patient;
+        localStorage.setItem('hdd_session', sessionToken);
+        localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+        showApp();
+        loadFeed();
+      }
+
+      return result;
+    }
+
+    async function logout() {
+      if (sessionToken) {
+        await api('/auth', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'logout', sessionToken })
+        });
+      }
+
+      sessionToken = null;
+      currentUser = null;
+      localStorage.removeItem('hdd_session');
+      localStorage.removeItem('hdd_user');
+      showLogin();
+    }
+
+    async function verifySession() {
+      const stored = localStorage.getItem('hdd_session');
+      const storedUser = localStorage.getItem('hdd_user');
+
+      if (stored && storedUser) {
+        const result = await api(`/auth?action=verify&sessionToken=${stored}`);
+
+        if (result.valid) {
+          sessionToken = stored;
+          currentUser = result.patient;
+          return true;
+        }
+      }
+
+      localStorage.removeItem('hdd_session');
+      localStorage.removeItem('hdd_user');
+      return false;
+    }
+
+    // UI
+    function showLogin() {
+      document.getElementById('login-view').classList.remove('hidden');
+      document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('app-view').classList.remove('hidden');
+      document.getElementById('user-name').textContent = currentUser.fullName;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+      document.querySelectorAll('.feed-container').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      if (tabId === 'my-posts') {
+        loadMyPosts();
+      }
+    }
+
+    // Feed
+    async function loadFeed() {
+      const container = document.getElementById('feed-posts');
+      container.innerHTML = '<div class="loading">Cargando publicaciones...</div>';
+
+      const result = await api(`/community?action=feed&sessionToken=${sessionToken}`);
+
+      if (result.posts && result.posts.length > 0) {
+        container.innerHTML = result.posts.map(renderPost).join('');
+      } else {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>No hay publicaciones todavía. ¡Sé el primero en compartir!</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadMyPosts() {
+      const container = document.getElementById('my-posts-list');
+      container.innerHTML = '<div class="loading">Cargando...</div>';
+
+      const result = await api(`/community?action=my_posts&sessionToken=${sessionToken}`);
+
+      if (result.posts && result.posts.length > 0) {
+        container.innerHTML = result.posts.map(renderPost).join('');
+      } else {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>No tienes publicaciones todavía.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderPost(post) {
+      const initials = post.authorName ? post.authorName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
+      const date = new Date(post.createdAt).toLocaleDateString('es-AR', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+
+      return `
+        <div class="post-card" data-post-id="${post.id}">
+          <div class="post-header">
+            <div class="post-avatar">${initials}</div>
+            <div>
+              <div class="post-author">${post.authorName || 'Anónimo'}</div>
+              <div class="post-date">${date}</div>
+            </div>
+            ${post.isOwnPost ? `
+              <button class="btn btn-secondary" style="margin-left: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;"
+                      onclick="deletePost(${post.id})">Eliminar</button>
+            ` : ''}
+          </div>
+          <div class="post-content">${escapeHtml(post.content)}</div>
+          ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" alt="Imagen">` : ''}
+          <div class="post-actions">
+            <button class="post-action ${post.userLiked ? 'liked' : ''}" onclick="toggleLike(${post.id}, this)">
+              ${post.userLiked ? '❤️' : '🤍'} ${post.likesCount}
+            </button>
+            <button class="post-action" onclick="showComments(${post.id})">
+              💬 ${post.commentsCount}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Actions
+    async function createPost() {
+      const content = document.getElementById('new-post-content').value.trim();
+
+      if (!content) {
+        alert('Escribe algo para publicar');
+        return;
+      }
+
+      const result = await api('/community', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'create_post',
+          sessionToken,
+          content,
+          imageUrl: uploadedImageUrl
+        })
+      });
+
+      if (result.success) {
+        document.getElementById('new-post-content').value = '';
+        clearImagePreview();
+        loadFeed();
+      } else {
+        alert(result.error || 'Error al publicar');
+      }
+    }
+
+    async function deletePost(postId) {
+      if (!confirm('¿Estás seguro de eliminar esta publicación?')) return;
+
+      const result = await api('/community', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_post', sessionToken, postId })
+      });
+
+      if (result.success) {
+        loadFeed();
+        loadMyPosts();
+      } else {
+        alert(result.error || 'Error al eliminar');
+      }
+    }
+
+    async function toggleLike(postId, button) {
+      const result = await api('/community', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'toggle_like', sessionToken, postId })
+      });
+
+      if (result.success) {
+        const card = button.closest('.post-card');
+        const countMatch = button.textContent.match(/\d+/);
+        const currentCount = countMatch ? parseInt(countMatch[0]) : 0;
+
+        if (result.liked) {
+          button.classList.add('liked');
+          button.innerHTML = `❤️ ${currentCount + 1}`;
+        } else {
+          button.classList.remove('liked');
+          button.innerHTML = `🤍 ${Math.max(0, currentCount - 1)}`;
+        }
+      }
+    }
+
+    async function showComments(postId) {
+      const modal = document.getElementById('comments-modal');
+      const content = document.getElementById('comments-modal-content');
+      modal.classList.remove('hidden');
+      content.innerHTML = '<div class="loading">Cargando comentarios...</div>';
+
+      const result = await api(`/community?action=post&postId=${postId}&sessionToken=${sessionToken}`);
+
+      if (result.post) {
+        let html = `
+          <div class="post-content" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            ${escapeHtml(result.post.content)}
+          </div>
+        `;
+
+        if (result.comments && result.comments.length > 0) {
+          html += result.comments.map(c => {
+            const initials = c.authorName ? c.authorName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?';
+            const date = new Date(c.createdAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+            return `
+              <div class="comment">
+                <div class="comment-avatar">${initials}</div>
+                <div class="comment-content">
+                  <div class="comment-author">${c.authorName}</div>
+                  <div class="comment-text">${escapeHtml(c.content)}</div>
+                  <div class="comment-date">${date}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          html += '<p class="text-muted">No hay comentarios todavía.</p>';
+        }
+
+        html += `
+          <div class="add-comment">
+            <input type="text" id="comment-input-${postId}" placeholder="Escribe un comentario...">
+            <button class="btn btn-primary" onclick="addComment(${postId})">Enviar</button>
+          </div>
+        `;
+
+        content.innerHTML = html;
+      }
+    }
+
+    async function addComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      const result = await api('/community', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'add_comment', sessionToken, postId, content })
+      });
+
+      if (result.success) {
+        showComments(postId);
+        loadFeed();
+      } else {
+        alert(result.error || 'Error al comentar');
+      }
+    }
+
+    function hideCommentsModal() {
+      document.getElementById('comments-modal').classList.add('hidden');
+    }
+
+    // Image handling
+    function handleImageUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen es muy grande (máximo 5MB)');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedImageUrl = e.target.result;
+        document.getElementById('preview-img').src = uploadedImageUrl;
+        document.getElementById('image-preview').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearImagePreview() {
+      uploadedImageUrl = null;
+      document.getElementById('image-preview').classList.add('hidden');
+      document.getElementById('image-upload').value = '';
+    }
+
+    // Profile
+    function showProfileModal() {
+      document.getElementById('profile-modal').classList.remove('hidden');
+      document.getElementById('profile-dni').value = currentUser.dni;
+      document.getElementById('profile-email').value = currentUser.email || '';
+      document.getElementById('profile-phone').value = currentUser.phone || '';
+    }
+
+    function hideProfileModal() {
+      document.getElementById('profile-modal').classList.add('hidden');
+      document.getElementById('profile-message').classList.add('hidden');
+    }
+
+    async function saveProfile() {
+      const email = document.getElementById('profile-email').value;
+      const phone = document.getElementById('profile-phone').value;
+
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update_profile', sessionToken, email, phone })
+      });
+
+      const msg = document.getElementById('profile-message');
+      if (result.success) {
+        currentUser.email = result.patient.email;
+        currentUser.phone = result.patient.phone;
+        localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+        msg.className = 'alert alert-success';
+        msg.textContent = 'Perfil actualizado';
+        msg.classList.remove('hidden');
+      } else {
+        msg.className = 'alert alert-error';
+        msg.textContent = result.error || 'Error al guardar';
+        msg.classList.remove('hidden');
+      }
+    }
+
+    // Modal close helper
+    function closeModal(event, modalId) {
+      if (event.target.classList.contains('modal-overlay')) {
+        document.getElementById(modalId).classList.add('hidden');
+      }
+    }
+
+    // Password form
+    document.getElementById('password-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+
+      if (!currentPassword || !newPassword) {
+        alert('Complete ambos campos');
+        return;
+      }
+
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'change_password', sessionToken, currentPassword, newPassword })
+      });
+
+      const msg = document.getElementById('profile-message');
+      if (result.success) {
+        msg.className = 'alert alert-success';
+        msg.textContent = 'Contraseña actualizada';
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+      } else {
+        msg.className = 'alert alert-error';
+        msg.textContent = result.error || 'Error al cambiar contraseña';
+      }
+      msg.classList.remove('hidden');
+    });
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const dni = document.getElementById('dni').value;
+      const password = document.getElementById('password').value;
+
+      const errorEl = document.getElementById('login-error');
+      errorEl.classList.add('hidden');
+
+      const result = await login(dni, password);
+
+      if (!result.success) {
+        errorEl.textContent = result.error || 'Error al iniciar sesión';
+        errorEl.classList.remove('hidden');
+      } else if (result.firstLogin) {
+        alert('¡Bienvenido/a! Su contraseña ha sido configurada exitosamente.');
+      }
+    });
+
+    // Init
+    async function init() {
+      const valid = await verifySession();
+      if (valid) {
+        showApp();
+        loadFeed();
+      } else {
+        showLogin();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
