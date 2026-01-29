@@ -144,32 +144,15 @@ CREATE TABLE IF NOT EXISTS healthcare_professionals (
 );
 
 -- Add missing columns to healthcare_professionals if they don't exist
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'email_verified') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_code') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN verification_code VARCHAR(10);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_expires') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'current_calls') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN current_calls INTEGER DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'max_concurrent_calls') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN max_concurrent_calls INTEGER DEFAULT 1;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'is_available') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN is_available BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'notify_email') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN notify_email BOOLEAN DEFAULT TRUE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'healthcare_professionals' AND column_name = 'notify_whatsapp') THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN notify_whatsapp BOOLEAN DEFAULT TRUE;
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS current_calls INTEGER DEFAULT 0;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS max_concurrent_calls INTEGER DEFAULT 1;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS is_available BOOLEAN DEFAULT FALSE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS notify_email BOOLEAN DEFAULT TRUE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS notify_whatsapp BOOLEAN DEFAULT TRUE;
 
 -- Call queue for managing incoming call requests
 CREATE TABLE IF NOT EXISTS call_queue (
@@ -189,41 +172,18 @@ CREATE TABLE IF NOT EXISTS call_queue (
 );
 
 -- Add missing columns to call_queue if they don't exist
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'video_session_id') THEN
-        ALTER TABLE call_queue ADD COLUMN video_session_id INTEGER REFERENCES video_sessions(id);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'user_id') THEN
-        ALTER TABLE call_queue ADD COLUMN user_id INTEGER REFERENCES telemedicine_users(id);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'patient_name') THEN
-        ALTER TABLE call_queue ADD COLUMN patient_name VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'patient_email') THEN
-        ALTER TABLE call_queue ADD COLUMN patient_email VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'patient_phone') THEN
-        ALTER TABLE call_queue ADD COLUMN patient_phone VARCHAR(32);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'priority') THEN
-        ALTER TABLE call_queue ADD COLUMN priority INTEGER DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'assigned_professional_id') THEN
-        ALTER TABLE call_queue ADD COLUMN assigned_professional_id INTEGER REFERENCES healthcare_professionals(id);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'assigned_at') THEN
-        ALTER TABLE call_queue ADD COLUMN assigned_at TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'answered_at') THEN
-        ALTER TABLE call_queue ADD COLUMN answered_at TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'notes') THEN
-        ALTER TABLE call_queue ADD COLUMN notes TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_queue' AND column_name = 'status') THEN
-        ALTER TABLE call_queue ADD COLUMN status VARCHAR(32) DEFAULT 'waiting';
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS video_session_id INTEGER REFERENCES video_sessions(id);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES telemedicine_users(id);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS patient_name VARCHAR(255);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS patient_email VARCHAR(255);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS patient_phone VARCHAR(32);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS assigned_professional_id INTEGER REFERENCES healthcare_professionals(id);
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS answered_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE call_queue ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'waiting';
 
 -- Notification log for tracking sent notifications
 CREATE TABLE IF NOT EXISTS notification_log (
@@ -259,36 +219,18 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 
 -- Add missing columns to announcements if they don't exist
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'show_from') THEN
-        ALTER TABLE announcements ADD COLUMN show_from TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'show_until') THEN
-        ALTER TABLE announcements ADD COLUMN show_until TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'is_pinned') THEN
-        ALTER TABLE announcements ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'author_name') THEN
-        ALTER TABLE announcements ADD COLUMN author_name VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'color') THEN
-        ALTER TABLE announcements ADD COLUMN color VARCHAR(32) DEFAULT '#e8dcc8';
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'type') THEN
-        ALTER TABLE announcements ADD COLUMN type VARCHAR(32) DEFAULT 'info';
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'announcements' AND column_name = 'is_active') THEN
-        ALTER TABLE announcements ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS show_from TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS show_until TIMESTAMP WITH TIME ZONE;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS author_name VARCHAR(255);
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS color VARCHAR(32) DEFAULT '#e8dcc8';
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS type VARCHAR(32) DEFAULT 'info';
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 
 -- Add payment_reference column to video_sessions if it doesn't exist
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'video_sessions' AND column_name = 'payment_reference') THEN
-        ALTER TABLE video_sessions ADD COLUMN payment_reference VARCHAR(255);
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE video_sessions ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
 
 -- Consultations / Inquiries from visitors
 CREATE TABLE IF NOT EXISTS consultations (
@@ -342,26 +284,13 @@ CREATE TABLE IF NOT EXISTS hdd_patients (
 );
 
 -- Add missing columns to hdd_patients if they don't exist
-DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'email_verified') THEN
-        ALTER TABLE hdd_patients ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'verification_code') THEN
-        ALTER TABLE hdd_patients ADD COLUMN verification_code VARCHAR(10);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'verification_expires') THEN
-        ALTER TABLE hdd_patients ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'username') THEN
-        ALTER TABLE hdd_patients ADD COLUMN username VARCHAR(100);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'photo_url') THEN
-        ALTER TABLE hdd_patients ADD COLUMN photo_url TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_patients' AND column_name = 'last_login') THEN
-        ALTER TABLE hdd_patients ADD COLUMN last_login TIMESTAMP WITH TIME ZONE;
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS username VARCHAR(100);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
 
 -- HDD Community posts
 CREATE TABLE IF NOT EXISTS hdd_community_posts (
