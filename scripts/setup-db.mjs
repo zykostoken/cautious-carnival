@@ -199,7 +199,9 @@ CREATE TABLE IF NOT EXISTS announcements (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    author_name VARCHAR(100),
     type VARCHAR(32) DEFAULT 'info',
+    color VARCHAR(20) DEFAULT '#e8dcc8',
     is_active BOOLEAN DEFAULT TRUE,
     is_pinned BOOLEAN DEFAULT FALSE,
     show_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -208,6 +210,23 @@ CREATE TABLE IF NOT EXISTS announcements (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Add author_name and color columns to announcements if they don't exist (migration)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'announcements' AND column_name = 'author_name'
+    ) THEN
+        ALTER TABLE announcements ADD COLUMN author_name VARCHAR(100);
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'announcements' AND column_name = 'color'
+    ) THEN
+        ALTER TABLE announcements ADD COLUMN color VARCHAR(20) DEFAULT '#e8dcc8';
+    END IF;
+END $$;
 
 -- Indexes for healthcare_professionals
 CREATE INDEX IF NOT EXISTS idx_healthcare_professionals_email ON healthcare_professionals(email);

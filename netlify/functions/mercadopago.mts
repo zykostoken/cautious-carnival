@@ -201,9 +201,9 @@ export default async (req: Request, context: Context) => {
               WHERE external_reference = ${paymentInfo.external_reference}
             `;
 
-            // If payment approved, add credits or enable session
+            // If payment approved, activate the telemedicine session
             if (paymentInfo.status === 'approved') {
-              // Extract userId from external reference
+              // Extract userId from external reference (format: TELE-userId-planId-timestamp)
               const refParts = paymentInfo.external_reference.split('-');
               const userId = parseInt(refParts[1]);
 
@@ -213,11 +213,72 @@ export default async (req: Request, context: Context) => {
                   user_id, amount, transaction_type, payment_reference, created_at
                 )
                 VALUES (
-                  ${userId}, 1, 'credit', ${paymentInfo.id.toString()}, NOW()
+                  ${userId}, ${paymentInfo.transaction_amount || 1}, 'payment', ${paymentInfo.id.toString()}, NOW()
                 )
               `;
 
-              console.log(`Payment approved for user ${userId}: ${paymentInfo.id}`);
+              // IMPORTANT: Activate the video session and call queue entry
+              // Find session by payment_reference and activate it
+              const [session] = await sql`
+                UPDATE video_sessions
+                SET status = 'pending'
+                WHERE payment_reference = ${paymentInfo.external_reference}
+                  AND status = 'awaiting_payment'
+                RETURNING id, user_id, session_token
+              `;
+
+              if (session) {
+                // Activate call queue entry - now professionals can see it
+                await sql`
+                  UPDATE call_queue
+                  SET status = 'waiting'
+                  WHERE video_session_id = ${session.id}
+                    AND status = 'awaiting_payment'
+                `;
+
+                // Get patient info for notification
+                const [user] = await sql`
+                  SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}
+                `;
+
+                // Notify professionals about the new PAID call
+                const roomName = `ClinicaJoseIngenieros_${session.session_token.substring(0, 12)}`;
+                const siteUrl = process.env.URL || 'https://clinicajoseingenieros.ar';
+
+                fetch(`${siteUrl}/api/notifications`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'notify_new_call',
+                    callQueueId: session.id,
+                    patientName: user?.full_name || 'Paciente',
+                    roomName,
+                    price: paymentInfo.transaction_amount,
+                    paymentConfirmed: true,
+                    paymentId: paymentInfo.id
+                  })
+                }).catch(e => console.log('Notification trigger failed:', e));
+
+                // Send booking confirmation to patient if email is available
+                if (user?.email) {
+                  fetch(`${siteUrl}/api/notifications`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      action: 'send_booking_confirmation',
+                      email: user.email,
+                      fullName: user.full_name || 'Paciente',
+                      roomName,
+                      price: paymentInfo.transaction_amount,
+                      sessionToken: session.session_token
+                    })
+                  }).catch(e => console.log('Patient confirmation failed:', e));
+                }
+
+                console.log(`Payment approved and session activated for user ${userId}: ${paymentInfo.id}`);
+              } else {
+                console.log(`Payment approved but no awaiting_payment session found for reference: ${paymentInfo.external_reference}`);
+              }
             }
           } catch (err) {
             console.error("Error processing webhook:", err);

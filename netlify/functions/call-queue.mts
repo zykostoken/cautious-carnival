@@ -85,7 +85,7 @@ export default async (req: Request, context: Context) => {
       }
 
       // Professional takes a call from queue
-      // PAYMENT IS PROCESSED HERE - when the call is taken, not requested
+      // IMPORTANT: Can only take calls that have been PAID (status = 'waiting', not 'awaiting_payment')
       if (action === "take") {
         const { sessionToken, queueId } = body;
 
@@ -115,6 +115,7 @@ export default async (req: Request, context: Context) => {
 
         // If specific queueId provided, take that call
         // Otherwise, take the oldest waiting call
+        // ONLY take calls with status = 'waiting' (payment already confirmed)
         let queueEntry;
 
         if (queueId) {
@@ -144,45 +145,28 @@ export default async (req: Request, context: Context) => {
 
         if (!queueEntry) {
           return new Response(JSON.stringify({
-            error: queueId ? "La llamada ya fue tomada o no existe" : "No hay llamadas en espera"
+            error: queueId
+              ? "La llamada ya fue tomada, no existe, o el pago no fue confirmado"
+              : "No hay llamadas pagadas en espera"
           }), { status: 404, headers: corsHeaders });
         }
 
-        // Get price for current time slot
+        // Get price info (already paid, just for display)
         const priceInfo = getPriceForCurrentHour();
 
-        // PROCESS PAYMENT NOW - When professional takes the call
-        // Record the payment/charge for this session
-        const externalRef = `TELE-${queueEntry.user_id}-${Date.now()}`;
-        await sql`
-          INSERT INTO mp_payments (
-            user_id, amount, currency, status, description, external_reference, created_at, paid_at
-          )
-          VALUES (
-            ${queueEntry.user_id},
-            ${priceInfo.price},
-            'ARS',
-            'approved',
-            ${`Telemedicina - ${priceInfo.planName}`},
-            ${externalRef},
-            NOW(),
-            NOW()
-          )
+        // Verify payment was actually made for this session
+        const [payment] = await sql`
+          SELECT p.status, p.amount, p.external_reference
+          FROM mp_payments p
+          JOIN video_sessions vs ON vs.payment_reference = p.external_reference
+          WHERE vs.id = ${queueEntry.video_session_id}
+          ORDER BY p.created_at DESC
+          LIMIT 1
         `;
 
-        // Log the credit transaction
-        await sql`
-          INSERT INTO credit_transactions (
-            user_id, amount, transaction_type, payment_reference, created_at
-          )
-          VALUES (
-            ${queueEntry.user_id},
-            ${priceInfo.price},
-            'charge',
-            ${externalRef},
-            NOW()
-          )
-        `;
+        // Payment should already be approved since call_queue status was 'waiting'
+        const paymentVerified = payment && payment.status === 'approved';
+        const chargedAmount = payment?.amount || priceInfo.price;
 
         // Update professional's current calls count
         await sql`
@@ -191,13 +175,13 @@ export default async (req: Request, context: Context) => {
           WHERE id = ${professional.id}
         `;
 
-        // Update video session with professional assignment and charge info
+        // Update video session with professional assignment
         await sql`
           UPDATE video_sessions
           SET professional_id = ${professional.id},
               status = 'in_progress',
               started_at = NOW(),
-              credits_charged = ${priceInfo.price}
+              credits_charged = ${chargedAmount}
           WHERE id = ${queueEntry.video_session_id}
         `;
 
@@ -206,7 +190,7 @@ export default async (req: Request, context: Context) => {
           SELECT session_token FROM video_sessions WHERE id = ${queueEntry.video_session_id}
         `;
 
-        // Send notification to admin about the charge
+        // Send notification to admin about the session start
         fetch(`${new URL(req.url).origin}/api/notifications`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -215,9 +199,10 @@ export default async (req: Request, context: Context) => {
             professionalName: professional.full_name,
             patientName: queueEntry.patient_name,
             patientEmail: queueEntry.patient_email,
-            price: priceInfo.price,
+            price: chargedAmount,
             timeSlot: priceInfo.timeSlot,
-            paymentRef: externalRef
+            paymentRef: payment?.external_reference || 'N/A',
+            paymentVerified
           })
         }).catch(e => console.log('Notification trigger failed:', e));
 
@@ -230,13 +215,15 @@ export default async (req: Request, context: Context) => {
             phone: queueEntry.patient_phone
           },
           roomName: `ClinicaJoseIngenieros_${session?.session_token?.substring(0, 12) || queueEntry.video_session_id}`,
-          paymentProcessed: {
-            amount: priceInfo.price,
-            formattedAmount: `$${priceInfo.price.toLocaleString('es-AR')} ARS`,
-            timeSlot: priceInfo.timeSlot,
-            reference: externalRef
+          paymentInfo: {
+            verified: paymentVerified,
+            amount: chargedAmount,
+            formattedAmount: `$${chargedAmount.toLocaleString('es-AR')} ARS`,
+            reference: payment?.external_reference || 'N/A'
           },
-          message: "Llamada asignada y pago procesado. Conectándote con el paciente."
+          message: paymentVerified
+            ? "Pago verificado. Conectándote con el paciente."
+            : "Conectándote con el paciente. Verificar pago manualmente."
         }), { status: 200, headers: corsHeaders });
       }
 
@@ -410,10 +397,14 @@ export default async (req: Request, context: Context) => {
             cq.assigned_professional_id,
             vs.status as video_status,
             vs.session_token,
-            hp.full_name as professional_name
+            vs.payment_reference,
+            hp.full_name as professional_name,
+            mp.status as payment_status,
+            mp.paid_at
           FROM video_sessions vs
           LEFT JOIN call_queue cq ON cq.video_session_id = vs.id
           LEFT JOIN healthcare_professionals hp ON cq.assigned_professional_id = hp.id
+          LEFT JOIN mp_payments mp ON vs.payment_reference = mp.external_reference
           WHERE vs.session_token = ${videoSessionToken}
         `;
 
@@ -422,12 +413,15 @@ export default async (req: Request, context: Context) => {
             { status: 404, headers: corsHeaders });
         }
 
-        const professionalJoined = callStatus.status === 'in_progress' ||
+        const paymentConfirmed = callStatus.payment_status === 'approved';
+        const professionalJoined = callStatus.video_status === 'in_progress' ||
           (callStatus.status === 'assigned' && callStatus.assigned_professional_id);
 
         return new Response(JSON.stringify({
-          status: callStatus.status || 'waiting',
+          status: callStatus.status || 'awaiting_payment',
           videoStatus: callStatus.video_status,
+          paymentStatus: callStatus.payment_status || 'pending',
+          paymentConfirmed,
           professionalJoined,
           professionalName: callStatus.professional_name,
           roomName: `ClinicaJoseIngenieros_${callStatus.session_token.substring(0, 12)}`

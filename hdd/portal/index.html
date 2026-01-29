@@ -602,6 +602,7 @@
         <p>Clínica Psiquiátrica José Ingenieros</p>
       </div>
 
+      <!-- Login Form -->
       <form id="login-form">
         <div class="form-group">
           <label for="dni">DNI</label>
@@ -621,8 +622,108 @@
         </button>
       </form>
 
-      <div style="margin-top: 2rem; text-align: center;">
+      <div style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">¿Primera vez aquí?</p>
+        <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="showRegisterForm()">
+          Registrarse
+        </button>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
         <a href="/hdd" class="back-link">← Volver a Hospital de Día</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register View -->
+  <div id="register-view" class="login-container hidden">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon" style="width: 60px; height: 60px; font-size: 1.75rem; margin: 0 auto 1rem;">HdD</div>
+        <h1>Registrarse</h1>
+        <p>Hospital de Día</p>
+      </div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label for="reg-dni">DNI *</label>
+          <input type="text" id="reg-dni" placeholder="Ej: 12345678" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-fullname">Nombre Completo *</label>
+          <input type="text" id="reg-fullname" placeholder="Nombre y apellido" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Email *</label>
+          <input type="email" id="reg-email" placeholder="tu@email.com" required>
+          <p class="form-hint">Te enviaremos un código de verificación</p>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-username">Usuario (opcional)</label>
+          <input type="text" id="reg-username" placeholder="Cómo te conocemos">
+        </div>
+
+        <div class="form-group">
+          <label for="reg-phone">Teléfono (opcional)</label>
+          <input type="tel" id="reg-phone" placeholder="Ej: 2262-123456">
+        </div>
+
+        <div id="register-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+          Registrarse
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="showLoginForm()">
+          ← Ya tengo cuenta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Verification View -->
+  <div id="verify-view" class="login-container hidden">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon" style="width: 60px; height: 60px; font-size: 1.75rem; margin: 0 auto 1rem;">HdD</div>
+        <h1>Verificar Email</h1>
+        <p id="verify-email-display"></p>
+      </div>
+
+      <form id="verify-form">
+        <div class="form-group">
+          <label for="verify-code">Código de Verificación</label>
+          <input type="text" id="verify-code" placeholder="123456" maxlength="6" required style="font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;">
+          <p class="form-hint">Revisa tu bandeja de entrada</p>
+        </div>
+
+        <div class="form-group">
+          <label for="verify-password">Crear Contraseña *</label>
+          <input type="password" id="verify-password" placeholder="Mínimo 6 caracteres" required>
+        </div>
+
+        <div id="verify-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+          Verificar y Entrar
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <button type="button" class="btn btn-secondary" onclick="resendVerificationCode()" style="font-size: 0.9rem;">
+          Reenviar código
+        </button>
+      </div>
+
+      <div style="margin-top: 1rem; text-align: center;">
+        <button type="button" onclick="showLoginForm()" style="background: none; border: none; color: var(--primary); cursor: pointer;">
+          ← Volver al inicio
+        </button>
       </div>
     </div>
   </div>
@@ -805,6 +906,8 @@
     let currentUser = null;
     let sessionToken = null;
     let uploadedImageUrl = null;
+    let pendingRegistrationDni = null;
+    let pendingRegistrationEmail = null;
 
     // API helpers
     const API_BASE = '/api/hdd';
@@ -851,7 +954,7 @@
       currentUser = null;
       localStorage.removeItem('hdd_session');
       localStorage.removeItem('hdd_user');
-      showLogin();
+      showLoginForm();
     }
 
     async function verifySession() {
@@ -873,16 +976,102 @@
       return false;
     }
 
-    // UI
-    function showLogin() {
+    // UI Navigation
+    function showLoginForm() {
       document.getElementById('login-view').classList.remove('hidden');
+      document.getElementById('register-view').classList.add('hidden');
+      document.getElementById('verify-view').classList.add('hidden');
       document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function showRegisterForm() {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('register-view').classList.remove('hidden');
+      document.getElementById('verify-view').classList.add('hidden');
+      document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function showVerifyForm(email) {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('register-view').classList.add('hidden');
+      document.getElementById('verify-view').classList.remove('hidden');
+      document.getElementById('app-view').classList.add('hidden');
+      document.getElementById('verify-email-display').textContent = email || pendingRegistrationEmail;
     }
 
     function showApp() {
       document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('register-view').classList.add('hidden');
+      document.getElementById('verify-view').classList.add('hidden');
       document.getElementById('app-view').classList.remove('hidden');
       document.getElementById('user-name').textContent = currentUser.fullName;
+    }
+
+    // Registration
+    async function register(dni, fullName, email, username, phone) {
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'register',
+          dni,
+          fullName,
+          email,
+          username,
+          phone
+        })
+      });
+
+      if (result.success && result.requiresVerification) {
+        pendingRegistrationDni = dni;
+        pendingRegistrationEmail = email;
+        showVerifyForm(email);
+      }
+
+      return result;
+    }
+
+    async function verifyEmail(dni, code, password) {
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'verify_email',
+          dni,
+          code,
+          password
+        })
+      });
+
+      if (result.success) {
+        sessionToken = result.sessionToken;
+        currentUser = result.patient;
+        localStorage.setItem('hdd_session', sessionToken);
+        localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+        showApp();
+        loadFeed();
+      }
+
+      return result;
+    }
+
+    async function resendVerificationCode() {
+      if (!pendingRegistrationDni) {
+        alert('Error: No hay registro pendiente');
+        return;
+      }
+
+      const result = await api('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'resend_verification',
+          dni: pendingRegistrationDni
+        })
+      });
+
+      if (result.success) {
+        alert('Se ha enviado un nuevo código de verificación a tu email');
+      } else {
+        alert(result.error || 'Error al reenviar código');
+      }
     }
 
     function switchTab(tabId) {
@@ -982,13 +1171,20 @@
         return;
       }
 
+      // Upload image if present
+      let imageUrl = null;
+      if (pendingImageFile) {
+        imageUrl = await uploadImage();
+      }
+
       const result = await api('/community', {
         method: 'POST',
         body: JSON.stringify({
           action: 'create_post',
           sessionToken,
           content,
-          imageUrl: uploadedImageUrl
+          postType: imageUrl ? 'photo' : 'text',
+          imageUrl: imageUrl
         })
       });
 
@@ -1106,7 +1302,9 @@
       document.getElementById('comments-modal').classList.add('hidden');
     }
 
-    // Image handling
+    // Image handling - upload to server
+    let pendingImageFile = null;
+
     function handleImageUpload(input) {
       const file = input.files[0];
       if (!file) return;
@@ -1116,17 +1314,52 @@
         return;
       }
 
+      // Store file for upload and show preview
+      pendingImageFile = file;
       const reader = new FileReader();
       reader.onload = function(e) {
-        uploadedImageUrl = e.target.result;
-        document.getElementById('preview-img').src = uploadedImageUrl;
+        document.getElementById('preview-img').src = e.target.result;
         document.getElementById('image-preview').classList.remove('hidden');
       };
       reader.readAsDataURL(file);
     }
 
+    async function uploadImage() {
+      if (!pendingImageFile) return null;
+
+      // Read as base64
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          try {
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image: e.target.result,
+                folder: 'hdd/community'
+              })
+            });
+            const result = await response.json();
+            if (result.success) {
+              resolve(result.url);
+            } else {
+              alert(result.error || 'Error al subir la imagen');
+              resolve(null);
+            }
+          } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error al subir la imagen');
+            resolve(null);
+          }
+        };
+        reader.readAsDataURL(pendingImageFile);
+      });
+    }
+
     function clearImagePreview() {
       uploadedImageUrl = null;
+      pendingImageFile = null;
       document.getElementById('image-preview').classList.add('hidden');
       document.getElementById('image-upload').value = '';
     }
@@ -1223,6 +1456,49 @@
       }
     });
 
+    // Register form
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const dni = document.getElementById('reg-dni').value;
+      const fullName = document.getElementById('reg-fullname').value;
+      const email = document.getElementById('reg-email').value;
+      const username = document.getElementById('reg-username').value;
+      const phone = document.getElementById('reg-phone').value;
+
+      const errorEl = document.getElementById('register-error');
+      errorEl.classList.add('hidden');
+
+      const result = await register(dni, fullName, email, username, phone);
+
+      if (!result.success && !result.requiresVerification) {
+        errorEl.textContent = result.details ? `${result.error}: ${result.details}` : (result.error || 'Error al registrarse');
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Verify form
+    document.getElementById('verify-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const code = document.getElementById('verify-code').value;
+      const password = document.getElementById('verify-password').value;
+
+      const errorEl = document.getElementById('verify-error');
+      errorEl.classList.add('hidden');
+
+      if (password.length < 6) {
+        errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const result = await verifyEmail(pendingRegistrationDni, code, password);
+
+      if (!result.success) {
+        errorEl.textContent = result.error || 'Error al verificar';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
     // Init
     async function init() {
       const valid = await verifySession();
@@ -1230,7 +1506,7 @@
         showApp();
         loadFeed();
       } else {
-        showLogin();
+        showLoginForm();
       }
     }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clínica Psiquiátrica José Ingenieros | Salud Mental en Necochea | Internación 24/7</title>
-    <meta name="description" content="Clínica psiquiátrica con más de 40 años en Necochea. 40 camas de internación, Hospital de Día, consultorios externos. IOMA, PAMI, OSDE. Calle 52 #2990. Tel: 2262-301515">
+    <meta name="description" content="Clínica psiquiátrica con más de 40 años en Necochea. 45 camas de internación, Hospital de Día, consultorios externos. IOMA, PAMI, OSDE. Calle 52 #2990. Tel: 2262-301515">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -2683,6 +2683,31 @@
                         <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
                     </p>
                 </div>
+
+                <!-- Email Verification Form (hidden by default) -->
+                <div id="verify-email-container" style="display: none;">
+                    <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Verificá tu Email</h4>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        Ingresá el código de 6 dígitos que enviamos a tu email institucional.
+                    </p>
+                    <form id="verify-email-form" onsubmit="verifyProfessionalEmail(event)">
+                        <div class="form-group">
+                            <label>Código de verificación</label>
+                            <input type="text" id="verify-code" maxlength="6" pattern="[0-9]{6}"
+                                   placeholder="123456" required
+                                   style="font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;">
+                        </div>
+                        <input type="hidden" id="verify-email-hidden">
+                        <div class="login-error" id="verify-error"></div>
+                        <button type="submit" class="btn btn-primary">Verificar</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem; font-size: 0.85rem;">
+                        ¿No recibiste el código? <a href="#" onclick="resendVerificationCode(); return false;" style="color: var(--accent-gold);">Reenviar</a>
+                    </p>
+                    <p style="text-align: center; margin-top: 0.5rem;">
+                        <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -2854,7 +2879,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     </div>
                     <h4>Internación</h4>
-                    <p>40 camas con atención 24/7. Puertas abiertas.</p>
+                    <p>45 camas con atención 24/7. Puertas abiertas.</p>
                     <span class="servicio-cta">Ver más</span>
                 </div>
                 <div class="servicio-item servicio-destacado fade-in" onclick="openModal('guardia')">
@@ -3940,7 +3965,7 @@
                 <div class="modal-body">
                     <h3>Características</h3>
                     <ul>
-                        <li><strong>40 camas</strong> disponibles</li>
+                        <li><strong>45 camas</strong> disponibles</li>
                         <li>Atención <strong>24/7</strong></li>
                         <li>Institución de <strong>puertas abiertas</strong></li>
                         <li>Sin personal de seguridad privada</li>
@@ -4155,8 +4180,8 @@
 
                                 <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                                     <p style="color: #ffc107; font-size: 0.9rem; margin: 0; text-align: center;">
-                                        <strong>El pago se procesa cuando el profesional atiende la llamada.</strong><br>
-                                        <span style="font-size: 0.8rem; color: var(--text-muted);">Si no se atiende en 30 minutos, la solicitud expira sin costo.</span>
+                                        <strong>El pago se realiza antes de ingresar a la sala de espera.</strong><br>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);">Pago seguro via MercadoPago. Si no se atiende en 30 minutos, se gestiona el reembolso.</span>
                                     </p>
                                 </div>
 
@@ -4170,16 +4195,52 @@
                             </div>
                         </div>
 
-                        <!-- Step 3: Waiting Room -->
+                        <!-- Step 3: Payment -->
+                        <div id="telemed-step-payment" class="telemed-step" style="display: none;">
+                            <div style="background: linear-gradient(135deg, rgba(212, 168, 83, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid var(--accent-gold); border-radius: 16px; padding: 2rem; text-align: center;">
+                                <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">💳</span>
+                                <h3 style="color: var(--accent-gold); margin-bottom: 1rem;">Completar Pago</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Para confirmar su consulta, complete el pago a través de MercadoPago.</p>
+
+                                <div id="telemed-payment-amount" style="background: rgba(63, 185, 80, 0.2); border: 2px solid var(--accent-green); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Monto a pagar:</p>
+                                    <p id="telemed-pay-price" style="font-size: 2rem; font-weight: 700; color: var(--accent-green); margin: 0;">$0</p>
+                                    <p id="telemed-pay-timeslot" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;"></p>
+                                </div>
+
+                                <a id="telemed-mp-link" href="#" target="_blank" class="btn btn-primary" style="width: 100%; padding: 1.25rem; font-size: 1.1rem; background: linear-gradient(135deg, #009ee3, #00b1ea); display: block; text-decoration: none; margin-bottom: 1rem;">
+                                    Pagar con MercadoPago
+                                </a>
+
+                                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                                    <p style="color: #ffc107; font-size: 0.85rem; margin: 0;">
+                                        Despues de pagar, vuelva a esta pagina y haga clic en "Ya Pague" para ingresar a la sala de espera.
+                                    </p>
+                                </div>
+
+                                <button onclick="telemedVerifyPayment()" class="btn btn-secondary" style="width: 100%; padding: 1rem; font-size: 1rem; margin-bottom: 1rem;">
+                                    Ya Pague - Verificar Pago
+                                </button>
+
+                                <div id="telemed-payment-status" style="display: none; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                    <p id="telemed-payment-status-text" style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Verificando pago...</p>
+                                </div>
+
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem;">Tiempo limite: <span id="telemed-payment-timer" style="color: var(--accent-gold); font-weight: bold;">30:00</span></p>
+                                <button onclick="telemedCancelPayment()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Waiting Room -->
                         <div id="telemed-step-waiting" class="telemed-step" style="display: none;">
                             <div style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(34, 197, 94, 0.1)); border: 2px solid var(--accent-green); border-radius: 16px; padding: 2rem; text-align: center;">
                                 <div class="telemed-spinner" style="width: 60px; height: 60px; border: 4px solid var(--border-color); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
                                 <h3 style="color: var(--accent-green); margin-bottom: 1rem;">Sala de Espera</h3>
                                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Conectandote con un profesional...<br>Los profesionales han sido notificados.</p>
 
-                                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                                    <p style="color: #ffc107; font-size: 0.85rem; margin: 0;">
-                                        <strong>El cobro se realizara cuando el profesional tome la llamada</strong>
+                                <div style="background: rgba(63, 185, 80, 0.2); border: 1px solid rgba(63, 185, 80, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                                    <p style="color: var(--accent-green); font-size: 0.9rem; margin: 0;">
+                                        <strong>Pago confirmado</strong>
                                     </p>
                                     <p id="telemed-waiting-price" style="color: var(--accent-gold); font-size: 1.1rem; font-weight: 600; margin-top: 0.5rem;"></p>
                                 </div>
@@ -4188,11 +4249,11 @@
                                     <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Posicion en cola: <strong id="telemed-position" style="color: var(--accent-gold);">1</strong></p>
                                 </div>
                                 <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem;">Tolerancia maxima: <span id="telemed-timer" style="color: var(--accent-gold); font-weight: bold;">30:00</span></p>
-                                <button onclick="telemedCancelCall()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar (sin costo)</button>
+                                <button onclick="telemedCancelCall()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar consulta</button>
                             </div>
                         </div>
 
-                        <!-- Step 4: Video Call -->
+                        <!-- Step 5: Video Call -->
                         <div id="telemed-step-call" class="telemed-step" style="display: none;">
                             <div style="background: rgba(0,0,0,0.5); border: 2px solid var(--accent-green); border-radius: 16px; overflow: hidden;">
                                 <div style="padding: 1rem; background: rgba(63, 185, 80, 0.2); display: flex; justify-content: space-between; align-items: center;">
@@ -4547,8 +4608,11 @@ function closeModal(event) {
         // Telemedicine state
         let telemedCurrentUser = JSON.parse(localStorage.getItem('telemedUser') || 'null');
         let telemedSessionToken = null;
+        let telemedPaymentReference = null;
         let telemedTimerInterval = null;
+        let telemedPaymentTimerInterval = null;
         let telemedCallDurationInterval = null;
+        let telemedPaymentCheckInterval = null;
 
         async function checkTelemedicineUser() {
             // Show the appropriate step based on user state
@@ -4671,7 +4735,7 @@ function closeModal(event) {
             }
 
             if (type === 'immediate') {
-                // Request immediate on-demand call
+                // Request immediate on-demand call - will require payment first
                 try {
                     const res = await fetch('/api/telemedicine/session', {
                         method: 'POST',
@@ -4691,25 +4755,155 @@ function closeModal(event) {
                     if (data.success) {
                         telemedSessionToken = data.sessionToken;
                         telemedCurrentPrice = data.priceInfo;
-                        // Update waiting room with price info
-                        const waitingPrice = document.getElementById('telemed-waiting-price');
-                        if (waitingPrice && data.priceInfo) {
-                            waitingPrice.textContent = data.priceInfo.formattedPrice;
+
+                        // Check if payment is required
+                        if (data.requiresPayment && data.paymentInfo && data.paymentInfo.mercadoPagoLink) {
+                            // Store payment reference for verification
+                            telemedPaymentReference = data.paymentInfo.externalReference;
+
+                            // Update payment step UI
+                            const payPrice = document.getElementById('telemed-pay-price');
+                            const payTimeslot = document.getElementById('telemed-pay-timeslot');
+                            const mpLink = document.getElementById('telemed-mp-link');
+
+                            if (payPrice && data.priceInfo) {
+                                payPrice.textContent = data.priceInfo.formattedPrice;
+                            }
+                            if (payTimeslot && data.priceInfo) {
+                                payTimeslot.textContent = `Franja: ${data.priceInfo.timeSlot}`;
+                            }
+                            if (mpLink && data.paymentInfo.mercadoPagoLink) {
+                                mpLink.href = data.paymentInfo.mercadoPagoLink;
+                            }
+
+                            // Show payment step
+                            telemedShowStep('payment');
+                            telemedStartPaymentTimer(data.expiresAt);
+                        } else if (!data.requiresPayment || !data.paymentInfo?.mercadoPagoLink) {
+                            // MercadoPago not configured - show contact info
+                            alert(data.message || 'Sistema de pagos no disponible. Por favor contacte a administración para coordinar su consulta.');
+                            telemedBackToServices();
                         }
-                        telemedShowStep('waiting');
-                        telemedStartWaitingTimer(data.expiresAt);
                     } else {
                         alert(data.message || 'Error al solicitar consulta.');
                     }
                 } catch (e) {
+                    console.error('Request call error:', e);
                     alert('Error de conexion. Por favor intenta nuevamente.');
                 }
             }
             // 'scheduled' type is no longer supported - on-demand only
         }
 
-        function telemedStartWaitingTimer(expiresAt) {
+        function telemedStartPaymentTimer(expiresAt) {
             const expiryTime = new Date(expiresAt).getTime();
+            const timerEl = document.getElementById('telemed-payment-timer');
+
+            if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
+
+            telemedPaymentTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const remaining = expiryTime - now;
+
+                if (remaining <= 0) {
+                    clearInterval(telemedPaymentTimerInterval);
+                    timerEl.textContent = '00:00';
+                    alert('El tiempo para completar el pago ha expirado. Por favor, solicite una nueva consulta.');
+                    telemedCancelPayment();
+                    return;
+                }
+
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        async function telemedVerifyPayment() {
+            if (!telemedSessionToken || !telemedPaymentReference) {
+                alert('No hay pago pendiente para verificar.');
+                return;
+            }
+
+            const statusEl = document.getElementById('telemed-payment-status');
+            const statusTextEl = document.getElementById('telemed-payment-status-text');
+
+            statusEl.style.display = 'block';
+            statusTextEl.textContent = 'Verificando pago...';
+            statusTextEl.style.color = 'var(--text-muted)';
+
+            try {
+                const res = await fetch('/api/telemedicine/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'check_payment_status',
+                        sessionToken: telemedSessionToken,
+                        externalReference: telemedPaymentReference
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.paymentStatus === 'approved') {
+                    statusTextEl.textContent = 'Pago confirmado! Ingresando a sala de espera...';
+                    statusTextEl.style.color = 'var(--accent-green)';
+
+                    // Stop payment timer
+                    if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
+
+                    // Update waiting room with price info
+                    const waitingPrice = document.getElementById('telemed-waiting-price');
+                    if (waitingPrice && telemedCurrentPrice) {
+                        waitingPrice.textContent = telemedCurrentPrice.formattedPrice;
+                    }
+
+                    // Transition to waiting room
+                    setTimeout(() => {
+                        telemedShowStep('waiting');
+                        telemedStartWaitingTimer(null); // Will use remaining time
+                    }, 1500);
+                } else if (data.paymentStatus === 'rejected') {
+                    statusTextEl.textContent = 'El pago fue rechazado. Por favor intente nuevamente con otro medio de pago.';
+                    statusTextEl.style.color = 'var(--accent-warm)';
+                } else {
+                    statusTextEl.textContent = 'Pago aun no confirmado. Por favor complete el pago en MercadoPago y vuelva a verificar.';
+                    statusTextEl.style.color = '#ffc107';
+                }
+            } catch (e) {
+                console.error('Payment verification error:', e);
+                statusTextEl.textContent = 'Error al verificar pago. Intente nuevamente.';
+                statusTextEl.style.color = 'var(--accent-warm)';
+            }
+        }
+
+        async function telemedCancelPayment() {
+            if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
+            if (telemedPaymentCheckInterval) clearInterval(telemedPaymentCheckInterval);
+
+            if (telemedSessionToken) {
+                try {
+                    await fetch('/api/telemedicine/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'cancel_call',
+                            sessionToken: telemedSessionToken
+                        })
+                    });
+                } catch (e) {
+                    // Continue with cancellation
+                }
+            }
+
+            telemedSessionToken = null;
+            telemedPaymentReference = null;
+            telemedBackToServices();
+        }
+
+        function telemedStartWaitingTimer(expiresAt) {
+            // If expiresAt is null, calculate remaining time (30 mins from session creation)
+            const expiryTime = expiresAt ? new Date(expiresAt).getTime() : Date.now() + 30 * 60 * 1000;
             const timerEl = document.getElementById('telemed-timer');
 
             if (telemedTimerInterval) clearInterval(telemedTimerInterval);
@@ -4747,7 +4941,8 @@ function closeModal(event) {
                     const res = await fetch(`/api/call-queue?videoSessionToken=${telemedSessionToken}`);
                     const data = await res.json();
 
-                    if (data.status === 'in_progress' || data.professionalJoined) {
+                    // Check if payment is confirmed and professional joined
+                    if (data.paymentConfirmed && (data.videoStatus === 'in_progress' || data.professionalJoined)) {
                         clearInterval(checkInterval);
                         if (telemedTimerInterval) clearInterval(telemedTimerInterval);
                         telemedStartVideoCall();
@@ -5188,10 +5383,15 @@ function closeModal(event) {
                 const data = await res.json();
 
                 if (data.announcements && data.announcements.length > 0) {
+                    // Filter out 'community' type announcements (those are for HDD blackboard only)
+                    const filteredAnnouncements = data.announcements.filter(a => a.type !== 'community');
+
+                    if (filteredAnnouncements.length === 0) return;
+
                     const container = document.getElementById('announcements-container');
                     const list = document.getElementById('announcements-list');
 
-                    list.innerHTML = data.announcements.map(a => {
+                    list.innerHTML = filteredAnnouncements.map(a => {
                         const typeEmoji = {
                             'info': 'ℹ️',
                             'event': '📅',
@@ -5244,11 +5444,20 @@ function closeModal(event) {
         function showRegisterForm() {
             document.querySelector('.login-form').style.display = 'none';
             document.getElementById('register-form-container').style.display = 'block';
+            document.getElementById('verify-email-container').style.display = 'none';
         }
 
         function showLoginForm() {
             document.querySelector('.login-form').style.display = 'block';
             document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('verify-email-container').style.display = 'none';
+        }
+
+        function showVerifyEmailForm(email) {
+            document.querySelector('.login-form').style.display = 'none';
+            document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('verify-email-container').style.display = 'block';
+            document.getElementById('verify-email-hidden').value = email;
         }
 
         async function loginProfessional(event) {
@@ -5277,6 +5486,10 @@ function closeModal(event) {
                     localStorage.setItem('professionalSession', professionalSession);
 
                     showProfessionalDashboard();
+                    errorEl.classList.remove('visible');
+                } else if (data.requiresVerification) {
+                    // Email not verified - show verification form
+                    showVerifyEmailForm(email);
                     errorEl.classList.remove('visible');
                 } else {
                     errorEl.textContent = data.error || 'Error de autenticación';
@@ -5314,7 +5527,13 @@ function closeModal(event) {
 
                 const data = await res.json();
 
-                if (data.success) {
+                if (data.success && data.requiresVerification) {
+                    // Registration successful, but needs email verification
+                    showVerifyEmailForm(email);
+                    errorEl.classList.remove('visible');
+                    alert(data.message || 'Revisá tu email para el código de verificación.');
+                } else if (data.success && data.sessionToken) {
+                    // Direct login (unlikely with new flow, but handle it)
                     professionalSession = data.sessionToken;
                     professionalData = data.professional;
                     localStorage.setItem('professionalSession', professionalSession);
@@ -5322,12 +5541,82 @@ function closeModal(event) {
                     showProfessionalDashboard();
                     alert('Registro exitoso. ¡Bienvenido!');
                 } else {
-                    errorEl.textContent = data.error || 'Error en el registro';
+                    errorEl.textContent = data.details ? `${data.error}: ${data.details}` : (data.error || 'Error en el registro');
                     errorEl.classList.add('visible');
                 }
             } catch (e) {
                 errorEl.textContent = 'Error de conexión';
                 errorEl.classList.add('visible');
+            }
+        }
+
+        async function verifyProfessionalEmail(event) {
+            event.preventDefault();
+
+            const code = document.getElementById('verify-code').value;
+            const email = document.getElementById('verify-email-hidden').value;
+            const errorEl = document.getElementById('verify-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'verify_email',
+                        email,
+                        code
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    professionalSession = data.sessionToken;
+                    localStorage.setItem('professionalSession', professionalSession);
+
+                    // Fetch professional data
+                    await verifyProfessionalSession();
+
+                    alert('¡Email verificado exitosamente! Ya podés acceder al sistema.');
+                    errorEl.classList.remove('visible');
+                } else {
+                    errorEl.textContent = data.error || 'Código inválido';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        async function resendVerificationCode() {
+            const email = document.getElementById('verify-email-hidden').value;
+            if (!email) {
+                alert('No hay un email para reenviar el código.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email,
+                        password: 'resend_placeholder',
+                        fullName: 'Resend'
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success || data.message) {
+                    alert('Se ha enviado un nuevo código a tu email.');
+                } else {
+                    alert(data.error || 'No se pudo reenviar el código.');
+                }
+            } catch (e) {
+                alert('Error de conexión');
             }
         }
 

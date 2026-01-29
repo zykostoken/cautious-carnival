@@ -19,6 +19,11 @@ function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
 }
 
+// Generate a 6-digit verification code
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
   const corsHeaders = {
@@ -268,13 +273,271 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
+      // ===========================================
+      // SELF-REGISTRATION WITH EMAIL VERIFICATION
+      // ===========================================
+
+      // Step 1: Register new HDD patient (self-registration)
+      if (action === "register") {
+        const { dni, fullName, email, username, phone } = body;
+
+        if (!dni || !fullName || !email) {
+          return new Response(JSON.stringify({
+            error: "DNI, nombre completo y email son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Validate DNI format (8-digit number)
+        if (!/^\d{7,8}$/.test(dni.replace(/\./g, ''))) {
+          return new Response(JSON.stringify({
+            error: "DNI inválido. Debe ser un número de 7 u 8 dígitos."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Validate email format
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return new Response(JSON.stringify({
+            error: "Formato de email inválido"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const normalizedDni = dni.replace(/\./g, '');
+
+        // Check if DNI already exists
+        const [existing] = await sql`
+          SELECT id, email_verified, status FROM hdd_patients WHERE dni = ${normalizedDni}
+        `;
+
+        if (existing) {
+          if (existing.email_verified && existing.status === 'active') {
+            return new Response(JSON.stringify({
+              error: "Ya existe una cuenta con ese DNI. Inicie sesión."
+            }), { status: 400, headers: corsHeaders });
+          } else if (!existing.email_verified) {
+            // Re-send verification code
+            const verificationCode = generateVerificationCode();
+            const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+
+            await sql`
+              UPDATE hdd_patients
+              SET verification_code = ${verificationCode},
+                  verification_expires = ${expiresAt.toISOString()},
+                  email = ${email},
+                  full_name = ${fullName}
+              WHERE id = ${existing.id}
+            `;
+
+            // Send verification email (async)
+            fetch(`${new URL(req.url).origin}/api/notifications`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'send_hdd_verification_email',
+                email,
+                code: verificationCode,
+                fullName
+              })
+            }).catch(e => console.log('Email notification failed:', e));
+
+            return new Response(JSON.stringify({
+              success: true,
+              requiresVerification: true,
+              patientId: existing.id,
+              message: "Se ha enviado un nuevo código de verificación a tu email"
+            }), { status: 200, headers: corsHeaders });
+          }
+        }
+
+        const verificationCode = generateVerificationCode();
+        const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+
+        const [patient] = await sql`
+          INSERT INTO hdd_patients (
+            dni, full_name, email, phone, username,
+            status, email_verified, verification_code, verification_expires,
+            admission_date, created_at
+          )
+          VALUES (
+            ${normalizedDni}, ${fullName}, ${email},
+            ${phone || null}, ${username || null},
+            'pending', FALSE, ${verificationCode}, ${verificationExpires.toISOString()},
+            CURRENT_DATE, NOW()
+          )
+          RETURNING id, dni, full_name, email
+        `;
+
+        // Send verification email (async)
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_hdd_verification_email',
+            email,
+            code: verificationCode,
+            fullName
+          })
+        }).catch(e => console.log('Email notification failed:', e));
+
+        return new Response(JSON.stringify({
+          success: true,
+          requiresVerification: true,
+          patientId: patient.id,
+          message: "Se ha enviado un código de verificación a tu email. Verificá tu bandeja de entrada."
+        }), { status: 201, headers: corsHeaders });
+      }
+
+      // Step 2: Verify email with code
+      if (action === "verify_email") {
+        const { dni, code, password } = body;
+
+        if (!dni || !code || !password) {
+          return new Response(JSON.stringify({
+            error: "DNI, código de verificación y contraseña son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const normalizedDni = dni.replace(/\./g, '');
+
+        const [patient] = await sql`
+          SELECT id, verification_code, verification_expires, email_verified
+          FROM hdd_patients
+          WHERE dni = ${normalizedDni}
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({
+            error: "DNI no encontrado"
+          }), { status: 404, headers: corsHeaders });
+        }
+
+        if (patient.email_verified) {
+          return new Response(JSON.stringify({
+            error: "El email ya está verificado. Inicie sesión."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (patient.verification_code !== code) {
+          return new Response(JSON.stringify({
+            error: "Código de verificación incorrecto"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (new Date(patient.verification_expires) < new Date()) {
+          return new Response(JSON.stringify({
+            error: "El código de verificación ha expirado. Solicitá uno nuevo."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const passwordHash = await hashPassword(password);
+        const sessionToken = generateSessionToken();
+
+        await sql`
+          UPDATE hdd_patients
+          SET email_verified = TRUE,
+              status = 'active',
+              password_hash = ${passwordHash},
+              verification_code = NULL,
+              verification_expires = NULL,
+              session_token = ${sessionToken},
+              last_login = NOW()
+          WHERE id = ${patient.id}
+        `;
+
+        // Track login
+        await sql`
+          INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
+          VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
+        `.catch(e => console.log('Login tracking failed:', e));
+
+        // Get patient data
+        const [updatedPatient] = await sql`
+          SELECT id, dni, full_name, email, phone, photo_url
+          FROM hdd_patients WHERE id = ${patient.id}
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          patient: {
+            id: updatedPatient.id,
+            dni: updatedPatient.dni,
+            fullName: updatedPatient.full_name,
+            email: updatedPatient.email,
+            photoUrl: updatedPatient.photo_url
+          },
+          sessionToken,
+          message: "Email verificado exitosamente. Ya podés acceder al portal."
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Resend verification code
+      if (action === "resend_verification") {
+        const { dni, email } = body;
+
+        if (!dni) {
+          return new Response(JSON.stringify({
+            error: "DNI es requerido"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const normalizedDni = dni.replace(/\./g, '');
+
+        const [patient] = await sql`
+          SELECT id, email, full_name, email_verified
+          FROM hdd_patients WHERE dni = ${normalizedDni}
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({
+            error: "DNI no encontrado"
+          }), { status: 404, headers: corsHeaders });
+        }
+
+        if (patient.email_verified) {
+          return new Response(JSON.stringify({
+            error: "El email ya está verificado. Inicie sesión."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const verificationCode = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+        await sql`
+          UPDATE hdd_patients
+          SET verification_code = ${verificationCode},
+              verification_expires = ${expiresAt.toISOString()},
+              email = COALESCE(${email || null}, email)
+          WHERE id = ${patient.id}
+        `;
+
+        // Send verification email
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_hdd_verification_email',
+            email: email || patient.email,
+            code: verificationCode,
+            fullName: patient.full_name
+          })
+        }).catch(e => console.log('Email notification failed:', e));
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Se ha enviado un nuevo código de verificación a tu email"
+        }), { status: 200, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: "Acción inválida" }),
         { status: 400, headers: corsHeaders });
 
     } catch (error) {
       console.error("HDD Auth error:", error);
-      return new Response(JSON.stringify({ error: "Error interno del servidor" }),
-        { status: 500, headers: corsHeaders });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      // Return more details in development to help debug
+      return new Response(JSON.stringify({
+        error: "Error interno del servidor",
+        details: errorMessage
+      }), { status: 500, headers: corsHeaders });
     }
   }
 

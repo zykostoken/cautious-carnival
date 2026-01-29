@@ -17,8 +17,13 @@ function getEmailTransporter() {
   const user = process.env.ZOHO_SMTP_USER;
   const pass = process.env.ZOHO_SMTP_PASS;
   if (!user || !pass) return null;
+
+  // Support different Zoho regions: smtp.zoho.com (US), smtp.zoho.eu (EU), smtp.zoho.in (India)
+  // Default to smtp.zoho.com for most users including LATAM
+  const host = process.env.ZOHO_SMTP_HOST || "smtp.zoho.com";
+
   return nodemailer.createTransport({
-    host: "smtp.zoho.com",
+    host,
     port: 465,
     secure: true,
     auth: { user, pass }
@@ -197,14 +202,187 @@ export default async (req: Request, context: Context) => {
         const result = await notifyAdminOfCallTaken(sql, professionalName, patientName, patientEmail, price, timeSlot, paymentRef);
         return new Response(JSON.stringify({ success: result.notified > 0, notified: result.notified, errors: result.errors }), { status: 200, headers: corsHeaders });
       }
+
+      // Notify admin about new consultation/inquiry from website
+      if (action === "notify_new_consultation") {
+        const { consultationId, name, email, phone, subject, consultationType } = body;
+        const errors: string[] = [];
+        let notified = 0;
+
+        const whatsappMsg = `NUEVA CONSULTA - Clinica Jose Ingenieros
+Tipo: ${consultationType || 'general'}
+De: ${name}
+Asunto: ${subject || 'Sin asunto'}
+Contacto: ${email || phone || 'No proporcionado'}
+Ver en: https://clinicajoseingenieros.ar/#profesional`;
+
+        const emailSubject = `Nueva Consulta Web - ${subject || consultationType || 'General'}`;
+        const emailHtml = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#1a5f2a;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">Nueva Consulta</h1>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p><strong>Tipo:</strong> ${consultationType || 'General'}</p>
+              <p><strong>Nombre:</strong> ${name}</p>
+              <p><strong>Email:</strong> ${email || 'No proporcionado'}</p>
+              <p><strong>Teléfono:</strong> ${phone || 'No proporcionado'}</p>
+              <p><strong>Asunto:</strong> ${subject || 'Sin asunto'}</p>
+              <p style="margin-top:20px;padding:15px;background:#e7f3ff;border-radius:8px;border-left:4px solid #2196F3;">
+                <strong>ID de consulta:</strong> #${consultationId}
+              </p>
+              <a href="https://clinicajoseingenieros.ar/#profesional" style="display:inline-block;background:#1a5f2a;color:white;padding:15px 30px;text-decoration:none;border-radius:8px;margin-top:20px">Ver Consultas</a>
+            </div>
+          </div>`;
+
+        // Notify admin via WhatsApp
+        const whatsappResult = await sendWhatsAppNotification(ADMIN_PHONE, whatsappMsg);
+        await logNotification(sql, 'admin', 0, 'whatsapp', ADMIN_PHONE, 'new_consultation', whatsappMsg, whatsappResult);
+        if (whatsappResult.success) notified++; else errors.push(`WhatsApp: ${whatsappResult.error}`);
+
+        // Notify admin via email
+        const emailResult = await sendEmailNotification(ADMIN_EMAIL, emailSubject, emailHtml);
+        await logNotification(sql, 'admin', 0, 'email', ADMIN_EMAIL, 'new_consultation', emailSubject, emailResult);
+        if (emailResult.success) notified++; else errors.push(`Email: ${emailResult.error}`);
+
+        return new Response(JSON.stringify({ success: notified > 0, notified, errors }), { status: 200, headers: corsHeaders });
+      }
+
       if (action === "status") {
         return new Response(JSON.stringify({
-          email: { configured: !!(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS), provider: 'zoho' },
-          whatsapp: { configured: !!process.env.CALLMEBOT_API_KEY },
+          email: {
+            configured: !!(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS),
+            provider: 'zoho',
+            host: process.env.ZOHO_SMTP_HOST || 'smtp.zoho.com'
+          },
+          whatsapp: { configured: !!process.env.CALLMEBOT_API_KEY, note: 'WhatsApp deshabilitado por ahora' },
           adminPhone: ADMIN_PHONE,
           adminEmail: ADMIN_EMAIL
         }), { status: 200, headers: corsHeaders });
       }
+
+      // Send verification email to professional
+      if (action === "send_verification_email") {
+        const { email, code, fullName } = body;
+        if (!email || !code) {
+          return new Response(JSON.stringify({ error: "Email y código requeridos" }), { status: 400, headers: corsHeaders });
+        }
+
+        const subject = "Verificación de Email - Clínica José Ingenieros";
+        const htmlBody = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#1a5f2a;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">Verificación de Email</h1>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p>Hola ${fullName || 'Profesional'},</p>
+              <p>Gracias por registrarte en el sistema de telemedicina de la Clínica José Ingenieros.</p>
+              <p>Tu código de verificación es:</p>
+              <div style="background:#fff;border:2px solid #1a5f2a;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
+                <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#1a5f2a">${code}</span>
+              </div>
+              <p style="color:#666;font-size:0.9em">Este código expira en 30 minutos.</p>
+              <p>Si no solicitaste este registro, podés ignorar este mensaje.</p>
+            </div>
+            <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
+              <p style="margin:0;font-size:0.85em;color:#666">Clínica Psiquiátrica José Ingenieros - Necochea</p>
+            </div>
+          </div>`;
+
+        const result = await sendEmailNotification(email, subject, htmlBody);
+        // Log notification silently (notification_log table may not exist)
+        try {
+          await logNotification(sql, 'professional', 0, 'email', email, 'verification', subject, result);
+        } catch (e) {
+          console.log('Notification log skipped:', e);
+        }
+
+        return new Response(JSON.stringify({ success: result.success, error: result.error }), { status: 200, headers: corsHeaders });
+      }
+
+      // Send verification email to HDD patient
+      if (action === "send_hdd_verification_email") {
+        const { email, code, fullName } = body;
+        if (!email || !code) {
+          return new Response(JSON.stringify({ error: "Email y código requeridos" }), { status: 400, headers: corsHeaders });
+        }
+
+        const subject = "Verificación de Email - Hospital de Día";
+        const htmlBody = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#2563eb;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">Hospital de Día</h1>
+              <p style="color:#dbeafe;margin:5px 0 0 0;font-size:0.9em">Clínica José Ingenieros</p>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p>Hola ${fullName || 'Participante'},</p>
+              <p>Gracias por registrarte en el portal de Hospital de Día.</p>
+              <p>Tu código de verificación es:</p>
+              <div style="background:#fff;border:2px solid #2563eb;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
+                <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#2563eb">${code}</span>
+              </div>
+              <p style="color:#666;font-size:0.9em">Este código expira en 30 minutos.</p>
+              <p>Si no solicitaste este registro, podés ignorar este mensaje.</p>
+            </div>
+            <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
+              <p style="margin:0;font-size:0.85em;color:#666">Clínica Psiquiátrica José Ingenieros - Necochea</p>
+            </div>
+          </div>`;
+
+        const result = await sendEmailNotification(email, subject, htmlBody);
+        try {
+          await logNotification(sql, 'hdd_patient', 0, 'email', email, 'verification', subject, result);
+        } catch (e) {
+          console.log('Notification log skipped:', e);
+        }
+
+        return new Response(JSON.stringify({ success: result.success, error: result.error }), { status: 200, headers: corsHeaders });
+      }
+
+      // Send booking confirmation to patient after payment
+      if (action === "send_booking_confirmation") {
+        const { email, fullName, roomName, price, sessionToken } = body;
+        if (!email) {
+          return new Response(JSON.stringify({ error: "Email requerido" }), { status: 400, headers: corsHeaders });
+        }
+
+        const priceStr = price ? `$${price.toLocaleString('es-AR')} ARS` : '';
+        const subject = "Confirmación de Videoconsulta - Clínica José Ingenieros";
+        const htmlBody = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#1a5f2a;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">¡Pago Confirmado!</h1>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p>Hola ${fullName || 'Paciente'},</p>
+              <p>Tu pago ha sido procesado exitosamente. Ahora estás en la cola de espera para tu videoconsulta.</p>
+              ${priceStr ? `<p><strong>Monto:</strong> ${priceStr}</p>` : ''}
+              <div style="background:#d4edda;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #28a745">
+                <h3 style="color:#155724;margin:0 0 10px 0">¿Qué sigue?</h3>
+                <ul style="color:#155724;margin:0;padding-left:20px">
+                  <li>Un profesional tomará tu llamada en breve</li>
+                  <li>Mantené abierta la página de telemedicina</li>
+                  <li>Asegurate de tener cámara y micrófono habilitados</li>
+                </ul>
+              </div>
+              <a href="https://clinicajoseingenieros.ar/#telemedicina" style="display:inline-block;background:#1a5f2a;color:white;padding:15px 30px;text-decoration:none;border-radius:8px;margin-top:10px">Ir a Telemedicina</a>
+              <p style="margin-top:20px;font-size:0.85em;color:#666">Si tenés algún problema, contactanos a ${ADMIN_EMAIL}</p>
+            </div>
+            <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
+              <p style="margin:0;font-size:0.85em;color:#666">Clínica Psiquiátrica José Ingenieros - Necochea</p>
+            </div>
+          </div>`;
+
+        const result = await sendEmailNotification(email, subject, htmlBody);
+        try {
+          await logNotification(sql, 'patient', 0, 'email', email, 'booking_confirmation', subject, result);
+        } catch (e) {
+          console.log('Notification log skipped:', e);
+        }
+
+        return new Response(JSON.stringify({ success: result.success, error: result.error }), { status: 200, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: "Accion invalida" }), { status: 400, headers: corsHeaders });
     } catch (error) {
       console.error("Notification error:", error);
@@ -215,8 +393,14 @@ export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
     if (url.searchParams.get("action") === "status") {
       return new Response(JSON.stringify({
-        email: !!(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS),
-        whatsapp: !!process.env.CALLMEBOT_API_KEY,
+        email: {
+          configured: !!(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS),
+          host: process.env.ZOHO_SMTP_HOST || 'smtp.zoho.com'
+        },
+        whatsapp: {
+          configured: !!process.env.CALLMEBOT_API_KEY,
+          note: 'WhatsApp deshabilitado por ahora'
+        },
         provider: 'zoho-smtp',
         adminPhone: ADMIN_PHONE,
         adminEmail: ADMIN_EMAIL
