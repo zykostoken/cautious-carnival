@@ -152,6 +152,9 @@ CREATE TABLE IF NOT EXISTS healthcare_professionals (
     whatsapp VARCHAR(32),
     is_active BOOLEAN DEFAULT TRUE,
     is_available BOOLEAN DEFAULT FALSE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(10),
+    verification_expires TIMESTAMP WITH TIME ZONE,
     max_concurrent_calls INTEGER DEFAULT 1,
     current_calls INTEGER DEFAULT 0,
     notify_email BOOLEAN DEFAULT TRUE,
@@ -160,6 +163,29 @@ CREATE TABLE IF NOT EXISTS healthcare_professionals (
     last_login TIMESTAMP WITH TIME ZONE,
     session_token VARCHAR(255)
 );
+
+-- Add email verification columns to healthcare_professionals if they don't exist (migration)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'healthcare_professionals' AND column_name = 'email_verified'
+    ) THEN
+        ALTER TABLE healthcare_professionals ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_code'
+    ) THEN
+        ALTER TABLE healthcare_professionals ADD COLUMN verification_code VARCHAR(10);
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_expires'
+    ) THEN
+        ALTER TABLE healthcare_professionals ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
+    END IF;
+END $$;
 
 -- Call queue for managing incoming call requests
 CREATE TABLE IF NOT EXISTS call_queue (
@@ -253,11 +279,44 @@ CREATE TABLE IF NOT EXISTS hdd_patients (
     status VARCHAR(32) DEFAULT 'active',
     notes TEXT,
     photo_url TEXT,
+    email_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(10),
+    verification_expires TIMESTAMP WITH TIME ZONE,
+    username VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE,
     session_token VARCHAR(255),
     last_login TIMESTAMP WITH TIME ZONE
 );
+
+-- Add email verification columns to hdd_patients if they don't exist (migration)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'hdd_patients' AND column_name = 'email_verified'
+    ) THEN
+        ALTER TABLE hdd_patients ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'hdd_patients' AND column_name = 'verification_code'
+    ) THEN
+        ALTER TABLE hdd_patients ADD COLUMN verification_code VARCHAR(10);
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'hdd_patients' AND column_name = 'verification_expires'
+    ) THEN
+        ALTER TABLE hdd_patients ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'hdd_patients' AND column_name = 'username'
+    ) THEN
+        ALTER TABLE hdd_patients ADD COLUMN username VARCHAR(100);
+    END IF;
+END $$;
 
 -- HDD Community Posts - Photos, experiences shared by patients
 CREATE TABLE IF NOT EXISTS hdd_community_posts (
