@@ -165,27 +165,10 @@ CREATE TABLE IF NOT EXISTS healthcare_professionals (
 );
 
 -- Add email verification columns to healthcare_professionals if they don't exist (migration)
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'healthcare_professionals' AND column_name = 'email_verified'
-    ) THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_code'
-    ) THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN verification_code VARCHAR(10);
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'healthcare_professionals' AND column_name = 'verification_expires'
-    ) THEN
-        ALTER TABLE healthcare_professionals ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE;
 
 -- Call queue for managing incoming call requests
 CREATE TABLE IF NOT EXISTS call_queue (
@@ -238,21 +221,9 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 
 -- Add author_name and color columns to announcements if they don't exist (migration)
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'announcements' AND column_name = 'author_name'
-    ) THEN
-        ALTER TABLE announcements ADD COLUMN author_name VARCHAR(100);
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'announcements' AND column_name = 'color'
-    ) THEN
-        ALTER TABLE announcements ADD COLUMN color VARCHAR(20) DEFAULT '#e8dcc8';
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS author_name VARCHAR(100);
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#e8dcc8';
 
 -- Indexes for healthcare_professionals
 CREATE INDEX IF NOT EXISTS idx_healthcare_professionals_email ON healthcare_professionals(email);
@@ -290,33 +261,11 @@ CREATE TABLE IF NOT EXISTS hdd_patients (
 );
 
 -- Add email verification columns to hdd_patients if they don't exist (migration)
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'hdd_patients' AND column_name = 'email_verified'
-    ) THEN
-        ALTER TABLE hdd_patients ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'hdd_patients' AND column_name = 'verification_code'
-    ) THEN
-        ALTER TABLE hdd_patients ADD COLUMN verification_code VARCHAR(10);
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'hdd_patients' AND column_name = 'verification_expires'
-    ) THEN
-        ALTER TABLE hdd_patients ADD COLUMN verification_expires TIMESTAMP WITH TIME ZONE;
-    END IF;
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'hdd_patients' AND column_name = 'username'
-    ) THEN
-        ALTER TABLE hdd_patients ADD COLUMN username VARCHAR(100);
-    END IF;
-END $$;
+-- Using standard ALTER TABLE ADD COLUMN IF NOT EXISTS for reliability
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS username VARCHAR(100);
 
 -- HDD Community Posts - Photos, experiences shared by patients
 CREATE TABLE IF NOT EXISTS hdd_community_posts (
@@ -382,6 +331,25 @@ CREATE INDEX IF NOT EXISTS idx_hdd_community_posts_approved ON hdd_community_pos
 CREATE INDEX IF NOT EXISTS idx_hdd_post_comments_post ON hdd_post_comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_attendance_patient ON hdd_attendance(patient_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_attendance_date ON hdd_attendance(attendance_date);
+
+-- HDD Login Tracking - Tracks patient login sessions and interactions for cognitive metrics
+CREATE TABLE IF NOT EXISTS hdd_login_tracking (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    login_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    logout_at TIMESTAMP WITH TIME ZONE,
+    session_duration_minutes INTEGER,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    pages_visited INTEGER DEFAULT 0,
+    activities_completed INTEGER DEFAULT 0,
+    interactions JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for HDD login tracking
+CREATE INDEX IF NOT EXISTS idx_hdd_login_patient ON hdd_login_tracking(patient_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_login_date ON hdd_login_tracking(login_at);
 
 -- Insert default HDD activities
 INSERT INTO hdd_activities (name, description, day_of_week, start_time, end_time)
