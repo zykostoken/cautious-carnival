@@ -22,6 +22,14 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
       ALTER TABLE healthcare_professionals
       ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE
     `;
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE
+    `;
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS session_token VARCHAR(255)
+    `;
 
     migrationRun = true;
     console.log('Healthcare professionals verification columns ensured');
