@@ -79,6 +79,12 @@ export default async (req: Request, context: Context) => {
             WHERE id = ${patient.id}
           `;
 
+          // Track the first login session for metrics
+          await sql`
+            INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
+            VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
+          `.catch(e => console.log('Login tracking failed:', e));
+
           return new Response(JSON.stringify({
             success: true,
             firstLogin: true,
@@ -110,6 +116,12 @@ export default async (req: Request, context: Context) => {
               last_login = NOW()
           WHERE id = ${patient.id}
         `;
+
+        // Track the login session for metrics
+        await sql`
+          INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
+          VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
+        `.catch(e => console.log('Login tracking failed:', e));
 
         return new Response(JSON.stringify({
           success: true,
@@ -217,6 +229,42 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({
           success: true,
           message: "Contraseña actualizada exitosamente"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Track activity/interaction for metrics
+      if (action === "track_activity") {
+        const { sessionToken, activityType, activityData } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [patient] = await sql`
+          SELECT id FROM hdd_patients WHERE session_token = ${sessionToken} AND status = 'active'
+        `;
+
+        if (!patient) {
+          return new Response(JSON.stringify({ error: "Sesión inválida" }),
+            { status: 401, headers: corsHeaders });
+        }
+
+        // Update the latest login tracking record with interaction data
+        await sql`
+          UPDATE hdd_login_tracking
+          SET interactions = COALESCE(interactions, '{}'::jsonb) ||
+              jsonb_build_object(${activityType || 'general'}, COALESCE(interactions->${activityType || 'general'}, '0'::jsonb)::int + 1),
+              activities_completed = activities_completed + 1
+          WHERE patient_id = ${patient.id}
+            AND logout_at IS NULL
+          ORDER BY login_at DESC
+          LIMIT 1
+        `.catch(e => console.log('Activity tracking error:', e));
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Actividad registrada"
         }), { status: 200, headers: corsHeaders });
       }
 

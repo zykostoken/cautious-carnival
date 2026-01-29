@@ -2,6 +2,21 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
 // Call queue management system
+// Payment is processed when professional takes the call
+
+// Get price based on current time (Argentina time UTC-3)
+function getPriceForCurrentHour(): { price: number; planName: string; timeSlot: string } {
+  const now = new Date();
+  const argentinaHour = (now.getUTCHours() - 3 + 24) % 24;
+
+  if (argentinaHour >= 9 && argentinaHour < 13) {
+    return { price: 120000, planName: 'Consulta Diurna (09-13hs)', timeSlot: '09:00-13:00' };
+  } else if (argentinaHour >= 13 && argentinaHour < 20) {
+    return { price: 150000, planName: 'Consulta Vespertina (13-20hs)', timeSlot: '13:00-20:00' };
+  } else {
+    return { price: 200000, planName: 'Consulta Nocturna (20-09hs)', timeSlot: '20:00-09:00' };
+  }
+}
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
@@ -70,6 +85,7 @@ export default async (req: Request, context: Context) => {
       }
 
       // Professional takes a call from queue
+      // PAYMENT IS PROCESSED HERE - when the call is taken, not requested
       if (action === "take") {
         const { sessionToken, queueId } = body;
 
@@ -132,6 +148,42 @@ export default async (req: Request, context: Context) => {
           }), { status: 404, headers: corsHeaders });
         }
 
+        // Get price for current time slot
+        const priceInfo = getPriceForCurrentHour();
+
+        // PROCESS PAYMENT NOW - When professional takes the call
+        // Record the payment/charge for this session
+        const externalRef = `TELE-${queueEntry.user_id}-${Date.now()}`;
+        await sql`
+          INSERT INTO mp_payments (
+            user_id, amount, currency, status, description, external_reference, created_at, paid_at
+          )
+          VALUES (
+            ${queueEntry.user_id},
+            ${priceInfo.price},
+            'ARS',
+            'approved',
+            ${`Telemedicina - ${priceInfo.planName}`},
+            ${externalRef},
+            NOW(),
+            NOW()
+          )
+        `;
+
+        // Log the credit transaction
+        await sql`
+          INSERT INTO credit_transactions (
+            user_id, amount, transaction_type, payment_reference, created_at
+          )
+          VALUES (
+            ${queueEntry.user_id},
+            ${priceInfo.price},
+            'charge',
+            ${externalRef},
+            NOW()
+          )
+        `;
+
         // Update professional's current calls count
         await sql`
           UPDATE healthcare_professionals
@@ -139,12 +191,13 @@ export default async (req: Request, context: Context) => {
           WHERE id = ${professional.id}
         `;
 
-        // Update video session with professional assignment
+        // Update video session with professional assignment and charge info
         await sql`
           UPDATE video_sessions
           SET professional_id = ${professional.id},
               status = 'in_progress',
-              started_at = NOW()
+              started_at = NOW(),
+              credits_charged = ${priceInfo.price}
           WHERE id = ${queueEntry.video_session_id}
         `;
 
@@ -152,6 +205,21 @@ export default async (req: Request, context: Context) => {
         const [session] = await sql`
           SELECT session_token FROM video_sessions WHERE id = ${queueEntry.video_session_id}
         `;
+
+        // Send notification to admin about the charge
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'notify_call_taken',
+            professionalName: professional.full_name,
+            patientName: queueEntry.patient_name,
+            patientEmail: queueEntry.patient_email,
+            price: priceInfo.price,
+            timeSlot: priceInfo.timeSlot,
+            paymentRef: externalRef
+          })
+        }).catch(e => console.log('Notification trigger failed:', e));
 
         return new Response(JSON.stringify({
           success: true,
@@ -162,7 +230,13 @@ export default async (req: Request, context: Context) => {
             phone: queueEntry.patient_phone
           },
           roomName: `ClinicaJoseIngenieros_${session?.session_token?.substring(0, 12) || queueEntry.video_session_id}`,
-          message: "Llamada asignada. Conectándote con el paciente."
+          paymentProcessed: {
+            amount: priceInfo.price,
+            formattedAmount: `$${priceInfo.price.toLocaleString('es-AR')} ARS`,
+            timeSlot: priceInfo.timeSlot,
+            reference: externalRef
+          },
+          message: "Llamada asignada y pago procesado. Conectándote con el paciente."
         }), { status: 200, headers: corsHeaders });
       }
 
@@ -323,9 +397,43 @@ export default async (req: Request, context: Context) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const sessionToken = url.searchParams.get("sessionToken");
+    const videoSessionToken = url.searchParams.get("videoSessionToken");
     const status = url.searchParams.get("status") || "waiting";
 
     try {
+      // Patient checking their own call status
+      if (videoSessionToken) {
+        const [callStatus] = await sql`
+          SELECT
+            cq.id,
+            cq.status,
+            cq.assigned_professional_id,
+            vs.status as video_status,
+            vs.session_token,
+            hp.full_name as professional_name
+          FROM video_sessions vs
+          LEFT JOIN call_queue cq ON cq.video_session_id = vs.id
+          LEFT JOIN healthcare_professionals hp ON cq.assigned_professional_id = hp.id
+          WHERE vs.session_token = ${videoSessionToken}
+        `;
+
+        if (!callStatus) {
+          return new Response(JSON.stringify({ error: "Sesión no encontrada" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        const professionalJoined = callStatus.status === 'in_progress' ||
+          (callStatus.status === 'assigned' && callStatus.assigned_professional_id);
+
+        return new Response(JSON.stringify({
+          status: callStatus.status || 'waiting',
+          videoStatus: callStatus.video_status,
+          professionalJoined,
+          professionalName: callStatus.professional_name,
+          roomName: `ClinicaJoseIngenieros_${callStatus.session_token.substring(0, 12)}`
+        }), { status: 200, headers: corsHeaders });
+      }
+
       // If professional session provided, verify it
       if (sessionToken) {
         const [professional] = await sql`
