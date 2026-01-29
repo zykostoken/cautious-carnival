@@ -1,8 +1,48 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
-// Admin emails that have full control
-const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+// Flag to track if migration has been run
+let migrationRun = false;
+
+// Ensure verification columns exist in healthcare_professionals table
+async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
+  if (migrationRun) return;
+
+  try {
+    // Add missing columns if they don't exist
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE
+    `;
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10)
+    `;
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE
+    `;
+
+    migrationRun = true;
+    console.log('Healthcare professionals verification columns ensured');
+  } catch (error) {
+    console.error('Migration check failed:', error);
+    // Continue anyway - the columns might already exist
+  }
+}
+
+// Admin emails that have full control - ALWAYS preset to avoid configuration issues
+// These are hardcoded to ensure admin access is never lost due to missing env vars
+const DEFAULT_ADMIN_EMAILS = [
+  'gonzaloperezcortizo@gmail.com',           // Developer/project creator
+  'direccionmedica@clinicajoseingenieros.ar' // Medical direction (institutional)
+];
+
+// Allow additional admins via env var, but ALWAYS include the defaults
+const ADMIN_EMAILS = [
+  ...DEFAULT_ADMIN_EMAILS,
+  ...(process.env.ADDITIONAL_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [])
+];
 
 // Valid professional email domains - only clinic staff can register
 const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar', 'clinicajoseingenieros.com.ar'];
@@ -11,6 +51,11 @@ const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar', 'clinicajoseinge
 function isValidProfessionalEmail(email: string): boolean {
   const domain = email.split('@')[1]?.toLowerCase();
   return VALID_PROFESSIONAL_DOMAINS.includes(domain);
+}
+
+// Check if email is an admin email (case-insensitive)
+function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === email.toLowerCase());
 }
 
 // Simple password hashing (in production, use bcrypt)
@@ -42,11 +87,15 @@ async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> 
     SELECT email FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
-  return professional && ADMIN_EMAILS.includes(professional.email);
+  return professional && isAdminEmail(professional.email);
 }
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
+
+  // Ensure verification columns exist before any operations
+  await ensureVerificationColumns(sql);
+
   const corsHeaders = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -80,6 +129,9 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Check if this is an admin email (skip verification for admins)
+        const isAdmin = isAdminEmail(email);
+
         // Check if email already exists
         const [existing] = await sql`
           SELECT id, email_verified FROM healthcare_professionals WHERE email = ${email}
@@ -90,6 +142,25 @@ export default async (req: Request, context: Context) => {
             return new Response(JSON.stringify({
               error: "El email ya está registrado"
             }), { status: 400, headers: corsHeaders });
+          } else if (isAdmin) {
+            // Admin email exists but not verified - activate it directly
+            const sessionToken = generateSessionToken();
+            await sql`
+              UPDATE healthcare_professionals
+              SET email_verified = TRUE,
+                  is_active = TRUE,
+                  verification_code = NULL,
+                  verification_expires = NULL,
+                  session_token = ${sessionToken},
+                  last_login = NOW()
+              WHERE id = ${existing.id}
+            `;
+
+            return new Response(JSON.stringify({
+              success: true,
+              sessionToken,
+              message: "Cuenta admin activada exitosamente. Ya podés acceder al sistema."
+            }), { status: 200, headers: corsHeaders });
           } else {
             // Re-send verification code
             const verificationCode = generateVerificationCode();
@@ -124,6 +195,40 @@ export default async (req: Request, context: Context) => {
         }
 
         const passwordHash = await hashPassword(password);
+
+        // Admin emails are pre-approved and skip verification
+        if (isAdmin) {
+          const sessionToken = generateSessionToken();
+
+          const [professional] = await sql`
+            INSERT INTO healthcare_professionals (
+              email, password_hash, full_name, specialty, license_number,
+              phone, whatsapp, email_verified, is_active, session_token,
+              last_login, created_at
+            )
+            VALUES (
+              ${email}, ${passwordHash}, ${fullName},
+              ${specialty || 'Psiquiatría'}, ${licenseNumber || null},
+              ${phone || null}, ${whatsapp || null}, TRUE, TRUE,
+              ${sessionToken}, NOW(), NOW()
+            )
+            RETURNING id, email, full_name, specialty
+          `;
+
+          return new Response(JSON.stringify({
+            success: true,
+            professional: {
+              id: professional.id,
+              email: professional.email,
+              fullName: professional.full_name,
+              specialty: professional.specialty
+            },
+            sessionToken,
+            message: "Cuenta admin creada y activada exitosamente. Ya podés acceder al sistema."
+          }), { status: 201, headers: corsHeaders });
+        }
+
+        // Regular registration flow with verification
         const verificationCode = generateVerificationCode();
         const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
