@@ -4,13 +4,27 @@ import { getDatabase } from "./lib/db.mts";
 // Admin emails that have full control
 const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
 
+// Valid professional email domains - only clinic staff can register
+const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar', 'clinicajoseingenieros.com.ar'];
+
+// Check if email domain is valid for professionals
+function isValidProfessionalEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return VALID_PROFESSIONAL_DOMAINS.includes(domain);
+}
+
 // Simple password hashing (in production, use bcrypt)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + process.env.PASSWORD_SALT || 'clinica_salt_2024');
+  const data = encoder.encode(password + (process.env.PASSWORD_SALT || 'clinica_salt_2024'));
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate a 6-digit verification code
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
@@ -49,7 +63,7 @@ export default async (req: Request, context: Context) => {
       const body = await req.json();
       const { action } = body;
 
-      // Register a new professional
+      // Register a new professional (requires @clinicajoseingenieros.ar email)
       if (action === "register") {
         const { email, password, fullName, specialty, licenseNumber, phone, whatsapp } = body;
 
@@ -59,44 +73,154 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
-        // Check if email already exists
-        const [existing] = await sql`
-          SELECT id FROM healthcare_professionals WHERE email = ${email}
-        `;
-
-        if (existing) {
+        // Validate email domain - must be clinic staff
+        if (!isValidProfessionalEmail(email)) {
           return new Response(JSON.stringify({
-            error: "El email ya está registrado"
+            error: "Solo se permite el registro con emails institucionales (@clinicajoseingenieros.ar o @clinicajoseingenieros.com.ar)"
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Check if email already exists
+        const [existing] = await sql`
+          SELECT id, email_verified FROM healthcare_professionals WHERE email = ${email}
+        `;
+
+        if (existing) {
+          if (existing.email_verified) {
+            return new Response(JSON.stringify({
+              error: "El email ya está registrado"
+            }), { status: 400, headers: corsHeaders });
+          } else {
+            // Re-send verification code
+            const verificationCode = generateVerificationCode();
+            const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+
+            await sql`
+              UPDATE healthcare_professionals
+              SET verification_code = ${verificationCode},
+                  verification_expires = ${expiresAt.toISOString()}
+              WHERE id = ${existing.id}
+            `;
+
+            // Send verification email (async)
+            fetch(`${new URL(req.url).origin}/api/notifications`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'send_verification_email',
+                email,
+                code: verificationCode,
+                fullName
+              })
+            }).catch(e => console.log('Email notification failed:', e));
+
+            return new Response(JSON.stringify({
+              success: true,
+              requiresVerification: true,
+              professionalId: existing.id,
+              message: "Se ha enviado un nuevo código de verificación a tu email"
+            }), { status: 200, headers: corsHeaders });
+          }
+        }
+
         const passwordHash = await hashPassword(password);
-        const sessionToken = generateSessionToken();
+        const verificationCode = generateVerificationCode();
+        const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
         const [professional] = await sql`
           INSERT INTO healthcare_professionals (
             email, password_hash, full_name, specialty, license_number,
-            phone, whatsapp, session_token, created_at
+            phone, whatsapp, email_verified, verification_code, verification_expires,
+            is_active, created_at
           )
           VALUES (
             ${email}, ${passwordHash}, ${fullName},
             ${specialty || 'Psiquiatría'}, ${licenseNumber || null},
-            ${phone || null}, ${whatsapp || null}, ${sessionToken}, NOW()
+            ${phone || null}, ${whatsapp || null}, FALSE,
+            ${verificationCode}, ${verificationExpires.toISOString()},
+            FALSE, NOW()
           )
           RETURNING id, email, full_name, specialty
         `;
 
+        // Send verification email (async)
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_verification_email',
+            email,
+            code: verificationCode,
+            fullName
+          })
+        }).catch(e => console.log('Email notification failed:', e));
+
         return new Response(JSON.stringify({
           success: true,
-          professional: {
-            id: professional.id,
-            email: professional.email,
-            fullName: professional.full_name,
-            specialty: professional.specialty
-          },
-          sessionToken,
-          message: "Registro exitoso"
+          requiresVerification: true,
+          professionalId: professional.id,
+          message: "Se ha enviado un código de verificación a tu email institucional. Verificá tu bandeja de entrada."
         }), { status: 201, headers: corsHeaders });
+      }
+
+      // Verify email with code
+      if (action === "verify_email") {
+        const { email, code } = body;
+
+        if (!email || !code) {
+          return new Response(JSON.stringify({
+            error: "Email y código de verificación son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [professional] = await sql`
+          SELECT id, verification_code, verification_expires, email_verified
+          FROM healthcare_professionals
+          WHERE email = ${email}
+        `;
+
+        if (!professional) {
+          return new Response(JSON.stringify({
+            error: "Email no encontrado"
+          }), { status: 404, headers: corsHeaders });
+        }
+
+        if (professional.email_verified) {
+          return new Response(JSON.stringify({
+            error: "El email ya está verificado"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (professional.verification_code !== code) {
+          return new Response(JSON.stringify({
+            error: "Código de verificación incorrecto"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (new Date(professional.verification_expires) < new Date()) {
+          return new Response(JSON.stringify({
+            error: "El código de verificación ha expirado. Solicitá uno nuevo."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const sessionToken = generateSessionToken();
+
+        await sql`
+          UPDATE healthcare_professionals
+          SET email_verified = TRUE,
+              is_active = TRUE,
+              verification_code = NULL,
+              verification_expires = NULL,
+              session_token = ${sessionToken},
+              last_login = NOW()
+          WHERE id = ${professional.id}
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          sessionToken,
+          message: "Email verificado exitosamente. Ya podés acceder al sistema."
+        }), { status: 200, headers: corsHeaders });
       }
 
       // Login
@@ -110,7 +234,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const [professional] = await sql`
-          SELECT id, email, password_hash, full_name, specialty, is_active
+          SELECT id, email, password_hash, full_name, specialty, is_active, email_verified
           FROM healthcare_professionals
           WHERE email = ${email}
         `;
@@ -118,6 +242,14 @@ export default async (req: Request, context: Context) => {
         if (!professional) {
           return new Response(JSON.stringify({
             error: "Credenciales inválidas"
+          }), { status: 401, headers: corsHeaders });
+        }
+
+        // Check if email is verified
+        if (!professional.email_verified) {
+          return new Response(JSON.stringify({
+            error: "Tu email no está verificado. Revisá tu bandeja de entrada o solicitá un nuevo código.",
+            requiresVerification: true
           }), { status: 401, headers: corsHeaders });
         }
 

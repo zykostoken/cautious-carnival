@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
 // Announcements / Bulletin board management
+// Supports both admin announcements and public community blackboard messages
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
@@ -21,7 +22,7 @@ export default async (req: Request, context: Context) => {
       const body = await req.json();
       const { action, sessionToken } = body;
 
-      // Verify professional session for create/update/delete operations
+      // Verify professional session for admin operations
       let professionalId: number | null = null;
       if (sessionToken) {
         const [professional] = await sql`
@@ -33,32 +34,47 @@ export default async (req: Request, context: Context) => {
         }
       }
 
-      // Create new announcement
+      // Create new announcement (supports both admin and public community messages)
       if (action === "create") {
-        const { title, content, type, showFrom, showUntil, isPinned } = body;
+        const { title, content, type, authorName, color, showFrom, showUntil, isPinned } = body;
 
-        if (!title || !content) {
+        if (!content) {
           return new Response(JSON.stringify({
-            error: "Título y contenido son requeridos"
+            error: "Contenido es requerido"
           }), { status: 400, headers: corsHeaders });
+        }
+
+        // Community messages (blackboard) can be posted by anyone
+        const isCommunityMessage = type === 'community';
+
+        // For non-community messages, require professional session
+        if (!isCommunityMessage && !professionalId) {
+          // Still allow if title is provided (basic announcement)
+          if (!title) {
+            return new Response(JSON.stringify({
+              error: "Título es requerido para anuncios"
+            }), { status: 400, headers: corsHeaders });
+          }
         }
 
         const [announcement] = await sql`
           INSERT INTO announcements (
-            title, content, type, is_pinned,
+            title, content, author_name, type, color, is_pinned,
             show_from, show_until, created_by, created_at
           )
           VALUES (
-            ${title},
+            ${title || 'Mensaje de Pizarra'},
             ${content},
+            ${authorName || null},
             ${type || 'info'},
+            ${color || '#e8dcc8'},
             ${isPinned || false},
             ${showFrom ? new Date(showFrom).toISOString() : sql`NOW()`},
             ${showUntil ? new Date(showUntil).toISOString() : null},
             ${professionalId},
             NOW()
           )
-          RETURNING id, title, type, created_at
+          RETURNING id, title, type, author_name, color, created_at
         `;
 
         return new Response(JSON.stringify({
@@ -67,14 +83,21 @@ export default async (req: Request, context: Context) => {
             id: announcement.id,
             title: announcement.title,
             type: announcement.type,
+            authorName: announcement.author_name,
+            color: announcement.color,
             createdAt: announcement.created_at
           },
-          message: "Anuncio creado exitosamente"
+          message: isCommunityMessage ? "Mensaje publicado en la pizarra" : "Anuncio creado exitosamente"
         }), { status: 201, headers: corsHeaders });
       }
 
-      // Update announcement
+      // Update announcement (admin only)
       if (action === "update") {
+        if (!professionalId) {
+          return new Response(JSON.stringify({ error: "Se requiere autenticación de profesional" }),
+            { status: 401, headers: corsHeaders });
+        }
+
         const { id, title, content, type, isActive, isPinned, showFrom, showUntil } = body;
 
         if (!id) {
@@ -109,8 +132,13 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Delete announcement
+      // Delete announcement (admin only)
       if (action === "delete") {
+        if (!professionalId) {
+          return new Response(JSON.stringify({ error: "Se requiere autenticación de profesional" }),
+            { status: 401, headers: corsHeaders });
+        }
+
         const { id } = body;
 
         if (!id) {
@@ -147,7 +175,7 @@ export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
     const includeInactive = url.searchParams.get("includeInactive") === "true";
     const type = url.searchParams.get("type");
-    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
 
     try {
       let announcements;
@@ -159,7 +187,9 @@ export default async (req: Request, context: Context) => {
             a.id,
             a.title,
             a.content,
+            a.author_name,
             a.type,
+            a.color,
             a.is_active,
             a.is_pinned,
             a.show_from,
@@ -172,56 +202,45 @@ export default async (req: Request, context: Context) => {
           ORDER BY a.is_pinned DESC, a.created_at DESC
           LIMIT ${limit}
         `;
-      } else {
-        // Public view - only active announcements within their display window
-        const baseQuery = sql`
+      } else if (type) {
+        // Filtered by type (e.g., community for blackboard)
+        announcements = await sql`
           SELECT
             a.id,
             a.title,
             a.content,
+            a.author_name,
             a.type,
+            a.color,
             a.is_pinned,
             a.created_at
           FROM announcements a
           WHERE a.is_active = TRUE
             AND a.show_from <= NOW()
             AND (a.show_until IS NULL OR a.show_until > NOW())
+            AND a.type = ${type}
+          ORDER BY a.is_pinned DESC, a.created_at DESC
+          LIMIT ${limit}
         `;
-
-        if (type) {
-          announcements = await sql`
-            SELECT
-              a.id,
-              a.title,
-              a.content,
-              a.type,
-              a.is_pinned,
-              a.created_at
-            FROM announcements a
-            WHERE a.is_active = TRUE
-              AND a.show_from <= NOW()
-              AND (a.show_until IS NULL OR a.show_until > NOW())
-              AND a.type = ${type}
-            ORDER BY a.is_pinned DESC, a.created_at DESC
-            LIMIT ${limit}
-          `;
-        } else {
-          announcements = await sql`
-            SELECT
-              a.id,
-              a.title,
-              a.content,
-              a.type,
-              a.is_pinned,
-              a.created_at
-            FROM announcements a
-            WHERE a.is_active = TRUE
-              AND a.show_from <= NOW()
-              AND (a.show_until IS NULL OR a.show_until > NOW())
-            ORDER BY a.is_pinned DESC, a.created_at DESC
-            LIMIT ${limit}
-          `;
-        }
+      } else {
+        // Public view - only active announcements within their display window
+        announcements = await sql`
+          SELECT
+            a.id,
+            a.title,
+            a.content,
+            a.author_name,
+            a.type,
+            a.color,
+            a.is_pinned,
+            a.created_at
+          FROM announcements a
+          WHERE a.is_active = TRUE
+            AND a.show_from <= NOW()
+            AND (a.show_until IS NULL OR a.show_until > NOW())
+          ORDER BY a.is_pinned DESC, a.created_at DESC
+          LIMIT ${limit}
+        `;
       }
 
       return new Response(JSON.stringify({
@@ -229,12 +248,15 @@ export default async (req: Request, context: Context) => {
           id: a.id,
           title: a.title,
           content: a.content,
+          author_name: a.author_name,
           type: a.type,
+          color: a.color,
           isActive: a.is_active,
           isPinned: a.is_pinned,
           showFrom: a.show_from,
           showUntil: a.show_until,
           createdAt: a.created_at,
+          created_at: a.created_at,
           updatedAt: a.updated_at,
           createdByName: a.created_by_name
         }))

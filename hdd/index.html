@@ -5,16 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hospital de Día - Clínica José Ingenieros</title>
   <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --secondary: #10b981;
-      --background: #f8fafc;
-      --surface: #ffffff;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
+      --bg-primary: #0a0d12;
+      --bg-secondary: #0d1117;
+      --bg-card: rgba(22, 27, 34, 0.8);
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-gold: #d4a853;
+      --accent-green: #3fb950;
+      --accent-purple: #a371f7;
+      --border-color: rgba(240, 246, 252, 0.1);
     }
 
     * {
@@ -24,27 +29,106 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: var(--background);
-      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* Header */
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 1rem;
-      position: sticky;
+    /* ========== STARS BACKGROUND ========== */
+    #stars-canvas {
+      position: fixed;
       top: 0;
-      z-index: 100;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .floating-clouds {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .cloud {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.15;
+      animation: floatCloud 30s ease-in-out infinite;
+    }
+
+    .cloud-1 {
+      width: 500px;
+      height: 300px;
+      background: radial-gradient(circle, var(--accent-blue) 0%, transparent 70%);
+      top: 10%;
+      left: -10%;
+      animation-delay: 0s;
+    }
+
+    .cloud-2 {
+      width: 400px;
+      height: 250px;
+      background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+      top: 60%;
+      right: -5%;
+      animation-delay: -10s;
+    }
+
+    .cloud-3 {
+      width: 350px;
+      height: 200px;
+      background: radial-gradient(circle, var(--accent-gold) 0%, transparent 70%);
+      bottom: 20%;
+      left: 30%;
+      animation-delay: -20s;
+    }
+
+    @keyframes floatCloud {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(30px, -20px) scale(1.05); }
+      50% { transform: translate(-20px, 15px) scale(0.95); }
+      75% { transform: translate(15px, 25px) scale(1.02); }
+    }
+
+    /* ========== HEADER ========== */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 1rem 2rem;
+      background: rgba(10, 13, 18, 0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: none;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent-blue), var(--accent-gold));
     }
 
     .header-content {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
     }
 
@@ -53,30 +137,31 @@
       align-items: center;
       gap: 0.75rem;
       text-decoration: none;
-      color: var(--text);
+      color: var(--text-primary);
     }
 
     .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      border-radius: 10px;
+      width: 45px;
+      height: 45px;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-blue) 100%);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--bg-primary);
       font-weight: bold;
-      font-size: 1.25rem;
+      font-size: 1rem;
     }
 
     .logo-text {
+      font-family: 'Playfair Display', serif;
       font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
     }
 
     .logo-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 0.7rem;
+      color: var(--text-secondary);
     }
 
     .header-actions {
@@ -85,133 +170,348 @@
       gap: 1rem;
     }
 
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    .back-link:hover {
+      color: var(--accent-gold);
+    }
+
     .btn {
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1.2rem;
       border-radius: 8px;
       border: none;
       cursor: pointer;
       font-size: 0.9rem;
       font-weight: 500;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
       text-decoration: none;
     }
 
     .btn-primary {
-      background: var(--primary);
-      color: white;
+      background: var(--accent-gold);
+      color: var(--bg-primary);
     }
 
     .btn-primary:hover {
-      background: var(--primary-dark);
+      background: #e5b864;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(212, 168, 83, 0.4);
     }
 
     .btn-secondary {
-      background: var(--border);
-      color: var(--text);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
     }
 
     .btn-secondary:hover {
-      background: #cbd5e1;
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
     }
 
-    /* Hero Section */
+    /* ========== MAIN CONTENT ========== */
+    main {
+      position: relative;
+      z-index: 1;
+      padding-top: 80px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* ========== HERO SECTION ========== */
     .hero {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      color: white;
-      padding: 4rem 1.5rem;
       text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(212, 168, 83, 0.1);
+      border: 1px solid rgba(212, 168, 83, 0.3);
+      border-radius: 20px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+      margin-bottom: 1.5rem;
     }
 
     .hero h1 {
-      font-size: 2.5rem;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
       margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .hero p {
       font-size: 1.1rem;
-      opacity: 0.9;
-      max-width: 600px;
+      color: var(--text-secondary);
+      max-width: 700px;
       margin: 0 auto 2rem;
     }
 
-    .hero-logo {
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 2rem;
-      margin: 0 auto 1.5rem;
-    }
-
-    /* Container */
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-    }
-
-    /* Section */
-    .section {
-      margin-bottom: 3rem;
+    /* ========== INFO CARDS ========== */
+    .info-section {
+      margin-bottom: 4rem;
     }
 
     .section-title {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--text);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--text-primary);
     }
 
-    /* Info Cards */
     .info-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1.5rem;
     }
 
     .info-card {
-      background: var(--surface);
-      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
       padding: 1.5rem;
-      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .info-card:hover {
+      border-color: var(--accent-gold);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .info-card h3 {
+      color: var(--accent-gold);
       font-size: 1.1rem;
       margin-bottom: 0.75rem;
-      color: var(--text);
     }
 
     .info-card p {
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-size: 0.95rem;
     }
 
-    /* Activities */
+    /* ========== BLACKBOARD / PIZARRA ========== */
+    .blackboard-section {
+      margin-bottom: 4rem;
+    }
+
+    .blackboard-container {
+      background: linear-gradient(145deg, #1a2420 0%, #0d1a14 100%);
+      border: 8px solid #5c4033;
+      border-radius: 8px;
+      padding: 2rem;
+      position: relative;
+      box-shadow:
+        inset 0 0 50px rgba(0, 0, 0, 0.5),
+        0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .blackboard-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .blackboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .blackboard-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: #e8dcc8;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .chalk-colors {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chalk-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .chalk-color:hover, .chalk-color.active {
+      transform: scale(1.2);
+      border-color: white;
+    }
+
+    .chalk-white { background: #e8dcc8; }
+    .chalk-yellow { background: #f4d03f; }
+    .chalk-pink { background: #f5a9bc; }
+    .chalk-blue { background: #85c1e9; }
+    .chalk-green { background: #82e0aa; }
+
+    .blackboard-messages {
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+    }
+
+    .blackboard-messages::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .blackboard-messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .board-message {
+      font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      position: relative;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .board-message-author {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      margin-top: 0.25rem;
+    }
+
+    .blackboard-input-area {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .blackboard-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: #e8dcc8;
+      font-family: 'Comic Sans MS', cursive;
+      font-size: 1rem;
+      resize: none;
+    }
+
+    .blackboard-input::placeholder {
+      color: rgba(232, 220, 200, 0.5);
+    }
+
+    .blackboard-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .blackboard-name {
+      width: 150px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: #e8dcc8;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+    }
+
+    .blackboard-name::placeholder {
+      color: rgba(232, 220, 200, 0.5);
+    }
+
+    .blackboard-name:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .blackboard-submit {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      color: #e8dcc8;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .blackboard-submit:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========== ACTIVITIES SECTION ========== */
+    .activities-section {
+      margin-bottom: 4rem;
+    }
+
     .activities-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 1rem;
     }
 
     .activity-card {
-      background: var(--surface);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 1.25rem;
-      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .activity-card:hover {
+      border-color: var(--accent-gold);
+      transform: translateX(5px);
     }
 
     .activity-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-purple) 100%);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -231,10 +531,14 @@
 
     .activity-schedule {
       font-size: 0.85rem;
-      color: var(--text-muted);
+      color: var(--text-secondary);
     }
 
-    /* Gallery */
+    /* ========== GALLERY ========== */
+    .gallery-section {
+      margin-bottom: 4rem;
+    }
+
     .gallery-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -245,57 +549,131 @@
       border-radius: 12px;
       overflow: hidden;
       aspect-ratio: 1;
+      position: relative;
     }
 
     .gallery-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.3s;
+      transition: transform 0.5s ease;
     }
 
     .gallery-item:hover img {
-      transform: scale(1.05);
+      transform: scale(1.1);
     }
 
-    /* CTA Section */
-    .cta-section {
-      background: var(--surface);
+    .gallery-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* ========== ADMISSION / LOGIN SECTION ========== */
+    .admission-section {
+      margin-bottom: 4rem;
+    }
+
+    .admission-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 768px) {
+      .admission-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .admission-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 2.5rem;
+      padding: 2rem;
       text-align: center;
-      border: 1px solid var(--border);
+      transition: all 0.3s ease;
     }
 
-    .cta-section h2 {
-      font-size: 1.5rem;
+    .admission-card:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 10px 30px rgba(88, 166, 255, 0.2);
+    }
+
+    .admission-card.patient-login {
+      background: linear-gradient(135deg, rgba(212, 168, 83, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+      border-color: var(--accent-gold);
+    }
+
+    .admission-card.patient-login:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 10px 30px rgba(212, 168, 83, 0.3);
+    }
+
+    .admission-icon {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 1.5rem;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .patient-login .admission-icon {
+      background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-purple) 100%);
+    }
+
+    .admission-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
       margin-bottom: 0.75rem;
     }
 
-    .cta-section p {
-      color: var(--text-muted);
+    .admission-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
       margin-bottom: 1.5rem;
     }
 
-    .cta-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
+    .admission-features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 1.5rem;
     }
 
-    /* Footer */
+    .admission-features li {
+      padding: 0.5rem 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .admission-features li::before {
+      content: '✓';
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    /* ========== FOOTER ========== */
     .footer {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 1.5rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 2rem;
       text-align: center;
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-size: 0.9rem;
     }
 
     .footer a {
-      color: var(--primary);
+      color: var(--accent-gold);
       text-decoration: none;
     }
 
@@ -303,41 +681,43 @@
       text-decoration: underline;
     }
 
-    /* Back link */
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-
-    .back-link:hover {
-      color: var(--primary);
-    }
-
-    @media (max-width: 600px) {
-      .hero h1 {
-        font-size: 1.75rem;
-      }
-
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
       .header-content {
         flex-direction: column;
         gap: 1rem;
       }
 
-      .cta-buttons {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .blackboard-input-area {
         flex-direction: column;
       }
 
-      .cta-buttons .btn {
+      .blackboard-name {
         width: 100%;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
+  <!-- Stars Background -->
+  <canvas id="stars-canvas"></canvas>
+
+  <!-- Floating Clouds -->
+  <div class="floating-clouds">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+  </div>
+
+  <!-- Header -->
   <header class="header">
     <div class="header-content">
       <a href="/hdd" class="logo">
@@ -350,117 +730,318 @@
 
       <div class="header-actions">
         <a href="/" class="back-link">← Volver al sitio</a>
-        <a href="/hdd/portal" class="btn btn-primary">Ingresar</a>
+        <a href="/hdd/portal" class="btn btn-primary">Acceso Pacientes</a>
       </div>
     </div>
   </header>
 
-  <section class="hero">
-    <div class="hero-logo">HdD</div>
-    <h1>Hospital de Día</h1>
-    <p>Un espacio terapéutico de rehabilitación y reinserción social, con actividades grupales y acompañamiento profesional integral.</p>
-    <a href="/hdd/portal" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1rem;">
-      Ingresar al Portal
-    </a>
-  </section>
-
-  <div class="container">
-    <!-- Sobre el HDD -->
-    <section class="section">
-      <h2 class="section-title">Sobre el Hospital de Día</h2>
-      <div class="info-grid">
-        <div class="info-card">
-          <h3>Modalidad de Atención</h3>
-          <p>Dispositivo ambulatorio con actividades terapéuticas grupales que favorecen la recuperación, socialización y desarrollo de habilidades para la vida cotidiana.</p>
-        </div>
-        <div class="info-card">
-          <h3>Equipo Interdisciplinario</h3>
-          <p>Profesionales de psiquiatría, psicología, terapia ocupacional, musicoterapia y trabajo social trabajando de forma coordinada.</p>
-        </div>
-        <div class="info-card">
-          <h3>Comunidad Terapéutica</h3>
-          <p>Espacio de contención donde pacientes comparten experiencias, se apoyan mutuamente y construyen vínculos significativos.</p>
-        </div>
-      </div>
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <span class="hero-badge">Rehabilitación y Reinserción Social</span>
+      <h1>Hospital de Día</h1>
+      <p>Un espacio terapéutico donde el arte, la naturaleza y la comunidad se encuentran para acompañar tu proceso de recuperación.</p>
     </section>
 
-    <!-- Actividades -->
-    <section class="section">
-      <h2 class="section-title">Actividades Semanales</h2>
-      <div class="activities-grid">
-        <div class="activity-card">
-          <div class="activity-icon">🎵</div>
-          <div class="activity-info">
-            <div class="activity-name">Música</div>
-            <div class="activity-schedule">Lunes 10:00 - 11:30</div>
+    <div class="container">
+      <!-- Info Cards -->
+      <section class="info-section">
+        <h2 class="section-title">Sobre Nuestro Programa</h2>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>Modalidad de Atención</h3>
+            <p>Dispositivo ambulatorio con actividades terapéuticas grupales que favorecen la recuperación, socialización y desarrollo de habilidades para la vida cotidiana.</p>
+          </div>
+          <div class="info-card">
+            <h3>Equipo Interdisciplinario</h3>
+            <p>Profesionales de psiquiatría, psicología, terapia ocupacional, musicoterapia y trabajo social trabajando de forma coordinada.</p>
+          </div>
+          <div class="info-card">
+            <h3>Comunidad Terapéutica</h3>
+            <p>Espacio de contención donde pacientes comparten experiencias, se apoyan mutuamente y construyen vínculos significativos.</p>
           </div>
         </div>
-        <div class="activity-card">
-          <div class="activity-icon">🌱</div>
-          <div class="activity-info">
-            <div class="activity-name">Huerta</div>
-            <div class="activity-schedule">Martes 10:00 - 12:00</div>
-          </div>
-        </div>
-        <div class="activity-card">
-          <div class="activity-icon">🪵</div>
-          <div class="activity-info">
-            <div class="activity-name">Carpintería</div>
-            <div class="activity-schedule">Miércoles 10:00 - 12:00</div>
-          </div>
-        </div>
-        <div class="activity-card">
-          <div class="activity-icon">🍳</div>
-          <div class="activity-info">
-            <div class="activity-name">Cocina</div>
-            <div class="activity-schedule">Jueves 10:00 - 12:00</div>
-          </div>
-        </div>
-        <div class="activity-card">
-          <div class="activity-icon">💃</div>
-          <div class="activity-info">
-            <div class="activity-name">Expresión Corporal</div>
-            <div class="activity-schedule">Viernes 10:00 - 11:30</div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Galería -->
-    <section class="section">
-      <h2 class="section-title">Galería de Productos</h2>
-      <p style="color: var(--text-muted); margin-bottom: 1rem;">Trabajos realizados por los pacientes en las distintas actividades.</p>
-      <div class="gallery-grid">
-        <div class="gallery-item">
-          <img src="/hdd/img/kits-verduras.jpg" alt="Kits de Verduras de la Huerta">
-        </div>
-        <div class="gallery-item">
-          <img src="/hdd/img/flores-papel.jpg" alt="Flores de Papel">
-        </div>
-        <div class="gallery-item">
-          <img src="/hdd/img/masa-tortas.jpg" alt="Masa para Tortas">
-        </div>
-        <div class="gallery-item">
-          <img src="/hdd/img/ensalada-frutas.jpg" alt="Ensalada de Frutas">
-        </div>
-      </div>
-    </section>
+      <!-- Blackboard / Pizarra Section -->
+      <section class="blackboard-section">
+        <h2 class="section-title">Pizarra Comunitaria</h2>
+        <div class="blackboard-container">
+          <div class="blackboard-header">
+            <span class="blackboard-title">Dejá tu mensaje para la comunidad</span>
+            <div class="chalk-colors">
+              <span class="chalk-color chalk-white active" data-color="#e8dcc8"></span>
+              <span class="chalk-color chalk-yellow" data-color="#f4d03f"></span>
+              <span class="chalk-color chalk-pink" data-color="#f5a9bc"></span>
+              <span class="chalk-color chalk-blue" data-color="#85c1e9"></span>
+              <span class="chalk-color chalk-green" data-color="#82e0aa"></span>
+            </div>
+          </div>
 
-    <!-- CTA para pacientes -->
-    <section class="section">
-      <div class="cta-section">
-        <h2>Portal de Pacientes</h2>
-        <p>Si sos paciente activo del Hospital de Día, ingresá al portal para ver la comunidad, compartir experiencias, ver las actividades y más.</p>
-        <div class="cta-buttons">
-          <a href="/hdd/portal" class="btn btn-primary" style="padding: 0.75rem 2rem;">Ingresar</a>
-          <a href="/" class="btn btn-secondary" style="padding: 0.75rem 2rem;">Volver al sitio principal</a>
-        </div>
-      </div>
-    </section>
-  </div>
+          <div class="blackboard-messages" id="blackboard-messages">
+            <div class="board-message" style="color: #e8dcc8;">
+              Bienvenidos a la pizarra comunitaria del Hospital de Día
+              <div class="board-message-author">- Equipo HdD</div>
+            </div>
+          </div>
 
+          <div class="blackboard-input-area">
+            <input type="text" class="blackboard-name" id="board-name" placeholder="Tu nombre (opcional)">
+            <textarea class="blackboard-input" id="board-message" placeholder="Escribí tu mensaje aquí..." rows="2"></textarea>
+            <button class="blackboard-submit" onclick="postBoardMessage()">Publicar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activities Section -->
+      <section class="activities-section">
+        <h2 class="section-title">Actividades Semanales</h2>
+        <div class="activities-grid">
+          <div class="activity-card">
+            <div class="activity-icon">🎵</div>
+            <div class="activity-info">
+              <div class="activity-name">Música</div>
+              <div class="activity-schedule">Lunes 10:00 - 11:30</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🌱</div>
+            <div class="activity-info">
+              <div class="activity-name">Huerta</div>
+              <div class="activity-schedule">Martes 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🪵</div>
+            <div class="activity-info">
+              <div class="activity-name">Carpintería</div>
+              <div class="activity-schedule">Miércoles 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">🍳</div>
+            <div class="activity-info">
+              <div class="activity-name">Cocina</div>
+              <div class="activity-schedule">Jueves 10:00 - 12:00</div>
+            </div>
+          </div>
+          <div class="activity-card">
+            <div class="activity-icon">💃</div>
+            <div class="activity-info">
+              <div class="activity-name">Expresión Corporal</div>
+              <div class="activity-schedule">Viernes 10:00 - 11:30</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gallery Section -->
+      <section class="gallery-section">
+        <h2 class="section-title">Galería de Productos</h2>
+        <p style="color: var(--text-secondary); text-align: center; margin-bottom: 1.5rem;">Trabajos realizados por los pacientes en las distintas actividades.</p>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="/hdd/img/kits-verduras.jpg" alt="Kits de Verduras de la Huerta" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Crect fill=\'%231a1a2e\' width=\'200\' height=\'200\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%23d4a853\' text-anchor=\'middle\' dy=\'.3em\'%3EHuerta%3C/text%3E%3C/svg%3E'">
+          </div>
+          <div class="gallery-item">
+            <img src="/hdd/img/flores-papel.jpg" alt="Flores de Papel" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Crect fill=\'%231a1a2e\' width=\'200\' height=\'200\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%23d4a853\' text-anchor=\'middle\' dy=\'.3em\'%3EFlores%3C/text%3E%3C/svg%3E'">
+          </div>
+          <div class="gallery-item">
+            <img src="/hdd/img/masa-tortas.jpg" alt="Masa para Tortas" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Crect fill=\'%231a1a2e\' width=\'200\' height=\'200\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%23d4a853\' text-anchor=\'middle\' dy=\'.3em\'%3ECocina%3C/text%3E%3C/svg%3E'">
+          </div>
+          <div class="gallery-item">
+            <img src="/hdd/img/ensalada-frutas.jpg" alt="Ensalada de Frutas" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 200\'%3E%3Crect fill=\'%231a1a2e\' width=\'200\' height=\'200\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' fill=\'%23d4a853\' text-anchor=\'middle\' dy=\'.3em\'%3EFrutas%3C/text%3E%3C/svg%3E'">
+          </div>
+        </div>
+      </section>
+
+      <!-- Admission / Login Section -->
+      <section class="admission-section">
+        <h2 class="section-title">Acceso al Portal</h2>
+        <div class="admission-container">
+          <!-- For Visitors / Families -->
+          <div class="admission-card">
+            <div class="admission-icon">👨‍👩‍👧‍👦</div>
+            <h3>Información para Familias</h3>
+            <p>Si tenés un familiar internado o en tratamiento y querés conocer más sobre nuestro programa.</p>
+            <ul class="admission-features">
+              <li>Consultar actividades y horarios</li>
+              <li>Conocer el equipo profesional</li>
+              <li>Solicitar información de admisión</li>
+              <li>Ver galería de actividades</li>
+            </ul>
+            <a href="/#contacto" class="btn btn-secondary">Contactar</a>
+          </div>
+
+          <!-- For Active Patients -->
+          <div class="admission-card patient-login">
+            <div class="admission-icon">🔐</div>
+            <h3>Portal de Pacientes</h3>
+            <p>Acceso exclusivo para pacientes activos del Hospital de Día.</p>
+            <ul class="admission-features">
+              <li>Comunidad y actividades interactivas</li>
+              <li>Juegos terapéuticos y actividades lúdicas</li>
+              <li>Calendario de actividades programadas</li>
+              <li>Conexión con compañeros y equipo</li>
+            </ul>
+            <a href="/hdd/portal" class="btn btn-primary">Ingresar con DNI</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
   <footer class="footer">
     <p>Hospital de Día - <a href="/">Clínica Psiquiátrica José Ingenieros</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;">Calle 52 #2990, Necochea - Tel: 2262-301515</p>
   </footer>
+
+  <script>
+    // ========== STARS ANIMATION ==========
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    const numStars = 200;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initStars();
+    }
+
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < numStars; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 1.5 + 0.5,
+          alpha: Math.random() * 0.5 + 0.3,
+          speed: Math.random() * 0.02 + 0.01
+        });
+      }
+    }
+
+    function drawStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        ctx.fill();
+
+        // Twinkle effect
+        star.alpha += star.speed * (Math.random() > 0.5 ? 1 : -1);
+        if (star.alpha > 0.8) star.speed = -Math.abs(star.speed);
+        if (star.alpha < 0.2) star.speed = Math.abs(star.speed);
+      });
+
+      requestAnimationFrame(drawStars);
+    }
+
+    resizeCanvas();
+    drawStars();
+    window.addEventListener('resize', resizeCanvas);
+
+    // ========== BLACKBOARD FUNCTIONALITY ==========
+    let selectedColor = '#e8dcc8';
+    let boardMessages = [];
+
+    // Load messages from server
+    async function loadBoardMessages() {
+      try {
+        const response = await fetch('/api/announcements?action=list&limit=20');
+        const data = await response.json();
+        if (data.announcements) {
+          boardMessages = data.announcements;
+          renderBoardMessages();
+        }
+      } catch (e) {
+        console.log('Could not load board messages:', e);
+      }
+    }
+
+    function renderBoardMessages() {
+      const container = document.getElementById('blackboard-messages');
+      if (!boardMessages.length) {
+        container.innerHTML = `
+          <div class="board-message" style="color: #e8dcc8;">
+            Bienvenidos a la pizarra comunitaria del Hospital de Día
+            <div class="board-message-author">- Equipo HdD</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = boardMessages.map(msg => `
+        <div class="board-message" style="color: ${msg.color || '#e8dcc8'};">
+          ${escapeHtml(msg.content)}
+          <div class="board-message-author">- ${escapeHtml(msg.author_name || 'Anónimo')}, ${formatDate(msg.created_at)}</div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    }
+
+    async function postBoardMessage() {
+      const name = document.getElementById('board-name').value.trim();
+      const message = document.getElementById('board-message').value.trim();
+
+      if (!message) {
+        alert('Escribí un mensaje para publicar');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            title: 'Mensaje de Pizarra',
+            content: message,
+            authorName: name || 'Visitante',
+            type: 'community',
+            color: selectedColor
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('board-name').value = '';
+          document.getElementById('board-message').value = '';
+          loadBoardMessages();
+        } else {
+          alert(data.error || 'Error al publicar el mensaje');
+        }
+      } catch (e) {
+        console.error('Error posting message:', e);
+        alert('Error de conexión');
+      }
+    }
+
+    // Chalk color selection
+    document.querySelectorAll('.chalk-color').forEach(el => {
+      el.addEventListener('click', function() {
+        document.querySelectorAll('.chalk-color').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        selectedColor = this.dataset.color;
+      });
+    });
+
+    // Load messages on page load
+    loadBoardMessages();
+  </script>
 </body>
 </html>

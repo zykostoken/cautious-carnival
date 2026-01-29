@@ -350,12 +350,12 @@ CREATE TABLE IF NOT EXISTS telemedicine_plans (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- Insert default telemedicine plans
+-- Insert default telemedicine plans (on-demand pricing by time slot)
 INSERT INTO telemedicine_plans (name, description, price, duration_minutes)
 VALUES
-    ('Consulta Estándar', 'Videoconsulta de 30 minutos con profesional de salud mental', 15000.00, 30),
-    ('Consulta Extendida', 'Videoconsulta de 60 minutos con profesional de salud mental', 25000.00, 60),
-    ('Primera Consulta', 'Primera videoconsulta de evaluación (45 minutos)', 20000.00, 45)
+    ('Consulta Diurna (09-13hs)', 'Videoconsulta on-demand 09:00-13:00 hs', 120000.00, 30),
+    ('Consulta Vespertina (13-20hs)', 'Videoconsulta on-demand 13:00-20:00 hs', 150000.00, 30),
+    ('Consulta Nocturna (20-09hs)', 'Videoconsulta on-demand 20:00-09:00 hs', 200000.00, 30)
 ON CONFLICT DO NOTHING;
 
 -- Indexes for payment tables

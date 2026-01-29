@@ -290,15 +290,18 @@ CREATE TABLE IF NOT EXISTS telemedicine_plans (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- Insert default telemedicine plans (updated pricing 2025)
+-- Insert default telemedicine plans (updated pricing by time slot - Jan 2025)
+-- Pricing: 09-13: $120,000 | 13-20: $150,000 | 20-09: $200,000
+-- On-demand only, no scheduled appointments
 INSERT INTO telemedicine_plans (name, description, price, currency, duration_minutes)
 VALUES
-    ('Consulta Inmediata', 'Videoconsulta inmediata con profesional de salud mental (~30 minutos). Acepta ARS, USD o Crypto.', 150000.00, 'ARS', 30),
-    ('Consulta Diferida en el Día', 'Videoconsulta programada para el mismo día (~30 minutos). Acepta ARS, USD o Crypto.', 80000.00, 'ARS', 30)
+    ('Consulta Diurna (09-13hs)', 'Videoconsulta on-demand de 09:00 a 13:00 hs (horario Argentina). Solo se cobra al atender la llamada.', 120000.00, 'ARS', 30),
+    ('Consulta Vespertina (13-20hs)', 'Videoconsulta on-demand de 13:00 a 20:00 hs (horario Argentina). Solo se cobra al atender la llamada.', 150000.00, 'ARS', 30),
+    ('Consulta Nocturna (20-09hs)', 'Videoconsulta on-demand de 20:00 a 09:00 hs (horario Argentina). Solo se cobra al atender la llamada.', 200000.00, 'ARS', 30)
 ON CONFLICT DO NOTHING;
 
--- Update existing plans if they exist with old prices
-UPDATE telemedicine_plans SET is_active = FALSE WHERE name IN ('Consulta Estándar', 'Consulta Extendida', 'Primera Consulta');
+-- Deactivate old pricing plans
+UPDATE telemedicine_plans SET is_active = FALSE WHERE name IN ('Consulta Estándar', 'Consulta Extendida', 'Primera Consulta', 'Consulta Inmediata', 'Consulta Diferida en el Día');
 
 -- Indexes for payment tables
 CREATE INDEX IF NOT EXISTS idx_mp_payments_user ON mp_payments(user_id);
@@ -346,6 +349,41 @@ END $$;
 COMMENT ON TABLE telemedicine_interest IS 'Email registrations for telemedicine launch notifications';
 
 -- ===========================================
+-- HEALTHCARE PROFESSIONALS TABLE
+-- ===========================================
+
+CREATE TABLE IF NOT EXISTS healthcare_professionals (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    specialty VARCHAR(100) DEFAULT 'Psiquiatría',
+    license_number VARCHAR(50),
+    phone VARCHAR(32),
+    whatsapp VARCHAR(32),
+    is_active BOOLEAN DEFAULT FALSE, -- Must verify email first
+    is_available BOOLEAN DEFAULT FALSE,
+    max_concurrent_calls INTEGER DEFAULT 1,
+    current_calls INTEGER DEFAULT 0,
+    notify_email BOOLEAN DEFAULT TRUE,
+    notify_whatsapp BOOLEAN DEFAULT TRUE,
+    session_token VARCHAR(255),
+    email_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(10),
+    verification_expires TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_login TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes for healthcare professionals
+CREATE INDEX IF NOT EXISTS idx_professionals_email ON healthcare_professionals(email);
+CREATE INDEX IF NOT EXISTS idx_professionals_active ON healthcare_professionals(is_active);
+CREATE INDEX IF NOT EXISTS idx_professionals_available ON healthcare_professionals(is_available);
+CREATE INDEX IF NOT EXISTS idx_professionals_session ON healthcare_professionals(session_token);
+
+COMMENT ON TABLE healthcare_professionals IS 'Healthcare professionals who can receive telemedicine calls';
+
+-- ===========================================
 -- CONSULTATIONS / INQUIRIES TABLE
 -- ===========================================
 
@@ -375,3 +413,54 @@ CREATE INDEX IF NOT EXISTS idx_consultations_created ON consultations(created_at
 CREATE INDEX IF NOT EXISTS idx_consultations_read ON consultations(is_read);
 
 COMMENT ON TABLE consultations IS 'Contact inquiries and questions from interested people';
+
+-- ===========================================
+-- ANNOUNCEMENTS / BULLETIN BOARD TABLE
+-- ===========================================
+
+CREATE TABLE IF NOT EXISTS announcements (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    author_name VARCHAR(255),
+    type VARCHAR(64) DEFAULT 'info', -- 'info', 'alert', 'community', 'event'
+    color VARCHAR(20) DEFAULT '#e8dcc8', -- For blackboard chalk color
+    is_active BOOLEAN DEFAULT TRUE,
+    is_pinned BOOLEAN DEFAULT FALSE,
+    show_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    show_until TIMESTAMP WITH TIME ZONE,
+    created_by INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes for announcements
+CREATE INDEX IF NOT EXISTS idx_announcements_type ON announcements(type);
+CREATE INDEX IF NOT EXISTS idx_announcements_active ON announcements(is_active);
+CREATE INDEX IF NOT EXISTS idx_announcements_created ON announcements(created_at);
+
+COMMENT ON TABLE announcements IS 'Announcements and bulletin board messages';
+
+-- ===========================================
+-- HDD LOGIN TRACKING TABLE
+-- ===========================================
+
+CREATE TABLE IF NOT EXISTS hdd_login_tracking (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    login_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    logout_at TIMESTAMP WITH TIME ZONE,
+    session_duration_minutes INTEGER,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    pages_visited INTEGER DEFAULT 0,
+    activities_completed INTEGER DEFAULT 0,
+    interactions JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for HDD login tracking
+CREATE INDEX IF NOT EXISTS idx_hdd_login_patient ON hdd_login_tracking(patient_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_login_date ON hdd_login_tracking(login_at);
+
+COMMENT ON TABLE hdd_login_tracking IS 'Tracks HDD patient login sessions and interactions for cognitive metrics';

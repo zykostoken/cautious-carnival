@@ -1,7 +1,27 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
-// Video call session management
+// Video call session management - ON-DEMAND ONLY
+// Pricing by time slot (Argentina time UTC-3):
+// - 09:00-13:00: $120,000 ARS
+// - 13:00-20:00: $150,000 ARS
+// - 20:00-09:00: $200,000 ARS
+// Payment is processed when professional takes the call, not on request
+
+function getPriceForCurrentHour(): { price: number; planId: number; planName: string; timeSlot: string } {
+  const now = new Date();
+  const argentinaHour = (now.getUTCHours() - 3 + 24) % 24;
+
+  if (argentinaHour >= 9 && argentinaHour < 13) {
+    return { price: 120000, planId: 1, planName: 'Consulta Diurna (09-13hs)', timeSlot: '09:00-13:00' };
+  } else if (argentinaHour >= 13 && argentinaHour < 20) {
+    return { price: 150000, planId: 2, planName: 'Consulta Vespertina (13-20hs)', timeSlot: '13:00-20:00' };
+  } else {
+    // 20:00-09:00 (night/early morning)
+    return { price: 200000, planId: 3, planName: 'Consulta Nocturna (20-09hs)', timeSlot: '20:00-09:00' };
+  }
+}
+
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
 
@@ -10,50 +30,66 @@ export default async (req: Request, context: Context) => {
       const body = await req.json();
       const { action } = body;
 
-      if (action === "request_call") {
-        // User requests an immediate call (8am-8pm)
-        const { userId, callType } = body;
+      // Get current price based on time slot
+      if (action === "get_current_price") {
+        const priceInfo = getPriceForCurrentHour();
+        return new Response(JSON.stringify({
+          success: true,
+          ...priceInfo,
+          currency: 'ARS',
+          formattedPrice: `$${priceInfo.price.toLocaleString('es-AR')} ARS`
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
 
-        if (!userId) {
-          return new Response(JSON.stringify({ error: "userId required" }), {
+      if (action === "request_call") {
+        // User requests an immediate on-demand call (24/7 service)
+        const { userId, callType, patientName, patientEmail, patientPhone } = body;
+
+        if (!userId && !patientEmail) {
+          return new Response(JSON.stringify({ error: "userId or patientEmail required" }), {
             status: 400,
             headers: { "Content-Type": "application/json" }
           });
         }
 
-        // Check operating hours (Argentina time - UTC-3)
-        const now = new Date();
-        const argentinaHour = (now.getUTCHours() - 3 + 24) % 24;
+        // Get current price for this time slot
+        const priceInfo = getPriceForCurrentHour();
 
-        if (argentinaHour < 8 || argentinaHour >= 20) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: "outside_hours",
-            message: "El servicio de telemedicina está disponible de 8:00 a 20:00 hs. Puede agendar una cita para horario disponible.",
-            nextAvailable: argentinaHour >= 20 ? "Mañana a las 8:00" : "Hoy a las 8:00"
-          }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          });
+        let user;
+        if (userId) {
+          // Existing user
+          [user] = await sql`
+            SELECT id, email, phone, full_name FROM telemedicine_users WHERE id = ${userId}
+          `;
         }
 
-        // Verify user exists (credits no longer required - payment handled externally)
-        const [user] = await sql`
-          SELECT id FROM telemedicine_users WHERE id = ${userId}
-        `;
+        // If no user found but we have patient data, create a temporary entry
+        if (!user && patientEmail) {
+          [user] = await sql`
+            INSERT INTO telemedicine_users (email, phone, full_name, created_at)
+            VALUES (${patientEmail}, ${patientPhone || null}, ${patientName || 'Paciente'}, NOW())
+            ON CONFLICT (email) DO UPDATE SET
+              phone = COALESCE(EXCLUDED.phone, telemedicine_users.phone),
+              full_name = COALESCE(EXCLUDED.full_name, telemedicine_users.full_name)
+            RETURNING id, email, phone, full_name
+          `;
+        }
 
         if (!user) {
           return new Response(JSON.stringify({
             success: false,
             error: "user_not_found",
-            message: "Usuario no encontrado. Por favor regístrese primero."
+            message: "Usuario no encontrado. Por favor complete sus datos primero."
           }), {
             status: 200,
             headers: { "Content-Type": "application/json" }
           });
         }
 
-        // Create a pending call session (no credits held - payment handled externally)
+        // Create a pending call session with 30-minute tolerance
         const sessionToken = crypto.randomUUID();
 
         const [session] = await sql`
@@ -67,35 +103,31 @@ export default async (req: Request, context: Context) => {
             expires_at
           )
           VALUES (
-            ${userId},
+            ${user.id},
             ${sessionToken},
             'pending',
-            ${callType || 'immediate'},
-            0,
+            'on_demand',
+            ${priceInfo.price},
             NOW(),
-            NOW() + INTERVAL '15 minutes'
+            NOW() + INTERVAL '30 minutes'
           )
           RETURNING id, session_token, expires_at
         `;
 
-        // Get patient info for the queue
-        const [patientInfo] = await sql`
-          SELECT email, phone, full_name FROM telemedicine_users WHERE id = ${userId}
-        `;
-
-        // Add to call queue and notify professionals
+        // Add to call queue with price info
         const [queueEntry] = await sql`
           INSERT INTO call_queue (
             video_session_id, user_id, patient_name, patient_email, patient_phone,
-            status, created_at
+            status, created_at, notes
           )
           VALUES (
-            ${session.id}, ${userId},
-            ${patientInfo?.full_name || 'Paciente'},
-            ${patientInfo?.email || null},
-            ${patientInfo?.phone || null},
+            ${session.id}, ${user.id},
+            ${user.full_name || patientName || 'Paciente'},
+            ${user.email || patientEmail || null},
+            ${user.phone || patientPhone || null},
             'waiting',
-            NOW()
+            NOW(),
+            ${`Precio: $${priceInfo.price.toLocaleString('es-AR')} ARS (${priceInfo.timeSlot})`}
           )
           RETURNING id
         `;
@@ -108,8 +140,10 @@ export default async (req: Request, context: Context) => {
           body: JSON.stringify({
             action: 'notify_new_call',
             callQueueId: queueEntry.id,
-            patientName: patientInfo?.full_name || 'Paciente',
-            roomName
+            patientName: user.full_name || patientName || 'Paciente',
+            roomName,
+            price: priceInfo.price,
+            timeSlot: priceInfo.timeSlot
           })
         }).catch(e => console.log('Notification trigger failed:', e));
 
@@ -119,65 +153,24 @@ export default async (req: Request, context: Context) => {
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
           queueId: queueEntry.id,
-          message: "Sesión creada. Los profesionales han sido notificados y uno se conectará en breve."
+          userId: user.id,
+          priceInfo: {
+            ...priceInfo,
+            formattedPrice: `$${priceInfo.price.toLocaleString('es-AR')} ARS`
+          },
+          message: "Solicitud recibida. El pago se procesará cuando un profesional tome su llamada. Tiempo de espera máximo: 30 minutos."
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
         });
       }
 
+      // Scheduled appointments are disabled - on-demand only
       if (action === "schedule_call") {
-        // Schedule a call for later
-        const { userId, scheduledDate, scheduledTime, notes } = body;
-
-        if (!userId || !scheduledDate || !scheduledTime) {
-          return new Response(JSON.stringify({ error: "userId, scheduledDate and scheduledTime required" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
-
-        // Verify user exists (credits no longer required)
-        const [user] = await sql`
-          SELECT id FROM telemedicine_users WHERE id = ${userId}
-        `;
-
-        if (!user) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: "user_not_found",
-            message: "Usuario no encontrado. Por favor regístrese primero."
-          }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
-
-        const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`);
-
-        const [appointment] = await sql`
-          INSERT INTO scheduled_appointments (
-            user_id,
-            scheduled_at,
-            notes,
-            status,
-            created_at
-          )
-          VALUES (
-            ${userId},
-            ${scheduledDateTime.toISOString()},
-            ${notes || null},
-            'confirmed',
-            NOW()
-          )
-          RETURNING id, scheduled_at
-        `;
-
         return new Response(JSON.stringify({
-          success: true,
-          appointmentId: appointment.id,
-          scheduledAt: appointment.scheduled_at,
-          message: "Cita agendada exitosamente"
+          success: false,
+          error: "scheduling_disabled",
+          message: "El servicio de telemedicina es solo bajo demanda. No se pueden agendar turnos. Solicite una consulta inmediata."
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
