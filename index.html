@@ -5816,8 +5816,9 @@ function closeModal(event) {
                                 ${call.patientEmail ? `<br><small style="color: var(--text-secondary);">${call.patientEmail}</small>` : ''}
                             </div>
                             <div class="actions">
-                                <button class="btn-take-call" onclick="joinCall('${call.roomName}')">Unirse</button>
+                                <button class="btn-take-call" onclick="joinCall('${call.roomName}', ${call.id})">Unirse</button>
                                 <button class="btn-transfer" onclick="showTransferDialog(${call.id})">Derivar</button>
+                                <button class="btn-end-call" onclick="completeCall(${call.id})" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Cortar</button>
                             </div>
                         </div>
                     `).join('');
@@ -5844,8 +5845,8 @@ function closeModal(event) {
                 const data = await res.json();
 
                 if (data.success) {
-                    // Join the video call
-                    joinCall(data.roomName);
+                    // Join the video call with queueId for proper completion tracking
+                    joinCall(data.roomName, data.queueId);
                     // Refresh the queue
                     loadCallQueue();
                     loadActiveCalls();
@@ -5857,7 +5858,10 @@ function closeModal(event) {
             }
         }
 
-        function joinCall(roomName) {
+        function joinCall(roomName, queueId) {
+            // Store current call's queueId for later use
+            window.currentCallQueueId = queueId;
+
             // Create the professional video call interface
             const videoModal = document.createElement('div');
             videoModal.id = 'video-call-modal';
@@ -5870,14 +5874,14 @@ function closeModal(event) {
                                 <span class="status-dot"></span>
                                 <span id="video-status-text">Conectando...</span>
                             </div>
-                            <button class="video-call-close" onclick="endProfessionalCall('${roomName}')" title="Finalizar llamada">&times;</button>
+                            <button class="video-call-close" onclick="endProfessionalCall('${roomName}', ${queueId})" title="Finalizar llamada">&times;</button>
                         </div>
                         <div class="video-call-body">
                             <div id="jitsi-container"></div>
                         </div>
                         <div class="video-call-footer">
                             <p><small>Sala: ${roomName}</small></p>
-                            <button class="btn btn-danger" onclick="endProfessionalCall('${roomName}')">Finalizar Consulta</button>
+                            <button class="btn btn-danger" onclick="endProfessionalCall('${roomName}', ${queueId})">Finalizar Consulta</button>
                         </div>
                     </div>
                 </div>
@@ -5939,7 +5943,7 @@ function closeModal(event) {
             window.jitsiApi = api;
         }
 
-        async function endProfessionalCall(roomName) {
+        async function endProfessionalCall(roomName, queueId) {
             if (confirm('¿Deseas finalizar esta consulta?')) {
                 if (window.jitsiApi) {
                     window.jitsiApi.dispose();
@@ -5948,6 +5952,25 @@ function closeModal(event) {
 
                 const modal = document.getElementById('video-call-modal');
                 if (modal) modal.remove();
+
+                // Mark call as completed in backend
+                const callQueueId = queueId || window.currentCallQueueId;
+                if (callQueueId && professionalSession) {
+                    try {
+                        await fetch('/api/call-queue', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'complete',
+                                sessionToken: professionalSession,
+                                queueId: callQueueId
+                            })
+                        });
+                        window.currentCallQueueId = null;
+                    } catch (e) {
+                        console.log('Error completing call:', e);
+                    }
+                }
 
                 // Refresh lists
                 loadCallQueue();
@@ -6011,6 +6034,36 @@ function closeModal(event) {
                     loadActiveCalls();
                 } else {
                     alert(data.error || 'Error al transferir');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function completeCall(queueId) {
+            if (!confirm('¿Deseas cortar/finalizar esta llamada?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/call-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'complete',
+                        sessionToken: professionalSession,
+                        queueId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('Llamada finalizada correctamente');
+                    loadCallQueue();
+                    loadActiveCalls();
+                } else {
+                    alert(data.error || 'Error al finalizar la llamada');
                 }
             } catch (e) {
                 alert('Error de conexión');
