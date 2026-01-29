@@ -6,7 +6,37 @@ import { getDatabase } from "./lib/db.mts";
 // - 09:00-13:00: $120,000 ARS
 // - 13:00-20:00: $150,000 ARS
 // - 20:00-09:00: $200,000 ARS
-// Payment is processed when professional takes the call, not on request
+// PAYMENT MUST BE COMPLETED BEFORE consultation can proceed
+
+// Mercado Pago API configuration
+const MP_API_URL = "https://api.mercadopago.com";
+
+interface MPPreference {
+  items: { title: string; description?: string; quantity: number; currency_id: string; unit_price: number; }[];
+  payer?: { email?: string; name?: string; };
+  back_urls?: { success: string; failure: string; pending: string; };
+  auto_return?: string;
+  external_reference?: string;
+  notification_url?: string;
+}
+
+async function createMPPreference(preference: MPPreference, accessToken: string) {
+  const response = await fetch(`${MP_API_URL}/checkout/preferences`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(preference)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Mercado Pago error: ${error}`);
+  }
+
+  return response.json();
+}
 
 function getPriceForCurrentHour(): { price: number; planId: number; planName: string; timeSlot: string } {
   const now = new Date();
@@ -46,6 +76,7 @@ export default async (req: Request, context: Context) => {
 
       if (action === "request_call") {
         // User requests an immediate on-demand call (24/7 service)
+        // PAYMENT MUST BE COMPLETED FIRST before entering the queue
         const { userId, callType, patientName, patientEmail, patientPhone } = body;
 
         if (!userId && !patientEmail) {
@@ -54,6 +85,9 @@ export default async (req: Request, context: Context) => {
             headers: { "Content-Type": "application/json" }
           });
         }
+
+        // Get Mercado Pago access token
+        const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
         // Get current price for this time slot
         const priceInfo = getPriceForCurrentHour();
@@ -92,6 +126,9 @@ export default async (req: Request, context: Context) => {
         // Create a pending call session with 30-minute tolerance
         const sessionToken = crypto.randomUUID();
 
+        // Create external reference for MercadoPago tracking
+        const externalRef = `TELE-${user.id}-${priceInfo.planId}-${Date.now()}`;
+
         const [session] = await sql`
           INSERT INTO video_sessions (
             user_id,
@@ -105,7 +142,7 @@ export default async (req: Request, context: Context) => {
           VALUES (
             ${user.id},
             ${sessionToken},
-            'pending',
+            'awaiting_payment',
             'on_demand',
             ${priceInfo.price},
             NOW(),
@@ -114,7 +151,68 @@ export default async (req: Request, context: Context) => {
           RETURNING id, session_token, expires_at
         `;
 
-        // Add to call queue with price info
+        // Create MercadoPago payment preference
+        let mpPaymentLink = null;
+        let mpSandboxLink = null;
+        let mpPreferenceId = null;
+
+        if (MP_ACCESS_TOKEN) {
+          try {
+            const siteUrl = process.env.URL || 'https://clinicajoseingenieros.ar';
+
+            const preference: MPPreference = {
+              items: [{
+                title: priceInfo.planName,
+                description: `Videoconsulta de telemedicina - ${priceInfo.timeSlot}`,
+                quantity: 1,
+                currency_id: 'ARS',
+                unit_price: priceInfo.price
+              }],
+              payer: {
+                email: user.email || patientEmail || undefined,
+                name: user.full_name || patientName || undefined
+              },
+              back_urls: {
+                success: `${siteUrl}/#telemedicina-pago-exitoso`,
+                failure: `${siteUrl}/#telemedicina-pago-fallido`,
+                pending: `${siteUrl}/#telemedicina-pago-pendiente`
+              },
+              auto_return: "approved",
+              external_reference: externalRef,
+              notification_url: `${siteUrl}/api/mercadopago/webhook`
+            };
+
+            const mpPreference = await createMPPreference(preference, MP_ACCESS_TOKEN);
+            mpPaymentLink = mpPreference.init_point;
+            mpSandboxLink = mpPreference.sandbox_init_point;
+            mpPreferenceId = mpPreference.id;
+
+            // Record the pending payment
+            await sql`
+              INSERT INTO mp_payments (
+                user_id, mp_preference_id, amount, currency, status,
+                description, external_reference, created_at
+              )
+              VALUES (
+                ${user.id}, ${mpPreferenceId}, ${priceInfo.price}, 'ARS',
+                'pending', ${priceInfo.planName}, ${externalRef}, NOW()
+              )
+            `;
+
+            // Store the external reference in video session for later verification
+            await sql`
+              UPDATE video_sessions
+              SET payment_reference = ${externalRef}
+              WHERE id = ${session.id}
+            `;
+
+          } catch (mpError) {
+            console.error('MercadoPago preference creation failed:', mpError);
+            // Continue without MP - will need manual payment verification
+          }
+        }
+
+        // Add to call queue with status 'awaiting_payment' - will change to 'waiting' after payment
         const [queueEntry] = await sql`
           INSERT INTO call_queue (
             video_session_id, user_id, patient_name, patient_email, patient_phone,
@@ -125,40 +223,118 @@ export default async (req: Request, context: Context) => {
             ${user.full_name || patientName || 'Paciente'},
             ${user.email || patientEmail || null},
             ${user.phone || patientPhone || null},
-            'waiting',
+            'awaiting_payment',
             NOW(),
-            ${`Precio: $${priceInfo.price.toLocaleString('es-AR')} ARS (${priceInfo.timeSlot})`}
+            ${`Precio: $${priceInfo.price.toLocaleString('es-AR')} ARS (${priceInfo.timeSlot}) - Ref: ${externalRef}`}
           )
           RETURNING id
         `;
 
-        // Trigger notification to professionals (async, don't wait)
-        const roomName = `ClinicaJoseIngenieros_${session.session_token.substring(0, 12)}`;
-        fetch(`${new URL(req.url).origin}/api/notifications`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'notify_new_call',
-            callQueueId: queueEntry.id,
-            patientName: user.full_name || patientName || 'Paciente',
-            roomName,
-            price: priceInfo.price,
-            timeSlot: priceInfo.timeSlot
-          })
-        }).catch(e => console.log('Notification trigger failed:', e));
-
         return new Response(JSON.stringify({
           success: true,
+          requiresPayment: true,
           sessionId: session.id,
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
           queueId: queueEntry.id,
           userId: user.id,
+          paymentInfo: {
+            externalReference: externalRef,
+            mercadoPagoLink: mpPaymentLink,
+            mercadoPagoSandboxLink: mpSandboxLink,
+            preferenceId: mpPreferenceId
+          },
           priceInfo: {
             ...priceInfo,
             formattedPrice: `$${priceInfo.price.toLocaleString('es-AR')} ARS`
           },
-          message: "Solicitud recibida. El pago se procesará cuando un profesional tome su llamada. Tiempo de espera máximo: 30 minutos."
+          message: mpPaymentLink
+            ? "Por favor complete el pago para confirmar su consulta. Una vez confirmado el pago, entrará en la sala de espera y los profesionales serán notificados."
+            : "Pago requerido. Por favor contacte a administración para coordinar el pago."
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      // Check payment status and activate session if paid
+      if (action === "check_payment_status") {
+        const { sessionToken, externalReference } = body;
+
+        if (!sessionToken && !externalReference) {
+          return new Response(JSON.stringify({ error: "sessionToken or externalReference required" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+
+        let payment;
+        if (externalReference) {
+          [payment] = await sql`
+            SELECT status, paid_at, amount FROM mp_payments
+            WHERE external_reference = ${externalReference}
+          `;
+        }
+
+        if (payment && payment.status === 'approved') {
+          // Payment confirmed! Update session and queue to active
+          if (sessionToken) {
+            const [session] = await sql`
+              UPDATE video_sessions
+              SET status = 'pending'
+              WHERE session_token = ${sessionToken} AND status = 'awaiting_payment'
+              RETURNING id, user_id
+            `;
+
+            if (session) {
+              // Update call queue to 'waiting' so professionals can see it
+              await sql`
+                UPDATE call_queue
+                SET status = 'waiting'
+                WHERE video_session_id = ${session.id} AND status = 'awaiting_payment'
+              `;
+
+              // NOW notify professionals that a paid call is waiting
+              const [user] = await sql`
+                SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}
+              `;
+
+              const priceInfo = getPriceForCurrentHour();
+              const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
+
+              fetch(`${new URL(req.url).origin}/api/notifications`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'notify_new_call',
+                  callQueueId: session.id,
+                  patientName: user?.full_name || 'Paciente',
+                  roomName,
+                  price: payment.amount,
+                  timeSlot: priceInfo.timeSlot,
+                  paymentConfirmed: true
+                })
+              }).catch(e => console.log('Notification trigger failed:', e));
+            }
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            paymentStatus: 'approved',
+            paidAt: payment.paid_at,
+            message: "Pago confirmado. Ha ingresado a la sala de espera. Los profesionales han sido notificados."
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          paymentStatus: payment?.status || 'pending',
+          message: payment?.status === 'rejected'
+            ? "El pago fue rechazado. Por favor intente nuevamente."
+            : "Esperando confirmación del pago..."
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }

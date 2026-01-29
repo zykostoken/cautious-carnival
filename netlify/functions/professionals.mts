@@ -475,8 +475,11 @@ export default async (req: Request, context: Context) => {
 
     } catch (error) {
       console.error("Professional management error:", error);
-      return new Response(JSON.stringify({ error: "Error interno del servidor" }),
-        { status: 500, headers: corsHeaders });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return new Response(JSON.stringify({
+        error: "Error interno del servidor",
+        details: errorMessage
+      }), { status: 500, headers: corsHeaders });
     }
   }
 
