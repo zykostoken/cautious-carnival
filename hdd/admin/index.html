@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administracion - Hospital de Dia</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --gold: #d4a853;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+      color: white;
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: white;
+    }
+
+    .logo-icon {
+      width: 45px;
+      height: 45px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--primary) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    .logo-text {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .logo-subtitle {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-role {
+      background: var(--gold);
+      color: #1e3a5f;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .user-email {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-success {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Login Container */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header .logo-icon {
+      width: 70px;
+      height: 70px;
+      font-size: 1.5rem;
+      margin: 0 auto 1rem;
+    }
+
+    .login-header h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .login-header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .form-error {
+      color: var(--error);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Main Layout */
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px 8px 0 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .tab:hover:not(.active) {
+      background: var(--background);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .card-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--background);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    tr:hover {
+      background: var(--background);
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-discharged {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-pending {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .alert-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .alert-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .alert-info {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .alert-warning {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* Search */
+    .search-box {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    /* Filter */
+    .filter-select {
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      min-width: 150px;
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+
+      .user-info {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .main-container {
+        padding: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .card-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Patient detail */
+    .patient-detail {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .detail-item {
+      padding: 1rem;
+      background: var(--background);
+      border-radius: 8px;
+    }
+
+    .detail-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-value {
+      font-weight: 600;
+    }
+
+    /* Games Grid */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .game-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .game-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .game-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .game-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .skill-tag {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .game-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .badge-info {
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* Metrics Summary */
+    .metrics-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Rooms Grid */
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .room-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.2s;
+    }
+
+    .room-card:hover {
+      border-color: var(--secondary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .room-icon {
+      font-size: 1.75rem;
+    }
+
+    .room-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .room-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .room-info {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .room-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Resources */
+    .resources-categories {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .category-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .category-btn:hover {
+      background: var(--background);
+    }
+
+    .category-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .resources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .resource-card {
+      display: flex;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      align-items: flex-start;
+    }
+
+    .resource-card:hover {
+      border-color: var(--primary);
+    }
+
+    .resource-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+
+    .resource-content {
+      flex: 1;
+    }
+
+    .resource-content h4 {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .resource-content p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .resource-meta {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .resource-type {
+      background: var(--background);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .resource-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Video Modal */
+    .video-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 2rem;
+    }
+
+    .video-modal-content {
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+    }
+
+    .video-modal-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+
+    .video-modal iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      border-radius: 8px;
+    }
+
+    /* Jitsi Container */
+    .jitsi-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2000;
+      background: #000;
+    }
+
+    .jitsi-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .jitsi-close {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 2001;
+      background: var(--error);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login View -->
+  <div id="login-view" class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon">HdD</div>
+        <h1>Panel de Administracion</h1>
+        <p>Hospital de Dia - Acceso para Profesionales</p>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+        Acceso exclusivo para profesionales autorizados del Hospital de Dia.
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email institucional</label>
+          <input type="email" id="email" placeholder="usuario@clinicajoseingenieros.ar" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contrasena</label>
+          <input type="password" id="password" placeholder="Ingrese su contrasena" required>
+        </div>
+
+        <div id="login-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.85rem;">
+          Ingresar al Panel
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <a href="/hdd" style="color: var(--primary); font-size: 0.9rem;">Volver al Hospital de Dia</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App View -->
+  <div id="app-view" class="hidden">
+    <header class="header">
+      <div class="header-content">
+        <a href="/hdd/admin" class="logo">
+          <div class="logo-icon">HdD</div>
+          <div>
+            <div class="logo-text">Panel de Administracion</div>
+            <div class="logo-subtitle">Hospital de Dia</div>
+          </div>
+        </a>
+
+        <div class="user-info">
+          <span class="user-role" id="user-role">Admin</span>
+          <span class="user-email" id="user-email"></span>
+          <a href="/hdd/portal" class="btn btn-ghost btn-sm" target="_blank">Ver Portal Pacientes</a>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">Cerrar Sesion</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-container">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value" id="stat-active">-</div>
+          <div class="stat-label">Pacientes Activos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="stat-logged">-</div>
+          <div class="stat-label">Han Ingresado</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value" id="stat-posts">-</div>
+          <div class="stat-label">Publicaciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏥</div>
+          <div class="stat-value" id="stat-discharged">-</div>
+          <div class="stat-label">Dados de Alta</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="patients" onclick="switchTab('patients')">Pacientes</button>
+        <button class="tab" data-tab="games" onclick="switchTab('games')">Juegos</button>
+        <button class="tab" data-tab="metrics" onclick="switchTab('metrics')">Metricas</button>
+        <button class="tab" data-tab="rooms" onclick="switchTab('rooms')">Salas Grupales</button>
+        <button class="tab" data-tab="resources" onclick="switchTab('resources')">Recursos</button>
+        <button class="tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
+        <button class="tab" data-tab="reports" onclick="switchTab('reports')">Reportes</button>
+      </div>
+
+      <!-- Patients Tab -->
+      <div id="tab-patients">
+        <div class="card">
+          <div class="card-header">
+            <h2>Gestion de Pacientes</h2>
+            <button class="btn btn-primary" onclick="showAddPatientModal()">+ Agregar Paciente</button>
+          </div>
+          <div class="card-body">
+            <div class="search-box">
+              <input type="text" class="search-input" id="patient-search" placeholder="Buscar por nombre o DNI..." oninput="filterPatients()">
+              <select class="filter-select" id="status-filter" onchange="filterPatients()">
+                <option value="active">Activos</option>
+                <option value="discharged">Dados de Alta</option>
+                <option value="all">Todos</option>
+              </select>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>DNI</th>
+                    <th>Ingreso</th>
+                    <th>Estado</th>
+                    <th>Sesion</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="patients-table">
+                  <tr><td colspan="6" class="empty-state">Cargando pacientes...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Games Tab -->
+      <div id="tab-games" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Juegos Terapeuticos</h2>
+            <span class="badge-info">Modo de prueba para profesionales</span>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+              Desde aqui puede probar los juegos terapeuticos para conocer la experiencia de los pacientes y evaluar su utilidad clinica.
+            </div>
+
+            <div class="games-grid" id="games-list">
+              <!-- Lawn Mower Game -->
+              <div class="game-card">
+                <div class="game-icon">🚜</div>
+                <h3>Cortadora de Cesped</h3>
+                <p class="game-desc">Juego de planificacion y atencion. El paciente debe cortar todo el cesped evitando obstaculos.</p>
+                <div class="game-skills">
+                  <span class="skill-tag">Motricidad fina</span>
+                  <span class="skill-tag">Planificacion</span>
+                  <span class="skill-tag">Atencion</span>
+                  <span class="skill-tag">Control de impulsos</span>
+                </div>
+                <div class="game-actions">
+                  <a href="/hdd/portal/games/lawn-mower.html?demo=true" target="_blank" class="btn btn-primary">Probar Juego</a>
+                  <button class="btn btn-secondary" onclick="showGameStats('lawn-mower')">Ver Estadisticas</button>
+                </div>
+              </div>
+
+              <!-- Medication Memory Game -->
+              <div class="game-card">
+                <div class="game-icon">💊</div>
+                <h3>Memoria de Medicacion</h3>
+                <p class="game-desc">Juego de memoria de trabajo. El paciente debe memorizar y armar recetas medicas correctamente.</p>
+                <div class="game-skills">
+                  <span class="skill-tag">Memoria de trabajo</span>
+                  <span class="skill-tag">Atencion al detalle</span>
+                  <span class="skill-tag">Comprension lectora</span>
+                  <span class="skill-tag">Responsabilidad</span>
+                </div>
+                <div class="game-actions">
+                  <a href="/hdd/portal/games/medication-memory.html?demo=true" target="_blank" class="btn btn-primary">Probar Juego</a>
+                  <button class="btn btn-secondary" onclick="showGameStats('medication-memory')">Ver Estadisticas</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Game Statistics Modal -->
+        <div id="game-stats-section" class="card hidden" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h2 id="game-stats-title">Estadisticas del Juego</h2>
+            <button class="btn btn-secondary btn-sm" onclick="hideGameStats()">Cerrar</button>
+          </div>
+          <div class="card-body" id="game-stats-content">
+            <!-- Stats loaded dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Tab -->
+      <div id="tab-metrics" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Metricas y Resultados de Pacientes</h2>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+              Seleccione un paciente para ver sus metricas de uso, progreso en juegos y actividad en el portal.
+            </div>
+
+            <div class="search-box">
+              <select class="filter-select" id="metrics-patient-select" style="flex: 1; min-width: 250px;" onchange="loadPatientMetrics()">
+                <option value="">-- Seleccionar paciente --</option>
+              </select>
+            </div>
+
+            <div id="patient-metrics-content" class="hidden">
+              <!-- Patient Summary -->
+              <div class="metrics-summary" id="metrics-summary">
+                <div class="stat-card">
+                  <div class="stat-icon">📅</div>
+                  <div class="stat-value" id="metric-logins">-</div>
+                  <div class="stat-label">Total Logins</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">🎮</div>
+                  <div class="stat-value" id="metric-games">-</div>
+                  <div class="stat-label">Sesiones de Juego</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">📝</div>
+                  <div class="stat-value" id="metric-posts">-</div>
+                  <div class="stat-label">Publicaciones</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">⏱️</div>
+                  <div class="stat-value" id="metric-time">-</div>
+                  <div class="stat-label">Tiempo de Juego</div>
+                </div>
+              </div>
+
+              <!-- Game Progress -->
+              <h3 style="margin: 1.5rem 0 1rem;">Progreso en Juegos</h3>
+              <div id="games-progress-list" class="table-container">
+                <!-- Loaded dynamically -->
+              </div>
+
+              <!-- Recent Activity -->
+              <h3 style="margin: 1.5rem 0 1rem;">Actividad Reciente</h3>
+              <div id="recent-activity-list" class="table-container">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rooms Tab -->
+      <div id="tab-rooms" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Salas Grupales de Videollamada</h2>
+            <button class="btn btn-primary" onclick="showCreateRoomModal()">+ Crear Sala</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+              Cree y gestione salas de videollamada para consultas grupales, clases, talleres y sesiones terapeuticas.
+              Las salas usan tecnologia Jitsi Meet (gratuita y segura).
+            </div>
+
+            <div class="rooms-grid" id="rooms-list">
+              <!-- Default Rooms -->
+              <div class="room-card">
+                <div class="room-header">
+                  <span class="room-icon">👥</span>
+                  <span class="room-status status-badge status-active">Disponible</span>
+                </div>
+                <h3>Consulta Grupal</h3>
+                <p>Sala principal para consultas grupales con pacientes del HDD.</p>
+                <div class="room-info">
+                  <span>Capacidad: 20 participantes</span>
+                </div>
+                <div class="room-actions">
+                  <button class="btn btn-primary" onclick="joinRoom('hdd-consulta-grupal')">Iniciar Sala</button>
+                  <button class="btn btn-secondary" onclick="copyRoomLink('hdd-consulta-grupal')">Copiar Link</button>
+                </div>
+              </div>
+
+              <div class="room-card">
+                <div class="room-header">
+                  <span class="room-icon">🎓</span>
+                  <span class="room-status status-badge status-active">Disponible</span>
+                </div>
+                <h3>Aula Virtual</h3>
+                <p>Sala para clases, talleres educativos y presentaciones.</p>
+                <div class="room-info">
+                  <span>Capacidad: 30 participantes</span>
+                </div>
+                <div class="room-actions">
+                  <button class="btn btn-primary" onclick="joinRoom('hdd-aula-virtual')">Iniciar Sala</button>
+                  <button class="btn btn-secondary" onclick="copyRoomLink('hdd-aula-virtual')">Copiar Link</button>
+                </div>
+              </div>
+
+              <div class="room-card">
+                <div class="room-header">
+                  <span class="room-icon">🧘</span>
+                  <span class="room-status status-badge status-active">Disponible</span>
+                </div>
+                <h3>Terapia Grupal</h3>
+                <p>Sala para sesiones de terapia grupal y mindfulness.</p>
+                <div class="room-info">
+                  <span>Capacidad: 15 participantes</span>
+                </div>
+                <div class="room-actions">
+                  <button class="btn btn-primary" onclick="joinRoom('hdd-terapia-grupal')">Iniciar Sala</button>
+                  <button class="btn btn-secondary" onclick="copyRoomLink('hdd-terapia-grupal')">Copiar Link</button>
+                </div>
+              </div>
+
+              <div class="room-card">
+                <div class="room-header">
+                  <span class="room-icon">🎬</span>
+                  <span class="room-status status-badge status-active">Disponible</span>
+                </div>
+                <h3>Sala Multimedia</h3>
+                <p>Para compartir videos, peliculas y contenido multimedia.</p>
+                <div class="room-info">
+                  <span>Capacidad: 25 participantes</span>
+                </div>
+                <div class="room-actions">
+                  <button class="btn btn-primary" onclick="joinRoom('hdd-multimedia')">Iniciar Sala</button>
+                  <button class="btn btn-secondary" onclick="copyRoomLink('hdd-multimedia')">Copiar Link</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Rooms -->
+            <h3 style="margin: 2rem 0 1rem;">Salas Personalizadas</h3>
+            <div id="custom-rooms-list" class="rooms-grid">
+              <div class="empty-state">
+                <div class="empty-state-icon">📹</div>
+                <p>No hay salas personalizadas creadas</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Tab -->
+      <div id="tab-resources" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Recursos y Cursos</h2>
+            <button class="btn btn-primary" onclick="showAddResourceModal()">+ Agregar Recurso</button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+              Biblioteca de recursos educativos, videos, cursos y material de apoyo para pacientes y profesionales.
+            </div>
+
+            <!-- Resource Categories -->
+            <div class="resources-categories">
+              <button class="category-btn active" onclick="filterResources('all')">Todos</button>
+              <button class="category-btn" onclick="filterResources('video')">Videos</button>
+              <button class="category-btn" onclick="filterResources('document')">Documentos</button>
+              <button class="category-btn" onclick="filterResources('course')">Cursos</button>
+              <button class="category-btn" onclick="filterResources('link')">Enlaces</button>
+            </div>
+
+            <div class="resources-grid" id="resources-list">
+              <!-- Sample Resources -->
+              <div class="resource-card" data-category="video">
+                <div class="resource-icon">🎥</div>
+                <div class="resource-content">
+                  <h4>Tecnicas de Relajacion</h4>
+                  <p>Video introductorio sobre tecnicas de respiracion y relajacion muscular progresiva.</p>
+                  <div class="resource-meta">
+                    <span class="resource-type">Video</span>
+                    <span>Duracion: 15 min</span>
+                  </div>
+                </div>
+                <div class="resource-actions">
+                  <button class="btn btn-primary btn-sm" onclick="openResource('video', 'https://www.youtube.com/embed/dQw4w9WgXcQ')">Ver</button>
+                </div>
+              </div>
+
+              <div class="resource-card" data-category="document">
+                <div class="resource-icon">📄</div>
+                <div class="resource-content">
+                  <h4>Guia de Medicacion</h4>
+                  <p>Documento sobre manejo responsable de medicacion psiquiatrica.</p>
+                  <div class="resource-meta">
+                    <span class="resource-type">PDF</span>
+                    <span>10 paginas</span>
+                  </div>
+                </div>
+                <div class="resource-actions">
+                  <button class="btn btn-primary btn-sm" onclick="openResource('document', '#')">Descargar</button>
+                </div>
+              </div>
+
+              <div class="resource-card" data-category="course">
+                <div class="resource-icon">🎓</div>
+                <div class="resource-content">
+                  <h4>Curso: Habilidades Sociales</h4>
+                  <p>Curso de 4 modulos sobre desarrollo de habilidades sociales y comunicacion asertiva.</p>
+                  <div class="resource-meta">
+                    <span class="resource-type">Curso</span>
+                    <span>4 modulos</span>
+                  </div>
+                </div>
+                <div class="resource-actions">
+                  <button class="btn btn-primary btn-sm" onclick="openResource('course', '#')">Acceder</button>
+                </div>
+              </div>
+
+              <div class="resource-card" data-category="video">
+                <div class="resource-icon">🎥</div>
+                <div class="resource-content">
+                  <h4>Mindfulness para Principiantes</h4>
+                  <p>Sesion guiada de meditacion mindfulness para principiantes.</p>
+                  <div class="resource-meta">
+                    <span class="resource-type">Video</span>
+                    <span>Duracion: 20 min</span>
+                  </div>
+                </div>
+                <div class="resource-actions">
+                  <button class="btn btn-primary btn-sm" onclick="openResource('video', '#')">Ver</button>
+                </div>
+              </div>
+
+              <div class="resource-card" data-category="link">
+                <div class="resource-icon">🔗</div>
+                <div class="resource-content">
+                  <h4>Portal de Salud Mental</h4>
+                  <p>Enlace al portal nacional de recursos de salud mental.</p>
+                  <div class="resource-meta">
+                    <span class="resource-type">Enlace</span>
+                  </div>
+                </div>
+                <div class="resource-actions">
+                  <button class="btn btn-primary btn-sm" onclick="openResource('link', 'https://www.argentina.gob.ar/salud/mental')">Visitar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activities Tab -->
+      <div id="tab-activities" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Actividades Semanales</h2>
+          </div>
+          <div class="card-body">
+            <div id="activities-list">
+              <div class="empty-state">Cargando actividades...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Tab -->
+      <div id="tab-reports" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Reportes y Estadisticas</h2>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              Los reportes detallados estaran disponibles proximamente. Actualmente puede ver las estadisticas generales en la parte superior.
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Resumen de Actividad</h3>
+            <div class="patient-detail" id="activity-summary">
+              <div class="detail-item">
+                <div class="detail-label">Total Pacientes Registrados</div>
+                <div class="detail-value" id="report-total">-</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Con Contrasena Configurada</div>
+                <div class="detail-value" id="report-password">-</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Ultimo Login</div>
+                <div class="detail-value" id="report-last-login">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Patient Modal -->
+  <div id="add-patient-modal" class="modal-overlay hidden" onclick="closeModal(event, 'add-patient-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Agregar Nuevo Paciente</h3>
+        <button class="modal-close" onclick="hideModal('add-patient-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-patient-form">
+          <div class="form-group">
+            <label for="new-dni">DNI *</label>
+            <input type="text" id="new-dni" placeholder="Sin puntos" required>
+          </div>
+          <div class="form-group">
+            <label for="new-name">Nombre Completo *</label>
+            <input type="text" id="new-name" placeholder="Apellido, Nombre" required>
+          </div>
+          <div class="form-group">
+            <label for="new-email">Email</label>
+            <input type="email" id="new-email" placeholder="email@ejemplo.com">
+          </div>
+          <div class="form-group">
+            <label for="new-phone">Telefono</label>
+            <input type="tel" id="new-phone" placeholder="+54 11 1234-5678">
+          </div>
+          <div class="form-group">
+            <label for="new-admission">Fecha de Ingreso *</label>
+            <input type="date" id="new-admission" required>
+          </div>
+          <div class="form-group">
+            <label for="new-notes">Notas</label>
+            <textarea id="new-notes" rows="3" placeholder="Observaciones adicionales..."></textarea>
+          </div>
+          <div id="add-patient-error" class="form-error hidden"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('add-patient-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="addPatient()">Agregar Paciente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Detail Modal -->
+  <div id="patient-detail-modal" class="modal-overlay hidden" onclick="closeModal(event, 'patient-detail-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Detalle del Paciente</h3>
+        <button class="modal-close" onclick="hideModal('patient-detail-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="patient-detail-content">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-footer" id="patient-detail-actions">
+        <!-- Actions loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Patient Modal -->
+  <div id="edit-patient-modal" class="modal-overlay hidden" onclick="closeModal(event, 'edit-patient-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Editar Paciente</h3>
+        <button class="modal-close" onclick="hideModal('edit-patient-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-patient-form">
+          <input type="hidden" id="edit-patient-id">
+          <div class="form-group">
+            <label for="edit-name">Nombre Completo *</label>
+            <input type="text" id="edit-name" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-email">Email</label>
+            <input type="email" id="edit-email">
+          </div>
+          <div class="form-group">
+            <label for="edit-phone">Telefono</label>
+            <input type="tel" id="edit-phone">
+          </div>
+          <div class="form-group">
+            <label for="edit-notes">Notas</label>
+            <textarea id="edit-notes" rows="3"></textarea>
+          </div>
+          <div id="edit-patient-error" class="form-error hidden"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('edit-patient-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePatient()">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Room Modal -->
+  <div id="create-room-modal" class="modal-overlay hidden" onclick="closeModal(event, 'create-room-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Crear Sala de Videollamada</h3>
+        <button class="modal-close" onclick="hideModal('create-room-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="create-room-form">
+          <div class="form-group">
+            <label for="room-name">Nombre de la Sala *</label>
+            <input type="text" id="room-name" placeholder="Ej: Sesion Familiar Grupo A" required>
+          </div>
+          <div class="form-group">
+            <label for="room-desc">Descripcion</label>
+            <textarea id="room-desc" rows="2" placeholder="Descripcion breve de la sala..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="room-icon">Icono</label>
+            <select id="room-icon">
+              <option value="👥">👥 Grupo</option>
+              <option value="🎓">🎓 Educacion</option>
+              <option value="🧘">🧘 Terapia</option>
+              <option value="🎬">🎬 Multimedia</option>
+              <option value="💬">💬 Charla</option>
+              <option value="🏥">🏥 Clinica</option>
+              <option value="👨‍👩‍👧‍👦">👨‍👩‍👧‍👦 Familia</option>
+            </select>
+          </div>
+          <div class="form-hint">La sala se creara con un enlace unico de Jitsi Meet.</div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('create-room-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="createRoom()">Crear Sala</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Resource Modal -->
+  <div id="add-resource-modal" class="modal-overlay hidden" onclick="closeModal(event, 'add-resource-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Agregar Recurso</h3>
+        <button class="modal-close" onclick="hideModal('add-resource-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-resource-form">
+          <div class="form-group">
+            <label for="resource-title">Titulo *</label>
+            <input type="text" id="resource-title" required>
+          </div>
+          <div class="form-group">
+            <label for="resource-type">Tipo *</label>
+            <select id="resource-type" required>
+              <option value="video">Video</option>
+              <option value="document">Documento</option>
+              <option value="course">Curso</option>
+              <option value="link">Enlace</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="resource-url">URL *</label>
+            <input type="url" id="resource-url" placeholder="https://..." required>
+          </div>
+          <div class="form-group">
+            <label for="resource-description">Descripcion</label>
+            <textarea id="resource-description" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('add-resource-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="addResource()">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Player Modal -->
+  <div id="video-modal" class="video-modal hidden" onclick="closeVideoModal()">
+    <div class="video-modal-content" onclick="event.stopPropagation()">
+      <button class="video-modal-close" onclick="closeVideoModal()">&times;</button>
+      <iframe id="video-iframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- Jitsi Room Container -->
+  <div id="jitsi-container" class="jitsi-container hidden">
+    <button class="jitsi-close" onclick="closeJitsi()">Salir de la Sala</button>
+    <iframe id="jitsi-iframe" src="" allow="camera; microphone; fullscreen; display-capture"></iframe>
+  </div>
+
+  <script>
+    // State
+    let sessionToken = null;
+    let adminRole = null;
+    let adminEmail = null;
+    let permissions = {};
+    let patients = [];
+
+    // API
+    async function api(endpoint, options = {}) {
+      const response = await fetch(endpoint, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      return response.json();
+    }
+
+    // Auth - using healthcare professionals session
+    async function login(email, password) {
+      // Use the professionals API for authentication
+      const result = await api('/api/professionals', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'login', email, password })
+      });
+
+      if (result.success && result.sessionToken) {
+        sessionToken = result.sessionToken;
+        localStorage.setItem('hdd_admin_session', sessionToken);
+
+        // Check admin role
+        const roleResult = await api(`/api/hdd/admin?action=my_role&sessionToken=${sessionToken}`);
+
+        if (roleResult.role) {
+          adminRole = roleResult.role;
+          adminEmail = roleResult.email;
+          permissions = roleResult.permissions;
+          showApp();
+          loadDashboard();
+          return { success: true };
+        } else {
+          localStorage.removeItem('hdd_admin_session');
+          return { success: false, error: 'No tiene permisos para acceder al panel de HDD' };
+        }
+      }
+
+      return result;
+    }
+
+    async function verifySession() {
+      const stored = localStorage.getItem('hdd_admin_session');
+      if (!stored) return false;
+
+      try {
+        const roleResult = await api(`/api/hdd/admin?action=my_role&sessionToken=${stored}`);
+
+        if (roleResult.role) {
+          sessionToken = stored;
+          adminRole = roleResult.role;
+          adminEmail = roleResult.email;
+          permissions = roleResult.permissions;
+          return true;
+        }
+      } catch (e) {
+        console.error('Session verify error:', e);
+      }
+
+      localStorage.removeItem('hdd_admin_session');
+      return false;
+    }
+
+    function logout() {
+      sessionToken = null;
+      adminRole = null;
+      adminEmail = null;
+      localStorage.removeItem('hdd_admin_session');
+      showLogin();
+    }
+
+    // UI
+    function showLogin() {
+      document.getElementById('login-view').classList.remove('hidden');
+      document.getElementById('app-view').classList.add('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('app-view').classList.remove('hidden');
+
+      // Update user info
+      document.getElementById('user-email').textContent = adminEmail;
+      document.getElementById('user-role').textContent = adminRole === 'super_admin' ? 'Super Admin' : 'Admin';
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      await Promise.all([
+        loadStats(),
+        loadPatients(),
+        loadActivities()
+      ]);
+    }
+
+    async function loadStats() {
+      const result = await api(`/api/hdd/admin?action=stats&sessionToken=${sessionToken}`);
+
+      if (result.stats) {
+        document.getElementById('stat-active').textContent = result.stats.activePatients;
+        document.getElementById('stat-logged').textContent = result.stats.patientsLoggedIn;
+        document.getElementById('stat-posts').textContent = result.stats.totalPosts;
+        document.getElementById('stat-discharged').textContent = result.stats.dischargedPatients;
+
+        // Reports tab
+        document.getElementById('report-total').textContent =
+          result.stats.activePatients + result.stats.dischargedPatients;
+      }
+    }
+
+    async function loadPatients() {
+      const status = document.getElementById('status-filter').value;
+      const result = await api(`/api/hdd/admin?action=list&status=${status}&sessionToken=${sessionToken}`);
+
+      if (result.patients) {
+        patients = result.patients;
+        renderPatients();
+
+        // Update report stats
+        const withPassword = patients.filter(p => p.hasPassword).length;
+        document.getElementById('report-password').textContent = withPassword;
+
+        const lastLogin = patients
+          .filter(p => p.lastLogin)
+          .sort((a, b) => new Date(b.lastLogin) - new Date(a.lastLogin))[0];
+        document.getElementById('report-last-login').textContent = lastLogin
+          ? formatDate(lastLogin.lastLogin)
+          : 'Ninguno';
+      }
+    }
+
+    function renderPatients() {
+      const search = document.getElementById('patient-search').value.toLowerCase();
+      const filtered = patients.filter(p =>
+        p.fullName.toLowerCase().includes(search) ||
+        p.dni.includes(search)
+      );
+
+      const tbody = document.getElementById('patients-table');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron pacientes</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const statusClass = p.status === 'active' ? 'status-active' : 'status-discharged';
+        const statusText = p.status === 'active' ? 'Activo' : 'Alta';
+        const sessionStatus = p.hasPassword
+          ? (p.hasLoggedIn ? '<span style="color: var(--success);">Activa</span>' : '<span style="color: var(--warning);">Pendiente</span>')
+          : '<span style="color: var(--text-muted);">Sin config.</span>';
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(p.fullName)}</strong></td>
+            <td>${p.dni}</td>
+            <td>${formatDate(p.admissionDate)}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>${sessionStatus}</td>
+            <td>
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm" onclick="showPatientDetail(${p.id})">Ver</button>
+                <button class="btn btn-secondary btn-sm" onclick="showEditPatient(${p.id})">Editar</button>
+                ${permissions.canDischargePatients && p.status === 'active' ?
+                  `<button class="btn btn-warning btn-sm" onclick="dischargePatient(${p.id})">Alta</button>` : ''}
+                ${permissions.canReadmitPatients && p.status === 'discharged' ?
+                  `<button class="btn btn-success btn-sm" onclick="readmitPatient(${p.id})">Readmitir</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterPatients() {
+      loadPatients();
+    }
+
+    async function loadActivities() {
+      const result = await api(`/api/hdd/admin?action=activities&sessionToken=${sessionToken}`);
+      const container = document.getElementById('activities-list');
+
+      if (result.activities && result.activities.length > 0) {
+        container.innerHTML = `
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Actividad</th>
+                  <th>Dia</th>
+                  <th>Horario</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${result.activities.map(a => `
+                  <tr>
+                    <td><strong>${escapeHtml(a.name)}</strong></td>
+                    <td>${a.dayName}</td>
+                    <td>${a.startTime} - ${a.endTime}</td>
+                    <td>
+                      <span class="status-badge ${a.isActive ? 'status-active' : 'status-discharged'}">
+                        ${a.isActive ? 'Activa' : 'Inactiva'}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No hay actividades configuradas</p></div>';
+      }
+    }
+
+    // Patient actions
+    function showAddPatientModal() {
+      document.getElementById('new-admission').value = new Date().toISOString().split('T')[0];
+      document.getElementById('add-patient-modal').classList.remove('hidden');
+    }
+
+    async function addPatient() {
+      const dni = document.getElementById('new-dni').value.trim();
+      const fullName = document.getElementById('new-name').value.trim();
+      const email = document.getElementById('new-email').value.trim();
+      const phone = document.getElementById('new-phone').value.trim();
+      const admissionDate = document.getElementById('new-admission').value;
+      const notes = document.getElementById('new-notes').value.trim();
+
+      const errorEl = document.getElementById('add-patient-error');
+      errorEl.classList.add('hidden');
+
+      if (!dni || !fullName || !admissionDate) {
+        errorEl.textContent = 'Complete los campos obligatorios';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const result = await api('/api/hdd/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'add_patient',
+          sessionToken,
+          dni,
+          fullName,
+          email: email || null,
+          phone: phone || null,
+          admissionDate,
+          notes: notes || null
+        })
+      });
+
+      if (result.success) {
+        hideModal('add-patient-modal');
+        document.getElementById('add-patient-form').reset();
+        loadPatients();
+        loadStats();
+        alert('Paciente agregado exitosamente');
+      } else {
+        errorEl.textContent = result.error || 'Error al agregar paciente';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    async function showPatientDetail(patientId) {
+      const result = await api(`/api/hdd/admin?action=detail&patientId=${patientId}&sessionToken=${sessionToken}`);
+
+      if (result.patient) {
+        const p = result.patient;
+        const content = document.getElementById('patient-detail-content');
+
+        content.innerHTML = `
+          <div class="patient-detail">
+            <div class="detail-item">
+              <div class="detail-label">Nombre Completo</div>
+              <div class="detail-value">${escapeHtml(p.fullName)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">DNI</div>
+              <div class="detail-value">${p.dni}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Email</div>
+              <div class="detail-value">${p.email || '-'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Telefono</div>
+              <div class="detail-value">${p.phone || '-'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Fecha de Ingreso</div>
+              <div class="detail-value">${formatDate(p.admissionDate)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Estado</div>
+              <div class="detail-value">
+                <span class="status-badge ${p.status === 'active' ? 'status-active' : 'status-discharged'}">
+                  ${p.status === 'active' ? 'Activo' : 'Alta'}
+                </span>
+              </div>
+            </div>
+            ${p.dischargeDate ? `
+              <div class="detail-item">
+                <div class="detail-label">Fecha de Alta</div>
+                <div class="detail-value">${formatDate(p.dischargeDate)}</div>
+              </div>
+            ` : ''}
+            <div class="detail-item">
+              <div class="detail-label">Contrasena</div>
+              <div class="detail-value">${p.hasPassword ? 'Configurada' : 'Sin configurar'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Ultimo Login</div>
+              <div class="detail-value">${p.lastLogin ? formatDate(p.lastLogin) : 'Nunca'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Publicaciones</div>
+              <div class="detail-value">${p.postsCount}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Registrado</div>
+              <div class="detail-value">${formatDate(p.createdAt)}</div>
+            </div>
+          </div>
+          ${p.notes ? `
+            <div style="margin-top: 1rem;">
+              <div class="detail-label">Notas</div>
+              <p style="margin-top: 0.5rem;">${escapeHtml(p.notes)}</p>
+            </div>
+          ` : ''}
+        `;
+
+        // Actions
+        const actions = document.getElementById('patient-detail-actions');
+        let actionsHtml = `<button class="btn btn-secondary" onclick="hideModal('patient-detail-modal')">Cerrar</button>`;
+
+        if (permissions.canResetPasswords && p.hasPassword) {
+          actionsHtml = `<button class="btn btn-warning" onclick="resetPassword(${p.id})">Resetear Contrasena</button>` + actionsHtml;
+        }
+
+        actions.innerHTML = actionsHtml;
+
+        document.getElementById('patient-detail-modal').classList.remove('hidden');
+      }
+    }
+
+    function showEditPatient(patientId) {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      document.getElementById('edit-patient-id').value = patient.id;
+      document.getElementById('edit-name').value = patient.fullName;
+      document.getElementById('edit-email').value = patient.email || '';
+      document.getElementById('edit-phone').value = patient.phone || '';
+      document.getElementById('edit-notes').value = patient.notes || '';
+
+      document.getElementById('edit-patient-modal').classList.remove('hidden');
+    }
+
+    async function savePatient() {
+      const patientId = document.getElementById('edit-patient-id').value;
+      const fullName = document.getElementById('edit-name').value.trim();
+      const email = document.getElementById('edit-email').value.trim();
+      const phone = document.getElementById('edit-phone').value.trim();
+      const notes = document.getElementById('edit-notes').value.trim();
+
+      const errorEl = document.getElementById('edit-patient-error');
+      errorEl.classList.add('hidden');
+
+      const result = await api('/api/hdd/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_patient',
+          sessionToken,
+          patientId: parseInt(patientId),
+          fullName,
+          email: email || null,
+          phone: phone || null,
+          notes: notes || null
+        })
+      });
+
+      if (result.success) {
+        hideModal('edit-patient-modal');
+        loadPatients();
+        alert('Paciente actualizado');
+      } else {
+        errorEl.textContent = result.error || 'Error al actualizar';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    async function dischargePatient(patientId) {
+      if (!confirm('Esta seguro de dar de alta a este paciente? Esta accion finalizara su tratamiento en el Hospital de Dia.')) return;
+
+      const result = await api('/api/hdd/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'discharge_patient',
+          sessionToken,
+          patientId
+        })
+      });
+
+      if (result.success) {
+        loadPatients();
+        loadStats();
+        alert('Paciente dado de alta exitosamente');
+      } else {
+        alert(result.error || 'Error al dar de alta');
+      }
+    }
+
+    async function readmitPatient(patientId) {
+      if (!confirm('Desea readmitir a este paciente al Hospital de Dia?')) return;
+
+      const result = await api('/api/hdd/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'readmit_patient',
+          sessionToken,
+          patientId
+        })
+      });
+
+      if (result.success) {
+        loadPatients();
+        loadStats();
+        alert('Paciente readmitido exitosamente');
+      } else {
+        alert(result.error || 'Error al readmitir');
+      }
+    }
+
+    async function resetPassword(patientId) {
+      if (!confirm('Esto permitira al paciente configurar una nueva contrasena en su proximo inicio de sesion. Continuar?')) return;
+
+      const result = await api('/api/hdd/admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'reset_password',
+          sessionToken,
+          patientId
+        })
+      });
+
+      if (result.success) {
+        hideModal('patient-detail-modal');
+        loadPatients();
+        alert(result.message);
+      } else {
+        alert(result.error || 'Error al resetear contrasena');
+      }
+    }
+
+    // Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+      document.querySelectorAll('[id^="tab-"]').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      // Load metrics patient selector when switching to metrics tab
+      if (tabId === 'metrics') {
+        populateMetricsPatientSelect();
+      }
+    }
+
+    // =====================================
+    // GAMES FUNCTIONS
+    // =====================================
+    async function showGameStats(gameSlug) {
+      const section = document.getElementById('game-stats-section');
+      const title = document.getElementById('game-stats-title');
+      const content = document.getElementById('game-stats-content');
+
+      title.textContent = `Estadisticas: ${gameSlug === 'lawn-mower' ? 'Cortadora de Cesped' : 'Memoria de Medicacion'}`;
+      content.innerHTML = '<div class="empty-state">Cargando estadisticas...</div>';
+      section.classList.remove('hidden');
+
+      try {
+        const result = await api(`/api/hdd/admin?action=game_stats&game=${gameSlug}&sessionToken=${sessionToken}`);
+
+        if (result.stats) {
+          content.innerHTML = `
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+              <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">${result.stats.totalPlayers || 0}</div>
+                <div class="stat-label">Pacientes que han jugado</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🎮</div>
+                <div class="stat-value">${result.stats.totalSessions || 0}</div>
+                <div class="stat-label">Total de sesiones</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value">${result.stats.avgScore || 0}</div>
+                <div class="stat-label">Puntuacion promedio</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value">${result.stats.maxScore || 0}</div>
+                <div class="stat-label">Mejor puntuacion</div>
+              </div>
+            </div>
+
+            ${result.topPlayers && result.topPlayers.length > 0 ? `
+              <h4 style="margin-bottom: 0.75rem;">Mejores Puntuaciones</h4>
+              <table style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>Mejor Score</th>
+                    <th>Nivel Max</th>
+                    <th>Sesiones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${result.topPlayers.map(p => `
+                    <tr>
+                      <td>${escapeHtml(p.fullName)}</td>
+                      <td>${p.bestScore}</td>
+                      <td>${p.maxLevel}</td>
+                      <td>${p.totalSessions}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : '<p class="text-muted">No hay datos de jugadores aun.</p>'}
+          `;
+        } else {
+          content.innerHTML = `
+            <div class="alert alert-info">
+              <p>No hay estadisticas disponibles para este juego aun.</p>
+              <p>Las estadisticas se generaran cuando los pacientes comiencen a jugar.</p>
+            </div>
+          `;
+        }
+      } catch (e) {
+        content.innerHTML = `
+          <div class="alert alert-warning">
+            No se pudieron cargar las estadisticas. Las metricas de juegos se iran poblando a medida que los pacientes utilicen el portal.
+          </div>
+        `;
+      }
+    }
+
+    function hideGameStats() {
+      document.getElementById('game-stats-section').classList.add('hidden');
+    }
+
+    // =====================================
+    // METRICS FUNCTIONS
+    // =====================================
+    async function populateMetricsPatientSelect() {
+      const select = document.getElementById('metrics-patient-select');
+      if (select.options.length > 1) return; // Already populated
+
+      // Use patients array if available, or fetch fresh
+      let patientList = patients;
+      if (!patientList || patientList.length === 0) {
+        const result = await api(`/api/hdd/admin?action=list&status=all&sessionToken=${sessionToken}`);
+        patientList = result.patients || [];
+      }
+
+      patientList.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.fullName} (DNI: ${p.dni})`;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadPatientMetrics() {
+      const patientId = document.getElementById('metrics-patient-select').value;
+      const contentDiv = document.getElementById('patient-metrics-content');
+
+      if (!patientId) {
+        contentDiv.classList.add('hidden');
+        return;
+      }
+
+      contentDiv.classList.remove('hidden');
+
+      // Try to load metrics from API
+      try {
+        const result = await api(`/api/hdd/admin?action=patient_metrics&patientId=${patientId}&sessionToken=${sessionToken}`);
+
+        if (result.metrics) {
+          document.getElementById('metric-logins').textContent = result.metrics.loginCount || 0;
+          document.getElementById('metric-games').textContent = result.metrics.gameSessions || 0;
+          document.getElementById('metric-posts').textContent = result.metrics.postsCount || 0;
+          document.getElementById('metric-time').textContent = formatDuration(result.metrics.totalGameTime || 0);
+
+          renderGamesProgress(result.gamesProgress || []);
+          renderRecentActivity(result.recentActivity || []);
+        } else {
+          setDefaultMetrics();
+        }
+      } catch (e) {
+        // If API doesn't have this action yet, show placeholder data
+        setDefaultMetrics();
+      }
+    }
+
+    function setDefaultMetrics() {
+      document.getElementById('metric-logins').textContent = '-';
+      document.getElementById('metric-games').textContent = '-';
+      document.getElementById('metric-posts').textContent = '-';
+      document.getElementById('metric-time').textContent = '-';
+
+      document.getElementById('games-progress-list').innerHTML = `
+        <div class="alert alert-info">
+          Las metricas detalladas de juegos se mostraran cuando el paciente utilice el portal.
+        </div>
+      `;
+
+      document.getElementById('recent-activity-list').innerHTML = `
+        <div class="alert alert-info">
+          La actividad reciente se mostrara cuando el paciente interactue con el sistema.
+        </div>
+      `;
+    }
+
+    function renderGamesProgress(progress) {
+      const container = document.getElementById('games-progress-list');
+
+      if (!progress || progress.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay progreso de juegos registrado</p></div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Juego</th>
+              <th>Nivel Actual</th>
+              <th>Mejor Score</th>
+              <th>Sesiones</th>
+              <th>Ultima Vez</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${progress.map(g => `
+              <tr>
+                <td><strong>${escapeHtml(g.gameName)}</strong></td>
+                <td>${g.currentLevel} / ${g.maxLevel}</td>
+                <td>${g.bestScore}</td>
+                <td>${g.totalSessions}</td>
+                <td>${g.lastPlayed ? formatDate(g.lastPlayed) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderRecentActivity(activity) {
+      const container = document.getElementById('recent-activity-list');
+
+      if (!activity || activity.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay actividad reciente</p></div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Actividad</th>
+              <th>Detalles</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${activity.map(a => `
+              <tr>
+                <td>${formatDate(a.date)}</td>
+                <td>${escapeHtml(a.type)}</td>
+                <td>${escapeHtml(a.details)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds) return '0 min';
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      if (hours > 0) return `${hours}h ${mins}m`;
+      return `${mins} min`;
+    }
+
+    // =====================================
+    // ROOMS FUNCTIONS (Jitsi Meet)
+    // =====================================
+    let customRooms = JSON.parse(localStorage.getItem('hdd_custom_rooms') || '[]');
+
+    function renderCustomRooms() {
+      const container = document.getElementById('custom-rooms-list');
+
+      if (customRooms.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📹</div>
+            <p>No hay salas personalizadas creadas</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = customRooms.map((room, idx) => `
+        <div class="room-card">
+          <div class="room-header">
+            <span class="room-icon">${room.icon}</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteRoom(${idx})" title="Eliminar">×</button>
+          </div>
+          <h3>${escapeHtml(room.name)}</h3>
+          <p>${escapeHtml(room.description || 'Sin descripcion')}</p>
+          <div class="room-actions">
+            <button class="btn btn-primary" onclick="joinRoom('${room.slug}')">Iniciar Sala</button>
+            <button class="btn btn-secondary" onclick="copyRoomLink('${room.slug}')">Copiar Link</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showCreateRoomModal() {
+      document.getElementById('create-room-form').reset();
+      document.getElementById('create-room-modal').classList.remove('hidden');
+    }
+
+    function createRoom() {
+      const name = document.getElementById('room-name').value.trim();
+      const description = document.getElementById('room-desc').value.trim();
+      const icon = document.getElementById('room-icon').value;
+
+      if (!name) {
+        alert('Ingrese un nombre para la sala');
+        return;
+      }
+
+      // Create slug from name
+      const slug = 'hdd-' + name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
+
+      customRooms.push({ name, description, icon, slug, createdAt: new Date().toISOString() });
+      localStorage.setItem('hdd_custom_rooms', JSON.stringify(customRooms));
+
+      hideModal('create-room-modal');
+      renderCustomRooms();
+      alert('Sala creada exitosamente');
+    }
+
+    function deleteRoom(index) {
+      if (!confirm('Eliminar esta sala?')) return;
+      customRooms.splice(index, 1);
+      localStorage.setItem('hdd_custom_rooms', JSON.stringify(customRooms));
+      renderCustomRooms();
+    }
+
+    function joinRoom(roomSlug) {
+      const jitsiUrl = `https://meet.jit.si/${roomSlug}`;
+      document.getElementById('jitsi-iframe').src = jitsiUrl;
+      document.getElementById('jitsi-container').classList.remove('hidden');
+    }
+
+    function closeJitsi() {
+      document.getElementById('jitsi-iframe').src = '';
+      document.getElementById('jitsi-container').classList.add('hidden');
+    }
+
+    function copyRoomLink(roomSlug) {
+      const link = `https://meet.jit.si/${roomSlug}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('Link copiado al portapapeles: ' + link);
+      }).catch(() => {
+        prompt('Copie este link:', link);
+      });
+    }
+
+    // =====================================
+    // RESOURCES FUNCTIONS
+    // =====================================
+    let customResources = JSON.parse(localStorage.getItem('hdd_resources') || '[]');
+
+    function showAddResourceModal() {
+      document.getElementById('add-resource-form').reset();
+      document.getElementById('add-resource-modal').classList.remove('hidden');
+    }
+
+    function addResource() {
+      const title = document.getElementById('resource-title').value.trim();
+      const type = document.getElementById('resource-type').value;
+      const url = document.getElementById('resource-url').value.trim();
+      const description = document.getElementById('resource-description').value.trim();
+
+      if (!title || !url) {
+        alert('Complete los campos obligatorios');
+        return;
+      }
+
+      customResources.push({ title, type, url, description, createdAt: new Date().toISOString() });
+      localStorage.setItem('hdd_resources', JSON.stringify(customResources));
+
+      hideModal('add-resource-modal');
+      renderResources();
+      alert('Recurso agregado');
+    }
+
+    function renderResources() {
+      const container = document.getElementById('resources-list');
+      const existingCards = container.innerHTML;
+
+      // Add custom resources to the grid
+      if (customResources.length > 0) {
+        const customHtml = customResources.map((r, idx) => `
+          <div class="resource-card" data-category="${r.type}">
+            <div class="resource-icon">${getResourceIcon(r.type)}</div>
+            <div class="resource-content">
+              <h4>${escapeHtml(r.title)}</h4>
+              <p>${escapeHtml(r.description) || 'Sin descripcion'}</p>
+              <div class="resource-meta">
+                <span class="resource-type">${r.type}</span>
+              </div>
+            </div>
+            <div class="resource-actions">
+              <button class="btn btn-primary btn-sm" onclick="openResource('${r.type}', '${escapeHtml(r.url)}')">Ver</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteResource(${idx})">×</button>
+            </div>
+          </div>
+        `).join('');
+
+        // Append to existing
+        container.innerHTML = existingCards + customHtml;
+      }
+    }
+
+    function deleteResource(index) {
+      if (!confirm('Eliminar este recurso?')) return;
+      customResources.splice(index, 1);
+      localStorage.setItem('hdd_resources', JSON.stringify(customResources));
+      location.reload(); // Simpler than re-rendering
+    }
+
+    function getResourceIcon(type) {
+      const icons = { video: '🎥', document: '📄', course: '🎓', link: '🔗' };
+      return icons[type] || '📎';
+    }
+
+    function filterResources(category) {
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.querySelectorAll('.resource-card').forEach(card => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function openResource(type, url) {
+      if (type === 'video' && url.includes('youtube.com')) {
+        // Embed YouTube video
+        document.getElementById('video-iframe').src = url;
+        document.getElementById('video-modal').classList.remove('hidden');
+      } else {
+        // Open in new tab
+        window.open(url, '_blank');
+      }
+    }
+
+    function closeVideoModal() {
+      document.getElementById('video-iframe').src = '';
+      document.getElementById('video-modal').classList.add('hidden');
+    }
+
+    // Modals
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function closeModal(event, modalId) {
+      if (event.target.classList.contains('modal-overlay')) {
+        hideModal(modalId);
+      }
+    }
+
+    // Helpers
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const errorEl = document.getElementById('login-error');
+      errorEl.classList.add('hidden');
+
+      const result = await login(email, password);
+
+      if (!result.success) {
+        errorEl.textContent = result.error || 'Error al iniciar sesion';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Init
+    async function init() {
+      const valid = await verifySession();
+      if (valid) {
+        showApp();
+        loadDashboard();
+        renderCustomRooms();
+        renderResources();
+      } else {
+        showLogin();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
