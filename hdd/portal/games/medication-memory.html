@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memoria de Medicacion - Hospital de Dia</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #dbeafe;
+      --secondary: #10b981;
+      --secondary-dark: #059669;
+      --secondary-light: #d1fae5;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+      --error-light: #fee2e2;
+      --success: #22c55e;
+      --success-light: #dcfce7;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    @font-face {
+      font-family: 'Prescription';
+      src: local('Segoe Script'), local('Comic Sans MS'), local('Brush Script MT'), local('cursive');
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .game-header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--primary);
+      padding: 0.75rem 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1100px;
+      margin: 0 auto;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.8rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: var(--primary); color: white; }
+
+    .game-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .game-title small {
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .header-stats {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.7rem;
+      background: var(--background);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .stat-badge .value { color: var(--text); }
+    .stat-badge.timer { color: var(--primary); }
+    .stat-badge.timer.warning { color: var(--warning); animation: pulse-warn 0.5s infinite alternate; }
+    .stat-badge.timer.critical { color: var(--error); animation: pulse-warn 0.3s infinite alternate; }
+
+    @keyframes pulse-warn {
+      to { transform: scale(1.08); }
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Screen transitions */
+    .screen {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    .screen.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ====== LEVEL SELECT ====== */
+    .level-select-title {
+      text-align: center;
+      margin: 2rem 0 0.5rem;
+      font-size: 1.8rem;
+      color: var(--text);
+    }
+    .level-select-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .therapeutic-areas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 2.5rem;
+    }
+    .area-tag {
+      padding: 0.35rem 0.75rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .levels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .level-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .level-card:hover:not(.locked) {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+    .level-card.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .level-card.locked::after {
+      content: '';
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 24px;
+      height: 24px;
+      background: var(--text-muted);
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'/%3E%3C/svg%3E") center/contain no-repeat;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'/%3E%3C/svg%3E") center/contain no-repeat;
+    }
+
+    .level-number {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 0.75rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: white;
+    }
+    .level-card:nth-child(1) .level-number { background: var(--secondary); }
+    .level-card:nth-child(2) .level-number { background: var(--primary); }
+    .level-card:nth-child(3) .level-number { background: #8b5cf6; }
+    .level-card:nth-child(4) .level-number { background: #f59e0b; }
+    .level-card:nth-child(5) .level-number { background: var(--error); }
+
+    .level-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .level-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .level-meta {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .level-meta span { display: flex; align-items: center; gap: 0.2rem; }
+
+    .level-best {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    /* ====== PRESCRIPTION PHASE ====== */
+    .prescription-phase {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+    }
+
+    .phase-instruction {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .countdown-circle {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .countdown-circle svg {
+      transform: rotate(-90deg);
+      width: 80px;
+      height: 80px;
+    }
+    .countdown-circle .track {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 6;
+    }
+    .countdown-circle .progress {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .countdown-circle .time-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .prescription-paper {
+      background: #fffef5;
+      border: 1px solid #d4c89a;
+      border-radius: 4px;
+      padding: 2rem 2.25rem;
+      max-width: 560px;
+      width: 100%;
+      box-shadow: 2px 3px 15px rgba(0,0,0,0.12), inset 0 0 40px rgba(200,190,150,0.1);
+      position: relative;
+      transform: rotate(-0.8deg);
+      transition: all 0.6s ease;
+    }
+    .prescription-paper.fade-out {
+      opacity: 0;
+      transform: rotate(-2deg) scale(0.9) translateY(-20px);
+    }
+    .prescription-paper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 30px;
+      right: 30px;
+      height: 3px;
+      background: var(--primary);
+    }
+
+    .rx-header {
+      text-align: center;
+      border-bottom: 1px solid #c8b87a;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .rx-doctor {
+      font-family: 'Segoe Script', 'Comic Sans MS', 'Brush Script MT', cursive;
+      font-size: 1.15rem;
+      color: #2c3e50;
+      font-weight: 700;
+    }
+    .rx-mat {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .rx-specialty {
+      font-size: 0.8rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .rx-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px dashed #d4c89a;
+    }
+
+    .rx-symbol {
+      font-family: 'Segoe Script', 'Comic Sans MS', 'Brush Script MT', cursive;
+      font-size: 2rem;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .rx-items {
+      list-style: none;
+      padding: 0;
+    }
+    .rx-item {
+      padding: 0.6rem 0;
+      border-bottom: 1px dotted #e0d9b8;
+      font-family: 'Segoe Script', 'Comic Sans MS', 'Brush Script MT', cursive;
+      font-size: 1rem;
+      color: #1a1a2e;
+      line-height: 1.5;
+    }
+    .rx-item:last-child { border-bottom: none; }
+    .rx-item .med-name-rx {
+      font-weight: 700;
+      color: #1a365d;
+    }
+    .rx-item .med-dose-rx {
+      color: #4a5568;
+    }
+    .rx-item .med-note {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--error);
+      font-style: italic;
+      margin-top: 0.15rem;
+    }
+
+    .rx-signature {
+      margin-top: 1.5rem;
+      text-align: right;
+      font-family: 'Segoe Script', 'Comic Sans MS', 'Brush Script MT', cursive;
+      color: #2c3e50;
+      font-size: 1.1rem;
+      border-top: 1px solid #c8b87a;
+      padding-top: 0.75rem;
+    }
+    .rx-signature-line {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* ====== TRANSITION ====== */
+    .transition-message {
+      text-align: center;
+      padding: 4rem 1rem;
+      animation: fadeIn 0.5s ease;
+    }
+    .transition-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .transition-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .transition-sub {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* ====== DESK PHASE ====== */
+    .desk-phase { animation: fadeIn 0.5s ease; }
+
+    .desk-instruction {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    .desk-timer-bar {
+      display: none; /* response timer is in header */
+    }
+
+    .med-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .med-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      overflow: hidden;
+      user-select: none;
+    }
+    .med-card:hover:not(.selected) {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .med-card.selected {
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px var(--secondary-light);
+    }
+    .med-card.selected .med-card-header {
+      background: var(--secondary) !important;
+    }
+
+    .med-card-header {
+      padding: 0.5rem 0.65rem;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .med-card-header .pill-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .med-card-body {
+      padding: 0.75rem 0.65rem;
+    }
+    .med-card-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+      line-height: 1.3;
+    }
+    .med-card-dosage {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .med-card-form {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .med-card-check {
+      display: none;
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      width: 22px;
+      height: 22px;
+      background: var(--secondary);
+      border-radius: 50%;
+      color: white;
+      font-size: 0.75rem;
+      align-items: center;
+      justify-content: center;
+    }
+    .med-card.selected { position: relative; }
+    .med-card.selected .med-card-check { display: flex; }
+
+    /* Category colors */
+    .cat-antipsicotico { background: #7c3aed; }
+    .cat-ansiolitico { background: #0891b2; }
+    .cat-antidepresivo { background: #059669; }
+    .cat-estabilizador { background: #d97706; }
+    .cat-anticolinergico { background: #be185d; }
+    .cat-otro { background: #6366f1; }
+
+    /* ====== TRAY (selection area) ====== */
+    .tray-section {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      min-height: 80px;
+    }
+    .tray-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .tray-title svg { width: 18px; height: 18px; color: var(--primary); }
+
+    .tray-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 1rem;
+      font-style: italic;
+    }
+
+    .tray-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .tray-item {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-15px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .tray-item-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      min-width: 140px;
+    }
+    .tray-item-dosage-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .tray-item-config {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+      flex: 1;
+    }
+
+    .config-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .config-group label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .config-group select {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      background: white;
+      color: var(--text);
+      cursor: pointer;
+      min-width: 100px;
+    }
+    .config-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .tray-item-remove {
+      margin-left: auto;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--error-light);
+      color: var(--error);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .tray-item-remove:hover {
+      background: var(--error);
+      color: white;
+    }
+
+    /* Confirm button */
+    .confirm-section {
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+    .confirm-btn {
+      padding: 0.85rem 2.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-md);
+    }
+    .confirm-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+    .confirm-btn:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ====== RESULTS MODAL ====== */
+    .results-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: fadeInOverlay 0.3s ease;
+    }
+    .results-overlay.active { display: flex; }
+
+    @keyframes fadeInOverlay {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .results-modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-xl);
+      animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .results-header {
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .results-score {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .results-max { color: var(--text-muted); font-size: 1rem; font-weight: 400; }
+    .results-label {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .results-stars {
+      font-size: 1.5rem;
+      margin-top: 0.5rem;
+      letter-spacing: 4px;
+    }
+    .star-filled { color: #f59e0b; }
+    .star-empty { color: var(--border); }
+
+    .results-body { padding: 1.25rem 1.5rem; }
+
+    .results-breakdown {
+      list-style: none;
+      padding: 0;
+    }
+    .results-breakdown li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .results-breakdown li:last-child { border-bottom: none; }
+
+    .result-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .result-icon.correct { background: var(--success-light); color: var(--success); }
+    .result-icon.wrong { background: var(--error-light); color: var(--error); }
+    .result-icon.missed { background: var(--warning-light); color: var(--warning); }
+    .result-icon.bonus { background: var(--primary-light); color: var(--primary); }
+
+    .result-detail { flex: 1; color: var(--text); }
+    .result-points {
+      font-weight: 700;
+      min-width: 55px;
+      text-align: right;
+    }
+    .result-points.positive { color: var(--success); }
+    .result-points.negative { color: var(--error); }
+    .result-points.neutral { color: var(--primary); }
+
+    .results-footer {
+      padding: 1rem 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .results-footer button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-retry {
+      background: var(--background);
+      color: var(--text);
+      border: 1px solid var(--border) !important;
+    }
+    .btn-retry:hover { background: var(--border); }
+    .btn-next {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-next:hover { background: var(--primary-dark); }
+    .btn-back-portal {
+      background: var(--secondary);
+      color: white;
+    }
+    .btn-back-portal:hover { background: var(--secondary-dark); }
+
+    /* Mobile adjustments */
+    @media (max-width: 640px) {
+      .header-content { font-size: 0.85rem; }
+      .game-title { font-size: 0.95rem; }
+      .game-title small { display: none; }
+      .stat-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+      .level-select-title { font-size: 1.4rem; }
+      .levels-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 0.75rem; }
+      .med-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; }
+      .prescription-paper { padding: 1.25rem 1.5rem; }
+      .rx-item { font-size: 0.9rem; }
+      .tray-item { flex-direction: column; align-items: flex-start; }
+      .tray-item-config { width: 100%; }
+      .tray-item-remove { align-self: flex-end; margin-left: 0; }
+      .config-group select { min-width: 85px; }
+      .results-footer { flex-direction: column; }
+    }
+
+    /* Utility */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="game-header">
+  <div class="header-content">
+    <div class="header-left">
+      <a class="back-btn" id="backBtn" href="/hdd/portal">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Volver
+      </a>
+      <span class="game-title">Memoria de Medicacion <small>- Hospital de Dia</small></span>
+    </div>
+    <div class="header-stats">
+      <div class="stat-badge" id="levelBadge" style="display:none;">
+        <span>Nivel</span>
+        <span class="value" id="levelValue">1</span>
+      </div>
+      <div class="stat-badge" id="scoreBadge" style="display:none;">
+        <span>Puntos</span>
+        <span class="value" id="scoreValue">0</span>
+      </div>
+      <div class="stat-badge timer" id="timerBadge" style="display:none;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span class="value" id="timerValue">--</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- SCREEN: Level Select -->
+  <div id="screenLevelSelect" class="screen active">
+    <h1 class="level-select-title">Memoria de Medicacion</h1>
+    <p class="level-select-subtitle">Memorizá la receta y armá la medicacion correcta</p>
+
+    <div class="therapeutic-areas">
+      <span class="area-tag">Memoria de trabajo</span>
+      <span class="area-tag">Atencion al detalle</span>
+      <span class="area-tag">Comprension lectora</span>
+      <span class="area-tag">Responsabilidad terapeutica</span>
+    </div>
+
+    <div class="levels-grid" id="levelsGrid"></div>
+  </div>
+
+  <!-- SCREEN: Prescription Phase -->
+  <div id="screenPrescription" class="screen">
+    <div class="prescription-phase">
+      <p class="phase-instruction">Memorizá la receta medica. Tené en cuenta los medicamentos, dosis y frecuencias.</p>
+
+      <div class="countdown-circle" id="countdownCircle">
+        <svg viewBox="0 0 80 80">
+          <circle class="track" cx="40" cy="40" r="35"/>
+          <circle class="progress" id="countdownProgress" cx="40" cy="40" r="35"
+            stroke-dasharray="219.91" stroke-dashoffset="0"/>
+        </svg>
+        <div class="time-text" id="countdownText">--</div>
+      </div>
+
+      <div class="prescription-paper" id="prescriptionPaper">
+        <div class="rx-header">
+          <div class="rx-doctor" id="rxDoctor">Dr. Martinez Fernandez</div>
+          <div class="rx-mat" id="rxMat">Mat. 12345 - M.N.</div>
+          <div class="rx-specialty">Psiquiatria</div>
+        </div>
+        <div class="rx-info">
+          <span id="rxDate">Fecha: 29/01/2026</span>
+          <span>Paciente: <strong>[Paciente]</strong></span>
+        </div>
+        <div class="rx-symbol">Rp/</div>
+        <ul class="rx-items" id="rxItems"></ul>
+        <div class="rx-signature">
+          <span id="rxSigName">Dr. Martinez F.</span>
+          <span class="rx-signature-line">Firma y Sello</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Transition -->
+  <div id="screenTransition" class="screen">
+    <div class="transition-message">
+      <span class="transition-icon">&#128138;</span>
+      <div class="transition-text">Armá tu medicacion del dia</div>
+      <div class="transition-sub">Seleccioná los medicamentos correctos y configurá las dosis</div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Desk Phase -->
+  <div id="screenDesk" class="screen">
+    <p class="desk-instruction">Seleccioná los medicamentos de la receta y configurá las dosis correctas.</p>
+
+    <div class="med-grid" id="medGrid"></div>
+
+    <div class="tray-section">
+      <div class="tray-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v3"/></svg>
+        Bandeja de medicacion
+      </div>
+      <div id="trayContent">
+        <div class="tray-empty" id="trayEmpty">Hacé clic en los medicamentos de arriba para agregarlos a tu bandeja</div>
+        <div class="tray-items" id="trayItems"></div>
+      </div>
+    </div>
+
+    <div class="confirm-section">
+      <button class="confirm-btn" id="confirmBtn" disabled>Confirmar medicacion</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: Results (overlay) -->
+  <div class="results-overlay" id="resultsOverlay">
+    <div class="results-modal">
+      <div class="results-header">
+        <div class="results-score" id="resultsScore">0</div>
+        <div class="results-max" id="resultsMax">/ 0</div>
+        <div class="results-label">puntos obtenidos</div>
+        <div class="results-stars" id="resultsStars"></div>
+      </div>
+      <div class="results-body">
+        <ul class="results-breakdown" id="resultsBreakdown"></ul>
+      </div>
+      <div class="results-footer" id="resultsFooter"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==================== MEDICATION DATABASE ====================
+  const MEDICATIONS = [
+    { name: 'Risperidona', dosages: ['0.5mg','1mg','2mg','3mg'], form: 'comprimidos', category: 'antipsicotico' },
+    { name: 'Clonazepam', dosages: ['0.25mg','0.5mg','1mg','2mg'], form: 'comprimidos', category: 'ansiolitico' },
+    { name: 'Quetiapina', dosages: ['25mg','100mg','200mg','300mg'], form: 'comprimidos', category: 'antipsicotico' },
+    { name: 'Sertralina', dosages: ['25mg','50mg','100mg'], form: 'comprimidos', category: 'antidepresivo' },
+    { name: 'Carbonato de Litio', dosages: ['300mg','450mg'], form: 'comprimidos', category: 'estabilizador' },
+    { name: 'Valproato', dosages: ['250mg','500mg'], form: 'comprimidos', category: 'estabilizador' },
+    { name: 'Haloperidol', dosages: ['1mg','5mg'], form: 'comprimidos', category: 'antipsicotico' },
+    { name: 'Biperideno', dosages: ['2mg','4mg'], form: 'comprimidos', category: 'anticolinergico' },
+    { name: 'Melatonina', dosages: ['3mg','5mg'], form: 'comprimidos', category: 'otro' },
+    { name: 'Olanzapina', dosages: ['5mg','10mg'], form: 'comprimidos', category: 'antipsicotico' },
+    { name: 'Carbamazepina', dosages: ['200mg','400mg'], form: 'comprimidos', category: 'estabilizador' },
+    { name: 'Lorazepam', dosages: ['1mg','2mg'], form: 'comprimidos', category: 'ansiolitico' }
+  ];
+
+  const QUANTITIES = [
+    { value: '1/4', label: '1/4 comp' },
+    { value: '1/2', label: '1/2 comp' },
+    { value: '1', label: '1 comp' },
+    { value: '1+1/2', label: '1 y 1/2 comp' },
+    { value: '2', label: '2 comp' }
+  ];
+
+  const FREQUENCIES = [
+    { value: 'maniana', label: 'Maniana' },
+    { value: 'mediodia', label: 'Mediodia' },
+    { value: 'noche', label: 'Noche' },
+    { value: 'maniana-noche', label: 'Maniana y Noche' },
+    { value: 'maniana-mediodia-noche', label: 'Man/Med/Noche' },
+    { value: 'con-comida', label: 'Con comida' },
+    { value: 'en-ayunas', label: 'En ayunas' }
+  ];
+
+  const DOCTOR_NAMES = [
+    'Dra. Silvina Martinez', 'Dr. Carlos Fernandez', 'Dra. Laura Gonzalez',
+    'Dr. Ricardo Mendez', 'Dra. Claudia Pereyra', 'Dr. Andres Ruiz'
+  ];
+
+  const NOTES_POOL = [
+    'No tomar con jugo de pomelo',
+    'Tomar con abundante agua',
+    'No combinar con alcohol',
+    'Controlar presion arterial semanalmente',
+    'Realizar litemia cada 15 dias'
+  ];
+
+  // ==================== LEVEL DEFINITIONS ====================
+  const LEVELS = [
+    {
+      id: 1, name: 'Basico', desc: '1 medicamento, dosis simple',
+      medCount: 1, viewTime: 15, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: true
+    },
+    {
+      id: 2, name: 'Intermedio', desc: '2 medicamentos, dosis divididas',
+      medCount: 2, viewTime: 12, optionCount: 5, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 3, name: 'Avanzado', desc: '3 medicamentos, dosis variadas',
+      medCount: 3, viewTime: 10, optionCount: 7, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 4, name: 'Experto', desc: '4 medicamentos con horarios especificos',
+      medCount: 4, viewTime: 8, optionCount: 9, splitDose: true, timing: true, notes: false, unlocked: false
+    },
+    {
+      id: 5, name: 'Maestro', desc: '5 medicamentos, interacciones y notas',
+      medCount: 5, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+    }
+  ];
+
+  // ==================== STATE ====================
+  let state = {
+    currentLevel: null,
+    prescription: [],      // array of {name, dosage, form, category, quantity, frequency, note?}
+    deskOptions: [],        // array of {name, dosage, form, category, id}
+    selectedMeds: [],       // array of {id, name, dosage, form, quantity, frequency}
+    score: 0,
+    gameSessionId: null,
+    startTime: null,
+    prescriptionShownAt: null,
+    deskShownAt: null,
+    bestScores: {},
+    countdownTimer: null,
+    responseTimer: null,
+    responseSeconds: 0
+  };
+
+  // Load best scores and unlock state
+  function loadProgress() {
+    try {
+      const saved = localStorage.getItem('medmemory_progress');
+      if (saved) {
+        const data = JSON.parse(saved);
+        state.bestScores = data.bestScores || {};
+        if (data.unlockedLevels) {
+          data.unlockedLevels.forEach(id => {
+            const lvl = LEVELS.find(l => l.id === id);
+            if (lvl) lvl.unlocked = true;
+          });
+        }
+      }
+    } catch(e) {}
+    // Level 1 always unlocked
+    LEVELS[0].unlocked = true;
+  }
+
+  function saveProgress() {
+    try {
+      const unlockedLevels = LEVELS.filter(l => l.unlocked).map(l => l.id);
+      localStorage.setItem('medmemory_progress', JSON.stringify({
+        bestScores: state.bestScores,
+        unlockedLevels
+      }));
+    } catch(e) {}
+  }
+
+  // ==================== API ====================
+  const token = new URLSearchParams(window.location.search).get('token');
+
+  async function apiCall(body) {
+    if (!token) return null;
+    try {
+      const res = await fetch('/api/hdd/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) return await res.json();
+    } catch(e) {}
+    return null;
+  }
+
+  async function startSession(level) {
+    const result = await apiCall({
+      action: 'start_session',
+      gameSlug: 'medication-memory',
+      level: level
+    });
+    if (result && result.sessionId) {
+      state.gameSessionId = result.sessionId;
+    }
+  }
+
+  async function saveResult(score, maxScore, durationSeconds, completed, metrics) {
+    await apiCall({
+      action: 'save_result',
+      gameSessionId: state.gameSessionId,
+      score, maxScore, durationSeconds, completed, metrics
+    });
+  }
+
+  // ==================== DOM HELPERS ====================
+  function $(id) { return document.getElementById(id); }
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  function showHeaderStats(show) {
+    $('levelBadge').style.display = show ? '' : 'none';
+    $('scoreBadge').style.display = show ? '' : 'none';
+    $('timerBadge').style.display = show ? '' : 'none';
+  }
+
+  // ==================== PRESCRIPTION GENERATION ====================
+  function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function generatePrescription(level) {
+    const lvl = LEVELS[level - 1];
+    const available = shuffle([...MEDICATIONS]);
+    const chosen = available.slice(0, lvl.medCount);
+    const prescription = [];
+
+    chosen.forEach((med, idx) => {
+      const dosage = pickRandom(med.dosages);
+      let quantity, frequency;
+
+      if (lvl.splitDose && idx > 0) {
+        // possibly use split dose
+        const splitOptions = [
+          { quantity: '1/2', frequency: 'maniana-noche' },
+          { quantity: '1', frequency: 'maniana-noche' },
+          { quantity: '1/2', frequency: 'maniana' },
+        ];
+        if (Math.random() > 0.4) {
+          const split = pickRandom(splitOptions);
+          quantity = split.quantity;
+          frequency = split.frequency;
+        } else {
+          quantity = pickRandom(['1', '1/2', '2']);
+          frequency = pickRandom(['maniana', 'noche', 'mediodia']);
+        }
+      } else if (lvl.timing && idx >= 2) {
+        quantity = pickRandom(['1', '1/2', '1+1/2']);
+        frequency = pickRandom(['con-comida', 'en-ayunas', 'maniana', 'noche']);
+      } else {
+        quantity = pickRandom(['1', '2', '1/2']);
+        frequency = pickRandom(['maniana', 'noche', 'maniana-noche']);
+      }
+
+      let note = null;
+      if (lvl.notes && idx === 0) {
+        note = pickRandom(NOTES_POOL);
+      }
+
+      prescription.push({
+        name: med.name,
+        dosage,
+        form: med.form,
+        category: med.category,
+        quantity,
+        frequency,
+        note
+      });
+    });
+
+    return prescription;
+  }
+
+  function generateDeskOptions(prescription, totalOptions) {
+    const options = [];
+    let idCounter = 0;
+
+    // Add correct medications
+    prescription.forEach(med => {
+      options.push({
+        id: idCounter++,
+        name: med.name,
+        dosage: med.dosage,
+        form: med.form,
+        category: med.category,
+        isCorrect: true
+      });
+    });
+
+    // Add distractors
+    const usedNames = new Set(prescription.map(m => m.name));
+    const availableDistractors = MEDICATIONS.filter(m => !usedNames.has(m.name));
+    const shuffledDistractors = shuffle(availableDistractors);
+
+    let distractorCount = totalOptions - prescription.length;
+    let dIdx = 0;
+
+    while (options.length < totalOptions && dIdx < shuffledDistractors.length) {
+      const med = shuffledDistractors[dIdx];
+      const dosage = pickRandom(med.dosages);
+      options.push({
+        id: idCounter++,
+        name: med.name,
+        dosage,
+        form: med.form,
+        category: med.category,
+        isCorrect: false
+      });
+      dIdx++;
+    }
+
+    // If we still need more, add same meds with different dosages
+    if (options.length < totalOptions) {
+      prescription.forEach(med => {
+        if (options.length >= totalOptions) return;
+        const otherDosages = MEDICATIONS.find(m => m.name === med.name)
+          .dosages.filter(d => d !== med.dosage);
+        if (otherDosages.length > 0) {
+          options.push({
+            id: idCounter++,
+            name: med.name,
+            dosage: pickRandom(otherDosages),
+            form: med.form,
+            category: med.category,
+            isCorrect: false
+          });
+        }
+      });
+    }
+
+    return shuffle(options);
+  }
+
+  // ==================== RENDER FUNCTIONS ====================
+
+  function renderFrequencyText(freq) {
+    const map = {
+      'maniana': '1 vez por dia (maniana)',
+      'mediodia': '1 vez por dia (mediodia)',
+      'noche': '1 vez por dia (noche)',
+      'maniana-noche': '2 veces por dia (maniana y noche)',
+      'maniana-mediodia-noche': '3 veces por dia',
+      'con-comida': 'con comida',
+      'en-ayunas': 'en ayunas'
+    };
+    return map[freq] || freq;
+  }
+
+  function renderQuantityText(qty) {
+    const map = {
+      '1/4': '1/4 comprimido',
+      '1/2': '1/2 comprimido',
+      '1': '1 comprimido',
+      '1+1/2': '1 y 1/2 comprimidos',
+      '2': '2 comprimidos'
+    };
+    return map[qty] || qty;
+  }
+
+  function renderPrescriptionText(med) {
+    let text = `${med.name} ${med.dosage}`;
+    text += ` - ${renderQuantityText(med.quantity)} - ${renderFrequencyText(med.frequency)}`;
+    return text;
+  }
+
+  function renderLevelSelect() {
+    loadProgress();
+    const grid = $('levelsGrid');
+    grid.innerHTML = '';
+
+    LEVELS.forEach(lvl => {
+      const card = document.createElement('div');
+      card.className = 'level-card' + (lvl.unlocked ? '' : ' locked');
+      const best = state.bestScores[lvl.id];
+      card.innerHTML = `
+        <div class="level-number">${lvl.id}</div>
+        <div class="level-name">${lvl.name}</div>
+        <div class="level-desc">${lvl.desc}</div>
+        <div class="level-meta">
+          <span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${lvl.viewTime}s</span>
+          <span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> ${lvl.optionCount}</span>
+        </div>
+        ${best !== undefined ? `<div class="level-best">Mejor: ${best} pts</div>` : ''}
+      `;
+      if (lvl.unlocked) {
+        card.addEventListener('click', () => startGame(lvl.id));
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  function renderPrescription() {
+    const doctor = pickRandom(DOCTOR_NAMES);
+    const mat = (10000 + Math.floor(Math.random() * 90000));
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+
+    $('rxDoctor').textContent = doctor;
+    $('rxMat').textContent = `Mat. ${mat} - M.N.`;
+    $('rxDate').textContent = `Fecha: ${dateStr}`;
+    $('rxSigName').textContent = doctor.replace('Dra. ', '').replace('Dr. ', '');
+
+    const itemsList = $('rxItems');
+    itemsList.innerHTML = '';
+
+    state.prescription.forEach((med, idx) => {
+      const li = document.createElement('li');
+      li.className = 'rx-item';
+      let html = `<span class="med-name-rx">${idx + 1}. ${med.name} ${med.dosage}</span><br>`;
+      html += `<span class="med-dose-rx">${renderQuantityText(med.quantity)} - ${renderFrequencyText(med.frequency)}</span>`;
+      if (med.note) {
+        html += `<span class="med-note">Nota: ${med.note}</span>`;
+      }
+      li.innerHTML = html;
+      itemsList.appendChild(li);
+    });
+
+    // Reset paper animation
+    $('prescriptionPaper').classList.remove('fade-out');
+  }
+
+  function renderDeskGrid() {
+    const grid = $('medGrid');
+    grid.innerHTML = '';
+
+    state.deskOptions.forEach(opt => {
+      const card = document.createElement('div');
+      card.className = 'med-card';
+      card.dataset.id = opt.id;
+
+      const catClass = 'cat-' + opt.category;
+      const catLabels = {
+        antipsicotico: 'Antipsicotico',
+        ansiolitico: 'Ansiolitico',
+        antidepresivo: 'Antidepresivo',
+        estabilizador: 'Estabilizador',
+        anticolinergico: 'Anticolinergico',
+        otro: 'Otro'
+      };
+
+      card.innerHTML = `
+        <div class="med-card-header ${catClass}">
+          <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l3 3-9 9-3-3a4.243 4.243 0 010-6l3-3a4.243 4.243 0 016 0z"/><path d="M13.5 6.5l3 3"/><path d="M14 22h7"/><path d="M17.5 18.5v7"/></svg>
+          ${catLabels[opt.category] || 'Otro'}
+        </div>
+        <div class="med-card-body">
+          <div class="med-card-name">${opt.name}</div>
+          <div class="med-card-dosage">${opt.dosage}</div>
+          <div class="med-card-form">${opt.form}</div>
+        </div>
+        <div class="med-card-check">&#10003;</div>
+      `;
+
+      card.addEventListener('click', () => toggleMedSelection(opt));
+      grid.appendChild(card);
+    });
+  }
+
+  function toggleMedSelection(opt) {
+    const existing = state.selectedMeds.findIndex(m => m.id === opt.id);
+    if (existing >= 0) {
+      // Deselect
+      state.selectedMeds.splice(existing, 1);
+      document.querySelector(`.med-card[data-id="${opt.id}"]`).classList.remove('selected');
+    } else {
+      // Select
+      state.selectedMeds.push({
+        id: opt.id,
+        name: opt.name,
+        dosage: opt.dosage,
+        form: opt.form,
+        quantity: '1',
+        frequency: 'maniana'
+      });
+      document.querySelector(`.med-card[data-id="${opt.id}"]`).classList.add('selected');
+    }
+    renderTray();
+    updateConfirmButton();
+  }
+
+  function renderTray() {
+    const trayItems = $('trayItems');
+    const trayEmpty = $('trayEmpty');
+
+    if (state.selectedMeds.length === 0) {
+      trayEmpty.style.display = '';
+      trayItems.innerHTML = '';
+      return;
+    }
+
+    trayEmpty.style.display = 'none';
+    trayItems.innerHTML = '';
+
+    state.selectedMeds.forEach((med, idx) => {
+      const item = document.createElement('div');
+      item.className = 'tray-item';
+
+      // Build quantity options
+      let qtyOptions = QUANTITIES.map(q =>
+        `<option value="${q.value}" ${med.quantity === q.value ? 'selected' : ''}>${q.label}</option>`
+      ).join('');
+
+      // Build frequency options
+      let freqOptions = FREQUENCIES.map(f =>
+        `<option value="${f.value}" ${med.frequency === f.value ? 'selected' : ''}>${f.label}</option>`
+      ).join('');
+
+      item.innerHTML = `
+        <div>
+          <div class="tray-item-name">${med.name}</div>
+          <div class="tray-item-dosage-label">${med.dosage} - ${med.form}</div>
+        </div>
+        <div class="tray-item-config">
+          <div class="config-group">
+            <label>Cantidad</label>
+            <select data-idx="${idx}" data-field="quantity">${qtyOptions}</select>
+          </div>
+          <div class="config-group">
+            <label>Frecuencia</label>
+            <select data-idx="${idx}" data-field="frequency">${freqOptions}</select>
+          </div>
+        </div>
+        <button class="tray-item-remove" data-id="${med.id}" title="Quitar">&times;</button>
+      `;
+
+      // Bind events
+      item.querySelector('.tray-item-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(e.currentTarget.dataset.id);
+        const opt = state.deskOptions.find(o => o.id === id);
+        if (opt) toggleMedSelection(opt);
+      });
+
+      item.querySelectorAll('select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const i = parseInt(e.target.dataset.idx);
+          const field = e.target.dataset.field;
+          state.selectedMeds[i][field] = e.target.value;
+        });
+      });
+
+      trayItems.appendChild(item);
+    });
+  }
+
+  function updateConfirmButton() {
+    $('confirmBtn').disabled = state.selectedMeds.length === 0;
+  }
+
+  // ==================== GAME FLOW ====================
+
+  async function startGame(levelId) {
+    const lvl = LEVELS[levelId - 1];
+    state.currentLevel = lvl;
+    state.score = 0;
+    state.selectedMeds = [];
+    state.responseSeconds = 0;
+    state.startTime = Date.now();
+
+    $('levelValue').textContent = levelId;
+    $('scoreValue').textContent = '0';
+    showHeaderStats(true);
+
+    // Generate prescription and desk
+    state.prescription = generatePrescription(levelId);
+    state.deskOptions = generateDeskOptions(state.prescription, lvl.optionCount);
+
+    // API
+    await startSession(levelId);
+
+    // Show prescription
+    renderPrescription();
+    showScreen('screenPrescription');
+
+    // Start countdown
+    startCountdown(lvl.viewTime);
+  }
+
+  function startCountdown(seconds) {
+    const circumference = 2 * Math.PI * 35; // r=35
+    const progress = $('countdownProgress');
+    const text = $('countdownText');
+    const badge = $('timerBadge');
+    let remaining = seconds;
+
+    progress.style.strokeDasharray = circumference;
+    progress.style.strokeDashoffset = '0';
+    text.textContent = remaining;
+    $('timerValue').textContent = remaining + 's';
+    badge.className = 'stat-badge timer';
+    state.prescriptionShownAt = Date.now();
+
+    state.countdownTimer = setInterval(() => {
+      remaining--;
+      const offset = circumference * (1 - remaining / seconds);
+      progress.style.strokeDashoffset = offset;
+      text.textContent = remaining;
+      $('timerValue').textContent = remaining + 's';
+
+      if (remaining <= 3) {
+        progress.style.stroke = '#ef4444';
+        text.style.color = '#ef4444';
+        badge.className = 'stat-badge timer critical';
+      } else if (remaining <= 5) {
+        progress.style.stroke = '#f59e0b';
+        text.style.color = '#f59e0b';
+        badge.className = 'stat-badge timer warning';
+      } else {
+        progress.style.stroke = '#2563eb';
+        text.style.color = '#2563eb';
+        badge.className = 'stat-badge timer';
+      }
+
+      if (remaining <= 0) {
+        clearInterval(state.countdownTimer);
+        endPrescriptionPhase();
+      }
+    }, 1000);
+  }
+
+  function endPrescriptionPhase() {
+    $('prescriptionPaper').classList.add('fade-out');
+
+    setTimeout(() => {
+      showScreen('screenTransition');
+
+      setTimeout(() => {
+        showDeskPhase();
+      }, 1800);
+    }, 600);
+  }
+
+  function showDeskPhase() {
+    state.deskShownAt = Date.now();
+    state.selectedMeds = [];
+
+    renderDeskGrid();
+    renderTray();
+    updateConfirmButton();
+    showScreen('screenDesk');
+
+    // Start response timer
+    state.responseSeconds = 0;
+    $('timerValue').textContent = '0s';
+    $('timerBadge').className = 'stat-badge timer';
+
+    state.responseTimer = setInterval(() => {
+      state.responseSeconds++;
+      $('timerValue').textContent = state.responseSeconds + 's';
+    }, 1000);
+  }
+
+  function evaluateResults() {
+    clearInterval(state.responseTimer);
+
+    const prescription = state.prescription;
+    const selected = state.selectedMeds;
+    const breakdown = [];
+    let totalScore = 0;
+
+    // Map selected by name+dosage for matching
+    const selectedMap = new Map();
+    selected.forEach(s => {
+      selectedMap.set(s.name + '|' + s.dosage, s);
+    });
+
+    let correctMeds = 0;
+    let wrongMeds = 0;
+    let missedMeds = 0;
+    const totalMeds = prescription.length;
+
+    // Check each prescribed medication
+    prescription.forEach(rx => {
+      const key = rx.name + '|' + rx.dosage;
+      const sel = selectedMap.get(key);
+
+      if (sel) {
+        selectedMap.delete(key);
+        // Correct medication selected
+        correctMeds++;
+        totalScore += 100;
+        breakdown.push({
+          type: 'correct',
+          text: `${rx.name} ${rx.dosage} - medicamento correcto`,
+          points: '+100'
+        });
+
+        // Check quantity
+        if (sel.quantity === rx.quantity) {
+          totalScore += 100;
+          breakdown.push({
+            type: 'correct',
+            text: `${rx.name} - dosis correcta (${renderQuantityText(rx.quantity)})`,
+            points: '+100'
+          });
+        } else {
+          breakdown.push({
+            type: 'wrong',
+            text: `${rx.name} - dosis incorrecta (elegiste ${renderQuantityText(sel.quantity)}, era ${renderQuantityText(rx.quantity)})`,
+            points: '+0'
+          });
+        }
+
+        // Check frequency
+        if (sel.frequency === rx.frequency) {
+          totalScore += 50;
+          breakdown.push({
+            type: 'correct',
+            text: `${rx.name} - frecuencia correcta`,
+            points: '+50'
+          });
+        } else {
+          breakdown.push({
+            type: 'wrong',
+            text: `${rx.name} - frecuencia incorrecta (era ${renderFrequencyText(rx.frequency)})`,
+            points: '+0'
+          });
+        }
+      } else {
+        // Missed medication
+        missedMeds++;
+        totalScore -= 50;
+        breakdown.push({
+          type: 'missed',
+          text: `${rx.name} ${rx.dosage} - no fue seleccionado`,
+          points: '-50'
+        });
+      }
+    });
+
+    // Check wrong selections (remaining in selectedMap)
+    selectedMap.forEach((sel, key) => {
+      wrongMeds++;
+      totalScore -= 75;
+      breakdown.push({
+        type: 'wrong',
+        text: `${sel.name} ${sel.dosage} - no estaba en la receta`,
+        points: '-75'
+      });
+    });
+
+    // Completion bonus
+    const allCorrect = correctMeds === totalMeds && wrongMeds === 0 && missedMeds === 0;
+    // Check if all doses and frequencies correct too
+    let allPerfect = allCorrect;
+    if (allCorrect) {
+      prescription.forEach(rx => {
+        const sel = selected.find(s => s.name === rx.name && s.dosage === rx.dosage);
+        if (!sel || sel.quantity !== rx.quantity || sel.frequency !== rx.frequency) {
+          allPerfect = false;
+        }
+      });
+    }
+
+    if (allPerfect) {
+      totalScore += 500;
+      breakdown.push({
+        type: 'bonus',
+        text: 'Todo perfecto - bonus de completitud',
+        points: '+500'
+      });
+    }
+
+    // Speed bonus
+    const viewTime = state.currentLevel.viewTime;
+    if (state.responseSeconds <= viewTime * 2) {
+      const speedBonus = Math.max(0, Math.round(200 - state.responseSeconds * 5));
+      if (speedBonus > 0) {
+        totalScore += speedBonus;
+        breakdown.push({
+          type: 'bonus',
+          text: `Bonus de velocidad (${state.responseSeconds}s)`,
+          points: '+' + speedBonus
+        });
+      }
+    }
+
+    totalScore = Math.max(0, totalScore);
+    const maxScore = totalMeds * 250 + 500 + 200;
+
+    return {
+      score: totalScore,
+      maxScore,
+      breakdown,
+      correctMeds,
+      wrongMeds,
+      missedMeds,
+      totalMeds,
+      allPerfect
+    };
+  }
+
+  function showResults(results) {
+    const durationSeconds = Math.round((Date.now() - state.startTime) / 1000);
+    const viewTimeSeconds = state.currentLevel.viewTime;
+
+    state.score = results.score;
+    $('scoreValue').textContent = results.score;
+
+    // Score and stars
+    $('resultsScore').textContent = results.score;
+    $('resultsMax').textContent = '/ ' + results.maxScore;
+
+    const pct = results.score / results.maxScore;
+    const starCount = pct >= 0.95 ? 5 : pct >= 0.75 ? 4 : pct >= 0.5 ? 3 : pct >= 0.25 ? 2 : pct > 0 ? 1 : 0;
+    let starsHtml = '';
+    for (let i = 0; i < 5; i++) {
+      starsHtml += i < starCount
+        ? '<span class="star-filled">&#9733;</span>'
+        : '<span class="star-empty">&#9733;</span>';
+    }
+    $('resultsStars').innerHTML = starsHtml;
+
+    // Breakdown
+    const list = $('resultsBreakdown');
+    list.innerHTML = '';
+    results.breakdown.forEach(item => {
+      const li = document.createElement('li');
+      const iconClass = item.type === 'correct' ? 'correct' :
+                        item.type === 'wrong' ? 'wrong' :
+                        item.type === 'missed' ? 'missed' : 'bonus';
+      const iconSymbol = item.type === 'correct' ? '&#10003;' :
+                         item.type === 'wrong' ? '&#10007;' :
+                         item.type === 'missed' ? '!' : '&#9733;';
+      const pointClass = item.points.startsWith('+') && item.points !== '+0' ? 'positive' :
+                         item.points.startsWith('-') ? 'negative' : 'neutral';
+
+      li.innerHTML = `
+        <div class="result-icon ${iconClass}">${iconSymbol}</div>
+        <div class="result-detail">${item.text}</div>
+        <div class="result-points ${pointClass}">${item.points}</div>
+      `;
+      list.appendChild(li);
+    });
+
+    // Footer buttons
+    const footer = $('resultsFooter');
+    footer.innerHTML = '';
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn-retry';
+    retryBtn.textContent = 'Reintentar';
+    retryBtn.addEventListener('click', () => {
+      $('resultsOverlay').classList.remove('active');
+      startGame(state.currentLevel.id);
+    });
+    footer.appendChild(retryBtn);
+
+    // Unlock next level if score is above 25%
+    const currentId = state.currentLevel.id;
+    if (pct >= 0.25 && currentId < 5) {
+      const nextLvl = LEVELS[currentId]; // 0-indexed, currentId is next
+      if (!nextLvl.unlocked) {
+        nextLvl.unlocked = true;
+      }
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn-next';
+      nextBtn.textContent = 'Siguiente nivel';
+      nextBtn.addEventListener('click', () => {
+        $('resultsOverlay').classList.remove('active');
+        startGame(currentId + 1);
+      });
+      footer.appendChild(nextBtn);
+    }
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'btn-back-portal';
+    backBtn.textContent = 'Volver al menu';
+    backBtn.addEventListener('click', () => {
+      $('resultsOverlay').classList.remove('active');
+      showHeaderStats(false);
+      renderLevelSelect();
+      showScreen('screenLevelSelect');
+    });
+    footer.appendChild(backBtn);
+
+    // Save best score
+    if (!state.bestScores[currentId] || results.score > state.bestScores[currentId]) {
+      state.bestScores[currentId] = results.score;
+    }
+    saveProgress();
+
+    // API save
+    saveResult(
+      results.score,
+      results.maxScore,
+      durationSeconds,
+      results.allPerfect,
+      {
+        correctMeds: results.correctMeds,
+        wrongMeds: results.wrongMeds,
+        missedMeds: results.missedMeds,
+        totalMeds: results.totalMeds,
+        viewTimeSeconds,
+        responseTimeSeconds: state.responseSeconds
+      }
+    );
+
+    // Show overlay
+    $('resultsOverlay').classList.add('active');
+  }
+
+  // ==================== EVENT BINDINGS ====================
+
+  $('confirmBtn').addEventListener('click', () => {
+    const results = evaluateResults();
+    showResults(results);
+  });
+
+  // Back button with token preservation
+  if (token) {
+    $('backBtn').href = '/hdd/portal?token=' + encodeURIComponent(token);
+  }
+
+  // ==================== INIT ====================
+  loadProgress();
+  renderLevelSelect();
+  showHeaderStats(false);
+
+})();
+</script>
+</body>
+</html>

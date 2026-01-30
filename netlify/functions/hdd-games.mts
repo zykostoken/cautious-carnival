@@ -1,0 +1,231 @@
+import type { Context, Config } from "@netlify/functions";
+import { getDatabase } from "./lib/db.mts";
+
+async function getPatientBySession(sql: any, sessionToken: string) {
+  const [patient] = await sql`
+    SELECT id, dni, full_name, status
+    FROM hdd_patients
+    WHERE session_token = ${sessionToken} AND status = 'active'
+  `;
+  return patient;
+}
+
+export default async (req: Request, context: Context) => {
+  const sql = getDatabase();
+  const corsHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  };
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // GET: list games, check availability, get progress
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action");
+    const sessionToken = url.searchParams.get("sessionToken");
+
+    if (!sessionToken) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });
+    }
+
+    const patient = await getPatientBySession(sql, sessionToken);
+    if (!patient) {
+      return new Response(JSON.stringify({ error: "Sesión inválida" }), { status: 401, headers: corsHeaders });
+    }
+
+    // List all games with availability and progress
+    if (action === "list") {
+      const games = await sql`
+        SELECT g.id, g.slug, g.name, g.description, g.therapeutic_areas, g.icon, g.difficulty_levels
+        FROM hdd_games g
+        WHERE g.is_active = TRUE
+        ORDER BY g.id
+      `;
+
+      // Get progress for this patient
+      const progress = await sql`
+        SELECT game_id, current_level, max_level_reached, total_sessions, best_score, average_score, last_played_at
+        FROM hdd_game_progress
+        WHERE patient_id = ${patient.id}
+      `;
+
+      const progressMap: Record<number, any> = {};
+      for (const p of progress) {
+        progressMap[p.game_id] = p;
+      }
+
+      // Check schedule availability (current Argentina time)
+      const now = new Date();
+      const argTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+      const currentDay = argTime.getDay();
+      const currentTimeStr = argTime.toTimeString().slice(0, 5);
+
+      const schedules = await sql`
+        SELECT game_id, available_from, available_until
+        FROM hdd_game_schedule
+        WHERE is_active = TRUE AND day_of_week = ${currentDay}
+      `;
+
+      const availableSet = new Set<number>();
+      for (const s of schedules) {
+        const from = s.available_from.slice(0, 5);
+        const until = s.available_until.slice(0, 5);
+        if (currentTimeStr >= from && currentTimeStr <= until) {
+          availableSet.add(s.game_id);
+        }
+      }
+
+      const result = games.map((g: any) => ({
+        ...g,
+        progress: progressMap[g.id] || null,
+        available: availableSet.has(g.id),
+      }));
+
+      return new Response(JSON.stringify({ games: result }), { headers: corsHeaders });
+    }
+
+    // Get game details with recent sessions
+    if (action === "detail") {
+      const gameSlug = url.searchParams.get("game");
+      if (!gameSlug) {
+        return new Response(JSON.stringify({ error: "Juego no especificado" }), { status: 400, headers: corsHeaders });
+      }
+
+      const [game] = await sql`SELECT * FROM hdd_games WHERE slug = ${gameSlug} AND is_active = TRUE`;
+      if (!game) {
+        return new Response(JSON.stringify({ error: "Juego no encontrado" }), { status: 404, headers: corsHeaders });
+      }
+
+      const [progress] = await sql`
+        SELECT * FROM hdd_game_progress
+        WHERE patient_id = ${patient.id} AND game_id = ${game.id}
+      `;
+
+      const recentSessions = await sql`
+        SELECT id, level, score, max_score, duration_seconds, completed, metrics, started_at, completed_at
+        FROM hdd_game_sessions
+        WHERE patient_id = ${patient.id} AND game_id = ${game.id}
+        ORDER BY started_at DESC
+        LIMIT 10
+      `;
+
+      return new Response(JSON.stringify({
+        game,
+        progress: progress || null,
+        recentSessions,
+      }), { headers: corsHeaders });
+    }
+  }
+
+  // POST: start session, save score, update progress
+  if (req.method === "POST") {
+    try {
+      const body = await req.json();
+      const { action, sessionToken } = body;
+
+      if (!sessionToken) {
+        return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });
+      }
+
+      const patient = await getPatientBySession(sql, sessionToken);
+      if (!patient) {
+        return new Response(JSON.stringify({ error: "Sesión inválida" }), { status: 401, headers: corsHeaders });
+      }
+
+      // Start a new game session
+      if (action === "start_session") {
+        const { gameSlug, level } = body;
+
+        const [game] = await sql`SELECT id FROM hdd_games WHERE slug = ${gameSlug} AND is_active = TRUE`;
+        if (!game) {
+          return new Response(JSON.stringify({ error: "Juego no encontrado" }), { status: 404, headers: corsHeaders });
+        }
+
+        const [session] = await sql`
+          INSERT INTO hdd_game_sessions (patient_id, game_id, level)
+          VALUES (${patient.id}, ${game.id}, ${level || 1})
+          RETURNING id, started_at
+        `;
+
+        return new Response(JSON.stringify({ success: true, sessionId: session.id, startedAt: session.started_at }), { headers: corsHeaders });
+      }
+
+      // Save game result
+      if (action === "save_result") {
+        const { gameSessionId, score, maxScore, durationSeconds, completed, metrics } = body;
+
+        if (!gameSessionId) {
+          return new Response(JSON.stringify({ error: "Sesión de juego no especificada" }), { status: 400, headers: corsHeaders });
+        }
+
+        // Update game session
+        const [session] = await sql`
+          UPDATE hdd_game_sessions
+          SET score = ${score || 0},
+              max_score = ${maxScore || 0},
+              duration_seconds = ${durationSeconds || 0},
+              completed = ${completed || false},
+              metrics = ${JSON.stringify(metrics || {})},
+              completed_at = NOW()
+          WHERE id = ${gameSessionId} AND patient_id = ${patient.id}
+          RETURNING game_id, level
+        `;
+
+        if (!session) {
+          return new Response(JSON.stringify({ error: "Sesión de juego no encontrada" }), { status: 404, headers: corsHeaders });
+        }
+
+        // Update progress (upsert)
+        await sql`
+          INSERT INTO hdd_game_progress (patient_id, game_id, current_level, max_level_reached, total_sessions, total_time_seconds, best_score, average_score, last_played_at, updated_at)
+          VALUES (
+            ${patient.id},
+            ${session.game_id},
+            ${session.level},
+            ${session.level},
+            1,
+            ${durationSeconds || 0},
+            ${score || 0},
+            ${score || 0},
+            NOW(),
+            NOW()
+          )
+          ON CONFLICT (patient_id, game_id) DO UPDATE SET
+            current_level = GREATEST(hdd_game_progress.current_level, ${session.level}),
+            max_level_reached = GREATEST(hdd_game_progress.max_level_reached, ${session.level}),
+            total_sessions = hdd_game_progress.total_sessions + 1,
+            total_time_seconds = hdd_game_progress.total_time_seconds + ${durationSeconds || 0},
+            best_score = GREATEST(hdd_game_progress.best_score, ${score || 0}),
+            average_score = (hdd_game_progress.average_score * hdd_game_progress.total_sessions + ${score || 0}) / (hdd_game_progress.total_sessions + 1),
+            last_played_at = NOW(),
+            updated_at = NOW()
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          score,
+          completed,
+          level: session.level,
+        }), { headers: corsHeaders });
+      }
+
+    } catch (err: any) {
+      console.error("HDD Games error:", err);
+      return new Response(JSON.stringify({ error: "Error interno del servidor", details: err.message }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ error: "Método no soportado" }), { status: 405, headers: corsHeaders });
+};
+
+export const config: Config = {
+  path: "/api/hdd/games"
+};
