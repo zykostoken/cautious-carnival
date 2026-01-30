@@ -43,7 +43,8 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
 // These are hardcoded to ensure admin access is never lost due to missing env vars
 const DEFAULT_ADMIN_EMAILS = [
   'gonzaloperezcortizo@gmail.com',           // Developer/project creator
-  'direccionmedica@clinicajoseingenieros.ar' // Medical direction (institutional)
+  'direccionmedica@clinicajoseingenieros.ar', // Medical direction (institutional)
+  'gerencia@clinicajoseingenieros.ar'         // Administrative management
 ];
 
 // Allow additional admins via env var, but ALWAYS include the defaults
@@ -142,11 +143,35 @@ export default async (req: Request, context: Context) => {
 
         // Check if email already exists
         const [existing] = await sql`
-          SELECT id, email_verified FROM healthcare_professionals WHERE email = ${email}
+          SELECT id, email_verified, password_hash FROM healthcare_professionals WHERE email = ${email}
         `;
 
         if (existing) {
-          if (existing.email_verified) {
+          // Pre-seeded professional: verified but no password yet - allow them to complete registration
+          if (existing.email_verified && !existing.password_hash) {
+            const passwordHash = await hashPassword(password);
+            const sessionToken = generateSessionToken();
+
+            await sql`
+              UPDATE healthcare_professionals
+              SET password_hash = ${passwordHash},
+                  full_name = ${fullName},
+                  specialty = COALESCE(${specialty}, specialty),
+                  phone = COALESCE(${phone}, phone),
+                  whatsapp = COALESCE(${whatsapp}, whatsapp),
+                  session_token = ${sessionToken},
+                  last_login = NOW()
+              WHERE id = ${existing.id}
+            `;
+
+            return new Response(JSON.stringify({
+              success: true,
+              sessionToken,
+              message: "Cuenta configurada exitosamente. Ya podés acceder al sistema."
+            }), { status: 200, headers: corsHeaders });
+          }
+
+          if (existing.email_verified && existing.password_hash) {
             return new Response(JSON.stringify({
               error: "El email ya está registrado"
             }), { status: 400, headers: corsHeaders });
