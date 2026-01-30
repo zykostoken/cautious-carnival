@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cortadora de Cesped - Hospital de Dia</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      overflow: hidden;
+      height: 100vh;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Header */
+    .header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 0.5rem 1rem;
+      position: relative;
+      z-index: 100;
+    }
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.7rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .back-btn:hover { background: var(--primary-dark); }
+    .game-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: #f1f5f9;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { color: var(--text); }
+    .stat-score .stat-value { color: var(--primary); }
+    .stat-errors .stat-value { color: var(--error); }
+    .stat-bag .stat-value { color: var(--warning); }
+    .stat-bag.bag-full .stat-value { color: var(--error); font-weight: 800; }
+
+    /* Main layout */
+    .game-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 52px);
+    }
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      min-height: 0;
+      position: relative;
+    }
+    canvas {
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: #4a7c3f;
+      image-rendering: pixelated;
+    }
+
+    /* Tool button */
+    .tool-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 10;
+      display: none;
+      transition: all 0.2s;
+    }
+    .tool-btn:hover { background: var(--primary-dark); }
+    .tool-btn.active {
+      background: #0891b2;
+      border-color: #06b6d4;
+    }
+
+    /* Mobile D-Pad */
+    .dpad-container {
+      display: none;
+      justify-content: center;
+      padding: 0.3rem 0 0.6rem 0;
+    }
+    .dpad {
+      display: grid;
+      grid-template-areas:
+        ".    up   ."
+        "left mid  right"
+        ".    down .";
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 4px;
+    }
+    .dpad-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.6rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dpad-btn:active { background: var(--primary-dark); transform: scale(0.93); }
+    .dpad-up { grid-area: up; }
+    .dpad-down { grid-area: down; }
+    .dpad-left { grid-area: left; }
+    .dpad-right { grid-area: right; }
+
+    /* Level Select Screen */
+    .screen-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 1rem;
+    }
+    .screen-overlay.hidden { display: none; }
+    .screen-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .screen-card h1 {
+      font-size: 1.6rem;
+      text-align: center;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
+    .screen-card .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .level-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .level-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1rem;
+      background: #f1f5f9;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    .level-btn:hover { border-color: var(--primary); background: #eff6ff; }
+    .level-num {
+      width: 36px; height: 36px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .level-info { flex: 1; }
+    .level-name { font-weight: 700; color: var(--text); }
+    .level-desc { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Result modal */
+    .result-title {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .result-title.win { color: var(--success); }
+    .result-title.lose { color: var(--error); }
+    .score-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      font-size: 0.95rem;
+    }
+    .score-row.total {
+      border-top: 2px solid var(--border);
+      padding-top: 0.6rem;
+      margin-top: 0.3rem;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .score-row .pts { font-weight: 700; }
+    .pts.positive { color: var(--success); }
+    .pts.negative { color: var(--error); }
+    .result-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      padding: 0.6rem 1.4rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      padding: 0.6rem 1.4rem;
+      background: #e2e8f0;
+      color: var(--text);
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    /* Toast messages */
+    .toast {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--text);
+      color: #fff;
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      z-index: 300;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--error); }
+    .toast.warn { background: var(--warning); color: var(--text); }
+    .toast.info { background: var(--primary); }
+
+    /* Stuck overlay */
+    .stuck-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(239,68,68,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .stuck-overlay.hidden { display: none; }
+    .stuck-text {
+      background: var(--error);
+      color: #fff;
+      padding: 0.5rem 1.2rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      animation: pulse 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+
+    /* Celebration particles */
+    .celebration {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 250;
+    }
+    .celebration.hidden { display: none; }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .dpad-container { display: flex; }
+      .game-title { font-size: 0.9rem; }
+      .stat { font-size: 0.75rem; padding: 0.2rem 0.4rem; }
+      .header { padding: 0.4rem 0.6rem; }
+      .screen-card { padding: 1.2rem; }
+      .screen-card h1 { font-size: 1.3rem; }
+    }
+    @media (pointer: coarse) {
+      .dpad-container { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <a href="/hdd/portal" class="back-btn" id="backBtn">&#8592; Volver</a>
+        <span class="game-title" id="gameTitle">Cortadora de Cesped</span>
+      </div>
+      <div class="stats-bar" id="statsBar">
+        <div class="stat stat-score">
+          <span class="stat-label">Puntos:</span>
+          <span class="stat-value" id="scoreDisplay">0</span>
+        </div>
+        <div class="stat stat-errors">
+          <span class="stat-label">Errores:</span>
+          <span class="stat-value" id="errorsDisplay">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Cesped:</span>
+          <span class="stat-value" id="grassDisplay">0/0</span>
+        </div>
+        <div class="stat stat-bag" id="bagStat" style="display:none;">
+          <span class="stat-label">Bolsa:</span>
+          <span class="stat-value" id="bagDisplay">0/15</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Tiempo:</span>
+          <span class="stat-value" id="timerDisplay">0:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game area -->
+  <div class="game-wrapper">
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="gameCanvas"></canvas>
+      <button class="tool-btn" id="toolBtn">Limpiador de Piscina</button>
+      <div class="stuck-overlay hidden" id="stuckOverlay">
+        <div class="stuck-text">Atascado en cable!</div>
+      </div>
+    </div>
+    <div class="dpad-container">
+      <div class="dpad">
+        <button class="dpad-btn dpad-up" data-dir="up">&#9650;</button>
+        <button class="dpad-btn dpad-left" data-dir="left">&#9664;</button>
+        <button class="dpad-btn dpad-right" data-dir="right">&#9654;</button>
+        <button class="dpad-btn dpad-down" data-dir="down">&#9660;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Celebration canvas -->
+  <canvas class="celebration hidden" id="celebrationCanvas"></canvas>
+
+  <!-- Level Select Overlay -->
+  <div class="screen-overlay" id="levelSelectScreen">
+    <div class="screen-card">
+      <h1>Cortadora de Cesped</h1>
+      <p class="subtitle">Corta todo el cesped del jardin sin dañar las flores ni caer en la piscina.</p>
+      <div class="level-list">
+        <button class="level-btn" data-level="1">
+          <div class="level-num">1</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Simple</div>
+            <div class="level-desc">Jardin rectangular pequeño, pocas flores, sin piscina.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="2">
+          <div class="level-num">2</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Grande</div>
+            <div class="level-desc">Mas flores dispersas y una pequeña piscina para esquivar.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="3">
+          <div class="level-num">3</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Complejo</div>
+            <div class="level-desc">Forma de L, cables en el suelo que debes recoger antes de cortar.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="4">
+          <div class="level-num">4</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Experto</div>
+            <div class="level-desc">Multiples zonas, bolsa de la cortadora con capacidad limitada.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="5">
+          <div class="level-num">5</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Maestro</div>
+            <div class="level-desc">Todos los obstaculos, presion de tiempo, necesitas el limpiador de piscina.</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Overlay -->
+  <div class="screen-overlay hidden" id="resultScreen">
+    <div class="screen-card">
+      <h1 class="result-title" id="resultTitle"></h1>
+      <div class="score-breakdown" id="scoreBreakdown"></div>
+      <div class="result-actions">
+        <button class="btn-primary" id="retryBtn">Reintentar</button>
+        <button class="btn-secondary" id="levelsBtn">Niveles</button>
+        <a href="/hdd/portal" class="btn-secondary" style="text-decoration:none;">Volver al portal</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---- TILE TYPES ----
+  const T = {
+    GRASS: 0,
+    CUT: 1,
+    FLOWER: 2,
+    POOL: 3,
+    PATH: 4,
+    CABLE: 5,
+    COMPOST: 6,
+    HOUSE: 7,
+    FENCE: 8,
+    POOL_DIRTY: 9, // for level 5 pool cleaning section
+    EMPTY: 10      // outside yard
+  };
+
+  // ---- COLORS ----
+  const TILE_COLORS = {
+    [T.GRASS]:      '#4ade80',
+    [T.CUT]:        '#bbf7d0',
+    [T.FLOWER]:     '#4ade80', // drawn with flower on top
+    [T.POOL]:       '#38bdf8',
+    [T.PATH]:       '#d1d5db',
+    [T.CABLE]:      '#4ade80', // drawn with cable on top
+    [T.COMPOST]:    '#92400e',
+    [T.HOUSE]:      '#a1887f',
+    [T.FENCE]:      '#475569',
+    [T.POOL_DIRTY]: '#67e8f9',
+    [T.EMPTY]:      '#e2e8f0',
+  };
+
+  // Flower colors palette
+  const FLOWER_PALETTE = ['#f43f5e','#ec4899','#a855f7','#eab308','#f97316','#e879f9'];
+
+  // ---- STATE ----
+  let currentLevel = 1;
+  let grid = [];
+  let gridW = 0, gridH = 0;
+  let playerX = 0, playerY = 0;
+  let score = 0;
+  let errors = 0;
+  let flowersHit = 0;
+  let poolHits = 0;
+  let cableStucks = 0;
+  let grassCut = 0;
+  let totalGrass = 0;
+  let bagCount = 0;
+  let bagCapacity = 15;
+  let bagEmptyCount = 0;
+  let hasBag = false;
+  let isStuck = false;
+  let stuckTimer = null;
+  let timerSeconds = 0;
+  let timerInterval = null;
+  let gameRunning = false;
+  let gameSessionId = null;
+  let startTime = 0;
+  let collectedCables = new Set();
+  let flowerColors = {};
+  let usingPoolCleaner = false;
+  let hasPoolCleaner = false;
+  let poolCleaningRequired = false;
+
+  // ---- DOM ----
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const canvasContainer = document.getElementById('canvasContainer');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const errorsDisplay = document.getElementById('errorsDisplay');
+  const grassDisplay = document.getElementById('grassDisplay');
+  const bagDisplay = document.getElementById('bagDisplay');
+  const bagStat = document.getElementById('bagStat');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const gameTitle = document.getElementById('gameTitle');
+  const toolBtn = document.getElementById('toolBtn');
+  const stuckOverlay = document.getElementById('stuckOverlay');
+  const toast = document.getElementById('toast');
+  const levelSelectScreen = document.getElementById('levelSelectScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const resultTitle = document.getElementById('resultTitle');
+  const scoreBreakdown = document.getElementById('scoreBreakdown');
+  const celebCanvas = document.getElementById('celebrationCanvas');
+  const celebCtx = celebCanvas.getContext('2d');
+
+  // ---- API ----
+  function getToken() {
+    return new URLSearchParams(window.location.search).get('token');
+  }
+
+  async function apiCall(body) {
+    const token = getToken();
+    if (!token) return null;
+    try {
+      const res = await fetch('/api/hdd/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) return await res.json();
+    } catch(e) { /* silent */ }
+    return null;
+  }
+
+  async function startSession(level) {
+    const data = await apiCall({
+      action: 'start_session',
+      gameSlug: 'lawn-mower',
+      level: level
+    });
+    if (data && data.gameSessionId) {
+      gameSessionId = data.gameSessionId;
+    }
+  }
+
+  async function saveResult(completed) {
+    const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const maxScore = totalGrass * 10 + 500 + 300;
+    await apiCall({
+      action: 'save_result',
+      gameSessionId: gameSessionId,
+      score: score,
+      maxScore: maxScore,
+      durationSeconds: durationSeconds,
+      completed: completed,
+      metrics: {
+        errors: errors,
+        flowersHit: flowersHit,
+        poolHits: poolHits,
+        cableStucks: cableStucks,
+        grassCut: grassCut,
+        totalGrass: totalGrass,
+        bagEmptyCount: bagEmptyCount
+      }
+    });
+  }
+
+  // ---- TOAST ----
+  let toastTimeout = null;
+  function showToast(msg, type, duration) {
+    toast.textContent = msg;
+    toast.className = 'toast ' + (type || '') + ' show';
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toast.className = 'toast'; }, duration || 2000);
+  }
+
+  // ---- LEVEL MAPS ----
+  function buildLevel(level) {
+    collectedCables = new Set();
+    flowerColors = {};
+    usingPoolCleaner = false;
+    hasPoolCleaner = false;
+    poolCleaningRequired = false;
+
+    const F = T.FENCE, G = T.GRASS, P = T.PATH, H = T.HOUSE,
+          FL = T.FLOWER, PO = T.POOL, CA = T.CABLE, CO = T.COMPOST,
+          E = T.EMPTY, PD = T.POOL_DIRTY;
+
+    let map, startPos;
+
+    if (level === 1) {
+      // Simple rectangular yard
+      map = [
+        [F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,F],
+        [F,H,H,H,P,G,G,FL,G,F],
+        [F,P,P,P,P,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,F],
+        [F,G,FL,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,FL,G,G,F],
+        [F,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [4, 3];
+    }
+    else if (level === 2) {
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,FL,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,PO,PO,G,F],
+        [F,G,FL,G,G,G,G,G,PO,PO,G,F],
+        [F,G,G,G,G,FL,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,G,F],
+        [F,G,G,FL,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [4, 3];
+    }
+    else if (level === 3) {
+      // L-shaped yard with cables
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,F,E,E],
+        [F,H,H,H,P,G,FL,G,CA,G,F,E,E],
+        [F,P,P,P,P,G,G,G,G,G,F,E,E],
+        [F,G,G,G,G,G,G,FL,G,G,F,E,E],
+        [F,G,FL,G,G,CA,G,G,G,G,F,F,F],
+        [F,G,G,G,G,G,G,G,PO,PO,FL,G,F],
+        [F,G,G,G,G,G,FL,G,PO,PO,G,G,F],
+        [F,G,G,CA,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,FL,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [4, 3];
+    }
+    else if (level === 4) {
+      // Multiple zones, compost bin, hose cable
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,F,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,P,G,FL,G,G,F],
+        [F,P,P,P,P,G,G,G,P,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,P,G,G,FL,G,F],
+        [F,G,FL,G,G,G,CA,G,P,P,P,P,CO,F],
+        [F,G,G,G,G,G,G,G,F,G,G,G,G,F],
+        [F,G,G,FL,G,G,FL,G,P,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,P,G,FL,G,G,F],
+        [F,G,CA,G,G,G,G,G,F,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,F,G,G,FL,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [4, 3];
+    }
+    else if (level === 5) {
+      // Master: everything + pool cleaner + time pressure
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,P,G,FL,G,G,G,F],
+        [F,P,P,P,P,G,G,G,P,G,G,G,PD,PD,F],
+        [F,G,G,G,G,G,CA,G,P,G,G,G,PD,PD,F],
+        [F,G,FL,G,G,G,G,G,P,P,P,P,P,CO,F],
+        [F,G,G,G,CA,G,G,G,F,G,G,G,G,G,F],
+        [F,G,G,FL,G,G,FL,G,P,G,G,FL,G,G,F],
+        [F,G,G,G,G,G,G,G,P,G,G,G,G,G,F],
+        [F,G,CA,G,G,FL,G,G,F,G,CA,G,FL,G,F],
+        [F,G,G,G,G,G,G,G,F,G,G,G,G,G,F],
+        [F,G,G,FL,G,G,G,G,F,G,G,FL,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [4, 3];
+    }
+    else {
+      map = [[F,F,F],[F,G,F],[F,F,F]];
+      startPos = [1,1];
+    }
+
+    // Assign random flower colors
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        if (map[r][c] === T.FLOWER) {
+          flowerColors[r + ',' + c] = FLOWER_PALETTE[Math.floor(Math.random() * FLOWER_PALETTE.length)];
+        }
+      }
+    }
+
+    return { map, startPos };
+  }
+
+  // ---- GAME INIT ----
+  function initGame(level) {
+    currentLevel = level;
+    levelSelectScreen.classList.remove('hidden');
+    levelSelectScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    celebCanvas.classList.add('hidden');
+
+    const { map, startPos } = buildLevel(level);
+    grid = map;
+    gridH = grid.length;
+    gridW = grid[0].length;
+    playerX = startPos[1];
+    playerY = startPos[0];
+    score = 0;
+    errors = 0;
+    flowersHit = 0;
+    poolHits = 0;
+    cableStucks = 0;
+    grassCut = 0;
+    bagCount = 0;
+    bagEmptyCount = 0;
+    isStuck = false;
+    timerSeconds = 0;
+    stuckOverlay.classList.add('hidden');
+
+    // Count grass
+    totalGrass = 0;
+    for (let r = 0; r < gridH; r++)
+      for (let c = 0; c < gridW; c++)
+        if (grid[r][c] === T.GRASS || grid[r][c] === T.CABLE) totalGrass++;
+
+    // cut starting tile
+    if (grid[playerY][playerX] === T.GRASS) {
+      grid[playerY][playerX] = T.CUT;
+      grassCut++;
+      score += 10;
+      if (hasBag) bagCount++;
+    }
+
+    // Show/hide bag
+    if (level >= 4) { hasBag = true; bagStat.style.display = ''; }
+    else { hasBag = false; bagStat.style.display = 'none'; }
+
+    // Show/hide pool cleaner
+    if (level === 5) {
+      toolBtn.style.display = 'block';
+      hasPoolCleaner = false;
+      usingPoolCleaner = false;
+      toolBtn.classList.remove('active');
+      toolBtn.textContent = 'Limpiador de Piscina';
+    } else {
+      toolBtn.style.display = 'none';
+    }
+
+    const LEVEL_NAMES = [
+      '', 'Jardin Simple', 'Jardin Grande', 'Jardin Complejo', 'Jardin Experto', 'Jardin Maestro'
+    ];
+    gameTitle.textContent = 'Nivel ' + level + ': ' + (LEVEL_NAMES[level] || '');
+
+    gameRunning = true;
+    startTime = Date.now();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (!gameRunning) return;
+      timerSeconds++;
+      timerDisplay.textContent = formatTime(timerSeconds);
+    }, 1000);
+
+    updateUI();
+    resizeCanvas();
+    render();
+
+    startSession(level);
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  // ---- CANVAS SIZING ----
+  function resizeCanvas() {
+    const container = canvasContainer;
+    const maxW = container.clientWidth - 16;
+    const maxH = container.clientHeight - 16;
+
+    const tileW = Math.floor(maxW / gridW);
+    const tileH = Math.floor(maxH / gridH);
+    const tileSize = Math.max(16, Math.min(tileW, tileH, 56));
+
+    canvas.width = gridW * tileSize;
+    canvas.height = gridH * tileSize;
+    canvas.style.width = canvas.width + 'px';
+    canvas.style.height = canvas.height + 'px';
+
+    render();
+  }
+
+  window.addEventListener('resize', () => { if (gameRunning) resizeCanvas(); });
+
+  // ---- RENDER ----
+  function render() {
+    if (!gameRunning) return;
+    const ts = Math.floor(canvas.width / gridW);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < gridH; r++) {
+      for (let c = 0; c < gridW; c++) {
+        const tile = grid[r][c];
+        const x = c * ts;
+        const y = r * ts;
+
+        // Base color
+        ctx.fillStyle = TILE_COLORS[tile] || '#e2e8f0';
+        ctx.fillRect(x, y, ts, ts);
+
+        // Grid lines (subtle)
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, ts, ts);
+
+        // Draw decorations
+        if (tile === T.FLOWER) {
+          drawFlower(ctx, x, y, ts, flowerColors[r + ',' + c] || '#f43f5e');
+        }
+        else if (tile === T.POOL || tile === T.POOL_DIRTY) {
+          drawPool(ctx, x, y, ts, tile === T.POOL_DIRTY);
+        }
+        else if (tile === T.CABLE) {
+          const cableKey = r + ',' + c;
+          if (!collectedCables.has(cableKey)) {
+            drawCable(ctx, x, y, ts);
+          }
+        }
+        else if (tile === T.COMPOST) {
+          drawCompost(ctx, x, y, ts);
+        }
+        else if (tile === T.HOUSE) {
+          drawHouse(ctx, x, y, ts);
+        }
+        else if (tile === T.FENCE) {
+          drawFence(ctx, x, y, ts);
+        }
+        else if (tile === T.CUT) {
+          // mow lines
+          ctx.strokeStyle = 'rgba(0,100,0,0.12)';
+          ctx.lineWidth = 1;
+          for (let i = 3; i < ts; i += 5) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + i);
+            ctx.lineTo(x + ts, y + i);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // Draw player (mower)
+    drawMower(ctx, playerX * ts, playerY * ts, ts);
+  }
+
+  function drawFlower(ctx, x, y, ts, color) {
+    const cx = x + ts / 2, cy = y + ts / 2;
+    const r = ts * 0.15;
+    // petals
+    ctx.fillStyle = color;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * r * 1.2, cy + Math.sin(a) * r * 1.2, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // center
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPool(ctx, x, y, ts, dirty) {
+    // water ripples
+    ctx.strokeStyle = dirty ? 'rgba(180,140,60,0.3)' : 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + ts * 0.2, y + ts * 0.4);
+    ctx.quadraticCurveTo(x + ts * 0.5, y + ts * 0.25, x + ts * 0.8, y + ts * 0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + ts * 0.15, y + ts * 0.65);
+    ctx.quadraticCurveTo(x + ts * 0.5, y + ts * 0.5, x + ts * 0.85, y + ts * 0.65);
+    ctx.stroke();
+    if (dirty) {
+      ctx.fillStyle = 'rgba(120,80,20,0.2)';
+      ctx.fillRect(x + 2, y + 2, ts - 4, ts - 4);
+    }
+  }
+
+  function drawCable(ctx, x, y, ts) {
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x + ts * 0.1, y + ts * 0.5);
+    ctx.bezierCurveTo(x + ts * 0.3, y + ts * 0.2, x + ts * 0.7, y + ts * 0.8, x + ts * 0.9, y + ts * 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // plug icon
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(x + ts * 0.82, y + ts * 0.38, ts * 0.12, ts * 0.24);
+  }
+
+  function drawCompost(ctx, x, y, ts) {
+    // bin shape
+    ctx.fillStyle = '#78350f';
+    const bx = x + ts * 0.2, by = y + ts * 0.15, bw = ts * 0.6, bh = ts * 0.7;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#a16207';
+    ctx.fillRect(bx + 2, by + 2, bw - 4, ts * 0.15);
+    // leaves
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(x + ts * 0.4, y + ts * 0.55, ts * 0.08, 0, Math.PI * 2);
+    ctx.arc(x + ts * 0.6, y + ts * 0.5, ts * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawHouse(ctx, x, y, ts) {
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(x, y, ts, ts);
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(x + ts * 0.2, y + ts * 0.3, ts * 0.25, ts * 0.35);
+    ctx.fillStyle = '#90caf9';
+    ctx.fillRect(x + ts * 0.55, y + ts * 0.25, ts * 0.3, ts * 0.25);
+  }
+
+  function drawFence(ctx, x, y, ts) {
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(x, y, ts, ts);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(x + ts * 0.1, y, ts * 0.15, ts);
+    ctx.fillRect(x + ts * 0.75, y, ts * 0.15, ts);
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(x, y + ts * 0.25, ts, ts * 0.12);
+    ctx.fillRect(x, y + ts * 0.65, ts, ts * 0.12);
+  }
+
+  function drawMower(ctx, x, y, ts) {
+    const m = ts * 0.1;
+    // Body
+    ctx.fillStyle = usingPoolCleaner ? '#0891b2' : '#dc2626';
+    ctx.beginPath();
+    ctx.roundRect(x + m, y + m, ts - m * 2, ts - m * 2, ts * 0.15);
+    ctx.fill();
+    // Handle
+    ctx.fillStyle = usingPoolCleaner ? '#155e75' : '#991b1b';
+    ctx.fillRect(x + ts * 0.42, y + m - ts * 0.06, ts * 0.16, ts * 0.15);
+    // Wheels
+    ctx.fillStyle = '#1e293b';
+    const wr = ts * 0.08;
+    ctx.beginPath();
+    ctx.arc(x + ts * 0.25, y + ts * 0.22, wr, 0, Math.PI * 2);
+    ctx.arc(x + ts * 0.75, y + ts * 0.22, wr, 0, Math.PI * 2);
+    ctx.arc(x + ts * 0.25, y + ts * 0.78, wr, 0, Math.PI * 2);
+    ctx.arc(x + ts * 0.75, y + ts * 0.78, wr, 0, Math.PI * 2);
+    ctx.fill();
+    // Blade lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + ts * 0.3, y + ts * 0.5);
+    ctx.lineTo(x + ts * 0.7, y + ts * 0.5);
+    ctx.stroke();
+  }
+
+  // ---- UI UPDATE ----
+  function updateUI() {
+    scoreDisplay.textContent = score;
+    errorsDisplay.textContent = errors;
+    grassDisplay.textContent = grassCut + '/' + totalGrass;
+    if (hasBag) {
+      bagDisplay.textContent = bagCount + '/' + bagCapacity;
+      bagStat.className = 'stat stat-bag' + (bagCount >= bagCapacity ? ' bag-full' : '');
+    }
+  }
+
+  // ---- MOVEMENT ----
+  function movePlayer(dx, dy) {
+    if (!gameRunning || isStuck) return;
+
+    const nx = playerX + dx;
+    const ny = playerY + dy;
+
+    // Bounds check
+    if (ny < 0 || ny >= gridH || nx < 0 || nx >= gridW) return;
+
+    const tile = grid[ny][nx];
+
+    // Impassable
+    if (tile === T.FENCE || tile === T.HOUSE || tile === T.EMPTY) return;
+
+    // Pool collision
+    if (tile === T.POOL) {
+      errors++;
+      poolHits++;
+      score -= 100;
+      showToast('Caiste en la piscina! -100 pts', 'error');
+      updateUI();
+      render();
+      return;
+    }
+
+    // Pool dirty - need pool cleaner
+    if (tile === T.POOL_DIRTY) {
+      if (usingPoolCleaner) {
+        grid[ny][nx] = T.POOL; // cleaned!
+        playerX = nx;
+        playerY = ny;
+        showToast('Piscina limpiada!', 'info');
+        // check if all dirty cleaned
+        let dirtyLeft = false;
+        for (let r = 0; r < gridH; r++)
+          for (let c = 0; c < gridW; c++)
+            if (grid[r][c] === T.POOL_DIRTY) dirtyLeft = true;
+        if (!dirtyLeft) {
+          showToast('Toda la piscina esta limpia! Vuelve a la cortadora.', 'info', 3000);
+        }
+        updateUI();
+        render();
+        return;
+      } else {
+        showToast('Necesitas el limpiador de piscina!', 'warn');
+        return;
+      }
+    }
+
+    // Can't mow while using pool cleaner
+    if (usingPoolCleaner && (tile === T.GRASS || tile === T.FLOWER)) {
+      showToast('Cambia a la cortadora para cortar cesped!', 'warn');
+      return;
+    }
+
+    // Bag full check
+    if (hasBag && bagCount >= bagCapacity && tile === T.GRASS) {
+      showToast('Bolsa llena! Ve al compostera para vaciar.', 'warn');
+      // Still allow movement onto non-grass
+      return;
+    }
+
+    // Cable check
+    if (tile === T.CABLE) {
+      const key = ny + ',' + nx;
+      if (!collectedCables.has(key)) {
+        // get stuck
+        isStuck = true;
+        cableStucks++;
+        errors++;
+        score -= 20;
+        showToast('Atascado en un cable! -20 pts', 'error');
+        stuckOverlay.classList.remove('hidden');
+        updateUI();
+        clearTimeout(stuckTimer);
+        stuckTimer = setTimeout(() => {
+          isStuck = false;
+          stuckOverlay.classList.add('hidden');
+          collectedCables.add(key);
+          // now treat as grass
+          grid[ny][nx] = T.CUT;
+          grassCut++;
+          score += 10;
+          if (hasBag) bagCount++;
+          playerX = nx;
+          playerY = ny;
+          updateUI();
+          render();
+          checkWin();
+        }, 2000);
+        return;
+      } else {
+        // already collected, treat as cut grass
+        playerX = nx;
+        playerY = ny;
+        updateUI();
+        render();
+        return;
+      }
+    }
+
+    // Flower
+    if (tile === T.FLOWER) {
+      errors++;
+      flowersHit++;
+      score -= 50;
+      grid[ny][nx] = T.CUT; // destroyed
+      showToast('Flor destruida! -50 pts', 'error');
+      playerX = nx;
+      playerY = ny;
+      updateUI();
+      render();
+      return;
+    }
+
+    // Compost bin
+    if (tile === T.COMPOST) {
+      if (hasBag && bagCount > 0) {
+        bagEmptyCount++;
+        bagCount = 0;
+        showToast('Bolsa vaciada en la compostera!', 'info');
+      }
+      playerX = nx;
+      playerY = ny;
+      updateUI();
+      render();
+      return;
+    }
+
+    // Grass
+    if (tile === T.GRASS) {
+      grid[ny][nx] = T.CUT;
+      grassCut++;
+      score += 10;
+      if (hasBag) bagCount++;
+    }
+
+    // PATH or CUT - just move
+    playerX = nx;
+    playerY = ny;
+    updateUI();
+    render();
+    checkWin();
+  }
+
+  // ---- CABLE CLICK/TAP (collect cables) ----
+  canvas.addEventListener('click', handleCanvasClick);
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.changedTouches[0];
+    handleCanvasClickAt(touch.clientX - rect.left, touch.clientY - rect.top);
+  });
+
+  function handleCanvasClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    handleCanvasClickAt(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function handleCanvasClickAt(cx, cy) {
+    if (!gameRunning) return;
+    const ts = Math.floor(canvas.width / gridW);
+    const col = Math.floor(cx / ts);
+    const row = Math.floor(cy / ts);
+    if (row < 0 || row >= gridH || col < 0 || col >= gridW) return;
+
+    if (grid[row][col] === T.CABLE) {
+      const key = row + ',' + col;
+      if (!collectedCables.has(key)) {
+        // Must be adjacent to player
+        const dist = Math.abs(row - playerY) + Math.abs(col - playerX);
+        if (dist <= 2) {
+          collectedCables.add(key);
+          showToast('Cable recogido!', 'info');
+          render();
+        } else {
+          showToast('Acercate mas al cable para recogerlo.', 'warn');
+        }
+      }
+    }
+  }
+
+  // ---- WIN CHECK ----
+  function checkWin() {
+    if (grassCut >= totalGrass) {
+      // Check pool dirty tiles too (level 5)
+      if (poolCleaningRequired) {
+        for (let r = 0; r < gridH; r++)
+          for (let c = 0; c < gridW; c++)
+            if (grid[r][c] === T.POOL_DIRTY) {
+              showToast('Falta limpiar la piscina!', 'warn');
+              return;
+            }
+      }
+      gameWin();
+    }
+  }
+
+  function gameWin() {
+    gameRunning = false;
+    clearInterval(timerInterval);
+
+    // Bonuses
+    const completionBonus = 500;
+    const speedBonus = Math.max(0, 300 - timerSeconds);
+    score += completionBonus + speedBonus;
+
+    showResultScreen(true, completionBonus, speedBonus);
+    showCelebration();
+    saveResult(true);
+  }
+
+  function showResultScreen(won, completionBonus, speedBonus) {
+    resultScreen.classList.remove('hidden');
+    resultTitle.textContent = won ? 'Completado!' : 'Juego terminado';
+    resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
+
+    completionBonus = completionBonus || 0;
+    speedBonus = speedBonus || 0;
+
+    const grassPts = grassCut * 10;
+    const flowerPenalty = flowersHit * 50;
+    const poolPenalty = poolHits * 100;
+    const cablePenalty = cableStucks * 20;
+    const maxScore = totalGrass * 10 + 500 + 300;
+
+    let html = '';
+    html += scoreRow('Cesped cortado (' + grassCut + '/' + totalGrass + ')', '+' + grassPts, true);
+    if (won) html += scoreRow('Bonus por completar', '+' + completionBonus, true);
+    if (won) html += scoreRow('Bonus por velocidad', '+' + speedBonus, speedBonus > 0);
+    if (flowersHit > 0) html += scoreRow('Flores destruidas (x' + flowersHit + ')', '-' + flowerPenalty, false);
+    if (poolHits > 0) html += scoreRow('Caidas a piscina (x' + poolHits + ')', '-' + poolPenalty, false);
+    if (cableStucks > 0) html += scoreRow('Atascado en cables (x' + cableStucks + ')', '-' + cablePenalty, false);
+    html += '<div class="score-row total"><span>Puntuacion final</span><span class="pts ' + (score >= 0 ? 'positive' : 'negative') + '">' + score + ' / ' + maxScore + '</span></div>';
+    html += '<div class="score-row"><span>Tiempo</span><span>' + formatTime(timerSeconds) + '</span></div>';
+    if (hasBag) html += '<div class="score-row"><span>Vaciados de bolsa</span><span>' + bagEmptyCount + '</span></div>';
+
+    scoreBreakdown.innerHTML = html;
+  }
+
+  function scoreRow(label, pts, positive) {
+    return '<div class="score-row"><span>' + label + '</span><span class="pts ' + (positive ? 'positive' : 'negative') + '">' + pts + '</span></div>';
+  }
+
+  // ---- CELEBRATION ----
+  let particles = [];
+  let celebAnimId = null;
+
+  function showCelebration() {
+    celebCanvas.classList.remove('hidden');
+    celebCanvas.width = window.innerWidth;
+    celebCanvas.height = window.innerHeight;
+    particles = [];
+    const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'];
+    for (let i = 0; i < 100; i++) {
+      particles.push({
+        x: Math.random() * celebCanvas.width,
+        y: -Math.random() * celebCanvas.height * 0.5,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 3 + 2,
+        size: Math.random() * 8 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * 360,
+        vr: (Math.random() - 0.5) * 10
+      });
+    }
+    animateCelebration();
+  }
+
+  function animateCelebration() {
+    celebCtx.clearRect(0, 0, celebCanvas.width, celebCanvas.height);
+    let alive = false;
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      p.rot += p.vr;
+      if (p.y < celebCanvas.height + 20) alive = true;
+      celebCtx.save();
+      celebCtx.translate(p.x, p.y);
+      celebCtx.rotate(p.rot * Math.PI / 180);
+      celebCtx.fillStyle = p.color;
+      celebCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      celebCtx.restore();
+    }
+    if (alive) {
+      celebAnimId = requestAnimationFrame(animateCelebration);
+    } else {
+      celebCanvas.classList.add('hidden');
+    }
+  }
+
+  // ---- KEYBOARD INPUT ----
+  document.addEventListener('keydown', function(e) {
+    if (!gameRunning) return;
+    switch (e.key) {
+      case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePlayer(0, -1); break;
+      case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePlayer(0, 1); break;
+      case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); movePlayer(-1, 0); break;
+      case 'ArrowRight': case 'd': case 'D': e.preventDefault(); movePlayer(1, 0); break;
+    }
+  });
+
+  // ---- D-PAD ----
+  document.querySelectorAll('.dpad-btn').forEach(btn => {
+    function handler(e) {
+      e.preventDefault();
+      const dir = btn.getAttribute('data-dir');
+      if (dir === 'up') movePlayer(0, -1);
+      else if (dir === 'down') movePlayer(0, 1);
+      else if (dir === 'left') movePlayer(-1, 0);
+      else if (dir === 'right') movePlayer(1, 0);
+    }
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      handler(e);
+    });
+  });
+
+  // ---- TOOL BUTTON ----
+  toolBtn.addEventListener('click', function() {
+    if (!gameRunning) return;
+    usingPoolCleaner = !usingPoolCleaner;
+    if (usingPoolCleaner) {
+      toolBtn.classList.add('active');
+      toolBtn.textContent = 'Cortadora de Cesped';
+      showToast('Cambiaste al limpiador de piscina', 'info');
+    } else {
+      toolBtn.classList.remove('active');
+      toolBtn.textContent = 'Limpiador de Piscina';
+      showToast('Cambiaste a la cortadora de cesped', 'info');
+    }
+    render();
+  });
+
+  // ---- LEVEL SELECT ----
+  document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const level = parseInt(this.getAttribute('data-level'));
+      initGame(level);
+    });
+  });
+
+  // ---- RESULT BUTTONS ----
+  document.getElementById('retryBtn').addEventListener('click', function() {
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
+    initGame(currentLevel);
+  });
+  document.getElementById('levelsBtn').addEventListener('click', function() {
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    gameRunning = false;
+    clearInterval(timerInterval);
+    levelSelectScreen.classList.remove('hidden');
+  });
+
+  // ---- BACK BUTTON (save on quit) ----
+  document.getElementById('backBtn').addEventListener('click', function(e) {
+    if (gameRunning && grassCut > 0) {
+      saveResult(false);
+    }
+  });
+
+  // ---- SWIPE SUPPORT ----
+  let touchStartX = 0, touchStartY = 0;
+  canvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+  canvas.addEventListener('touchend', function(e) {
+    // Only handle swipe if it's clearly a swipe (not a tap for cable)
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 20) return; // it's a tap, handled by click handler
+    if (Math.abs(dx) > Math.abs(dy)) {
+      movePlayer(dx > 0 ? 1 : -1, 0);
+    } else {
+      movePlayer(0, dy > 0 ? 1 : -1);
+    }
+  });
+
+  // ---- roundRect polyfill ----
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      if (typeof r === 'number') r = [r, r, r, r];
+      this.moveTo(x + r[0], y);
+      this.lineTo(x + w - r[1], y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+      this.lineTo(x + w, y + h - r[2]);
+      this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+      this.lineTo(x + r[3], y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+      this.lineTo(x, y + r[0]);
+      this.quadraticCurveTo(x, y, x + r[0], y);
+      this.closePath();
+    };
+  }
+
+  // Show level select on load
+  levelSelectScreen.classList.remove('hidden');
+
+})();
+</script>
+</body>
+</html>

@@ -574,6 +574,105 @@
       text-decoration: underline;
     }
 
+    /* Game Cards */
+    .game-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .game-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 2px 12px rgba(37,99,235,0.1);
+    }
+
+    .game-card.unavailable {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .game-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      flex-shrink: 0;
+    }
+
+    .game-info {
+      flex: 1;
+    }
+
+    .game-name {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .game-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .game-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .game-tag {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .game-status {
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .game-status .level {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .game-status .best-score {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--secondary);
+    }
+
+    .availability-badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .availability-badge.available {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .availability-badge.unavailable {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
     /* Hidden utility */
     .hidden {
       display: none !important;
@@ -751,6 +850,7 @@
     <main class="container">
       <div class="nav-tabs">
         <button class="nav-tab active" data-tab="feed" onclick="switchTab('feed')">Comunidad</button>
+        <button class="nav-tab" data-tab="games" onclick="switchTab('games')">Juegos</button>
         <button class="nav-tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
         <button class="nav-tab" data-tab="my-posts" onclick="switchTab('my-posts')">Mis Publicaciones</button>
       </div>
@@ -776,6 +876,17 @@
 
         <div id="feed-posts">
           <div class="loading">Cargando publicaciones...</div>
+        </div>
+      </div>
+
+      <!-- Games Tab -->
+      <div id="tab-games" class="feed-container hidden">
+        <h2 style="margin-bottom: 0.5rem;">Juegos Terapeuticos</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Actividades ludicas disenadas para estimular habilidades cognitivas y motoras. Los juegos se habilitan en horarios programados.</p>
+        <div id="games-list">
+          <div class="loading">Cargando juegos...</div>
+        </div>
+        <div id="games-progress" style="margin-top: 2rem;">
         </div>
       </div>
 
@@ -1083,6 +1194,9 @@
 
       if (tabId === 'my-posts') {
         loadMyPosts();
+      }
+      if (tabId === 'games') {
+        loadGames();
       }
     }
 
@@ -1498,6 +1612,70 @@
         errorEl.classList.remove('hidden');
       }
     });
+
+    // Games
+    const THERAPEUTIC_LABELS = {
+      motricidad_fina: 'Motricidad Fina',
+      planificacion: 'Planificacion',
+      atencion: 'Atencion',
+      control_impulsos: 'Control de Impulsos',
+      agilidad_mental: 'Agilidad Mental',
+      memoria: 'Memoria',
+      comprension_lectora: 'Comprension Lectora',
+      responsabilidad_terapeutica: 'Resp. Terapeutica'
+    };
+
+    async function loadGames() {
+      const container = document.getElementById('games-list');
+      container.innerHTML = '<div class="loading">Cargando juegos...</div>';
+
+      try {
+        const result = await api(`/games?action=list&sessionToken=${sessionToken}`);
+
+        if (result.games && result.games.length > 0) {
+          container.innerHTML = result.games.map(g => {
+            const tags = (g.therapeutic_areas || []).map(t =>
+              `<span class="game-tag">${THERAPEUTIC_LABELS[t] || t}</span>`
+            ).join('');
+
+            const prog = g.progress;
+            const statusHtml = prog
+              ? `<div class="level">Nivel ${prog.current_level}</div>
+                 <div class="best-score">Mejor: ${prog.best_score}</div>
+                 <div style="font-size:0.75rem;color:var(--text-muted)">${prog.total_sessions} sesiones</div>`
+              : `<div class="level">Sin jugar</div>`;
+
+            const availBadge = g.available
+              ? '<span class="availability-badge available">Disponible</span>'
+              : '<span class="availability-badge unavailable">Fuera de horario</span>';
+
+            return `
+              <div class="game-card ${g.available ? '' : 'unavailable'}" onclick="${g.available ? `openGame('${g.slug}')` : ''}">
+                <div class="game-icon">${g.icon || '🎮'}</div>
+                <div class="game-info">
+                  <div class="game-name">${escapeHtml(g.name)}</div>
+                  <div class="game-desc">${escapeHtml(g.description || '')}</div>
+                  <div class="game-tags">${tags}</div>
+                </div>
+                <div class="game-status">
+                  ${availBadge}
+                  ${statusHtml}
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎮</div><p>No hay juegos disponibles en este momento.</p></div>';
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state"><p>Error al cargar juegos.</p></div>';
+      }
+    }
+
+    function openGame(slug) {
+      const token = sessionToken;
+      window.open(`/hdd/portal/games/${slug}.html?token=${encodeURIComponent(token)}`, '_blank');
+    }
 
     // Init
     async function init() {

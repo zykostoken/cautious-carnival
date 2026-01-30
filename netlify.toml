@@ -24,6 +24,12 @@
   to = "/hdd/portal/index.html"
   status = 200
 
+# HDD Games
+[[redirects]]
+  from = "/hdd/portal/games/*"
+  to = "/hdd/portal/games/:splat"
+  status = 200
+
 [[redirects]]
   from = "/hdd/*"
   to = "/hdd/:splat"
