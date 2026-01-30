@@ -546,6 +546,44 @@ FROM hdd_games g
 CROSS JOIN (VALUES (1),(2),(3),(4),(5)) AS d(day)
 WHERE g.slug IN ('lawn-mower', 'medication-memory')
 ON CONFLICT DO NOTHING;
+
+-- =============================================
+-- HDD PATIENTS SEED DATA (from dox.com.ar clinical system)
+-- All patients in Hospital de Dia program, status active
+-- First login with DNI sets their password
+-- =============================================
+
+INSERT INTO hdd_patients (dni, full_name, phone, status, email_verified, admission_date, created_at)
+VALUES
+    ('17051100', 'Abregu Walter Humberto', '15540166', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('20716038', 'Amat Sandro Javier', '15489850', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('13207570', 'Arcomano Nora Estela', '2235951059', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('25235646', 'Arrieta Alejandro', '15499445', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('11345447', 'Arrivillaga Oscar', '15570771', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('38276142', 'Cabezas Lucas Gabriel', '15515988', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('21755736', 'Casas Guillermo', '15504574', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('24094852', 'Castro Arturo Anibal', '15613722', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('25927210', 'De Battista Jorgelina', '2983481077', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('12651036', 'Del Prette Juan Carlos', '2262621850', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('13207364', 'Etchemendy Norma Adriana', '2262470774', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('27332925', 'Gomez Leal Jorge Daniel', '539518', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('12130808', 'Kessler Hortensia Lidia', '15644185', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('44830962', 'Khulmann Diego Leonel', '15571698', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('16721815', 'Lozano Norma Beatriz', '15356500', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('28041501', 'Luayza Martha Lorena', '15564370', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('24444302', 'Marambio Ricardo', '2262414211', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('10614344', 'Peshnaski Amalia Liliana', '301214', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('14446656', 'Revelo Claudio Marcelo', '412953', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('26463141', 'Romero Natalia Raquel', '2914464421', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('28151900', 'Sampron Agustin Elias', '579654', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('18405535', 'Suarez Ana Carolina', '436214', 'active', TRUE, CURRENT_DATE, NOW()),
+    ('11105752', 'Vomero Jose Luis', '15369404', 'active', TRUE, CURRENT_DATE, NOW())
+ON CONFLICT (dni) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    status = 'active',
+    email_verified = TRUE,
+    updated_at = NOW();
 `;
 
 async function runMigration() {
