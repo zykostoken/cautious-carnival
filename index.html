@@ -2645,6 +2645,9 @@
                     <p style="text-align: center; margin-top: 1.5rem; color: var(--text-secondary); font-size: 0.85rem;">
                         ¿Nuevo profesional? <a href="#" onclick="showRegisterForm(); return false;" style="color: var(--accent-gold);">Registrarse</a>
                     </p>
+                    <p style="text-align: center; margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                        <a href="#" onclick="showForgotPasswordForm(); return false;" style="color: var(--text-secondary);">¿Olvidaste tu contraseña?</a>
+                    </p>
                 </div>
 
                 <!-- Registration Form (hidden by default) -->
@@ -2662,6 +2665,10 @@
                         <div class="form-group">
                             <label>Contraseña</label>
                             <input type="password" id="reg-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirmar Contraseña</label>
+                            <input type="password" id="reg-password-confirm" required minlength="6">
                         </div>
                         <div class="form-group">
                             <label>Especialidad</label>
@@ -2706,6 +2713,55 @@
                     </p>
                     <p style="text-align: center; margin-top: 0.5rem;">
                         <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
+                    </p>
+                </div>
+
+                <!-- Forgot Password Form (hidden by default) -->
+                <div id="forgot-password-container" style="display: none;">
+                    <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Recuperar Contraseña</h4>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        Ingresá tu email institucional y te enviaremos un código de recuperación.
+                    </p>
+                    <form id="forgot-password-form" onsubmit="requestPasswordReset(event)">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="forgot-email" placeholder="tu@clinicajoseingenieros.ar" required>
+                        </div>
+                        <div class="login-error" id="forgot-error"></div>
+                        <button type="submit" class="btn btn-primary">Enviar Código</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem;">
+                        <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
+                    </p>
+                </div>
+
+                <!-- Reset Password Form (hidden by default) -->
+                <div id="reset-password-container" style="display: none;">
+                    <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Nueva Contraseña</h4>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                        Ingresá el código de 6 dígitos que enviamos a tu email y tu nueva contraseña.
+                    </p>
+                    <form id="reset-password-form" onsubmit="resetPassword(event)">
+                        <div class="form-group">
+                            <label>Código de recuperación</label>
+                            <input type="text" id="reset-code" maxlength="6" pattern="[0-9]{6}"
+                                   placeholder="123456" required
+                                   style="font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nueva Contraseña</label>
+                            <input type="password" id="reset-new-password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirmar Nueva Contraseña</label>
+                            <input type="password" id="reset-new-password-confirm" required minlength="6">
+                        </div>
+                        <input type="hidden" id="reset-email-hidden">
+                        <div class="login-error" id="reset-error"></div>
+                        <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 1rem;">
+                        <a href="#" onclick="showForgotPasswordForm(); return false;" style="color: var(--text-secondary);">← Solicitar nuevo código</a>
                     </p>
                 </div>
             </div>
@@ -3079,7 +3135,7 @@
                     </div>
                     <h3>¿Querés sumarte?</h3>
                     <p>Buscamos profesionales comprometidos con la salud mental.</p>
-                    <a href="mailto:rrhh@clinicajoseingenieros.com.ar" class="btn btn-primary">Enviá tu CV →</a>
+                    <a href="mailto:rrhh@clinicajoseingenieros.ar" class="btn btn-primary">Enviá tu CV →</a>
                 </div>
             </div>
 
@@ -3258,9 +3314,9 @@
                 </div>
                 <div class="contact-item fade-in">
                     <h4>Email</h4>
-                    <a href="mailto:rrhh@clinicajoseingenieros.com.ar">rrhh@clinicajoseingenieros.com.ar</a><br>
-                    <a href="mailto:direccionmedica@clinicajoseingenieros.com.ar">direccionmedica@clinicajoseingenieros.com.ar</a><br>
-                    <a href="mailto:gerencia@clinicajoseingenieros.com.ar">gerencia@clinicajoseingenieros.com.ar</a>
+                    <a href="mailto:rrhh@clinicajoseingenieros.ar">rrhh@clinicajoseingenieros.ar</a><br>
+                    <a href="mailto:direccionmedica@clinicajoseingenieros.ar">direccionmedica@clinicajoseingenieros.ar</a><br>
+                    <a href="mailto:gerencia@clinicajoseingenieros.ar">gerencia@clinicajoseingenieros.ar</a>
                 </div>
                 <div class="contact-item fade-in">
                     <h4>Cobertura</h4>
@@ -4020,7 +4076,7 @@
                     
                     <h3>Turnos</h3>
                     <p>Solicitar por teléfono: <strong>2262-301515</strong></p>
-                    <p>Email: <strong>rrhh@clinicajoseingenieros.com.ar</strong></p>
+                    <p>Email: <strong>rrhh@clinicajoseingenieros.ar</strong></p>
                 </div>
             `,
             hospitaldia: `
@@ -5445,19 +5501,128 @@ function closeModal(event) {
             document.querySelector('.login-form').style.display = 'none';
             document.getElementById('register-form-container').style.display = 'block';
             document.getElementById('verify-email-container').style.display = 'none';
+            document.getElementById('forgot-password-container').style.display = 'none';
+            document.getElementById('reset-password-container').style.display = 'none';
         }
 
         function showLoginForm() {
             document.querySelector('.login-form').style.display = 'block';
             document.getElementById('register-form-container').style.display = 'none';
             document.getElementById('verify-email-container').style.display = 'none';
+            document.getElementById('forgot-password-container').style.display = 'none';
+            document.getElementById('reset-password-container').style.display = 'none';
         }
 
         function showVerifyEmailForm(email) {
             document.querySelector('.login-form').style.display = 'none';
             document.getElementById('register-form-container').style.display = 'none';
             document.getElementById('verify-email-container').style.display = 'block';
+            document.getElementById('forgot-password-container').style.display = 'none';
+            document.getElementById('reset-password-container').style.display = 'none';
             document.getElementById('verify-email-hidden').value = email;
+        }
+
+        function showForgotPasswordForm() {
+            document.querySelector('.login-form').style.display = 'none';
+            document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('verify-email-container').style.display = 'none';
+            document.getElementById('forgot-password-container').style.display = 'block';
+            document.getElementById('reset-password-container').style.display = 'none';
+        }
+
+        function showResetPasswordForm(email) {
+            document.querySelector('.login-form').style.display = 'none';
+            document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('verify-email-container').style.display = 'none';
+            document.getElementById('forgot-password-container').style.display = 'none';
+            document.getElementById('reset-password-container').style.display = 'block';
+            document.getElementById('reset-email-hidden').value = email;
+        }
+
+        async function requestPasswordReset(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('forgot-email').value;
+            const errorEl = document.getElementById('forgot-error');
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'request_password_reset',
+                        email
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showResetPasswordForm(email);
+                    alert(data.message || 'Si el email está registrado, recibirás un código de recuperación.');
+                    errorEl.classList.remove('visible');
+                } else {
+                    errorEl.textContent = data.error || 'Error al solicitar recuperación';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
+        }
+
+        async function resetPassword(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('reset-email-hidden').value;
+            const code = document.getElementById('reset-code').value;
+            const newPassword = document.getElementById('reset-new-password').value;
+            const confirmPassword = document.getElementById('reset-new-password-confirm').value;
+            const errorEl = document.getElementById('reset-error');
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = 'Las contraseñas no coinciden';
+                errorEl.classList.add('visible');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+                errorEl.classList.add('visible');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/professionals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'reset_password',
+                        email,
+                        code,
+                        newPassword
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success && data.sessionToken) {
+                    // Password reset successful, auto-login
+                    professionalSession = data.sessionToken;
+                    localStorage.setItem('professionalSession', professionalSession);
+
+                    showProfessionalDashboard();
+                    alert('Contraseña actualizada exitosamente. ¡Bienvenido!');
+                    errorEl.classList.remove('visible');
+                } else {
+                    errorEl.textContent = data.error || 'Error al cambiar contraseña';
+                    errorEl.classList.add('visible');
+                }
+            } catch (e) {
+                errorEl.textContent = 'Error de conexión';
+                errorEl.classList.add('visible');
+            }
         }
 
         async function loginProfessional(event) {
@@ -5507,9 +5672,23 @@ function closeModal(event) {
             const fullName = document.getElementById('reg-fullname').value;
             const email = document.getElementById('reg-email').value;
             const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-password-confirm').value;
             const specialty = document.getElementById('reg-specialty').value;
             const whatsapp = document.getElementById('reg-whatsapp').value;
             const errorEl = document.getElementById('register-error');
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                errorEl.textContent = 'Las contraseñas no coinciden';
+                errorEl.classList.add('visible');
+                return;
+            }
+
+            if (password.length < 6) {
+                errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+                errorEl.classList.add('visible');
+                return;
+            }
 
             try {
                 const res = await fetch('/api/professionals', {
@@ -6108,7 +6287,7 @@ function closeModal(event) {
 
         // ========== ADMIN FUNCTIONS ==========
         // Admin emails - can be configured via environment or hardcoded
-        const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.com.ar'];
+        const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.ar'];
 
         function isAdmin() {
             return professionalData && ADMIN_EMAILS.includes(professionalData.email);

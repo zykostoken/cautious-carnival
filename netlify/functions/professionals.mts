@@ -52,8 +52,8 @@ const ADMIN_EMAILS = [
   ...(process.env.ADDITIONAL_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [])
 ];
 
-// Valid professional email domains - only clinic staff can register
-const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar', 'clinicajoseingenieros.com.ar'];
+// Valid professional email domains - only clinic staff can register (only .ar domain)
+const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar'];
 
 // Check if email domain is valid for professionals
 function isValidProfessionalEmail(email: string): boolean {
@@ -133,7 +133,7 @@ export default async (req: Request, context: Context) => {
         // Validate email domain - must be clinic staff
         if (!isValidProfessionalEmail(email)) {
           return new Response(JSON.stringify({
-            error: "Solo se permite el registro con emails institucionales (@clinicajoseingenieros.ar o @clinicajoseingenieros.com.ar)"
+            error: "Solo se permite el registro con emails institucionales (@clinicajoseingenieros.ar)"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -274,6 +274,121 @@ export default async (req: Request, context: Context) => {
           professionalId: professional.id,
           message: "Se ha enviado un código de verificación a tu email institucional. Verificá tu bandeja de entrada."
         }), { status: 201, headers: corsHeaders });
+      }
+
+      // Request password reset - sends a verification code to email
+      if (action === "request_password_reset") {
+        const { email } = body;
+
+        if (!email) {
+          return new Response(JSON.stringify({
+            error: "Email es requerido"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [professional] = await sql`
+          SELECT id, email, full_name, email_verified
+          FROM healthcare_professionals
+          WHERE email = ${email}
+        `;
+
+        if (!professional) {
+          // Don't reveal if email exists or not for security
+          return new Response(JSON.stringify({
+            success: true,
+            message: "Si el email está registrado, recibirás un código de recuperación."
+          }), { status: 200, headers: corsHeaders });
+        }
+
+        // Generate reset code
+        const resetCode = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+
+        await sql`
+          UPDATE healthcare_professionals
+          SET verification_code = ${resetCode},
+              verification_expires = ${expiresAt.toISOString()}
+          WHERE id = ${professional.id}
+        `;
+
+        // Send password reset email (async)
+        fetch(`${new URL(req.url).origin}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send_password_reset_email',
+            email,
+            code: resetCode,
+            fullName: professional.full_name
+          })
+        }).catch(e => console.log('Password reset email notification failed:', e));
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Si el email está registrado, recibirás un código de recuperación."
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Reset password with code
+      if (action === "reset_password") {
+        const { email, code, newPassword } = body;
+
+        if (!email || !code || !newPassword) {
+          return new Response(JSON.stringify({
+            error: "Email, código y nueva contraseña son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (newPassword.length < 6) {
+          return new Response(JSON.stringify({
+            error: "La contraseña debe tener al menos 6 caracteres"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [professional] = await sql`
+          SELECT id, verification_code, verification_expires
+          FROM healthcare_professionals
+          WHERE email = ${email}
+        `;
+
+        if (!professional) {
+          return new Response(JSON.stringify({
+            error: "Email no encontrado"
+          }), { status: 404, headers: corsHeaders });
+        }
+
+        if (professional.verification_code !== code) {
+          return new Response(JSON.stringify({
+            error: "Código de recuperación incorrecto"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (new Date(professional.verification_expires) < new Date()) {
+          return new Response(JSON.stringify({
+            error: "El código de recuperación ha expirado. Solicitá uno nuevo."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const passwordHash = await hashPassword(newPassword);
+        const sessionToken = generateSessionToken();
+
+        await sql`
+          UPDATE healthcare_professionals
+          SET password_hash = ${passwordHash},
+              verification_code = NULL,
+              verification_expires = NULL,
+              email_verified = TRUE,
+              is_active = TRUE,
+              session_token = ${sessionToken},
+              last_login = NOW()
+          WHERE id = ${professional.id}
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          sessionToken,
+          message: "Contraseña actualizada exitosamente. Ya podés acceder al sistema."
+        }), { status: 200, headers: corsHeaders });
       }
 
       // Verify email with code

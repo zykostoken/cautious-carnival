@@ -1,20 +1,61 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
-// Admin emails that have full control (institutional domain: clinicajoseingenieros.com.ar)
-const ADMIN_EMAILS = [
-  'direccionmedica@clinicajoseingenieros.com.ar',
-  'gerencia@clinicajoseingenieros.com.ar',
-  'rrhh@clinicajoseingenieros.com.ar'
+// Role-based admin system
+// SUPER_ADMIN: Full control - can modify settings, payments, configurations
+// LIMITED_ADMIN: Can view, list, authorize patients, but cannot modify system settings
+
+// Super Admin - Only direccionmedica has full control
+const SUPER_ADMIN_EMAILS = [
+  'direccionmedica@clinicajoseingenieros.ar'
 ];
 
-// Helper to check if session belongs to admin
-async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+// Limited Admin - Can login, view data, authorize patients, but restricted actions
+const LIMITED_ADMIN_EMAILS = [
+  'gerencia@clinicajoseingenieros.ar',
+  'rrhh@clinicajoseingenieros.ar'
+];
+
+// All admin emails (combined for authentication)
+const ALL_ADMIN_EMAILS = [...SUPER_ADMIN_EMAILS, ...LIMITED_ADMIN_EMAILS];
+
+// Admin role type
+type AdminRole = 'super_admin' | 'limited_admin' | null;
+
+// Helper to get admin role from session
+async function getAdminRole(sql: any, sessionToken: string): Promise<{ role: AdminRole; email: string | null }> {
   const [professional] = await sql`
     SELECT email FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
-  return professional && ADMIN_EMAILS.includes(professional.email);
+
+  if (!professional) {
+    return { role: null, email: null };
+  }
+
+  const email = professional.email.toLowerCase();
+
+  if (SUPER_ADMIN_EMAILS.includes(email)) {
+    return { role: 'super_admin', email };
+  }
+
+  if (LIMITED_ADMIN_EMAILS.includes(email)) {
+    return { role: 'limited_admin', email };
+  }
+
+  return { role: null, email };
+}
+
+// Helper to check if session belongs to any admin (for basic access)
+async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+  const { role } = await getAdminRole(sql, sessionToken);
+  return role !== null;
+}
+
+// Helper to check if session belongs to super admin (for sensitive operations)
+async function isSuperAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+  const { role } = await getAdminRole(sql, sessionToken);
+  return role === 'super_admin';
 }
 
 export default async (req: Request, context: Context) => {
@@ -44,6 +85,23 @@ export default async (req: Request, context: Context) => {
       if (!(await isAdminSession(sql, sessionToken))) {
         return new Response(JSON.stringify({ error: "No autorizado" }),
           { status: 403, headers: corsHeaders });
+      }
+
+      // Define actions that require SUPER_ADMIN role
+      // These are sensitive operations that only direccionmedica can perform
+      const superAdminOnlyActions = [
+        'discharge_patient',     // Alta de paciente (cambio importante)
+        'readmit_patient',       // Readmisión (cambio importante)
+        'reset_password',        // Seguridad - resetear contraseña
+        'bulk_import'            // Importación masiva (cambio de sistema)
+      ];
+
+      if (superAdminOnlyActions.includes(action)) {
+        if (!(await isSuperAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({
+            error: "Acción restringida. Solo Dirección Médica puede realizar esta operación."
+          }), { status: 403, headers: corsHeaders });
+        }
       }
 
       // Add new HDD patient
@@ -298,7 +356,28 @@ export default async (req: Request, context: Context) => {
         { status: 403, headers: corsHeaders });
     }
 
+    // Get current admin role info
+    const { role, email } = await getAdminRole(sql, sessionToken);
+
     try {
+      // Get current admin's role and permissions
+      if (action === "my_role") {
+        return new Response(JSON.stringify({
+          role,
+          email,
+          isSuperAdmin: role === 'super_admin',
+          permissions: {
+            canViewPatients: true,
+            canAddPatients: true,
+            canUpdatePatients: true,
+            canDischargePatients: role === 'super_admin',
+            canReadmitPatients: role === 'super_admin',
+            canResetPasswords: role === 'super_admin',
+            canBulkImport: role === 'super_admin'
+          }
+        }), { status: 200, headers: corsHeaders });
+      }
+
       // List all patients
       if (action === "list" || !action) {
         let patients;

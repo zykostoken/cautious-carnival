@@ -261,6 +261,46 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
         }), { status: 200, headers: corsHeaders });
       }
 
+      // Send password reset email to professional
+      if (action === "send_password_reset_email") {
+        const { email, code, fullName } = body;
+        if (!email || !code) {
+          return new Response(JSON.stringify({ error: "Email y código requeridos" }), { status: 400, headers: corsHeaders });
+        }
+
+        const subject = "Recuperación de Contraseña - Clínica José Ingenieros";
+        const htmlBody = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#dc3545;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">Recuperación de Contraseña</h1>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p>Hola ${fullName || 'Profesional'},</p>
+              <p>Recibimos una solicitud para restablecer tu contraseña en el sistema de telemedicina de la Clínica José Ingenieros.</p>
+              <p>Tu código de recuperación es:</p>
+              <div style="background:#fff;border:2px solid #dc3545;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
+                <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#dc3545">${code}</span>
+              </div>
+              <p style="color:#666;font-size:0.9em">Este código expira en 30 minutos.</p>
+              <p style="background:#fff3cd;padding:15px;border-radius:8px;border-left:4px solid #ffc107;margin-top:20px">
+                <strong>Si no solicitaste este cambio, podés ignorar este mensaje.</strong> Tu contraseña actual seguirá siendo válida.
+              </p>
+            </div>
+            <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
+              <p style="margin:0;font-size:0.85em;color:#666">Clínica Psiquiátrica José Ingenieros - Necochea</p>
+            </div>
+          </div>`;
+
+        const result = await sendEmailNotification(email, subject, htmlBody);
+        try {
+          await logNotification(sql, 'professional', 0, 'email', email, 'password_reset', subject, result);
+        } catch (e) {
+          console.log('Notification log skipped:', e);
+        }
+
+        return new Response(JSON.stringify({ success: result.success, error: result.error }), { status: 200, headers: corsHeaders });
+      }
+
       // Send verification email to professional
       if (action === "send_verification_email") {
         const { email, code, fullName } = body;
