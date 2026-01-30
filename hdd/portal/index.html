@@ -1132,7 +1132,15 @@
         })
       });
 
-      if (result.success && result.requiresVerification) {
+      if (result.success && result.autoVerified) {
+        // Email not configured - auto-verified, log in directly
+        sessionToken = result.sessionToken;
+        currentUser = result.patient;
+        localStorage.setItem('hdd_session', sessionToken);
+        localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+        showApp();
+        loadFeed();
+      } else if (result.success && result.requiresVerification) {
         pendingRegistrationDni = dni;
         pendingRegistrationEmail = email;
         showVerifyForm(email);

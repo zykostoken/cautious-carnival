@@ -348,42 +348,87 @@ export default async (req: Request, context: Context) => {
           }
         }
 
-        const verificationCode = generateVerificationCode();
-        const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+        // Check if email service is configured
+        const emailConfigured = !!(process.env.ZOHO_SMTP_USER && process.env.ZOHO_SMTP_PASS);
 
-        const [patient] = await sql`
-          INSERT INTO hdd_patients (
-            dni, full_name, email, phone, username,
-            status, email_verified, verification_code, verification_expires,
-            admission_date, created_at
-          )
-          VALUES (
-            ${normalizedDni}, ${fullName}, ${email},
-            ${phone || null}, ${username || null},
-            'pending', FALSE, ${verificationCode}, ${verificationExpires.toISOString()},
-            CURRENT_DATE, NOW()
-          )
-          RETURNING id, dni, full_name, email
-        `;
+        if (emailConfigured) {
+          // Normal flow: require email verification
+          const verificationCode = generateVerificationCode();
+          const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
-        // Send verification email (async)
-        fetch(`${new URL(req.url).origin}/api/notifications`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'send_hdd_verification_email',
-            email,
-            code: verificationCode,
-            fullName
-          })
-        }).catch(e => console.log('Email notification failed:', e));
+          const [patient] = await sql`
+            INSERT INTO hdd_patients (
+              dni, full_name, email, phone, username,
+              status, email_verified, verification_code, verification_expires,
+              admission_date, created_at
+            )
+            VALUES (
+              ${normalizedDni}, ${fullName}, ${email},
+              ${phone || null}, ${username || null},
+              'pending', FALSE, ${verificationCode}, ${verificationExpires.toISOString()},
+              CURRENT_DATE, NOW()
+            )
+            RETURNING id, dni, full_name, email
+          `;
 
-        return new Response(JSON.stringify({
-          success: true,
-          requiresVerification: true,
-          patientId: patient.id,
-          message: "Se ha enviado un código de verificación a tu email. Verificá tu bandeja de entrada."
-        }), { status: 201, headers: corsHeaders });
+          // Send verification email
+          fetch(`${new URL(req.url).origin}/api/notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'send_hdd_verification_email',
+              email,
+              code: verificationCode,
+              fullName
+            })
+          }).catch(e => console.log('Email notification failed:', e));
+
+          return new Response(JSON.stringify({
+            success: true,
+            requiresVerification: true,
+            patientId: patient.id,
+            message: "Se ha enviado un código de verificación a tu email. Verificá tu bandeja de entrada."
+          }), { status: 201, headers: corsHeaders });
+        } else {
+          // Email not configured: auto-verify and activate immediately
+          const passwordHash = await hashPassword(email); // Use email as temporary password
+          const sessionToken = generateSessionToken();
+
+          const [patient] = await sql`
+            INSERT INTO hdd_patients (
+              dni, full_name, email, phone, username,
+              status, email_verified, password_hash,
+              session_token, admission_date, created_at, last_login
+            )
+            VALUES (
+              ${normalizedDni}, ${fullName}, ${email},
+              ${phone || null}, ${username || null},
+              'active', TRUE, NULL,
+              ${sessionToken}, CURRENT_DATE, NOW(), NOW()
+            )
+            RETURNING id, dni, full_name, email, phone, photo_url
+          `;
+
+          // Track login
+          await sql`
+            INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
+            VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
+          `.catch(e => console.log('Login tracking failed:', e));
+
+          return new Response(JSON.stringify({
+            success: true,
+            autoVerified: true,
+            patient: {
+              id: patient.id,
+              dni: patient.dni,
+              fullName: patient.full_name,
+              email: patient.email,
+              photoUrl: patient.photo_url
+            },
+            sessionToken,
+            message: "Cuenta creada exitosamente. La primera vez que ingreses con tu DNI, establecerás tu contraseña."
+          }), { status: 201, headers: corsHeaders });
+        }
       }
 
       // Step 2: Verify email with code
