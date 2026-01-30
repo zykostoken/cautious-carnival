@@ -88,13 +88,14 @@ export default async (req: Request, context: Context) => {
       }
 
       // Define actions that require SUPER_ADMIN role
-      // These are sensitive operations that only direccionmedica can perform
+      // These are sensitive security operations that only direccionmedica can perform
       const superAdminOnlyActions = [
-        'discharge_patient',     // Alta de paciente (cambio importante)
-        'readmit_patient',       // Readmisión (cambio importante)
         'reset_password',        // Seguridad - resetear contraseña
         'bulk_import'            // Importación masiva (cambio de sistema)
       ];
+
+      // Note: discharge_patient and readmit_patient are now available to all admins
+      // These are administrative/transcription tasks that any admin can perform
 
       if (superAdminOnlyActions.includes(action)) {
         if (!(await isSuperAdminSession(sql, sessionToken))) {
@@ -370,8 +371,8 @@ export default async (req: Request, context: Context) => {
             canViewPatients: true,
             canAddPatients: true,
             canUpdatePatients: true,
-            canDischargePatients: role === 'super_admin',
-            canReadmitPatients: role === 'super_admin',
+            canDischargePatients: true,  // All admins can discharge (administrative task)
+            canReadmitPatients: true,     // All admins can readmit (administrative task)
             canResetPasswords: role === 'super_admin',
             canBulkImport: role === 'super_admin'
           }
@@ -517,6 +518,192 @@ export default async (req: Request, context: Context) => {
             patientsLoggedIn: parseInt(loggedInCount.count)
           }
         }), { status: 200, headers: corsHeaders });
+      }
+
+      // Get game statistics for professionals
+      if (action === "game_stats") {
+        const gameSlug = url.searchParams.get("game");
+
+        try {
+          // Get game info
+          const [game] = await sql`
+            SELECT id, name FROM hdd_games WHERE slug = ${gameSlug}
+          `;
+
+          if (!game) {
+            return new Response(JSON.stringify({
+              stats: null,
+              message: "Juego no encontrado"
+            }), { status: 200, headers: corsHeaders });
+          }
+
+          // Get aggregate stats
+          const [sessionStats] = await sql`
+            SELECT
+              COUNT(DISTINCT patient_id) as total_players,
+              COUNT(*) as total_sessions,
+              COALESCE(AVG(score), 0) as avg_score,
+              COALESCE(MAX(score), 0) as max_score
+            FROM hdd_game_sessions
+            WHERE game_id = ${game.id}
+          `;
+
+          // Get top players
+          const topPlayers = await sql`
+            SELECT
+              p.full_name,
+              gp.best_score,
+              gp.max_level_reached as max_level,
+              gp.total_sessions
+            FROM hdd_game_progress gp
+            JOIN hdd_patients p ON p.id = gp.patient_id
+            WHERE gp.game_id = ${game.id}
+            ORDER BY gp.best_score DESC
+            LIMIT 10
+          `;
+
+          return new Response(JSON.stringify({
+            stats: {
+              totalPlayers: parseInt(sessionStats.total_players) || 0,
+              totalSessions: parseInt(sessionStats.total_sessions) || 0,
+              avgScore: Math.round(parseFloat(sessionStats.avg_score) || 0),
+              maxScore: parseInt(sessionStats.max_score) || 0
+            },
+            topPlayers: topPlayers.map((p: any) => ({
+              fullName: p.full_name,
+              bestScore: p.best_score,
+              maxLevel: p.max_level,
+              totalSessions: p.total_sessions
+            }))
+          }), { status: 200, headers: corsHeaders });
+        } catch (err) {
+          // Tables might not exist yet
+          return new Response(JSON.stringify({
+            stats: { totalPlayers: 0, totalSessions: 0, avgScore: 0, maxScore: 0 },
+            topPlayers: []
+          }), { status: 200, headers: corsHeaders });
+        }
+      }
+
+      // Get patient metrics
+      if (action === "patient_metrics") {
+        const patientId = url.searchParams.get("patientId");
+
+        if (!patientId) {
+          return new Response(JSON.stringify({ error: "ID de paciente requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        try {
+          // Get patient basic info
+          const [patient] = await sql`
+            SELECT id, full_name, last_login FROM hdd_patients WHERE id = ${patientId}
+          `;
+
+          if (!patient) {
+            return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+              { status: 404, headers: corsHeaders });
+          }
+
+          // Get posts count
+          const [postsCount] = await sql`
+            SELECT COUNT(*) as count FROM hdd_community_posts WHERE patient_id = ${patientId}
+          `;
+
+          // Get game sessions count and total time
+          let gameSessions = 0;
+          let totalGameTime = 0;
+          try {
+            const [gameStats] = await sql`
+              SELECT
+                COUNT(*) as sessions,
+                COALESCE(SUM(duration_seconds), 0) as total_time
+              FROM hdd_game_sessions
+              WHERE patient_id = ${patientId}
+            `;
+            gameSessions = parseInt(gameStats.sessions) || 0;
+            totalGameTime = parseInt(gameStats.total_time) || 0;
+          } catch (e) {
+            // Table might not exist
+          }
+
+          // Get games progress
+          let gamesProgress: any[] = [];
+          try {
+            gamesProgress = await sql`
+              SELECT
+                g.name as game_name,
+                gp.current_level,
+                gp.max_level_reached as max_level,
+                gp.best_score,
+                gp.total_sessions,
+                gp.last_played_at as last_played
+              FROM hdd_game_progress gp
+              JOIN hdd_games g ON g.id = gp.game_id
+              WHERE gp.patient_id = ${patientId}
+              ORDER BY gp.last_played_at DESC
+            `;
+          } catch (e) {
+            // Table might not exist
+          }
+
+          // Get recent activity (posts and game sessions)
+          let recentActivity: any[] = [];
+          try {
+            const recentPosts = await sql`
+              SELECT 'Publicacion' as type, created_at as date, content as details
+              FROM hdd_community_posts
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at DESC
+              LIMIT 5
+            `;
+            recentActivity = recentPosts.map((p: any) => ({
+              type: p.type,
+              date: p.date,
+              details: (p.details || '').substring(0, 50) + '...'
+            }));
+          } catch (e) {
+            // Table might not exist
+          }
+
+          // Count logins from tracking
+          let loginCount = 0;
+          try {
+            const [tracking] = await sql`
+              SELECT login_count FROM hdd_login_tracking WHERE patient_id = ${patientId}
+            `;
+            loginCount = tracking?.login_count || 0;
+          } catch (e) {
+            // Table might not exist, estimate from last_login
+            loginCount = patient.last_login ? 1 : 0;
+          }
+
+          return new Response(JSON.stringify({
+            metrics: {
+              loginCount,
+              gameSessions,
+              postsCount: parseInt(postsCount.count) || 0,
+              totalGameTime
+            },
+            gamesProgress: gamesProgress.map((g: any) => ({
+              gameName: g.game_name,
+              currentLevel: g.current_level,
+              maxLevel: g.max_level,
+              bestScore: g.best_score,
+              totalSessions: g.total_sessions,
+              lastPlayed: g.last_played
+            })),
+            recentActivity
+          }), { status: 200, headers: corsHeaders });
+
+        } catch (err) {
+          console.error("Patient metrics error:", err);
+          return new Response(JSON.stringify({
+            metrics: { loginCount: 0, gameSessions: 0, postsCount: 0, totalGameTime: 0 },
+            gamesProgress: [],
+            recentActivity: []
+          }), { status: 200, headers: corsHeaders });
+        }
       }
 
       return new Response(JSON.stringify({ error: "Acción requerida" }),
