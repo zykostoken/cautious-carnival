@@ -880,6 +880,7 @@
         Acceso exclusivo para profesionales autorizados del Hospital de Dia.
       </div>
 
+      <!-- Login Form -->
       <form id="login-form">
         <div class="form-group">
           <label for="email">Email institucional</label>
@@ -898,8 +899,104 @@
         </button>
       </form>
 
-      <div style="margin-top: 1.5rem; text-align: center;">
-        <a href="/hdd" style="color: var(--primary); font-size: 0.9rem;">Volver al Hospital de Dia</a>
+      <!-- Setup Password Form (for pre-seeded professionals) -->
+      <form id="setup-form" class="hidden">
+        <div class="alert alert-info" style="margin-bottom: 1rem;">
+          <strong>Primera vez?</strong> Configure su contrasena para acceder al sistema.
+        </div>
+
+        <div class="form-group">
+          <label for="setup-email">Email institucional</label>
+          <input type="email" id="setup-email" placeholder="usuario@clinicajoseingenieros.ar" required>
+        </div>
+
+        <div class="form-group">
+          <label for="setup-name">Nombre completo</label>
+          <input type="text" id="setup-name" placeholder="Su nombre completo" required>
+        </div>
+
+        <div class="form-group">
+          <label for="setup-password">Nueva contrasena</label>
+          <input type="password" id="setup-password" placeholder="Minimo 6 caracteres" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="setup-password-confirm">Confirmar contrasena</label>
+          <input type="password" id="setup-password-confirm" placeholder="Repita la contrasena" required minlength="6">
+        </div>
+
+        <div id="setup-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.85rem;">
+          Configurar y Acceder
+        </button>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form id="forgot-form" class="hidden">
+        <div class="alert alert-info" style="margin-bottom: 1rem;">
+          Ingrese su email institucional para recibir un codigo de recuperacion.
+        </div>
+
+        <div class="form-group">
+          <label for="forgot-email">Email institucional</label>
+          <input type="email" id="forgot-email" placeholder="usuario@clinicajoseingenieros.ar" required>
+        </div>
+
+        <div id="forgot-error" class="form-error hidden"></div>
+        <div id="forgot-success" class="alert alert-success hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.85rem;">
+          Enviar Codigo
+        </button>
+      </form>
+
+      <!-- Reset Password Form -->
+      <form id="reset-form" class="hidden">
+        <div class="alert alert-info" style="margin-bottom: 1rem;">
+          Ingrese el codigo de 6 digitos que recibio en su email.
+        </div>
+
+        <div class="form-group">
+          <label for="reset-email">Email institucional</label>
+          <input type="email" id="reset-email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reset-code">Codigo de recuperacion</label>
+          <input type="text" id="reset-code" placeholder="123456" required maxlength="6" pattern="[0-9]{6}">
+        </div>
+
+        <div class="form-group">
+          <label for="reset-password">Nueva contrasena</label>
+          <input type="password" id="reset-password" placeholder="Minimo 6 caracteres" required minlength="6">
+        </div>
+
+        <div id="reset-error" class="form-error hidden"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.85rem;">
+          Restablecer Contrasena
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 0.75rem;">
+        <div id="login-links">
+          <a href="#" onclick="showSetupForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Primera vez? Configurar contrasena</a>
+          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span>
+          <a href="#" onclick="showForgotForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Olvide mi contrasena</a>
+        </div>
+        <div id="setup-links" class="hidden">
+          <a href="#" onclick="showLoginForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Ya tengo contrasena, iniciar sesion</a>
+        </div>
+        <div id="forgot-links" class="hidden">
+          <a href="#" onclick="showLoginForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Volver al inicio de sesion</a>
+          <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span>
+          <a href="#" onclick="showResetForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Ya tengo un codigo</a>
+        </div>
+        <div id="reset-links" class="hidden">
+          <a href="#" onclick="showLoginForm(); return false;" style="color: var(--primary); font-size: 0.9rem;">Volver al inicio de sesion</a>
+        </div>
+        <a href="/hdd" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">Volver al Hospital de Dia</a>
       </div>
     </div>
   </div>
@@ -2471,6 +2568,62 @@
       });
     }
 
+    // =====================================
+    // FORM SWITCHING FUNCTIONS
+    // =====================================
+    function showLoginForm() {
+      document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('setup-form').classList.add('hidden');
+      document.getElementById('forgot-form').classList.add('hidden');
+      document.getElementById('reset-form').classList.add('hidden');
+      document.getElementById('login-links').classList.remove('hidden');
+      document.getElementById('setup-links').classList.add('hidden');
+      document.getElementById('forgot-links').classList.add('hidden');
+      document.getElementById('reset-links').classList.add('hidden');
+      // Clear errors
+      document.querySelectorAll('.form-error, .alert-success').forEach(el => el.classList.add('hidden'));
+    }
+
+    function showSetupForm() {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('setup-form').classList.remove('hidden');
+      document.getElementById('forgot-form').classList.add('hidden');
+      document.getElementById('reset-form').classList.add('hidden');
+      document.getElementById('login-links').classList.add('hidden');
+      document.getElementById('setup-links').classList.remove('hidden');
+      document.getElementById('forgot-links').classList.add('hidden');
+      document.getElementById('reset-links').classList.add('hidden');
+    }
+
+    function showForgotForm() {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('setup-form').classList.add('hidden');
+      document.getElementById('forgot-form').classList.remove('hidden');
+      document.getElementById('reset-form').classList.add('hidden');
+      document.getElementById('login-links').classList.add('hidden');
+      document.getElementById('setup-links').classList.add('hidden');
+      document.getElementById('forgot-links').classList.remove('hidden');
+      document.getElementById('reset-links').classList.add('hidden');
+    }
+
+    function showResetForm(email = '') {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('setup-form').classList.add('hidden');
+      document.getElementById('forgot-form').classList.add('hidden');
+      document.getElementById('reset-form').classList.remove('hidden');
+      document.getElementById('login-links').classList.add('hidden');
+      document.getElementById('setup-links').classList.add('hidden');
+      document.getElementById('forgot-links').classList.add('hidden');
+      document.getElementById('reset-links').classList.remove('hidden');
+      if (email) {
+        document.getElementById('reset-email').value = email;
+      }
+    }
+
+    // =====================================
+    // FORM HANDLERS
+    // =====================================
+
     // Login form
     document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -2483,7 +2636,152 @@
       const result = await login(email, password);
 
       if (!result.success) {
-        errorEl.textContent = result.error || 'Error al iniciar sesion';
+        // Check if error suggests no password set
+        if (result.error && result.error.includes('Credenciales')) {
+          errorEl.innerHTML = result.error + '<br><small>Si es su primera vez, use "Primera vez? Configurar contrasena"</small>';
+        } else {
+          errorEl.textContent = result.error || 'Error al iniciar sesion';
+        }
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Setup password form (for pre-seeded professionals)
+    document.getElementById('setup-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('setup-email').value.trim();
+      const fullName = document.getElementById('setup-name').value.trim();
+      const password = document.getElementById('setup-password').value;
+      const passwordConfirm = document.getElementById('setup-password-confirm').value;
+
+      const errorEl = document.getElementById('setup-error');
+      errorEl.classList.add('hidden');
+
+      // Validate passwords match
+      if (password !== passwordConfirm) {
+        errorEl.textContent = 'Las contrasenas no coinciden';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (password.length < 6) {
+        errorEl.textContent = 'La contrasena debe tener al menos 6 caracteres';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // Use register action which handles pre-seeded professionals
+      const result = await api('/api/professionals', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'register',
+          email,
+          fullName,
+          password
+        })
+      });
+
+      if (result.success && result.sessionToken) {
+        sessionToken = result.sessionToken;
+        localStorage.setItem('hdd_admin_session', sessionToken);
+
+        // Check admin role
+        const roleResult = await api(`/api/hdd/admin?action=my_role&sessionToken=${sessionToken}`);
+
+        if (roleResult.role) {
+          adminRole = roleResult.role;
+          adminEmail = roleResult.email;
+          permissions = roleResult.permissions;
+          showApp();
+          loadDashboard();
+        } else {
+          errorEl.textContent = 'Cuenta configurada pero no tiene permisos de administrador del HDD';
+          errorEl.classList.remove('hidden');
+          localStorage.removeItem('hdd_admin_session');
+        }
+      } else if (result.requiresVerification) {
+        errorEl.innerHTML = 'Se ha enviado un codigo de verificacion a su email. <a href="#" onclick="showResetForm(\'' + email + '\'); return false;">Ingresar codigo</a>';
+        errorEl.classList.remove('hidden');
+      } else {
+        errorEl.textContent = result.error || 'Error al configurar cuenta';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Forgot password form
+    document.getElementById('forgot-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('forgot-email').value.trim();
+
+      const errorEl = document.getElementById('forgot-error');
+      const successEl = document.getElementById('forgot-success');
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+
+      const result = await api('/api/professionals', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'request_password_reset',
+          email
+        })
+      });
+
+      if (result.success) {
+        successEl.textContent = 'Si el email esta registrado, recibira un codigo de recuperacion. Revise su bandeja de entrada.';
+        successEl.classList.remove('hidden');
+        // Pre-fill reset form email
+        document.getElementById('reset-email').value = email;
+      } else {
+        errorEl.textContent = result.error || 'Error al solicitar recuperacion';
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    // Reset password form
+    document.getElementById('reset-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('reset-email').value.trim();
+      const code = document.getElementById('reset-code').value.trim();
+      const newPassword = document.getElementById('reset-password').value;
+
+      const errorEl = document.getElementById('reset-error');
+      errorEl.classList.add('hidden');
+
+      if (newPassword.length < 6) {
+        errorEl.textContent = 'La contrasena debe tener al menos 6 caracteres';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const result = await api('/api/professionals', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'reset_password',
+          email,
+          code,
+          newPassword
+        })
+      });
+
+      if (result.success && result.sessionToken) {
+        sessionToken = result.sessionToken;
+        localStorage.setItem('hdd_admin_session', sessionToken);
+
+        // Check admin role
+        const roleResult = await api(`/api/hdd/admin?action=my_role&sessionToken=${sessionToken}`);
+
+        if (roleResult.role) {
+          adminRole = roleResult.role;
+          adminEmail = roleResult.email;
+          permissions = roleResult.permissions;
+          showApp();
+          loadDashboard();
+        } else {
+          alert('Contrasena restablecida exitosamente, pero no tiene permisos de administrador del HDD.');
+          showLoginForm();
+        }
+      } else {
+        errorEl.textContent = result.error || 'Error al restablecer contrasena';
         errorEl.classList.remove('hidden');
       }
     });
