@@ -350,7 +350,7 @@ NOS MUDAMOS — Consultorios: Calle 52 #2995 | Internación: Calle 52 #2990 — 
 </div>
 </div>
 </div>
-<div class="team-card cta" onclick="window.location.href='mailto:rrhh@clinicajoseingenieros.com.ar'">
+<div class="team-card cta" onclick="window.location.href='mailto:rrhh@clinicajoseingenieros.ar'">
 <div class="team-avatar">+</div>
 <div class="team-content">
 <h4>Sumate al equipo</h4>
@@ -518,7 +518,7 @@ NOS MUDAMOS — Consultorios: Calle 52 #2995 | Internación: Calle 52 #2990 — 
 <footer>
 <div class="footer-content">
 <div class="footer-brand">Clínica Psiquiátrica José <span style="color:var(--accent);font-style:italic">Ingenieros</span></div>
-<div class="footer-legal">SRL Martin Andrea - Pérez Cortizo Gonzalo Joaquín | clinicajoseingenieros.com.ar</div>
+<div class="footer-legal">SRL Martin Andrea - Pérez Cortizo Gonzalo Joaquín | clinicajoseingenieros.ar</div>
 </div>
 </footer>
 

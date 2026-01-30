@@ -1,6 +1,10 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
+// Los pacientes autorizados ahora están directamente en la base de datos (tabla hdd_patients)
+// Ya no se necesita una lista hardcodeada de DNIs - los admins pueden agregar pacientes
+// directamente a través del panel de administración o la migración inicial
+
 // Simple password hashing (same as professionals)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -274,20 +278,22 @@ export default async (req: Request, context: Context) => {
       }
 
       // ===========================================
-      // SELF-REGISTRATION WITH EMAIL VERIFICATION
+      // REGISTRO SIMPLIFICADO - PACIENTES EN BASE DE DATOS
       // ===========================================
+      // El registro solo está disponible para pacientes que ya están en la base de datos.
+      // Los pacientes son pre-cargados por la migración o agregados por administradores.
 
-      // Step 1: Register new HDD patient (self-registration)
+      // Registro directo - solo para DNIs que ya existen en la base de datos
       if (action === "register") {
-        const { dni, fullName, email, username, phone } = body;
+        const { dni, fullName, email, password } = body;
 
-        if (!dni || !fullName || !email) {
+        if (!dni || !fullName || !email || !password) {
           return new Response(JSON.stringify({
-            error: "DNI, nombre completo y email son requeridos"
+            error: "DNI, nombre completo, email y contraseña son requeridos"
           }), { status: 400, headers: corsHeaders });
         }
 
-        // Validate DNI format (8-digit number)
+        // Validate DNI format (7-8 digit number)
         if (!/^\d{7,8}$/.test(dni.replace(/\./g, ''))) {
           return new Response(JSON.stringify({
             error: "DNI inválido. Debe ser un número de 7 u 8 dígitos."
@@ -301,158 +307,63 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Validate password length
+        if (password.length < 6) {
+          return new Response(JSON.stringify({
+            error: "La contraseña debe tener al menos 6 caracteres"
+          }), { status: 400, headers: corsHeaders });
+        }
+
         const normalizedDni = dni.replace(/\./g, '');
 
-        // Check if DNI already exists
+        // Verificar si el DNI existe en la base de datos (pre-cargado por migración o admin)
         const [existing] = await sql`
-          SELECT id, email_verified, status FROM hdd_patients WHERE dni = ${normalizedDni}
+          SELECT id, email_verified, status, password_hash, full_name FROM hdd_patients WHERE dni = ${normalizedDni}
         `;
 
-        if (existing) {
-          if (existing.email_verified && existing.status === 'active') {
-            return new Response(JSON.stringify({
-              error: "Ya existe una cuenta con ese DNI. Inicie sesión."
-            }), { status: 400, headers: corsHeaders });
-          } else if (!existing.email_verified) {
-            // Re-send verification code
-            const verificationCode = generateVerificationCode();
-            const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
-
-            await sql`
-              UPDATE hdd_patients
-              SET verification_code = ${verificationCode},
-                  verification_expires = ${expiresAt.toISOString()},
-                  email = ${email},
-                  full_name = ${fullName}
-              WHERE id = ${existing.id}
-            `;
-
-            // Send verification email (async)
-            fetch(`${new URL(req.url).origin}/api/notifications`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'send_hdd_verification_email',
-                email,
-                code: verificationCode,
-                fullName
-              })
-            }).catch(e => console.log('Email notification failed:', e));
-
-            return new Response(JSON.stringify({
-              success: true,
-              requiresVerification: true,
-              patientId: existing.id,
-              message: "Se ha enviado un nuevo código de verificación a tu email"
-            }), { status: 200, headers: corsHeaders });
-          }
+        if (!existing) {
+          return new Response(JSON.stringify({
+            error: "Tu DNI no está registrado en Hospital de Día. Contactá con la clínica para más información."
+          }), { status: 403, headers: corsHeaders });
         }
 
-        const verificationCode = generateVerificationCode();
-        const verificationExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
-
-        const [patient] = await sql`
-          INSERT INTO hdd_patients (
-            dni, full_name, email, phone, username,
-            status, email_verified, verification_code, verification_expires,
-            admission_date, created_at
-          )
-          VALUES (
-            ${normalizedDni}, ${fullName}, ${email},
-            ${phone || null}, ${username || null},
-            'pending', FALSE, ${verificationCode}, ${verificationExpires.toISOString()},
-            CURRENT_DATE, NOW()
-          )
-          RETURNING id, dni, full_name, email
-        `;
-
-        // Send verification email (async)
-        fetch(`${new URL(req.url).origin}/api/notifications`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'send_hdd_verification_email',
-            email,
-            code: verificationCode,
-            fullName
-          })
-        }).catch(e => console.log('Email notification failed:', e));
-
-        return new Response(JSON.stringify({
-          success: true,
-          requiresVerification: true,
-          patientId: patient.id,
-          message: "Se ha enviado un código de verificación a tu email. Verificá tu bandeja de entrada."
-        }), { status: 201, headers: corsHeaders });
-      }
-
-      // Step 2: Verify email with code
-      if (action === "verify_email") {
-        const { dni, code, password } = body;
-
-        if (!dni || !code || !password) {
+        if (existing.password_hash && existing.status === 'active') {
           return new Response(JSON.stringify({
-            error: "DNI, código de verificación y contraseña son requeridos"
+            error: "Ya existe una cuenta con ese DNI. Iniciá sesión."
           }), { status: 400, headers: corsHeaders });
         }
 
-        const normalizedDni = dni.replace(/\./g, '');
-
-        const [patient] = await sql`
-          SELECT id, verification_code, verification_expires, email_verified
-          FROM hdd_patients
-          WHERE dni = ${normalizedDni}
-        `;
-
-        if (!patient) {
+        if (existing.status !== 'active') {
           return new Response(JSON.stringify({
-            error: "DNI no encontrado"
-          }), { status: 404, headers: corsHeaders });
+            error: "Tu cuenta no está activa. Contactá con la clínica para más información."
+          }), { status: 403, headers: corsHeaders });
         }
 
-        if (patient.email_verified) {
-          return new Response(JSON.stringify({
-            error: "El email ya está verificado. Inicie sesión."
-          }), { status: 400, headers: corsHeaders });
-        }
-
-        if (patient.verification_code !== code) {
-          return new Response(JSON.stringify({
-            error: "Código de verificación incorrecto"
-          }), { status: 400, headers: corsHeaders });
-        }
-
-        if (new Date(patient.verification_expires) < new Date()) {
-          return new Response(JSON.stringify({
-            error: "El código de verificación ha expirado. Solicitá uno nuevo."
-          }), { status: 400, headers: corsHeaders });
-        }
-
+        // Cuenta existente sin contraseña - actualizar datos y activar
         const passwordHash = await hashPassword(password);
         const sessionToken = generateSessionToken();
 
         await sql`
           UPDATE hdd_patients
-          SET email_verified = TRUE,
-              status = 'active',
+          SET full_name = ${fullName},
+              email = ${email},
               password_hash = ${passwordHash},
-              verification_code = NULL,
-              verification_expires = NULL,
+              email_verified = TRUE,
               session_token = ${sessionToken},
-              last_login = NOW()
-          WHERE id = ${patient.id}
+              last_login = NOW(),
+              updated_at = NOW()
+          WHERE id = ${existing.id}
         `;
 
         // Track login
         await sql`
           INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
-          VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
+          VALUES (${existing.id}, NOW(), ${req.headers.get('user-agent') || null})
         `.catch(e => console.log('Login tracking failed:', e));
 
-        // Get patient data
         const [updatedPatient] = await sql`
           SELECT id, dni, full_name, email, phone, photo_url
-          FROM hdd_patients WHERE id = ${patient.id}
+          FROM hdd_patients WHERE id = ${existing.id}
         `;
 
         return new Response(JSON.stringify({
@@ -465,13 +376,13 @@ export default async (req: Request, context: Context) => {
             photoUrl: updatedPatient.photo_url
           },
           sessionToken,
-          message: "Email verificado exitosamente. Ya podés acceder al portal."
+          message: "Registro exitoso. Bienvenido/a al Hospital de Día."
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Resend verification code
-      if (action === "resend_verification") {
-        const { dni, email } = body;
+      // Verificar si un DNI está en la base de datos (para el frontend)
+      if (action === "check_dni") {
+        const { dni } = body;
 
         if (!dni) {
           return new Response(JSON.stringify({
@@ -481,49 +392,18 @@ export default async (req: Request, context: Context) => {
 
         const normalizedDni = dni.replace(/\./g, '');
 
+        // Buscar en la base de datos en lugar de lista hardcodeada
         const [patient] = await sql`
-          SELECT id, email, full_name, email_verified
-          FROM hdd_patients WHERE dni = ${normalizedDni}
+          SELECT id, status FROM hdd_patients WHERE dni = ${normalizedDni}
         `;
 
-        if (!patient) {
-          return new Response(JSON.stringify({
-            error: "DNI no encontrado"
-          }), { status: 404, headers: corsHeaders });
-        }
-
-        if (patient.email_verified) {
-          return new Response(JSON.stringify({
-            error: "El email ya está verificado. Inicie sesión."
-          }), { status: 400, headers: corsHeaders });
-        }
-
-        const verificationCode = generateVerificationCode();
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-
-        await sql`
-          UPDATE hdd_patients
-          SET verification_code = ${verificationCode},
-              verification_expires = ${expiresAt.toISOString()},
-              email = COALESCE(${email || null}, email)
-          WHERE id = ${patient.id}
-        `;
-
-        // Send verification email
-        fetch(`${new URL(req.url).origin}/api/notifications`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'send_hdd_verification_email',
-            email: email || patient.email,
-            code: verificationCode,
-            fullName: patient.full_name
-          })
-        }).catch(e => console.log('Email notification failed:', e));
+        const isAuthorized = patient && patient.status === 'active';
 
         return new Response(JSON.stringify({
-          success: true,
-          message: "Se ha enviado un nuevo código de verificación a tu email"
+          authorized: isAuthorized,
+          message: isAuthorized
+            ? "DNI autorizado. Podés completar tu registro."
+            : "Tu DNI no está en la lista de pacientes autorizados para Hospital de Día."
         }), { status: 200, headers: corsHeaders });
       }
 
