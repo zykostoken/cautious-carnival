@@ -35,6 +35,33 @@
   to = "/hdd/:splat"
   status = 200
 
+# =============================================
+# EXTERNAL GAMES PORTAL (separate from HDD)
+# =============================================
+
+# Games Login/Landing
+[[redirects]]
+  from = "/games"
+  to = "/games/index.html"
+  status = 200
+
+# Games Portal (after auth)
+[[redirects]]
+  from = "/games/portal"
+  to = "/games/portal/index.html"
+  status = 200
+
+# Individual Games
+[[redirects]]
+  from = "/games/play/*"
+  to = "/games/play/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/games/*"
+  to = "/games/:splat"
+  status = 200
+
 # Main SPA fallback
 [[redirects]]
   from = "/*"

@@ -1,0 +1,79 @@
+================================================================================
+                         LICENCIA Y DERECHOS DE AUTOR
+================================================================================
+
+CORTADORA DE CESPED - Juego Terapeutico para Hospital de Dia
+Version 1.0
+
+--------------------------------------------------------------------------------
+                            AVISO DE COPYRIGHT
+--------------------------------------------------------------------------------
+
+Copyright (c) 2024-2026 Hospital de Dia - Jose Ingenieros
+Todos los derechos reservados.
+All rights reserved.
+
+--------------------------------------------------------------------------------
+                         DECLARACION DE AUTORIA
+--------------------------------------------------------------------------------
+
+Este software fue desarrollado como herramienta terapeutica para el Hospital
+de Dia, con el proposito de asistir en procesos de rehabilitacion cognitiva
+y estimulacion mental.
+
+El presente juego "Cortadora de Cesped" es una obra original que incluye:
+
+  - Codigo fuente (HTML5, CSS3, JavaScript)
+  - Diseno grafico y elementos visuales
+  - Diseno de niveles y progresion de dificultad
+  - Mecanicas de juego y sistema de puntuacion
+  - Interfaz de usuario y experiencia interactiva
+
+--------------------------------------------------------------------------------
+                        DERECHOS RESERVADOS
+--------------------------------------------------------------------------------
+
+Queda expresamente prohibida, sin autorizacion previa por escrito:
+
+  1. La reproduccion total o parcial de este software
+  2. La distribucion comercial
+  3. La modificacion del codigo fuente
+  4. La creacion de obras derivadas
+  5. El uso comercial sin licencia
+
+--------------------------------------------------------------------------------
+                         USO PERMITIDO
+--------------------------------------------------------------------------------
+
+Se permite el uso de este software para:
+
+  - Fines terapeuticos en instituciones de salud
+  - Fines educativos y de investigacion
+  - Demostraciones ante entidades gubernamentales
+  - Evaluacion por parte del Ministerio de Salud
+
+--------------------------------------------------------------------------------
+                     INFORMACION DE REGISTRO
+--------------------------------------------------------------------------------
+
+Para registrar formalmente esta obra en Argentina:
+
+  Organismo: Direccion Nacional del Derecho de Autor (DNDA)
+  Direccion: Moreno 1228, Ciudad de Buenos Aires
+  Web: https://www.argentina.gob.ar/justicia/derechodeautor
+
+  Tipo de obra: Software / Programa de computacion
+  Categoria: Juego interactivo con fines terapeuticos
+
+--------------------------------------------------------------------------------
+                           CONTACTO
+--------------------------------------------------------------------------------
+
+Para consultas sobre licenciamiento o permisos especiales:
+
+  Hospital de Dia - Jose Ingenieros
+  Sitio web: https://joseingenieros.netlify.app
+
+================================================================================
+                              FIN DE LICENCIA
+================================================================================
