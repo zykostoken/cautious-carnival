@@ -36,7 +36,7 @@ export default async (req: Request, context: Context) => {
 
       // Create new announcement (supports both admin and public community messages)
       if (action === "create") {
-        const { title, content, type, authorName, color, showFrom, showUntil, isPinned } = body;
+        const { title, content, type, authorName, color, showFrom, showUntil, isPinned, imageUrl } = body;
 
         if (!content) {
           return new Response(JSON.stringify({
@@ -57,6 +57,12 @@ export default async (req: Request, context: Context) => {
           }
         }
 
+        // If there's an image, append it to content with a marker
+        let finalContent = content;
+        if (imageUrl) {
+          finalContent = content + `\n[IMG:${imageUrl}]`;
+        }
+
         const [announcement] = await sql`
           INSERT INTO announcements (
             title, content, author_name, type, color, is_pinned,
@@ -64,7 +70,7 @@ export default async (req: Request, context: Context) => {
           )
           VALUES (
             ${title || 'Mensaje de Pizarra'},
-            ${content},
+            ${finalContent},
             ${authorName || null},
             ${type || 'info'},
             ${color || '#e8dcc8'},

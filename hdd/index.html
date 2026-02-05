@@ -481,6 +481,75 @@
       border-color: rgba(255, 255, 255, 0.5);
     }
 
+    .blackboard-image-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: #e8dcc8;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .blackboard-image-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .blackboard-image-btn.has-image {
+      background: rgba(130, 224, 170, 0.2);
+      border-color: rgba(130, 224, 170, 0.5);
+    }
+
+    .blackboard-image-preview {
+      margin-top: 0.75rem;
+      display: none;
+      position: relative;
+    }
+
+    .blackboard-image-preview.show {
+      display: block;
+    }
+
+    .blackboard-image-preview img {
+      max-width: 200px;
+      max-height: 150px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .blackboard-image-remove {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .board-message-image {
+      margin-top: 0.5rem;
+    }
+
+    .board-message-image img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
     /* ========== ACTIVITIES SECTION ========== */
     .activities-section {
       margin-bottom: 4rem;
@@ -789,7 +858,13 @@
           <div class="blackboard-input-area">
             <input type="text" class="blackboard-name" id="board-name" placeholder="Tu nombre (opcional)">
             <textarea class="blackboard-input" id="board-message" placeholder="Escribí tu mensaje aquí..." rows="2"></textarea>
+            <input type="file" id="board-image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
+            <button class="blackboard-image-btn" id="board-image-btn" onclick="document.getElementById('board-image-input').click()" title="Adjuntar imagen">📷</button>
             <button class="blackboard-submit" onclick="postBoardMessage()">Publicar</button>
+          </div>
+          <div class="blackboard-image-preview" id="board-image-preview">
+            <img id="board-image-preview-img" src="" alt="Vista previa">
+            <button class="blackboard-image-remove" onclick="clearBoardImage()">✕</button>
           </div>
         </div>
       </section>
@@ -958,6 +1033,7 @@
     // ========== BLACKBOARD FUNCTIONALITY ==========
     let selectedColor = '#e8dcc8';
     let boardMessages = [];
+    let pendingImageFile = null;
 
     // Load messages from server
     async function loadBoardMessages() {
@@ -974,6 +1050,18 @@
       }
     }
 
+    function parseMessageContent(content) {
+      // Parse content to separate text from image URL
+      const imgMatch = content.match(/\[IMG:(.*?)\]$/);
+      if (imgMatch) {
+        return {
+          text: content.replace(/\n?\[IMG:.*?\]$/, ''),
+          imageUrl: imgMatch[1]
+        };
+      }
+      return { text: content, imageUrl: null };
+    }
+
     function renderBoardMessages() {
       const container = document.getElementById('blackboard-messages');
       if (!boardMessages.length) {
@@ -986,12 +1074,17 @@
         return;
       }
 
-      container.innerHTML = boardMessages.map(msg => `
-        <div class="board-message" style="color: ${msg.color || '#e8dcc8'};">
-          ${escapeHtml(msg.content)}
-          <div class="board-message-author">- ${escapeHtml(msg.author_name || 'Anónimo')}, ${formatDate(msg.created_at)}</div>
-        </div>
-      `).join('');
+      container.innerHTML = boardMessages.map(msg => {
+        const { text, imageUrl } = parseMessageContent(msg.content);
+        let html = `<div class="board-message" style="color: ${msg.color || '#e8dcc8'};">`;
+        html += escapeHtml(text);
+        if (imageUrl) {
+          html += `<div class="board-message-image"><img src="${escapeHtml(imageUrl)}" alt="Imagen adjunta" loading="lazy"></div>`;
+        }
+        html += `<div class="board-message-author">- ${escapeHtml(msg.author_name || 'Anónimo')}, ${formatDate(msg.created_at)}</div>`;
+        html += `</div>`;
+        return html;
+      }).join('');
     }
 
     function escapeHtml(text) {
@@ -1005,26 +1098,85 @@
       return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
     }
 
+    // Image upload handling
+    document.getElementById('board-image-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('La imagen es demasiado grande. Máximo 2MB.');
+        this.value = '';
+        return;
+      }
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('board-image-preview-img').src = e.target.result;
+        document.getElementById('board-image-preview').classList.add('show');
+        document.getElementById('board-image-btn').classList.add('has-image');
+      };
+      reader.readAsDataURL(file);
+      pendingImageFile = file;
+    });
+
+    function clearBoardImage() {
+      pendingImageFile = null;
+      document.getElementById('board-image-input').value = '';
+      document.getElementById('board-image-preview').classList.remove('show');
+      document.getElementById('board-image-btn').classList.remove('has-image');
+    }
+
+    async function uploadImage(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/board-images', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al subir la imagen');
+      }
+      return data.imageUrl;
+    }
+
     async function postBoardMessage() {
       const name = document.getElementById('board-name').value.trim();
       const message = document.getElementById('board-message').value.trim();
 
-      if (!message) {
-        alert('Escribí un mensaje para publicar');
+      if (!message && !pendingImageFile) {
+        alert('Escribí un mensaje o adjuntá una imagen para publicar');
         return;
       }
 
       try {
+        let imageUrl = null;
+
+        // Upload image first if present
+        if (pendingImageFile) {
+          try {
+            imageUrl = await uploadImage(pendingImageFile);
+          } catch (imgError) {
+            alert(imgError.message || 'Error al subir la imagen');
+            return;
+          }
+        }
+
         const response = await fetch('/api/announcements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'create',
             title: 'Mensaje de Pizarra',
-            content: message,
+            content: message || '(imagen)',
             authorName: name || 'Visitante',
             type: 'community',
-            color: selectedColor
+            color: selectedColor,
+            imageUrl: imageUrl
           })
         });
 
@@ -1032,6 +1184,7 @@
         if (data.success) {
           document.getElementById('board-name').value = '';
           document.getElementById('board-message').value = '';
+          clearBoardImage();
           loadBoardMessages();
         } else {
           alert(data.error || 'Error al publicar el mensaje');

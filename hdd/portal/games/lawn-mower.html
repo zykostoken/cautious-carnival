@@ -448,6 +448,7 @@
     <div class="screen-card" style="max-height: 90vh; overflow-y: auto;">
       <h1>Cortadora de Cesped</h1>
       <p class="subtitle">Corta todo el cesped del jardin sin dañar las flores ni caer en la piscina.</p>
+      <p class="subtitle" style="font-size:0.8rem; margin-top:0.5rem; opacity:0.8;">Controles: Flechas/WASD, D-Pad tactil, o arrastra con click derecho del mouse.</p>
       <div class="level-list">
         <button class="level-btn" data-level="1">
           <div class="level-num">1</div>
@@ -1855,7 +1856,7 @@
     }
   });
 
-  // ---- SWIPE SUPPORT ----
+  // ---- SWIPE SUPPORT (Touch) ----
   let touchStartX = 0, touchStartY = 0;
   let touchStartTime = 0;
   canvas.addEventListener('touchstart', function(e) {
@@ -1887,6 +1888,66 @@
         movePlayer(0, dy > 0 ? 1 : -1);
       }
     }
+  });
+
+  // ---- MOUSE DRAG SUPPORT (PC) ----
+  // Allows players to click and drag with right mouse button to move
+  let mouseDown = false;
+  let mouseStartX = 0, mouseStartY = 0;
+  let lastMoveTime = 0;
+  const MOUSE_MOVE_THRESHOLD = 25; // pixels needed to trigger movement
+  const MOUSE_MOVE_COOLDOWN = 150; // ms between movements for smooth control
+
+  canvas.addEventListener('mousedown', function(e) {
+    // Right-click (button 2) or middle-click (button 1) for drag movement
+    if (e.button === 2 || e.button === 1) {
+      e.preventDefault();
+      mouseDown = true;
+      mouseStartX = e.clientX;
+      mouseStartY = e.clientY;
+      canvas.style.cursor = 'grabbing';
+    }
+  });
+
+  canvas.addEventListener('mousemove', function(e) {
+    if (!mouseDown || !gameRunning) return;
+
+    const now = Date.now();
+    if (now - lastMoveTime < MOUSE_MOVE_COOLDOWN) return;
+
+    const dx = e.clientX - mouseStartX;
+    const dy = e.clientY - mouseStartY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist >= MOUSE_MOVE_THRESHOLD) {
+      // Determine primary direction
+      if (Math.abs(dx) > Math.abs(dy)) {
+        movePlayer(dx > 0 ? 1 : -1, 0);
+      } else {
+        movePlayer(0, dy > 0 ? 1 : -1);
+      }
+      // Reset start position for continuous movement
+      mouseStartX = e.clientX;
+      mouseStartY = e.clientY;
+      lastMoveTime = now;
+    }
+  });
+
+  canvas.addEventListener('mouseup', function(e) {
+    if (e.button === 2 || e.button === 1) {
+      mouseDown = false;
+      canvas.style.cursor = 'default';
+    }
+  });
+
+  canvas.addEventListener('mouseleave', function() {
+    mouseDown = false;
+    canvas.style.cursor = 'default';
+  });
+
+  // Prevent context menu on right-click on canvas
+  canvas.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
   });
 
   // ---- roundRect polyfill ----
