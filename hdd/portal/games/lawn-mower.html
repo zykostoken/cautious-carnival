@@ -123,26 +123,50 @@
     }
 
     /* Tool button */
-    .tool-btn {
+    /* Tool buttons container */
+    .tools-container {
       position: absolute;
       top: 0.5rem;
       right: 0.5rem;
-      padding: 0.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      z-index: 10;
+    }
+    .tool-btn {
+      padding: 0.4rem 0.8rem;
       background: var(--primary);
       color: #fff;
       border: 2px solid transparent;
       border-radius: 10px;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
-      z-index: 10;
       display: none;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     .tool-btn:hover { background: var(--primary-dark); }
     .tool-btn.active {
       background: #0891b2;
       border-color: #06b6d4;
+    }
+    .tool-btn.watering-active {
+      background: #059669;
+      border-color: #10b981;
+    }
+    .tool-indicator {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      padding: 0.3rem 0.6rem;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      z-index: 10;
+      display: none;
     }
 
     /* Mobile D-Pad */
@@ -422,7 +446,11 @@
   <div class="game-wrapper">
     <div class="canvas-container" id="canvasContainer">
       <canvas id="gameCanvas"></canvas>
-      <button class="tool-btn" id="toolBtn">Limpiador de Piscina</button>
+      <div class="tools-container">
+        <button class="tool-btn" id="toolBtn">Limpiador de Piscina</button>
+        <button class="tool-btn" id="waterBtn">Regadera</button>
+      </div>
+      <div class="tool-indicator" id="toolIndicator">Cortadora</div>
       <div class="stuck-overlay hidden" id="stuckOverlay">
         <div class="stuck-text">Atascado en cable!</div>
       </div>
@@ -590,6 +618,108 @@
             <div class="level-desc">El desafio final. Enorme jardin con todos los elementos.</div>
           </div>
         </button>
+
+        <!-- ESCALA 2: Niveles 21-40 (cuadros más pequeños) -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--border);">
+          <h3 style="text-align:center; color:var(--primary); margin-bottom:0.5rem;">Escala 2 - Cuadros Pequeños</h3>
+          <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Los mismos niveles con grilla más densa</p>
+        </div>
+        <button class="level-btn" data-level="21">
+          <div class="level-num" style="background:#0891b2;">21</div>
+          <div class="level-info">
+            <div class="level-name">Tutorial (Escala 2)</div>
+            <div class="level-desc">Jardin pequeno con cuadros mas finos.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="25">
+          <div class="level-num" style="background:#0891b2;">25</div>
+          <div class="level-info">
+            <div class="level-name">Piscina Grande (Escala 2)</div>
+            <div class="level-desc">Zona de piscina amplia con precision aumentada.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="30">
+          <div class="level-num" style="background:#0891b2;">30</div>
+          <div class="level-info">
+            <div class="level-name">Limpieza de Piscina (Escala 2)</div>
+            <div class="level-desc">Nivel de limpieza con mayor detalle.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="40">
+          <div class="level-num" style="background:#0891b2;">40</div>
+          <div class="level-info">
+            <div class="level-name">Gran Maestro (Escala 2)</div>
+            <div class="level-desc">El desafio final con cuadros pequeños.</div>
+          </div>
+        </button>
+
+        <!-- ESCALA 3: Niveles 41-60 (cuadros muy pequeños) -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--border);">
+          <h3 style="text-align:center; color:#7c3aed; margin-bottom:0.5rem;">Escala 3 - Cuadros Mini</h3>
+          <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Maxima precision con grilla muy densa</p>
+        </div>
+        <button class="level-btn" data-level="41">
+          <div class="level-num" style="background:#7c3aed;">41</div>
+          <div class="level-info">
+            <div class="level-name">Tutorial (Escala 3)</div>
+            <div class="level-desc">Jardin con cuadros mini para expertos.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="50">
+          <div class="level-num" style="background:#7c3aed;">50</div>
+          <div class="level-info">
+            <div class="level-name">Limpieza de Piscina (Escala 3)</div>
+            <div class="level-desc">Precision extrema en limpieza.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="60">
+          <div class="level-num" style="background:#7c3aed;">60</div>
+          <div class="level-info">
+            <div class="level-name">Gran Maestro (Escala 3)</div>
+            <div class="level-desc">El desafio definitivo. Cuadros diminutos.</div>
+          </div>
+        </button>
+
+        <!-- PARTE 2: Mantenimiento Completo -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 3px solid var(--success);">
+          <h3 style="text-align:center; color:var(--success); margin-bottom:0.5rem;">🌿 PARTE 2: Jardinero Completo 🌿</h3>
+          <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Pileta, cesped y flores con 3 herramientas</p>
+        </div>
+        <button class="level-btn" data-level="101">
+          <div class="level-num" style="background:#10b981;">P2-1</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Abandonado</div>
+            <div class="level-desc">Aprende las 3 herramientas: Cortadora, Limpiador y Regadera.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="102">
+          <div class="level-num" style="background:#10b981;">P2-2</div>
+          <div class="level-info">
+            <div class="level-name">Rescate del Jardin</div>
+            <div class="level-desc">Flores marchitas necesitan agua, cesped alto y piscina sucia.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="103">
+          <div class="level-num" style="background:#10b981;">P2-3</div>
+          <div class="level-info">
+            <div class="level-name">Mansion Descuidada</div>
+            <div class="level-desc">Gran jardin con todas las tareas de mantenimiento.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="104">
+          <div class="level-num" style="background:#10b981;">P2-4</div>
+          <div class="level-info">
+            <div class="level-name">Hotel de Lujo</div>
+            <div class="level-desc">Multiple areas de jardin con piscinas y jardines florales.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="105">
+          <div class="level-num" style="background:#10b981;">P2-5</div>
+          <div class="level-info">
+            <div class="level-name">Parque Municipal</div>
+            <div class="level-desc">El desafio final de mantenimiento completo.</div>
+          </div>
+        </button>
       </div>
     </div>
   </div>
@@ -623,7 +753,9 @@
     HOUSE: 7,
     FENCE: 8,
     POOL_DIRTY: 9, // for level 5 pool cleaning section
-    EMPTY: 10      // outside yard
+    EMPTY: 10,      // outside yard
+    FLOWER_DRY: 11, // flowers that need watering (Part 2)
+    FLOWER_WATERED: 12 // watered flowers (Part 2)
   };
 
   // ---- COLORS ----
@@ -639,6 +771,8 @@
     [T.FENCE]:      '#475569',
     [T.POOL_DIRTY]: '#67e8f9',
     [T.EMPTY]:      '#e2e8f0',
+    [T.FLOWER_DRY]: '#d4a574', // brownish for dry ground
+    [T.FLOWER_WATERED]: '#4ade80' // back to green when watered
   };
 
   // Flower colors palette
@@ -672,6 +806,13 @@
   let usingPoolCleaner = false;
   let hasPoolCleaner = false;
   let poolCleaningRequired = false;
+  let usingWateringCan = false;
+  let hasWateringCan = false;
+  let wateringRequired = false;
+  let flowersWatered = 0;
+  let totalDryFlowers = 0;
+  let currentScale = 1; // 1 = normal, 2 = small squares, 3 = mini squares
+  let isPart2 = false;
 
   // ---- DOM ----
   const canvas = document.getElementById('gameCanvas');
@@ -685,6 +826,8 @@
   const timerDisplay = document.getElementById('timerDisplay');
   const gameTitle = document.getElementById('gameTitle');
   const toolBtn = document.getElementById('toolBtn');
+  const waterBtn = document.getElementById('waterBtn');
+  const toolIndicator = document.getElementById('toolIndicator');
   const stuckOverlay = document.getElementById('stuckOverlay');
   const toast = document.getElementById('toast');
   const levelSelectScreen = document.getElementById('levelSelectScreen');
@@ -770,20 +913,70 @@
   }
 
   // ---- LEVEL MAPS ----
+
+  // Function to scale a level map (makes squares smaller by duplicating)
+  function scaleMap(originalMap, scaleFactor) {
+    const newMap = [];
+    for (let r = 0; r < originalMap.length; r++) {
+      for (let sf = 0; sf < scaleFactor; sf++) {
+        const newRow = [];
+        for (let c = 0; c < originalMap[r].length; c++) {
+          for (let sc = 0; sc < scaleFactor; sc++) {
+            newRow.push(originalMap[r][c]);
+          }
+        }
+        newMap.push(newRow);
+      }
+    }
+    return newMap;
+  }
+
+  // Scale start position accordingly
+  function scalePos(pos, scaleFactor) {
+    return [pos[0] * scaleFactor, pos[1] * scaleFactor];
+  }
+
   function buildLevel(level) {
     collectedCables = new Set();
     flowerColors = {};
     usingPoolCleaner = false;
     hasPoolCleaner = false;
     poolCleaningRequired = false;
+    usingWateringCan = false;
+    hasWateringCan = false;
+    wateringRequired = false;
+    flowersWatered = 0;
+    totalDryFlowers = 0;
+    currentScale = 1;
+    isPart2 = false;
 
     const F = T.FENCE, G = T.GRASS, P = T.PATH, H = T.HOUSE,
           FL = T.FLOWER, PO = T.POOL, CA = T.CABLE, CO = T.COMPOST,
-          E = T.EMPTY, PD = T.POOL_DIRTY;
+          E = T.EMPTY, PD = T.POOL_DIRTY, FD = T.FLOWER_DRY, FW = T.FLOWER_WATERED;
 
     let map, startPos;
 
-    if (level === 1) {
+    // Handle scaled levels (21-60): same levels but with smaller squares
+    let baseLevel = level;
+    let scaleFactor = 1;
+
+    if (level >= 21 && level <= 40) {
+      // Scale 2: levels 21-40 map to levels 1-20
+      baseLevel = level - 20;
+      scaleFactor = 2;
+      currentScale = 2;
+    } else if (level >= 41 && level <= 60) {
+      // Scale 3: levels 41-60 map to levels 1-20
+      baseLevel = level - 40;
+      scaleFactor = 2; // Using 2x2 for scale 3 to keep playable
+      currentScale = 3;
+    } else if (level >= 101) {
+      // Part 2 levels
+      isPart2 = true;
+      return buildPart2Level(level);
+    }
+
+    if (baseLevel === 1) {
       // Level 1: Tutorial - Tiny garden
       map = [
         [F,F,F,F,F,F,F,F],
@@ -797,7 +990,7 @@
       ];
       startPos = [3, 3];
     }
-    else if (level === 2) {
+    else if (baseLevel === 2) {
       // Level 2: Simple rectangular yard
       map = [
         [F,F,F,F,F,F,F,F,F,F],
@@ -812,7 +1005,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 3) {
+    else if (baseLevel === 3) {
       // Level 3: More flowers to avoid
       map = [
         [F,F,F,F,F,F,F,F,F,F],
@@ -827,7 +1020,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 4) {
+    else if (baseLevel === 4) {
       // Level 4: Introduction to pool
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F],
@@ -844,7 +1037,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 5) {
+    else if (baseLevel === 5) {
       // Level 5: Larger pool area
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F],
@@ -860,7 +1053,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 6) {
+    else if (baseLevel === 6) {
       // Level 6: Introduction to cables
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F],
@@ -877,7 +1070,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 7) {
+    else if (baseLevel === 7) {
       // Level 7: L-shaped yard with cables
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F,F],
@@ -894,7 +1087,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 8) {
+    else if (baseLevel === 8) {
       // Level 8: Introduction to compost/bag mechanic
       hasBag = true;
       map = [
@@ -913,7 +1106,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 9) {
+    else if (baseLevel === 9) {
       // Level 9: Winding path with obstacles
       hasBag = true;
       map = [
@@ -932,7 +1125,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 10) {
+    else if (baseLevel === 10) {
       // Level 10: Pool cleaning introduction
       hasBag = true;
       poolCleaningRequired = true;
@@ -953,7 +1146,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 11) {
+    else if (baseLevel === 11) {
       // Level 11: Double garden
       hasBag = true;
       map = [
@@ -973,7 +1166,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 12) {
+    else if (baseLevel === 12) {
       // Level 12: Narrow passages
       hasBag = true;
       map = [
@@ -992,7 +1185,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 13) {
+    else if (baseLevel === 13) {
       // Level 13: Maze-like with many cables
       hasBag = true;
       map = [
@@ -1011,7 +1204,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 14) {
+    else if (baseLevel === 14) {
       // Level 14: Big pool zone
       hasBag = true;
       poolCleaningRequired = true;
@@ -1031,7 +1224,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 15) {
+    else if (baseLevel === 15) {
       // Level 15: U-shaped garden
       hasBag = true;
       map = [
@@ -1050,7 +1243,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 16) {
+    else if (baseLevel === 16) {
       // Level 16: Complex multi-zone
       hasBag = true;
       poolCleaningRequired = true;
@@ -1070,7 +1263,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 17) {
+    else if (baseLevel === 17) {
       // Level 17: Many isolated zones
       hasBag = true;
       map = [
@@ -1090,7 +1283,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 18) {
+    else if (baseLevel === 18) {
       // Level 18: Expert obstacles
       hasBag = true;
       poolCleaningRequired = true;
@@ -1110,7 +1303,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 19) {
+    else if (baseLevel === 19) {
       // Level 19: Mastery test
       hasBag = true;
       poolCleaningRequired = true;
@@ -1131,7 +1324,7 @@
       ];
       startPos = [3, 4];
     }
-    else if (level === 20) {
+    else if (baseLevel === 20) {
       // Level 20: Grand Master Challenge
       hasBag = true;
       poolCleaningRequired = true;
@@ -1183,7 +1376,152 @@
     // Assign random flower colors
     for (let r = 0; r < map.length; r++) {
       for (let c = 0; c < map[r].length; c++) {
-        if (map[r][c] === T.FLOWER) {
+        if (map[r][c] === T.FLOWER || map[r][c] === T.FLOWER_DRY) {
+          flowerColors[r + ',' + c] = FLOWER_PALETTE[Math.floor(Math.random() * FLOWER_PALETTE.length)];
+        }
+      }
+    }
+
+    // Apply scaling if needed
+    if (scaleFactor > 1) {
+      map = scaleMap(map, scaleFactor);
+      startPos = scalePos(startPos, scaleFactor);
+      // Re-assign flower colors for scaled map
+      flowerColors = {};
+      for (let r = 0; r < map.length; r++) {
+        for (let c = 0; c < map[r].length; c++) {
+          if (map[r][c] === T.FLOWER || map[r][c] === T.FLOWER_DRY) {
+            flowerColors[r + ',' + c] = FLOWER_PALETTE[Math.floor(Math.random() * FLOWER_PALETTE.length)];
+          }
+        }
+      }
+    }
+
+    return { map, startPos };
+  }
+
+  // ---- PART 2 LEVELS: Full Garden Maintenance ----
+  function buildPart2Level(level) {
+    const F = T.FENCE, G = T.GRASS, P = T.PATH, H = T.HOUSE,
+          FL = T.FLOWER, PO = T.POOL, CA = T.CABLE, CO = T.COMPOST,
+          E = T.EMPTY, PD = T.POOL_DIRTY, FD = T.FLOWER_DRY;
+
+    let map, startPos;
+    hasBag = true;
+    poolCleaningRequired = true;
+    wateringRequired = true;
+    hasWateringCan = true;
+    hasPoolCleaner = true;
+
+    if (level === 101) {
+      // Part 2 Level 1: Tutorial - learn all 3 tools
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,G,FD,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,F],
+        [F,G,FD,G,G,G,G,G,PD,PD,G,F],
+        [F,G,G,G,G,G,G,G,PD,PD,G,F],
+        [F,G,G,G,G,G,FD,G,G,G,CO,F],
+        [F,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 102) {
+      // Part 2 Level 2: Garden Rescue
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FD,G,G,FD,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,PD,PD,PD,G,G,F],
+        [F,G,FD,G,G,CA,G,G,PD,PD,PD,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,FD,G,G,G,G,G,CO,F],
+        [F,G,G,FD,G,G,G,G,G,FD,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 103) {
+      // Part 2 Level 3: Abandoned Mansion
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FD,G,G,P,G,FD,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,P,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,P,G,G,FD,G,G,F],
+        [F,G,FD,G,G,CA,G,G,G,P,G,G,G,PD,PD,F],
+        [F,G,G,G,G,G,G,G,F,P,F,G,G,PD,PD,F],
+        [F,G,G,FD,G,G,FD,G,P,P,P,G,G,G,G,F],
+        [F,G,CA,G,G,G,G,G,P,G,G,G,FD,G,CO,F],
+        [F,G,G,G,G,FD,G,G,P,G,CA,G,G,G,G,F],
+        [F,G,G,FD,G,G,G,CA,P,G,G,G,FD,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 104) {
+      // Part 2 Level 4: Luxury Hotel
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FD,G,G,G,P,G,FD,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,P,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FD,G,G,P,G,G,FD,G,G,F],
+        [F,G,FD,G,G,CA,G,G,G,G,P,G,G,G,PD,PD,F],
+        [F,G,G,G,G,G,G,G,F,F,P,F,F,G,PD,PD,F],
+        [F,G,G,FD,G,G,FD,G,G,G,P,G,G,G,PD,PD,F],
+        [F,F,F,P,F,F,F,F,G,G,P,G,G,F,F,F,F],
+        [F,G,G,P,G,G,G,G,G,G,P,P,P,P,P,CO,F],
+        [F,G,FD,P,G,FD,G,CA,G,G,G,G,G,CA,G,G,F],
+        [F,G,G,P,G,G,G,G,PD,PD,G,G,G,G,FD,G,F],
+        [F,G,G,P,P,P,P,G,PD,PD,G,FD,G,G,G,G,F],
+        [F,G,FD,G,G,G,P,G,G,G,G,G,G,G,G,FD,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else {
+      // Part 2 Level 5: Municipal Park (default)
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,F,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FD,G,CA,G,P,G,FD,G,CA,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FD,G,G,P,G,G,FD,G,G,G,F],
+        [F,G,FD,G,G,CA,G,G,G,G,P,G,G,G,PD,PD,G,F],
+        [F,G,G,G,G,G,G,G,F,F,P,F,F,G,PD,PD,G,F],
+        [F,G,G,FD,G,G,FD,G,G,G,P,G,G,G,PD,PD,G,F],
+        [F,F,F,P,F,F,F,F,G,G,P,G,G,F,F,F,F,F],
+        [F,G,G,P,G,G,G,G,G,G,P,P,P,P,P,P,CO,F],
+        [F,G,FD,P,G,FD,G,CA,G,G,G,G,G,CA,G,G,G,F],
+        [F,G,G,P,G,G,G,G,PO,PO,G,G,G,G,FD,G,G,F],
+        [F,G,G,P,P,P,P,G,PO,PO,G,FD,G,G,G,G,G,F],
+        [F,G,FD,G,G,G,P,G,G,G,G,G,G,G,G,FD,G,F],
+        [F,G,G,G,CA,G,P,G,FD,G,CA,G,G,FD,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+
+    // Count dry flowers for Part 2
+    totalDryFlowers = 0;
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        if (map[r][c] === T.FLOWER_DRY) {
+          totalDryFlowers++;
+        }
+      }
+    }
+
+    // Assign flower colors
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        if (map[r][c] === T.FLOWER || map[r][c] === T.FLOWER_DRY) {
           flowerColors[r + ',' + c] = FLOWER_PALETTE[Math.floor(Math.random() * FLOWER_PALETTE.length)];
         }
       }
@@ -1239,7 +1577,7 @@
     // Show/hide pool cleaner (levels with pool cleaning required)
     if (poolCleaningRequired) {
       toolBtn.style.display = 'block';
-      hasPoolCleaner = false;
+      hasPoolCleaner = true;
       usingPoolCleaner = false;
       toolBtn.classList.remove('active');
       toolBtn.textContent = 'Limpiador de Piscina';
@@ -1247,13 +1585,47 @@
       toolBtn.style.display = 'none';
     }
 
-    const LEVEL_NAMES = [
-      '', 'Tutorial', 'Jardin Simple', 'Mas Flores', 'Primera Piscina', 'Piscina Grande',
-      'Cables Peligrosos', 'Jardin en L', 'La Compostera', 'Camino Sinuoso', 'Limpieza de Piscina',
-      'Jardin Doble', 'Pasajes Estrechos', 'Laberinto', 'Zona de Piscinas', 'Jardin en U',
-      'Multizona', 'Zonas Aisladas', 'Experto', 'Prueba de Maestria', 'Gran Maestro'
-    ];
-    gameTitle.textContent = 'Nivel ' + level + ': ' + (LEVEL_NAMES[level] || 'Jardin ' + level);
+    // Show/hide watering can (Part 2 levels)
+    if (wateringRequired) {
+      waterBtn.style.display = 'block';
+      hasWateringCan = true;
+      usingWateringCan = false;
+      waterBtn.classList.remove('watering-active');
+      waterBtn.textContent = 'Regadera';
+      toolIndicator.style.display = 'block';
+      toolIndicator.textContent = 'Herramienta: Cortadora';
+    } else {
+      waterBtn.style.display = 'none';
+      toolIndicator.style.display = 'none';
+    }
+
+    // Build level name
+    let levelName = '';
+    if (level >= 101) {
+      const PART2_NAMES = {
+        101: 'Jardin Abandonado',
+        102: 'Rescate del Jardin',
+        103: 'Mansion Descuidada',
+        104: 'Hotel de Lujo',
+        105: 'Parque Municipal'
+      };
+      levelName = 'Parte 2 - ' + (level - 100) + ': ' + (PART2_NAMES[level] || 'Jardin');
+    } else if (level >= 41) {
+      const baseL = level - 40;
+      levelName = 'Escala 3 - ' + baseL + ' (Mini)';
+    } else if (level >= 21) {
+      const baseL = level - 20;
+      levelName = 'Escala 2 - ' + baseL + ' (Pequeño)';
+    } else {
+      const LEVEL_NAMES = [
+        '', 'Tutorial', 'Jardin Simple', 'Mas Flores', 'Primera Piscina', 'Piscina Grande',
+        'Cables Peligrosos', 'Jardin en L', 'La Compostera', 'Camino Sinuoso', 'Limpieza de Piscina',
+        'Jardin Doble', 'Pasajes Estrechos', 'Laberinto', 'Zona de Piscinas', 'Jardin en U',
+        'Multizona', 'Zonas Aisladas', 'Experto', 'Prueba de Maestria', 'Gran Maestro'
+      ];
+      levelName = 'Nivel ' + level + ': ' + (LEVEL_NAMES[level] || 'Jardin ' + level);
+    }
+    gameTitle.textContent = levelName;
 
     gameRunning = true;
     startTime = Date.now();
@@ -1323,6 +1695,12 @@
         if (tile === T.FLOWER) {
           drawFlower(ctx, x, y, ts, flowerColors[r + ',' + c] || '#f43f5e');
         }
+        else if (tile === T.FLOWER_DRY) {
+          drawDryFlower(ctx, x, y, ts, flowerColors[r + ',' + c] || '#f43f5e');
+        }
+        else if (tile === T.FLOWER_WATERED) {
+          drawFlower(ctx, x, y, ts, flowerColors[r + ',' + c] || '#f43f5e');
+        }
         else if (tile === T.POOL || tile === T.POOL_DIRTY) {
           drawPool(ctx, x, y, ts, tile === T.POOL_DIRTY);
         }
@@ -1374,6 +1752,30 @@
     ctx.fillStyle = '#facc15';
     ctx.beginPath();
     ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawDryFlower(ctx, x, y, ts, color) {
+    const cx = x + ts / 2, cy = y + ts / 2;
+    const r = ts * 0.15;
+    // wilted petals (brownish version of original color)
+    ctx.fillStyle = '#a8856a'; // dried flower color
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath();
+      // slightly droopy/irregular shape
+      ctx.arc(cx + Math.cos(a) * r * 1.1, cy + Math.sin(a) * r * 1.3, r * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // dried center
+    ctx.fillStyle = '#8b7355';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    // water drop indicator
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(cx + ts * 0.25, cy - ts * 0.2, ts * 0.08, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1446,13 +1848,27 @@
 
   function drawMower(ctx, x, y, ts) {
     const m = ts * 0.1;
+
+    // Determine tool color
+    let bodyColor, handleColor;
+    if (usingWateringCan) {
+      bodyColor = '#059669'; // green for watering can
+      handleColor = '#047857';
+    } else if (usingPoolCleaner) {
+      bodyColor = '#0891b2'; // cyan for pool cleaner
+      handleColor = '#155e75';
+    } else {
+      bodyColor = '#dc2626'; // red for mower
+      handleColor = '#991b1b';
+    }
+
     // Body
-    ctx.fillStyle = usingPoolCleaner ? '#0891b2' : '#dc2626';
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.roundRect(x + m, y + m, ts - m * 2, ts - m * 2, ts * 0.15);
     ctx.fill();
     // Handle
-    ctx.fillStyle = usingPoolCleaner ? '#155e75' : '#991b1b';
+    ctx.fillStyle = handleColor;
     ctx.fillRect(x + ts * 0.42, y + m - ts * 0.06, ts * 0.16, ts * 0.15);
     // Wheels
     ctx.fillStyle = '#1e293b';
@@ -1463,13 +1879,25 @@
     ctx.arc(x + ts * 0.25, y + ts * 0.78, wr, 0, Math.PI * 2);
     ctx.arc(x + ts * 0.75, y + ts * 0.78, wr, 0, Math.PI * 2);
     ctx.fill();
-    // Blade lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x + ts * 0.3, y + ts * 0.5);
-    ctx.lineTo(x + ts * 0.7, y + ts * 0.5);
-    ctx.stroke();
+
+    // Tool-specific icon
+    if (usingWateringCan) {
+      // Water drops
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(x + ts * 0.4, y + ts * 0.5, ts * 0.06, 0, Math.PI * 2);
+      ctx.arc(x + ts * 0.6, y + ts * 0.55, ts * 0.05, 0, Math.PI * 2);
+      ctx.arc(x + ts * 0.5, y + ts * 0.65, ts * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Blade lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + ts * 0.3, y + ts * 0.5);
+      ctx.lineTo(x + ts * 0.7, y + ts * 0.5);
+      ctx.stroke();
+    }
   }
 
   // ---- UI UPDATE ----
@@ -1534,8 +1962,50 @@
     }
 
     // Can't mow while using pool cleaner
-    if (usingPoolCleaner && (tile === T.GRASS || tile === T.FLOWER)) {
+    if (usingPoolCleaner && (tile === T.GRASS || tile === T.FLOWER || tile === T.FLOWER_DRY)) {
       showToast('Cambia a la cortadora para cortar cesped!', 'warn');
+      return;
+    }
+
+    // Can't mow while using watering can
+    if (usingWateringCan && (tile === T.GRASS || tile === T.FLOWER)) {
+      showToast('Cambia a la cortadora para cortar cesped!', 'warn');
+      return;
+    }
+
+    // Dry flowers - need watering can
+    if (tile === T.FLOWER_DRY) {
+      if (usingWateringCan) {
+        grid[ny][nx] = T.FLOWER_WATERED; // watered!
+        flowersWatered++;
+        score += 25;
+        playerX = nx;
+        playerY = ny;
+        showToast('Flor regada! +25 pts', 'info');
+        // check if all watered
+        let dryLeft = false;
+        for (let r = 0; r < gridH; r++)
+          for (let c = 0; c < gridW; c++)
+            if (grid[r][c] === T.FLOWER_DRY) dryLeft = true;
+        if (!dryLeft) {
+          showToast('Todas las flores regadas!', 'info', 3000);
+        }
+        updateUI();
+        render();
+        checkWin();
+        return;
+      } else {
+        showToast('Necesitas la regadera para regar flores!', 'warn');
+        return;
+      }
+    }
+
+    // Watered flowers - can walk on them but don't destroy
+    if (tile === T.FLOWER_WATERED) {
+      playerX = nx;
+      playerY = ny;
+      updateUI();
+      render();
       return;
     }
 
@@ -1669,12 +2139,21 @@
   // ---- WIN CHECK ----
   function checkWin() {
     if (grassCut >= totalGrass) {
-      // Check pool dirty tiles too (level 5)
+      // Check pool dirty tiles too
       if (poolCleaningRequired) {
         for (let r = 0; r < gridH; r++)
           for (let c = 0; c < gridW; c++)
             if (grid[r][c] === T.POOL_DIRTY) {
               showToast('Falta limpiar la piscina!', 'warn');
+              return;
+            }
+      }
+      // Check dry flowers for Part 2
+      if (wateringRequired) {
+        for (let r = 0; r < gridH; r++)
+          for (let c = 0; c < gridW; c++)
+            if (grid[r][c] === T.FLOWER_DRY) {
+              showToast('Falta regar las flores!', 'warn');
               return;
             }
       }
@@ -1708,10 +2187,12 @@
     const flowerPenalty = flowersHit * 50;
     const poolPenalty = poolHits * 100;
     const cablePenalty = cableStucks * 20;
-    const maxScore = totalGrass * 10 + 500 + 300;
+    const wateringBonus = flowersWatered * 25;
+    const maxScore = totalGrass * 10 + 500 + 300 + (totalDryFlowers * 25);
 
     let html = '';
     html += scoreRow('Cesped cortado (' + grassCut + '/' + totalGrass + ')', '+' + grassPts, true);
+    if (flowersWatered > 0) html += scoreRow('Flores regadas (x' + flowersWatered + ')', '+' + wateringBonus, true);
     if (won) html += scoreRow('Bonus por completar', '+' + completionBonus, true);
     if (won) html += scoreRow('Bonus por velocidad', '+' + speedBonus, speedBonus > 0);
     if (flowersHit > 0) html += scoreRow('Flores destruidas (x' + flowersHit + ')', '-' + flowerPenalty, false);
@@ -1814,13 +2295,39 @@
   toolBtn.addEventListener('click', function() {
     if (!gameRunning) return;
     usingPoolCleaner = !usingPoolCleaner;
+    usingWateringCan = false; // Deactivate watering can
+    waterBtn.classList.remove('watering-active');
+    waterBtn.textContent = 'Regadera';
     if (usingPoolCleaner) {
       toolBtn.classList.add('active');
       toolBtn.textContent = 'Cortadora de Cesped';
+      toolIndicator.textContent = 'Herramienta: Limpiador';
       showToast('Cambiaste al limpiador de piscina', 'info');
     } else {
       toolBtn.classList.remove('active');
       toolBtn.textContent = 'Limpiador de Piscina';
+      toolIndicator.textContent = 'Herramienta: Cortadora';
+      showToast('Cambiaste a la cortadora de cesped', 'info');
+    }
+    render();
+  });
+
+  // ---- WATERING CAN BUTTON ----
+  waterBtn.addEventListener('click', function() {
+    if (!gameRunning) return;
+    usingWateringCan = !usingWateringCan;
+    usingPoolCleaner = false; // Deactivate pool cleaner
+    toolBtn.classList.remove('active');
+    toolBtn.textContent = 'Limpiador de Piscina';
+    if (usingWateringCan) {
+      waterBtn.classList.add('watering-active');
+      waterBtn.textContent = 'Cortadora de Cesped';
+      toolIndicator.textContent = 'Herramienta: Regadera';
+      showToast('Cambiaste a la regadera', 'info');
+    } else {
+      waterBtn.classList.remove('watering-active');
+      waterBtn.textContent = 'Regadera';
+      toolIndicator.textContent = 'Herramienta: Cortadora';
       showToast('Cambiaste a la cortadora de cesped', 'info');
     }
     render();
