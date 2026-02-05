@@ -30,6 +30,11 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
       ALTER TABLE healthcare_professionals
       ADD COLUMN IF NOT EXISTS session_token VARCHAR(255)
     `;
+    // Add DNI column for password recovery without email
+    await sql`
+      ALTER TABLE healthcare_professionals
+      ADD COLUMN IF NOT EXISTS dni VARCHAR(20)
+    `;
 
     migrationRun = true;
     console.log('Healthcare professionals verification columns ensured');
@@ -123,7 +128,7 @@ export default async (req: Request, context: Context) => {
 
       // Register a new professional (requires @clinicajoseingenieros.ar email)
       if (action === "register") {
-        const { email, password, fullName, specialty, licenseNumber, phone, whatsapp } = body;
+        const { email, password, fullName, specialty, licenseNumber, phone, whatsapp, dni } = body;
 
         if (!email || !password || !fullName) {
           return new Response(JSON.stringify({
@@ -159,6 +164,7 @@ export default async (req: Request, context: Context) => {
                   specialty = COALESCE(${specialty}, specialty),
                   phone = COALESCE(${phone}, phone),
                   whatsapp = COALESCE(${whatsapp}, whatsapp),
+                  dni = COALESCE(${dni || null}, dni),
                   session_token = ${sessionToken},
                   last_login = NOW()
               WHERE id = ${existing.id}
@@ -236,13 +242,13 @@ export default async (req: Request, context: Context) => {
           const [professional] = await sql`
             INSERT INTO healthcare_professionals (
               email, password_hash, full_name, specialty, license_number,
-              phone, whatsapp, email_verified, is_active, session_token,
+              phone, whatsapp, dni, email_verified, is_active, session_token,
               last_login, created_at
             )
             VALUES (
               ${email}, ${passwordHash}, ${fullName},
               ${specialty || 'Psiquiatría'}, ${licenseNumber || null},
-              ${phone || null}, ${whatsapp || null}, TRUE, TRUE,
+              ${phone || null}, ${whatsapp || null}, ${dni || null}, TRUE, TRUE,
               ${sessionToken}, NOW(), NOW()
             )
             RETURNING id, email, full_name, specialty
@@ -268,13 +274,13 @@ export default async (req: Request, context: Context) => {
         const [professional] = await sql`
           INSERT INTO healthcare_professionals (
             email, password_hash, full_name, specialty, license_number,
-            phone, whatsapp, email_verified, verification_code, verification_expires,
+            phone, whatsapp, dni, email_verified, verification_code, verification_expires,
             is_active, created_at
           )
           VALUES (
             ${email}, ${passwordHash}, ${fullName},
             ${specialty || 'Psiquiatría'}, ${licenseNumber || null},
-            ${phone || null}, ${whatsapp || null}, FALSE,
+            ${phone || null}, ${whatsapp || null}, ${dni || null}, FALSE,
             ${verificationCode}, ${verificationExpires.toISOString()},
             FALSE, NOW()
           )
@@ -301,7 +307,8 @@ export default async (req: Request, context: Context) => {
         }), { status: 201, headers: corsHeaders });
       }
 
-      // Request password reset - sends a verification code to email
+      // Request password reset - check if professional exists and has DNI configured
+      // Since email is not configured, we use the last 4 digits of DNI for verification
       if (action === "request_password_reset") {
         const { email } = body;
 
@@ -312,7 +319,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const [professional] = await sql`
-          SELECT id, email, full_name, email_verified
+          SELECT id, email, full_name, dni
           FROM healthcare_professionals
           WHERE email = ${email}
         `;
@@ -321,46 +328,41 @@ export default async (req: Request, context: Context) => {
           // Don't reveal if email exists or not for security
           return new Response(JSON.stringify({
             success: true,
-            message: "Si el email está registrado, recibirás un código de recuperación."
+            canResetWithDni: false,
+            message: "Si el email está registrado y tiene DNI configurado, podrás restablecer tu contraseña."
           }), { status: 200, headers: corsHeaders });
         }
 
-        // Generate reset code
-        const resetCode = generateVerificationCode();
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+        // Check if professional has DNI configured
+        if (!professional.dni || professional.dni.length < 4) {
+          return new Response(JSON.stringify({
+            success: false,
+            canResetWithDni: false,
+            error: "Tu cuenta no tiene DNI configurado. Contactá al administrador para restablecer tu contraseña."
+          }), { status: 400, headers: corsHeaders });
+        }
 
-        await sql`
-          UPDATE healthcare_professionals
-          SET verification_code = ${resetCode},
-              verification_expires = ${expiresAt.toISOString()}
-          WHERE id = ${professional.id}
-        `;
-
-        // Send password reset email (async)
-        fetch(`${new URL(req.url).origin}/api/notifications`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'send_password_reset_email',
-            email,
-            code: resetCode,
-            fullName: professional.full_name
-          })
-        }).catch(e => console.log('Password reset email notification failed:', e));
-
+        // Professional exists and has DNI - allow password reset with last 4 digits
         return new Response(JSON.stringify({
           success: true,
-          message: "Si el email está registrado, recibirás un código de recuperación."
+          canResetWithDni: true,
+          message: "Ingresá los últimos 4 dígitos de tu DNI para restablecer tu contraseña."
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Reset password with code
+      // Reset password with last 4 digits of DNI (no email required)
       if (action === "reset_password") {
-        const { email, code, newPassword } = body;
+        const { email, dniLast4, newPassword } = body;
 
-        if (!email || !code || !newPassword) {
+        if (!email || !dniLast4 || !newPassword) {
           return new Response(JSON.stringify({
-            error: "Email, código y nueva contraseña son requeridos"
+            error: "Email, últimos 4 dígitos del DNI y nueva contraseña son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        if (dniLast4.length !== 4 || !/^\d{4}$/.test(dniLast4)) {
+          return new Response(JSON.stringify({
+            error: "Debés ingresar exactamente 4 dígitos numéricos"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -371,7 +373,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const [professional] = await sql`
-          SELECT id, verification_code, verification_expires
+          SELECT id, dni
           FROM healthcare_professionals
           WHERE email = ${email}
         `;
@@ -382,15 +384,17 @@ export default async (req: Request, context: Context) => {
           }), { status: 404, headers: corsHeaders });
         }
 
-        if (professional.verification_code !== code) {
+        if (!professional.dni || professional.dni.length < 4) {
           return new Response(JSON.stringify({
-            error: "Código de recuperación incorrecto"
+            error: "Tu cuenta no tiene DNI configurado. Contactá al administrador."
           }), { status: 400, headers: corsHeaders });
         }
 
-        if (new Date(professional.verification_expires) < new Date()) {
+        // Verify last 4 digits of DNI
+        const actualLast4 = professional.dni.slice(-4);
+        if (actualLast4 !== dniLast4) {
           return new Response(JSON.stringify({
-            error: "El código de recuperación ha expirado. Solicitá uno nuevo."
+            error: "Los últimos 4 dígitos del DNI son incorrectos"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -666,7 +670,7 @@ export default async (req: Request, context: Context) => {
 
       // Admin: Create a new professional (pre-approved)
       if (action === "admin_create_professional") {
-        const { sessionToken, email, password, fullName, specialty, whatsapp } = body;
+        const { sessionToken, email, password, fullName, specialty, whatsapp, dni } = body;
 
         if (!sessionToken) {
           return new Response(JSON.stringify({ error: "Token requerido" }),
@@ -700,13 +704,13 @@ export default async (req: Request, context: Context) => {
 
         const [professional] = await sql`
           INSERT INTO healthcare_professionals (
-            email, password_hash, full_name, specialty, whatsapp,
-            is_active, created_at
+            email, password_hash, full_name, specialty, whatsapp, dni,
+            is_active, email_verified, created_at
           )
           VALUES (
             ${email}, ${passwordHash}, ${fullName},
-            ${specialty || 'Psiquiatría'}, ${whatsapp || null},
-            TRUE, NOW()
+            ${specialty || 'Psiquiatría'}, ${whatsapp || null}, ${dni || null},
+            TRUE, TRUE, NOW()
           )
           RETURNING id, email, full_name, specialty
         `;
@@ -721,6 +725,97 @@ export default async (req: Request, context: Context) => {
           },
           message: "Profesional creado y activado exitosamente"
         }), { status: 201, headers: corsHeaders });
+      }
+
+      // Admin: Set DNI for a professional (for password recovery)
+      if (action === "admin_set_dni") {
+        const { sessionToken, professionalId, dni } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        // Verify admin privileges
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        if (!professionalId || !dni) {
+          return new Response(JSON.stringify({
+            error: "ID del profesional y DNI son requeridos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Validate DNI format (only digits, 7-8 characters)
+        if (!/^\d{7,8}$/.test(dni)) {
+          return new Response(JSON.stringify({
+            error: "El DNI debe tener entre 7 y 8 dígitos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [updated] = await sql`
+          UPDATE healthcare_professionals
+          SET dni = ${dni}
+          WHERE id = ${professionalId}
+          RETURNING id, full_name, dni
+        `;
+
+        if (!updated) {
+          return new Response(JSON.stringify({ error: "Profesional no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          professional: {
+            id: updated.id,
+            fullName: updated.full_name,
+            dni: updated.dni
+          },
+          message: "DNI actualizado exitosamente. El profesional puede usar los últimos 4 dígitos para recuperar su contraseña."
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Update professional's own DNI (logged in user)
+      if (action === "update_dni") {
+        const { sessionToken, dni } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        if (!dni) {
+          return new Response(JSON.stringify({
+            error: "DNI es requerido"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        // Validate DNI format (only digits, 7-8 characters)
+        if (!/^\d{7,8}$/.test(dni)) {
+          return new Response(JSON.stringify({
+            error: "El DNI debe tener entre 7 y 8 dígitos"
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const [updated] = await sql`
+          UPDATE healthcare_professionals
+          SET dni = ${dni}
+          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          RETURNING id, full_name, dni
+        `;
+
+        if (!updated) {
+          return new Response(JSON.stringify({ error: "Sesión inválida" }),
+            { status: 401, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "DNI actualizado. Podés usarlo para recuperar tu contraseña si la olvidás."
+        }), { status: 200, headers: corsHeaders });
       }
 
       return new Response(JSON.stringify({ error: "Acción inválida" }),
