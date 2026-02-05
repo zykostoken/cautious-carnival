@@ -1039,24 +1039,84 @@
   // ==================== LEVEL DEFINITIONS ====================
   const LEVELS = [
     {
-      id: 1, name: 'Basico', desc: '1 medicamento, dosis simple',
-      medCount: 1, viewTime: 15, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: true
+      id: 1, name: 'Tutorial', desc: '1 medicamento, tiempo amplio',
+      medCount: 1, viewTime: 20, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: true
     },
     {
-      id: 2, name: 'Intermedio', desc: '2 medicamentos, dosis divididas',
+      id: 2, name: 'Basico I', desc: '1 medicamento, dosis simple',
+      medCount: 1, viewTime: 15, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 3, name: 'Basico II', desc: '2 medicamentos basicos',
+      medCount: 2, viewTime: 15, optionCount: 4, splitDose: false, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 4, name: 'Intermedio I', desc: '2 medicamentos, dosis divididas',
       medCount: 2, viewTime: 12, optionCount: 5, splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 3, name: 'Avanzado', desc: '3 medicamentos, dosis variadas',
+      id: 5, name: 'Intermedio II', desc: '2 medicamentos, mas opciones',
+      medCount: 2, viewTime: 12, optionCount: 6, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 6, name: 'Avanzado I', desc: '3 medicamentos, dosis variadas',
+      medCount: 3, viewTime: 12, optionCount: 7, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 7, name: 'Avanzado II', desc: '3 medicamentos, tiempo reducido',
       medCount: 3, viewTime: 10, optionCount: 7, splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 4, name: 'Experto', desc: '4 medicamentos con horarios especificos',
+      id: 8, name: 'Avanzado III', desc: '3 medicamentos, mas distractores',
+      medCount: 3, viewTime: 10, optionCount: 8, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 9, name: 'Experto I', desc: '4 medicamentos basicos',
+      medCount: 4, viewTime: 10, optionCount: 8, splitDose: true, timing: false, notes: false, unlocked: false
+    },
+    {
+      id: 10, name: 'Experto II', desc: '4 medicamentos con horarios',
+      medCount: 4, viewTime: 10, optionCount: 9, splitDose: true, timing: true, notes: false, unlocked: false
+    },
+    {
+      id: 11, name: 'Experto III', desc: '4 medicamentos, tiempo ajustado',
       medCount: 4, viewTime: 8, optionCount: 9, splitDose: true, timing: true, notes: false, unlocked: false
     },
     {
-      id: 5, name: 'Maestro', desc: '5 medicamentos, interacciones y notas',
-      medCount: 5, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 12, name: 'Experto IV', desc: '4 medicamentos, muchas opciones',
+      medCount: 4, viewTime: 8, optionCount: 10, splitDose: true, timing: true, notes: false, unlocked: false
+    },
+    {
+      id: 13, name: 'Maestro I', desc: '5 medicamentos introduccion',
+      medCount: 5, viewTime: 10, optionCount: 10, splitDose: true, timing: true, notes: false, unlocked: false
+    },
+    {
+      id: 14, name: 'Maestro II', desc: '5 medicamentos con notas',
+      medCount: 5, viewTime: 9, optionCount: 11, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 15, name: 'Maestro III', desc: '5 medicamentos, tiempo reducido',
+      medCount: 5, viewTime: 8, optionCount: 11, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 16, name: 'Maestro IV', desc: '5 medicamentos, muchos distractores',
+      medCount: 5, viewTime: 8, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 17, name: 'Elite I', desc: '6 medicamentos introduccion',
+      medCount: 6, viewTime: 10, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 18, name: 'Elite II', desc: '6 medicamentos, tiempo ajustado',
+      medCount: 6, viewTime: 8, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 19, name: 'Gran Maestro', desc: '6 medicamentos, desafio completo',
+      medCount: 6, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 20, name: 'Farmaceutico', desc: '7 medicamentos, el desafio final',
+      medCount: 7, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
     }
   ];
 
@@ -1804,7 +1864,7 @@
 
     // Unlock next level if score is above 25%
     const currentId = state.currentLevel.id;
-    if (pct >= 0.25 && currentId < 5) {
+    if (pct >= 0.25 && currentId < 20) {
       const nextLvl = LEVELS[currentId]; // 0-indexed, currentId is next
       if (!nextLvl.unlocked) {
         nextLvl.unlocked = true;
