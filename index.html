@@ -2663,6 +2663,11 @@
                             <input type="email" id="reg-email" required>
                         </div>
                         <div class="form-group">
+                            <label>DNI (para recuperar contraseña)</label>
+                            <input type="text" id="reg-dni" pattern="[0-9]{7,8}" placeholder="12345678" maxlength="8">
+                            <small style="color: var(--text-secondary); font-size: 0.75rem;">Usá los últimos 4 dígitos si olvidás tu contraseña</small>
+                        </div>
+                        <div class="form-group">
                             <label>Contraseña</label>
                             <input type="password" id="reg-password" required minlength="6">
                         </div>
@@ -2720,7 +2725,7 @@
                 <div id="forgot-password-container" style="display: none;">
                     <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Recuperar Contraseña</h4>
                     <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
-                        Ingresá tu email institucional y te enviaremos un código de recuperación.
+                        Ingresá tu email institucional para verificar si podés recuperar tu contraseña.
                     </p>
                     <form id="forgot-password-form" onsubmit="requestPasswordReset(event)">
                         <div class="form-group">
@@ -2728,7 +2733,7 @@
                             <input type="email" id="forgot-email" placeholder="tu@clinicajoseingenieros.ar" required>
                         </div>
                         <div class="login-error" id="forgot-error"></div>
-                        <button type="submit" class="btn btn-primary">Enviar Código</button>
+                        <button type="submit" class="btn btn-primary">Continuar</button>
                     </form>
                     <p style="text-align: center; margin-top: 1rem;">
                         <a href="#" onclick="showLoginForm(); return false;" style="color: var(--text-secondary);">← Volver al login</a>
@@ -2739,13 +2744,13 @@
                 <div id="reset-password-container" style="display: none;">
                     <h4 style="color: var(--accent-gold); margin-bottom: 1rem;">Nueva Contraseña</h4>
                     <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
-                        Ingresá el código de 6 dígitos que enviamos a tu email y tu nueva contraseña.
+                        Ingresá los últimos 4 dígitos de tu DNI y tu nueva contraseña.
                     </p>
                     <form id="reset-password-form" onsubmit="resetPassword(event)">
                         <div class="form-group">
-                            <label>Código de recuperación</label>
-                            <input type="text" id="reset-code" maxlength="6" pattern="[0-9]{6}"
-                                   placeholder="123456" required
+                            <label>Últimos 4 dígitos del DNI</label>
+                            <input type="text" id="reset-dni-last4" maxlength="4" pattern="[0-9]{4}"
+                                   placeholder="1234" required
                                    style="font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;">
                         </div>
                         <div class="form-group">
@@ -2761,7 +2766,7 @@
                         <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
                     </form>
                     <p style="text-align: center; margin-top: 1rem;">
-                        <a href="#" onclick="showForgotPasswordForm(); return false;" style="color: var(--text-secondary);">← Solicitar nuevo código</a>
+                        <a href="#" onclick="showForgotPasswordForm(); return false;" style="color: var(--text-secondary);">← Volver</a>
                     </p>
                 </div>
             </div>
@@ -5557,12 +5562,16 @@ function closeModal(event) {
 
                 const data = await res.json();
 
-                if (data.success) {
+                if (data.success && data.canResetWithDni) {
+                    // Can reset with DNI - show reset form
                     showResetPasswordForm(email);
-                    alert(data.message || 'Si el email está registrado, recibirás un código de recuperación.');
                     errorEl.classList.remove('visible');
+                } else if (data.success && !data.canResetWithDni) {
+                    // Email not found or no DNI configured
+                    errorEl.textContent = data.message || 'No se puede recuperar la contraseña. Contactá al administrador.';
+                    errorEl.classList.add('visible');
                 } else {
-                    errorEl.textContent = data.error || 'Error al solicitar recuperación';
+                    errorEl.textContent = data.error || 'No se puede recuperar la contraseña. Contactá al administrador.';
                     errorEl.classList.add('visible');
                 }
             } catch (e) {
@@ -5575,7 +5584,7 @@ function closeModal(event) {
             event.preventDefault();
 
             const email = document.getElementById('reset-email-hidden').value;
-            const code = document.getElementById('reset-code').value;
+            const dniLast4 = document.getElementById('reset-dni-last4').value;
             const newPassword = document.getElementById('reset-new-password').value;
             const confirmPassword = document.getElementById('reset-new-password-confirm').value;
             const errorEl = document.getElementById('reset-error');
@@ -5593,6 +5602,12 @@ function closeModal(event) {
                 return;
             }
 
+            if (!/^\d{4}$/.test(dniLast4)) {
+                errorEl.textContent = 'Ingresá exactamente 4 dígitos del DNI';
+                errorEl.classList.add('visible');
+                return;
+            }
+
             try {
                 const res = await fetch('/api/professionals', {
                     method: 'POST',
@@ -5600,7 +5615,7 @@ function closeModal(event) {
                     body: JSON.stringify({
                         action: 'reset_password',
                         email,
-                        code,
+                        dniLast4,
                         newPassword
                     })
                 });
@@ -5671,6 +5686,7 @@ function closeModal(event) {
 
             const fullName = document.getElementById('reg-fullname').value;
             const email = document.getElementById('reg-email').value;
+            const dni = document.getElementById('reg-dni').value;
             const password = document.getElementById('reg-password').value;
             const confirmPassword = document.getElementById('reg-password-confirm').value;
             const specialty = document.getElementById('reg-specialty').value;
@@ -5690,6 +5706,13 @@ function closeModal(event) {
                 return;
             }
 
+            // Validate DNI if provided
+            if (dni && !/^\d{7,8}$/.test(dni)) {
+                errorEl.textContent = 'El DNI debe tener 7 u 8 dígitos';
+                errorEl.classList.add('visible');
+                return;
+            }
+
             try {
                 const res = await fetch('/api/professionals', {
                     method: 'POST',
@@ -5698,6 +5721,7 @@ function closeModal(event) {
                         action: 'register',
                         fullName,
                         email,
+                        dni: dni || null,
                         password,
                         specialty,
                         whatsapp
