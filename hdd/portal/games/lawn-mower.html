@@ -173,6 +173,9 @@
       justify-content: center;
       transition: background 0.1s;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .dpad-btn:active { background: var(--primary-dark); transform: scale(0.93); }
     .dpad-up { grid-area: up; }
@@ -442,43 +445,148 @@
 
   <!-- Level Select Overlay -->
   <div class="screen-overlay" id="levelSelectScreen">
-    <div class="screen-card">
+    <div class="screen-card" style="max-height: 90vh; overflow-y: auto;">
       <h1>Cortadora de Cesped</h1>
       <p class="subtitle">Corta todo el cesped del jardin sin dañar las flores ni caer en la piscina.</p>
       <div class="level-list">
         <button class="level-btn" data-level="1">
           <div class="level-num">1</div>
           <div class="level-info">
-            <div class="level-name">Jardin Simple</div>
-            <div class="level-desc">Jardin rectangular pequeño, pocas flores, sin piscina.</div>
+            <div class="level-name">Tutorial</div>
+            <div class="level-desc">Jardin pequeno para aprender los controles.</div>
           </div>
         </button>
         <button class="level-btn" data-level="2">
           <div class="level-num">2</div>
           <div class="level-info">
-            <div class="level-name">Jardin Grande</div>
-            <div class="level-desc">Mas flores dispersas y una pequeña piscina para esquivar.</div>
+            <div class="level-name">Jardin Simple</div>
+            <div class="level-desc">Jardin rectangular con algunas flores.</div>
           </div>
         </button>
         <button class="level-btn" data-level="3">
           <div class="level-num">3</div>
           <div class="level-info">
-            <div class="level-name">Jardin Complejo</div>
-            <div class="level-desc">Forma de L, cables en el suelo que debes recoger antes de cortar.</div>
+            <div class="level-name">Mas Flores</div>
+            <div class="level-desc">Mayor cantidad de flores para esquivar.</div>
           </div>
         </button>
         <button class="level-btn" data-level="4">
           <div class="level-num">4</div>
           <div class="level-info">
-            <div class="level-name">Jardin Experto</div>
-            <div class="level-desc">Multiples zonas, bolsa de la cortadora con capacidad limitada.</div>
+            <div class="level-name">Primera Piscina</div>
+            <div class="level-desc">Introduccion a la piscina como obstaculo.</div>
           </div>
         </button>
         <button class="level-btn" data-level="5">
           <div class="level-num">5</div>
           <div class="level-info">
-            <div class="level-name">Jardin Maestro</div>
-            <div class="level-desc">Todos los obstaculos, presion de tiempo, necesitas el limpiador de piscina.</div>
+            <div class="level-name">Piscina Grande</div>
+            <div class="level-desc">Zona de piscina mas amplia.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="6">
+          <div class="level-num">6</div>
+          <div class="level-info">
+            <div class="level-name">Cables Peligrosos</div>
+            <div class="level-desc">Cables en el suelo que debes recoger.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="7">
+          <div class="level-num">7</div>
+          <div class="level-info">
+            <div class="level-name">Jardin en L</div>
+            <div class="level-desc">Forma de L con cables y piscina.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="8">
+          <div class="level-num">8</div>
+          <div class="level-info">
+            <div class="level-name">La Compostera</div>
+            <div class="level-desc">Bolsa con capacidad limitada, usa la compostera.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="9">
+          <div class="level-num">9</div>
+          <div class="level-info">
+            <div class="level-name">Camino Sinuoso</div>
+            <div class="level-desc">Jardin con caminos y obstaculos mixtos.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="10">
+          <div class="level-num">10</div>
+          <div class="level-info">
+            <div class="level-name">Limpieza de Piscina</div>
+            <div class="level-desc">Usa el limpiador de piscina para limpiar el agua sucia.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="11">
+          <div class="level-num">11</div>
+          <div class="level-info">
+            <div class="level-name">Jardin Doble</div>
+            <div class="level-desc">Dos zonas de jardin conectadas.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="12">
+          <div class="level-num">12</div>
+          <div class="level-info">
+            <div class="level-name">Pasajes Estrechos</div>
+            <div class="level-desc">Caminos angostos entre obstaculos.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="13">
+          <div class="level-num">13</div>
+          <div class="level-info">
+            <div class="level-name">Laberinto</div>
+            <div class="level-desc">Jardin tipo laberinto con muchos cables.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="14">
+          <div class="level-num">14</div>
+          <div class="level-info">
+            <div class="level-name">Zona de Piscinas</div>
+            <div class="level-desc">Gran area de piscina sucia para limpiar.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="15">
+          <div class="level-num">15</div>
+          <div class="level-info">
+            <div class="level-name">Jardin en U</div>
+            <div class="level-desc">Jardin con forma de U y multiples zonas.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="16">
+          <div class="level-num">16</div>
+          <div class="level-info">
+            <div class="level-name">Multizona</div>
+            <div class="level-desc">Jardin complejo con multiples secciones.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="17">
+          <div class="level-num">17</div>
+          <div class="level-info">
+            <div class="level-name">Zonas Aisladas</div>
+            <div class="level-desc">Muchas zonas separadas conectadas por caminos.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="18">
+          <div class="level-num">18</div>
+          <div class="level-info">
+            <div class="level-name">Experto</div>
+            <div class="level-desc">Todos los obstaculos en cantidad.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="19">
+          <div class="level-num">19</div>
+          <div class="level-info">
+            <div class="level-name">Prueba de Maestria</div>
+            <div class="level-desc">Jardin extenso con maxima dificultad.</div>
+          </div>
+        </button>
+        <button class="level-btn" data-level="20">
+          <div class="level-num">20</div>
+          <div class="level-info">
+            <div class="level-name">Gran Maestro</div>
+            <div class="level-desc">El desafio final. Enorme jardin con todos los elementos.</div>
           </div>
         </button>
       </div>
@@ -675,7 +783,21 @@
     let map, startPos;
 
     if (level === 1) {
-      // Simple rectangular yard
+      // Level 1: Tutorial - Tiny garden
+      map = [
+        [F,F,F,F,F,F,F,F],
+        [F,H,H,P,G,G,G,F],
+        [F,H,H,P,G,G,G,F],
+        [F,P,P,P,G,G,G,F],
+        [F,G,G,G,G,G,G,F],
+        [F,G,G,G,G,FL,G,F],
+        [F,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 3];
+    }
+    else if (level === 2) {
+      // Level 2: Simple rectangular yard
       map = [
         [F,F,F,F,F,F,F,F,F,F],
         [F,H,H,H,P,G,G,G,G,F],
@@ -687,9 +809,25 @@
         [F,G,G,G,G,G,G,G,G,F],
         [F,F,F,F,F,F,F,F,F,F],
       ];
-      startPos = [4, 3];
+      startPos = [3, 4];
     }
-    else if (level === 2) {
+    else if (level === 3) {
+      // Level 3: More flowers to avoid
+      map = [
+        [F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,F],
+        [F,P,P,P,P,G,G,G,FL,F],
+        [F,G,G,G,G,G,FL,G,G,F],
+        [F,G,FL,G,G,G,G,G,G,F],
+        [F,G,G,G,FL,G,G,FL,G,F],
+        [F,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 4) {
+      // Level 4: Introduction to pool
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F],
         [F,H,H,H,P,G,G,G,G,G,G,F],
@@ -703,10 +841,43 @@
         [F,G,G,G,G,G,G,G,G,G,G,F],
         [F,F,F,F,F,F,F,F,F,F,F,F],
       ];
-      startPos = [4, 3];
+      startPos = [3, 4];
     }
-    else if (level === 3) {
-      // L-shaped yard with cables
+    else if (level === 5) {
+      // Level 5: Larger pool area
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,G,G,F],
+        [F,P,P,P,P,G,G,G,PO,PO,PO,F],
+        [F,G,G,G,G,G,G,G,PO,PO,PO,F],
+        [F,G,FL,G,G,FL,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 6) {
+      // Level 6: Introduction to cables
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,G,F],
+        [F,G,FL,G,G,CA,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,G,G,FL,G,G,G,G,F],
+        [F,G,G,CA,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 7) {
+      // Level 7: L-shaped yard with cables
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F,F],
         [F,H,H,H,P,G,G,G,G,G,F,E,E],
@@ -720,10 +891,10 @@
         [F,G,G,G,G,G,G,G,G,FL,G,G,F],
         [F,F,F,F,F,F,F,F,F,F,F,F,F],
       ];
-      startPos = [4, 3];
+      startPos = [3, 4];
     }
-    else if (level === 4) {
-      // Multiple zones, compost bin, hose cable
+    else if (level === 8) {
+      // Level 8: Introduction to compost/bag mechanic
       hasBag = true;
       map = [
         [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
@@ -739,10 +910,29 @@
         [F,G,G,G,G,G,G,G,F,G,G,FL,G,F],
         [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
       ];
-      startPos = [4, 3];
+      startPos = [3, 4];
     }
-    else if (level === 5) {
-      // Master: everything + pool cleaner + time pressure
+    else if (level === 9) {
+      // Level 9: Winding path with obstacles
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,FL,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,G,G,F],
+        [F,G,FL,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,G,CA,G,G,PO,PO,G,G,F],
+        [F,G,G,G,G,G,G,G,PO,PO,G,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,G,CO,F],
+        [F,G,CA,G,G,G,G,G,G,FL,G,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 10) {
+      // Level 10: Pool cleaning introduction
       hasBag = true;
       poolCleaningRequired = true;
       map = [
@@ -760,11 +950,233 @@
         [F,G,G,FL,G,G,G,G,F,G,G,FL,G,G,F],
         [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
       ];
-      startPos = [4, 3];
+      startPos = [3, 4];
+    }
+    else if (level === 11) {
+      // Level 11: Double garden
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,FL,G,G,FL,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,G,FL,G,G,F],
+        [F,G,FL,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,P,F,F,F,F,P,F,F,F,F,F],
+        [F,G,G,G,P,G,G,G,G,P,G,G,G,G,F],
+        [F,G,FL,G,P,G,FL,G,G,P,G,FL,G,G,F],
+        [F,G,G,G,P,P,P,P,P,P,G,G,G,CO,F],
+        [F,G,G,FL,G,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,G,G,FL,G,G,FL,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 12) {
+      // Level 12: Narrow passages
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,F,G,FL,G,G,G,F],
+        [F,P,P,P,P,G,G,P,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,P,G,G,FL,G,G,F],
+        [F,G,FL,G,G,CA,G,P,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,P,P,P,P,P,G,F],
+        [F,G,G,FL,G,G,G,F,G,G,G,P,G,F],
+        [F,G,G,G,G,G,G,F,G,FL,G,P,CO,F],
+        [F,G,CA,G,G,FL,G,F,G,G,G,P,G,F],
+        [F,G,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 13) {
+      // Level 13: Maze-like with many cables
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,FL,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,F,F,P,F,F,G,G,G,F],
+        [F,G,FL,G,G,F,G,P,G,F,G,FL,G,F],
+        [F,G,G,G,G,P,P,P,P,P,G,G,G,F],
+        [F,G,G,FL,G,P,G,CA,G,P,G,G,CO,F],
+        [F,G,CA,G,G,P,FL,G,G,P,G,FL,G,F],
+        [F,G,G,G,G,P,G,G,G,P,G,G,G,F],
+        [F,G,G,FL,G,G,CA,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 14) {
+      // Level 14: Big pool zone
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,FL,G,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,PD,PD,PD,G,F],
+        [F,G,FL,G,G,CA,G,G,G,G,PD,PD,PD,G,F],
+        [F,G,G,G,G,G,G,G,G,G,PD,PD,PD,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,G,G,G,CO,F],
+        [F,G,CA,G,G,G,G,G,G,FL,G,G,G,G,F],
+        [F,G,G,G,G,FL,G,G,G,G,G,FL,G,G,F],
+        [F,G,G,G,G,G,G,CA,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 15) {
+      // Level 15: U-shaped garden
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,F,G,FL,G,G,G,F],
+        [F,P,P,P,P,G,G,G,F,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,F,G,G,FL,G,G,F],
+        [F,G,FL,G,G,CA,G,G,F,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,G,F,G,G,G,FL,G,F],
+        [F,G,G,FL,G,G,FL,G,F,G,FL,G,G,G,F],
+        [F,G,CA,G,G,G,G,G,P,P,P,P,P,CO,F],
+        [F,G,G,G,G,FL,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,CA,G,G,FL,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 16) {
+      // Level 16: Complex multi-zone
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,F,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,G,P,G,FL,G,G,G,F],
+        [F,P,P,P,P,G,G,G,G,P,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,P,G,G,FL,G,G,F],
+        [F,G,FL,G,G,CA,G,G,G,P,G,G,G,PD,PD,F],
+        [F,G,G,G,G,G,G,G,F,P,F,G,G,PD,PD,F],
+        [F,G,G,FL,G,G,FL,G,P,P,P,G,G,G,G,F],
+        [F,G,CA,G,G,G,G,G,P,G,G,G,FL,G,CO,F],
+        [F,G,G,G,G,FL,G,G,P,G,CA,G,G,G,G,F],
+        [F,G,G,G,G,G,G,CA,P,G,G,G,FL,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 17) {
+      // Level 17: Many isolated zones
+      hasBag = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,F,G,G,F,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,P,G,FL,P,G,FL,G,G,F],
+        [F,P,P,P,P,G,G,P,G,G,P,G,G,G,G,F],
+        [F,G,G,G,G,G,G,P,P,P,P,G,G,FL,G,F],
+        [F,G,FL,G,G,CA,G,F,G,G,F,G,G,G,G,F],
+        [F,F,F,P,F,F,F,F,G,G,F,F,F,P,F,F],
+        [F,G,G,P,G,G,G,G,G,G,G,G,G,P,G,F],
+        [F,G,FL,P,G,FL,G,G,G,FL,G,G,FL,P,CO,F],
+        [F,G,G,P,G,G,G,CA,G,G,G,G,G,P,G,F],
+        [F,G,G,P,P,P,P,P,P,P,P,P,P,P,G,F],
+        [F,G,G,G,G,FL,G,G,G,G,FL,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 18) {
+      // Level 18: Expert obstacles
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,FL,G,CA,FL,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,G,FL,G,PD,PD,F],
+        [F,G,FL,G,G,CA,G,G,G,CA,G,G,G,PD,PD,F],
+        [F,G,G,G,G,G,G,G,G,G,G,G,G,G,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,G,FL,G,G,G,F],
+        [F,G,CA,G,G,G,G,G,PO,PO,G,G,G,G,CO,F],
+        [F,G,G,G,G,FL,G,G,PO,PO,G,CA,G,G,G,F],
+        [F,G,G,G,G,G,G,CA,G,G,G,G,FL,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 19) {
+      // Level 19: Mastery test
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,F,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,P,G,FL,G,CA,FL,G,F],
+        [F,P,P,P,P,G,G,G,G,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,P,G,G,FL,G,G,G,F],
+        [F,G,FL,G,G,CA,G,G,G,P,G,G,G,PD,PD,PD,F],
+        [F,G,G,G,G,G,G,G,F,P,F,G,G,PD,PD,PD,F],
+        [F,G,G,FL,G,G,FL,G,P,P,P,G,G,G,G,G,F],
+        [F,G,CA,G,G,G,G,G,P,G,G,G,FL,G,G,G,F],
+        [F,G,G,G,G,FL,G,G,P,G,CA,G,G,G,FL,CO,F],
+        [F,G,G,G,G,G,G,CA,P,G,G,G,FL,G,G,G,F],
+        [F,G,FL,G,G,G,G,G,P,G,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
+    }
+    else if (level === 20) {
+      // Level 20: Grand Master Challenge
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,F,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,G,P,G,FL,G,CA,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,P,G,G,FL,G,G,G,F],
+        [F,G,FL,G,G,CA,G,G,G,G,P,G,G,G,PD,PD,G,F],
+        [F,G,G,G,G,G,G,G,F,F,P,F,F,G,PD,PD,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,P,G,G,G,G,G,G,F],
+        [F,F,F,P,F,F,F,F,G,G,P,G,G,F,F,F,F,F],
+        [F,G,G,P,G,G,G,G,G,G,P,P,P,P,P,P,CO,F],
+        [F,G,FL,P,G,FL,G,CA,G,G,G,G,G,CA,G,G,G,F],
+        [F,G,G,P,G,G,G,G,PO,PO,G,G,G,G,FL,G,G,F],
+        [F,G,G,P,P,P,P,G,PO,PO,G,FL,G,G,G,G,G,F],
+        [F,G,FL,G,G,G,P,G,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,CA,G,P,G,FL,G,CA,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
     }
     else {
-      map = [[F,F,F],[F,G,F],[F,F,F]];
-      startPos = [1,1];
+      // Fallback for levels beyond 20 - use level 20 template
+      hasBag = true;
+      poolCleaningRequired = true;
+      map = [
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+        [F,H,H,H,P,G,G,G,G,G,F,G,G,G,G,G,G,F],
+        [F,H,H,H,P,G,FL,G,CA,G,P,G,FL,G,CA,G,G,F],
+        [F,P,P,P,P,G,G,G,G,G,P,G,G,G,G,G,G,F],
+        [F,G,G,G,G,G,G,FL,G,G,P,G,G,FL,G,G,G,F],
+        [F,G,FL,G,G,CA,G,G,G,G,P,G,G,G,PD,PD,G,F],
+        [F,G,G,G,G,G,G,G,F,F,P,F,F,G,PD,PD,G,F],
+        [F,G,G,FL,G,G,FL,G,G,G,P,G,G,G,G,G,G,F],
+        [F,F,F,P,F,F,F,F,G,G,P,G,G,F,F,F,F,F],
+        [F,G,G,P,G,G,G,G,G,G,P,P,P,P,P,P,CO,F],
+        [F,G,FL,P,G,FL,G,CA,G,G,G,G,G,CA,G,G,G,F],
+        [F,G,G,P,G,G,G,G,PO,PO,G,G,G,G,FL,G,G,F],
+        [F,G,G,P,P,P,P,G,PO,PO,G,FL,G,G,G,G,G,F],
+        [F,G,FL,G,G,G,P,G,G,G,G,G,G,G,G,FL,G,F],
+        [F,G,G,G,CA,G,P,G,FL,G,CA,G,G,G,G,G,G,F],
+        [F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F],
+      ];
+      startPos = [3, 4];
     }
 
     // Assign random flower colors
@@ -819,12 +1231,12 @@
       if (hasBag) bagCount++;
     }
 
-    // Show/hide bag
-    if (level >= 4) { hasBag = true; bagStat.style.display = ''; }
+    // Show/hide bag (levels 8+ have bag mechanic)
+    if (level >= 8) { hasBag = true; bagStat.style.display = ''; }
     else { hasBag = false; bagStat.style.display = 'none'; }
 
-    // Show/hide pool cleaner
-    if (level === 5) {
+    // Show/hide pool cleaner (levels with pool cleaning required)
+    if (poolCleaningRequired) {
       toolBtn.style.display = 'block';
       hasPoolCleaner = false;
       usingPoolCleaner = false;
@@ -835,9 +1247,12 @@
     }
 
     const LEVEL_NAMES = [
-      '', 'Jardin Simple', 'Jardin Grande', 'Jardin Complejo', 'Jardin Experto', 'Jardin Maestro'
+      '', 'Tutorial', 'Jardin Simple', 'Mas Flores', 'Primera Piscina', 'Piscina Grande',
+      'Cables Peligrosos', 'Jardin en L', 'La Compostera', 'Camino Sinuoso', 'Limpieza de Piscina',
+      'Jardin Doble', 'Pasajes Estrechos', 'Laberinto', 'Zona de Piscinas', 'Jardin en U',
+      'Multizona', 'Zonas Aisladas', 'Experto', 'Prueba de Maestria', 'Gran Maestro'
     ];
-    gameTitle.textContent = 'Nivel ' + level + ': ' + (LEVEL_NAMES[level] || '');
+    gameTitle.textContent = 'Nivel ' + level + ': ' + (LEVEL_NAMES[level] || 'Jardin ' + level);
 
     gameRunning = true;
     startTime = Date.now();
@@ -1375,6 +1790,7 @@
   document.querySelectorAll('.dpad-btn').forEach(btn => {
     function handler(e) {
       e.preventDefault();
+      e.stopPropagation();
       const dir = btn.getAttribute('data-dir');
       if (dir === 'up') movePlayer(0, -1);
       else if (dir === 'down') movePlayer(0, 1);
@@ -1384,8 +1800,13 @@
     btn.addEventListener('click', handler);
     btn.addEventListener('touchstart', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       handler(e);
-    });
+    }, { passive: false });
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
   });
 
   // ---- TOOL BUTTON ----
@@ -1436,10 +1857,12 @@
 
   // ---- SWIPE SUPPORT ----
   let touchStartX = 0, touchStartY = 0;
+  let touchStartTime = 0;
   canvas.addEventListener('touchstart', function(e) {
     if (e.touches.length === 1) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
     }
   }, { passive: true });
   canvas.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
@@ -1448,11 +1871,21 @@
     const dx = e.changedTouches[0].clientX - touchStartX;
     const dy = e.changedTouches[0].clientY - touchStartY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 20) return; // it's a tap, handled by click handler
-    if (Math.abs(dx) > Math.abs(dy)) {
-      movePlayer(dx > 0 ? 1 : -1, 0);
-    } else {
-      movePlayer(0, dy > 0 ? 1 : -1);
+    const elapsed = Date.now() - touchStartTime;
+
+    // If it's a quick tap (less than 200ms and small movement), handle as click for cable collection
+    if (elapsed < 200 && dist < 20) {
+      return; // Let the click handler deal with it
+    }
+
+    // If it's a swipe (more movement), handle as movement
+    if (dist >= 20) {
+      e.preventDefault();
+      if (Math.abs(dx) > Math.abs(dy)) {
+        movePlayer(dx > 0 ? 1 : -1, 0);
+      } else {
+        movePlayer(0, dy > 0 ? 1 : -1);
+      }
     }
   });
 
