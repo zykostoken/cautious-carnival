@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juegos Terapeuticos - Clinica Jose Ingenieros</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+      --success: #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 2.5rem;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 2.5rem;
+    }
+
+    .login-header h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .login-header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+      background: var(--background);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--surface);
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    #codeInput {
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--error);
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      display: none;
+      animation: shake 0.3s ease-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .info-section {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .info-section p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-section a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .info-section a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.85rem;
+    }
+
+    .footer-note a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 1.5rem;
+      }
+      .login-header h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">🎮</div>
+        <h1>Juegos Terapeuticos</h1>
+        <p>Acceso para partners y colaboradores</p>
+      </div>
+
+      <div class="error-message" id="errorMsg"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="codeInput">Codigo de Acceso</label>
+          <input
+            type="text"
+            id="codeInput"
+            name="code"
+            placeholder="XXXXXXXX"
+            autocomplete="off"
+            autocapitalize="characters"
+            required
+            maxlength="32"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="nameInput">Tu nombre (opcional)</label>
+          <input
+            type="text"
+            id="nameInput"
+            name="displayName"
+            placeholder="Como queres que te llamemos?"
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <span id="btnText">Ingresar</span>
+          <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+        </button>
+      </form>
+
+      <div class="info-section">
+        <p>¿Sos paciente de Hospital de Dia?</p>
+        <a href="/hdd/portal">Ingresa al Portal HDD</a>
+      </div>
+    </div>
+
+    <p class="footer-note">
+      <a href="/">Clinica Jose Ingenieros</a>
+    </p>
+  </div>
+
+  <script>
+    // Check if already logged in
+    const existingToken = localStorage.getItem('games_session');
+    if (existingToken) {
+      // Verify session is still valid
+      fetch('/api/games/auth?action=verify&sessionToken=' + existingToken)
+        .then(r => r.json())
+        .then(data => {
+          if (data.valid) {
+            window.location.href = '/games/portal/';
+          } else {
+            localStorage.removeItem('games_session');
+          }
+        })
+        .catch(() => {});
+    }
+
+    const form = document.getElementById('loginForm');
+    const codeInput = document.getElementById('codeInput');
+    const nameInput = document.getElementById('nameInput');
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    // Auto-uppercase code input
+    codeInput.addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const code = codeInput.value.trim();
+      const displayName = nameInput.value.trim();
+
+      if (!code) {
+        showError('Ingresa tu codigo de acceso');
+        return;
+      }
+
+      // Show loading
+      submitBtn.disabled = true;
+      btnText.style.display = 'none';
+      loadingSpinner.style.display = 'block';
+      errorMsg.classList.remove('show');
+
+      try {
+        const response = await fetch('/api/games/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'login',
+            code: code,
+            displayName: displayName || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Store session
+          localStorage.setItem('games_session', data.sessionToken);
+          localStorage.setItem('games_user', JSON.stringify(data.user));
+
+          // Redirect to portal
+          window.location.href = '/games/portal/';
+        } else {
+          showError(data.error || 'Error de autenticacion');
+        }
+      } catch (error) {
+        showError('Error de conexion. Intenta nuevamente.');
+      } finally {
+        submitBtn.disabled = false;
+        btnText.style.display = 'inline';
+        loadingSpinner.style.display = 'none';
+      }
+    });
+
+    function showError(message) {
+      errorMsg.textContent = message;
+      errorMsg.classList.add('show');
+      codeInput.focus();
+    }
+  </script>
+</body>
+</html>

@@ -503,6 +503,101 @@
       color: #991b1b;
     }
 
+    /* Mood Check-in Modal Styles */
+    .mood-checkin-container {
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    .mood-question {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .mood-options {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .mood-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 70px;
+    }
+
+    .mood-option:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .mood-option.selected {
+      border-color: var(--primary);
+      background: rgba(37,99,235,0.1);
+    }
+
+    .mood-emoji {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .mood-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .mood-note-section {
+      margin-top: 1rem;
+    }
+
+    .mood-note-section label {
+      display: block;
+      text-align: left;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .mood-note-section textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      resize: none;
+      min-height: 80px;
+    }
+
+    .mood-note-section textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .mood-skip {
+      display: block;
+      margin-top: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .mood-skip:hover {
+      color: var(--text);
+    }
+
     /* Modal */
     .modal-overlay {
       position: fixed;
@@ -1128,11 +1223,60 @@
     </div>
   </div>
 
+  <!-- Daily Mood Check-in Modal -->
+  <div id="mood-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Check-in Diario</h3>
+        <span></span>
+      </div>
+      <div class="modal-body">
+        <div class="mood-checkin-container">
+          <p class="mood-question">Hola! Como te sentis hoy?</p>
+
+          <div class="mood-options" id="mood-options">
+            <div class="mood-option" data-value="1" onclick="selectMood(1)">
+              <span class="mood-emoji">😢</span>
+              <span class="mood-label">Muy mal</span>
+            </div>
+            <div class="mood-option" data-value="2" onclick="selectMood(2)">
+              <span class="mood-emoji">😔</span>
+              <span class="mood-label">Mal</span>
+            </div>
+            <div class="mood-option" data-value="3" onclick="selectMood(3)">
+              <span class="mood-emoji">😐</span>
+              <span class="mood-label">Regular</span>
+            </div>
+            <div class="mood-option" data-value="4" onclick="selectMood(4)">
+              <span class="mood-emoji">🙂</span>
+              <span class="mood-label">Bien</span>
+            </div>
+            <div class="mood-option" data-value="5" onclick="selectMood(5)">
+              <span class="mood-emoji">😊</span>
+              <span class="mood-label">Muy bien</span>
+            </div>
+          </div>
+
+          <div class="mood-note-section">
+            <label for="mood-note">Queres agregar algo mas? (opcional)</label>
+            <textarea id="mood-note" placeholder="Como dormiste? Tenes alguna preocupacion? Algo que quieras compartir..."></textarea>
+          </div>
+
+          <span class="mood-skip" onclick="skipMoodCheckin()">Omitir por ahora</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="submit-mood-btn" onclick="submitMoodCheckin()" disabled>Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // State
     let currentUser = null;
     let sessionToken = null;
     let uploadedImageUrl = null;
+    let selectedMood = null;
 
     // API helpers
     const API_BASE = '/api/hdd';
@@ -1146,6 +1290,75 @@
         }
       });
       return response.json();
+    }
+
+    // ==================== MOOD CHECK-IN ====================
+
+    function selectMood(value) {
+      selectedMood = value;
+      document.querySelectorAll('.mood-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (parseInt(opt.dataset.value) === value) {
+          opt.classList.add('selected');
+        }
+      });
+      document.getElementById('submit-mood-btn').disabled = false;
+    }
+
+    function shouldShowMoodCheckin() {
+      // Check if already checked in today
+      const today = new Date().toISOString().split('T')[0];
+      const lastCheckin = localStorage.getItem('hdd_mood_checkin_date');
+      return lastCheckin !== today;
+    }
+
+    function showMoodCheckinModal() {
+      if (!shouldShowMoodCheckin()) return;
+
+      selectedMood = null;
+      document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
+      document.getElementById('mood-note').value = '';
+      document.getElementById('submit-mood-btn').disabled = true;
+      document.getElementById('mood-checkin-modal').classList.remove('hidden');
+    }
+
+    function hideMoodCheckinModal() {
+      document.getElementById('mood-checkin-modal').classList.add('hidden');
+    }
+
+    async function submitMoodCheckin() {
+      if (!selectedMood) return;
+
+      const note = document.getElementById('mood-note').value.trim();
+
+      // Save to backend
+      try {
+        await api('/games', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'mood_checkin',
+            sessionToken: sessionToken,
+            mood: selectedMood,
+            note: note || null
+          })
+        });
+      } catch (e) {
+        console.error('Error saving mood checkin:', e);
+      }
+
+      // Mark as checked in today
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('hdd_mood_checkin_date', today);
+      localStorage.setItem('hdd_last_mood', selectedMood.toString());
+
+      hideMoodCheckinModal();
+    }
+
+    function skipMoodCheckin() {
+      // Mark as skipped for today
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('hdd_mood_checkin_date', today);
+      hideMoodCheckinModal();
     }
 
     // Auth
@@ -1219,6 +1432,11 @@
       document.getElementById('register-view').classList.add('hidden');
       document.getElementById('app-view').classList.remove('hidden');
       document.getElementById('user-name').textContent = currentUser.fullName;
+
+      // Show daily mood check-in after a brief delay
+      setTimeout(() => {
+        showMoodCheckinModal();
+      }, 500);
     }
 
     // Registration - simplified (no code verification)

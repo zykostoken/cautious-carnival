@@ -214,6 +214,76 @@ export default async (req: Request, context: Context) => {
         }), { headers: corsHeaders });
       }
 
+      // Save daily mood check-in
+      if (action === "mood_checkin") {
+        const { mood, note } = body;
+
+        if (!mood || mood < 1 || mood > 5) {
+          return new Response(JSON.stringify({ error: "Valor de estado de animo invalido" }), { status: 400, headers: corsHeaders });
+        }
+
+        // Save mood check-in
+        await sql`
+          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, created_at)
+          VALUES (${patient.id}, ${mood}, ${note || null}, NOW())
+        `;
+
+        // Check for crisis protocol triggers
+        // Trigger if: mood is 1 (very bad), or 3+ days with low mood, or keywords in note
+        let alertTriggered = false;
+        let alertReason = '';
+
+        // Check if very low mood
+        if (mood === 1) {
+          alertTriggered = true;
+          alertReason = 'Estado de animo muy bajo reportado';
+        }
+
+        // Check for concerning keywords in note
+        if (note) {
+          const concerningKeywords = ['suicid', 'morir', 'no puedo mas', 'terminar', 'daño', 'cortar', 'pastillas'];
+          const lowerNote = note.toLowerCase();
+          for (const keyword of concerningKeywords) {
+            if (lowerNote.includes(keyword)) {
+              alertTriggered = true;
+              alertReason = 'Contenido de riesgo detectado en nota';
+              break;
+            }
+          }
+        }
+
+        // Check for pattern of low moods (3+ days with mood <= 2)
+        const recentMoods = await sql`
+          SELECT mood_value, created_at
+          FROM hdd_mood_checkins
+          WHERE patient_id = ${patient.id}
+          ORDER BY created_at DESC
+          LIMIT 5
+        `;
+
+        if (recentMoods.length >= 3) {
+          const lowMoodCount = recentMoods.slice(0, 3).filter((m: any) => m.mood_value <= 2).length;
+          if (lowMoodCount >= 3) {
+            alertTriggered = true;
+            alertReason = 'Patron de estado de animo bajo sostenido (3+ dias)';
+          }
+        }
+
+        // If alert triggered, create crisis alert
+        if (alertTriggered) {
+          await sql`
+            INSERT INTO hdd_crisis_alerts (patient_id, alert_type, reason, mood_value, note, status, created_at)
+            VALUES (${patient.id}, 'mood_checkin', ${alertReason}, ${mood}, ${note || null}, 'pending', NOW())
+          `;
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          mood,
+          alertTriggered
+        }), { headers: corsHeaders });
+      }
+
     } catch (err: any) {
       console.error("HDD Games error:", err);
       return new Response(JSON.stringify({ error: "Error interno del servidor", details: err.message }), {

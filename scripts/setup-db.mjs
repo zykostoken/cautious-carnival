@@ -546,6 +546,70 @@ FROM hdd_games g
 CROSS JOIN (VALUES (1),(2),(3),(4),(5)) AS d(day)
 WHERE g.slug IN ('lawn-mower', 'medication-memory')
 ON CONFLICT DO NOTHING;
+
+-- =============================================
+-- GAME ACCESS CODES FOR EXTERNAL PARTNERS
+-- =============================================
+
+-- Access codes table for partners, researchers, colleagues
+CREATE TABLE IF NOT EXISTS game_access_codes (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(32) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    type VARCHAR(64) NOT NULL DEFAULT 'partner',
+    notes TEXT,
+    max_uses INTEGER,
+    current_uses INTEGER DEFAULT 0,
+    valid_from TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    valid_until TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Sessions for external game access
+CREATE TABLE IF NOT EXISTS game_access_sessions (
+    id SERIAL PRIMARY KEY,
+    access_code_id INTEGER NOT NULL REFERENCES game_access_codes(id),
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    display_name VARCHAR(255),
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Game sessions for external users
+CREATE TABLE IF NOT EXISTS external_game_sessions (
+    id SERIAL PRIMARY KEY,
+    access_session_id INTEGER NOT NULL REFERENCES game_access_sessions(id),
+    game_id INTEGER NOT NULL REFERENCES hdd_games(id),
+    level INTEGER DEFAULT 1,
+    score INTEGER DEFAULT 0,
+    max_score INTEGER DEFAULT 0,
+    duration_seconds INTEGER,
+    completed BOOLEAN DEFAULT FALSE,
+    metrics JSONB DEFAULT '{}',
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes for game access
+CREATE INDEX IF NOT EXISTS idx_game_access_codes_code ON game_access_codes(code);
+CREATE INDEX IF NOT EXISTS idx_game_access_codes_active ON game_access_codes(is_active);
+CREATE INDEX IF NOT EXISTS idx_game_access_sessions_token ON game_access_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_game_access_sessions_code ON game_access_sessions(access_code_id);
+CREATE INDEX IF NOT EXISTS idx_external_game_sessions_session ON external_game_sessions(access_session_id);
+
+-- Insert default access codes
+INSERT INTO game_access_codes (code, name, type, notes, created_by)
+VALUES
+    ('DEMO2024', 'Demo - Acceso de Prueba', 'demo', 'Codigo de demostracion para pruebas internas', 'system'),
+    ('PARTNER001', 'Partner Externo - Codigo 1', 'partner', 'Codigo generico para partners', 'system'),
+    ('RESEARCH001', 'Investigador - Codigo 1', 'researcher', 'Codigo para investigadores academicos', 'system')
+ON CONFLICT (code) DO NOTHING;
 `;
 
 async function runMigration() {
