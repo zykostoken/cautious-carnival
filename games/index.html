@@ -357,6 +357,8 @@
 
           // Redirect to portal
           window.location.href = '/games/portal/';
+        } else if (response.status === 500) {
+          showError('Error del servidor. Por favor intenta nuevamente en unos minutos o contactanos a hdd@joseingenieros.com.ar');
         } else {
           showError(data.error || 'Error de autenticacion');
         }

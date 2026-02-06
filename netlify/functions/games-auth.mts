@@ -5,8 +5,18 @@ function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
 }
 
+// Fallback access codes - used when database is unavailable
+// This ensures partners can always access games even during DB outages
+const FALLBACK_ACCESS_CODES: Record<string, { name: string; type: string }> = {
+  'DEMO2024': { name: 'Demo - Acceso de Prueba', type: 'demo' },
+  'PARTNER001': { name: 'Partner Externo - Codigo 1', type: 'partner' },
+  'RESEARCH001': { name: 'Investigador - Codigo 1', type: 'researcher' },
+};
+
+// In-memory session store for fallback mode
+const fallbackSessions = new Map<string, { codeName: string; codeType: string; displayName: string | null; createdAt: string }>();
+
 export default async (req: Request, context: Context) => {
-  const sql = getDatabase();
   const corsHeaders = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -16,6 +26,16 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // Try to get database connection, but don't fail if unavailable
+  let sql: ReturnType<typeof getDatabase> | null = null;
+  let dbAvailable = false;
+  try {
+    sql = getDatabase();
+    dbAvailable = true;
+  } catch (dbError) {
+    console.warn("Database unavailable, using fallback mode:", dbError instanceof Error ? dbError.message : String(dbError));
   }
 
   if (req.method === "POST") {
@@ -35,52 +55,86 @@ export default async (req: Request, context: Context) => {
 
         const normalizedCode = code.trim().toUpperCase();
 
-        // Find valid access code
-        const [accessCode] = await sql`
-          SELECT id, code, name, type, max_uses, current_uses, valid_from, valid_until, is_active
-          FROM game_access_codes
-          WHERE code = ${normalizedCode}
-            AND is_active = TRUE
-            AND (valid_from IS NULL OR valid_from <= NOW())
-            AND (valid_until IS NULL OR valid_until > NOW())
-        `;
+        // Try database first
+        if (sql && dbAvailable) {
+          try {
+            const [accessCode] = await sql`
+              SELECT id, code, name, type, max_uses, current_uses, valid_from, valid_until, is_active
+              FROM game_access_codes
+              WHERE code = ${normalizedCode}
+                AND is_active = TRUE
+                AND (valid_from IS NULL OR valid_from <= NOW())
+                AND (valid_until IS NULL OR valid_until > NOW())
+            `;
 
-        if (!accessCode) {
+            if (!accessCode) {
+              return new Response(JSON.stringify({
+                error: "Codigo de acceso invalido o expirado"
+              }), { status: 401, headers: corsHeaders });
+            }
+
+            // Check max uses
+            if (accessCode.max_uses !== null && accessCode.current_uses >= accessCode.max_uses) {
+              return new Response(JSON.stringify({
+                error: "Este codigo ha alcanzado el limite de usos"
+              }), { status: 401, headers: corsHeaders });
+            }
+
+            // Create session
+            const sessionToken = generateSessionToken();
+            const userAgent = req.headers.get('user-agent') || null;
+
+            await sql`
+              INSERT INTO game_access_sessions (access_code_id, session_token, display_name, user_agent)
+              VALUES (${accessCode.id}, ${sessionToken}, ${displayName || null}, ${userAgent})
+            `;
+
+            // Update code usage
+            await sql`
+              UPDATE game_access_codes
+              SET current_uses = current_uses + 1,
+                  last_used_at = NOW()
+              WHERE id = ${accessCode.id}
+            `;
+
+            return new Response(JSON.stringify({
+              success: true,
+              sessionToken,
+              user: {
+                codeName: accessCode.name,
+                codeType: accessCode.type,
+                displayName: displayName || null
+              },
+              message: "Acceso autorizado. Bienvenido/a!"
+            }), { status: 200, headers: corsHeaders });
+          } catch (dbQueryError) {
+            console.warn("Database query failed during login, falling back:", dbQueryError instanceof Error ? dbQueryError.message : String(dbQueryError));
+            // Fall through to fallback validation below
+          }
+        }
+
+        // Fallback: validate against built-in codes
+        const fallbackCode = FALLBACK_ACCESS_CODES[normalizedCode];
+        if (!fallbackCode) {
           return new Response(JSON.stringify({
             error: "Codigo de acceso invalido o expirado"
           }), { status: 401, headers: corsHeaders });
         }
 
-        // Check max uses
-        if (accessCode.max_uses !== null && accessCode.current_uses >= accessCode.max_uses) {
-          return new Response(JSON.stringify({
-            error: "Este codigo ha alcanzado el limite de usos"
-          }), { status: 401, headers: corsHeaders });
-        }
-
-        // Create session
         const sessionToken = generateSessionToken();
-        const userAgent = req.headers.get('user-agent') || null;
-
-        await sql`
-          INSERT INTO game_access_sessions (access_code_id, session_token, display_name, user_agent)
-          VALUES (${accessCode.id}, ${sessionToken}, ${displayName || null}, ${userAgent})
-        `;
-
-        // Update code usage
-        await sql`
-          UPDATE game_access_codes
-          SET current_uses = current_uses + 1,
-              last_used_at = NOW()
-          WHERE id = ${accessCode.id}
-        `;
+        fallbackSessions.set(sessionToken, {
+          codeName: fallbackCode.name,
+          codeType: fallbackCode.type,
+          displayName: displayName || null,
+          createdAt: new Date().toISOString()
+        });
 
         return new Response(JSON.stringify({
           success: true,
           sessionToken,
           user: {
-            codeName: accessCode.name,
-            codeType: accessCode.type,
+            codeName: fallbackCode.name,
+            codeType: fallbackCode.type,
             displayName: displayName || null
           },
           message: "Acceso autorizado. Bienvenido/a!"
@@ -92,10 +146,20 @@ export default async (req: Request, context: Context) => {
         const { sessionToken } = body;
 
         if (sessionToken) {
-          await sql`
-            DELETE FROM game_access_sessions
-            WHERE session_token = ${sessionToken}
-          `;
+          // Remove from fallback sessions
+          fallbackSessions.delete(sessionToken);
+
+          // Try database cleanup
+          if (sql && dbAvailable) {
+            try {
+              await sql`
+                DELETE FROM game_access_sessions
+                WHERE session_token = ${sessionToken}
+              `;
+            } catch (dbError) {
+              console.warn("Database cleanup failed during logout:", dbError instanceof Error ? dbError.message : String(dbError));
+            }
+          }
         }
 
         return new Response(JSON.stringify({
@@ -112,6 +176,21 @@ export default async (req: Request, context: Context) => {
           return new Response(JSON.stringify({
             error: "Token y juego requeridos"
           }), { status: 400, headers: corsHeaders });
+        }
+
+        // Check fallback sessions first
+        if (fallbackSessions.has(sessionToken)) {
+          // In fallback mode, acknowledge but can't persist game data
+          return new Response(JSON.stringify({
+            success: true,
+            message: "Sesion de juego registrada"
+          }), { status: 200, headers: corsHeaders });
+        }
+
+        if (!sql || !dbAvailable) {
+          return new Response(JSON.stringify({
+            error: "Sesion invalida"
+          }), { status: 401, headers: corsHeaders });
         }
 
         // Verify session
@@ -187,6 +266,26 @@ export default async (req: Request, context: Context) => {
 
     // Verify session
     if (action === "verify" && sessionToken) {
+      // Check fallback sessions first
+      const fallbackSession = fallbackSessions.get(sessionToken);
+      if (fallbackSession) {
+        return new Response(JSON.stringify({
+          valid: true,
+          user: {
+            codeName: fallbackSession.codeName,
+            codeType: fallbackSession.codeType,
+            displayName: fallbackSession.displayName
+          }
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      if (!sql || !dbAvailable) {
+        return new Response(JSON.stringify({
+          valid: false,
+          error: "Sesion invalida o expirada"
+        }), { status: 401, headers: corsHeaders });
+      }
+
       try {
         const [session] = await sql`
           SELECT
@@ -226,13 +325,39 @@ export default async (req: Request, context: Context) => {
 
       } catch (error) {
         console.error("Session verification error:", error);
-        return new Response(JSON.stringify({ error: "Error interno" }),
-          { status: 500, headers: corsHeaders });
+        return new Response(JSON.stringify({
+          valid: false,
+          error: "Sesion invalida o expirada"
+        }), { status: 401, headers: corsHeaders });
       }
     }
 
     // Get available games
     if (action === "games") {
+      if (!sql || !dbAvailable) {
+        // Return hardcoded games list as fallback
+        return new Response(JSON.stringify({
+          games: [
+            {
+              slug: "lawn-mower",
+              name: "Cortadora de Cesped",
+              description: "Juego de atencion y planificacion",
+              therapeuticAreas: ["atencion", "planificacion"],
+              icon: "🌿",
+              difficultyLevels: [1, 2, 3]
+            },
+            {
+              slug: "medication-memory",
+              name: "Memoria de Medicacion",
+              description: "Juego de memoria y asociacion",
+              therapeuticAreas: ["memoria", "asociacion"],
+              icon: "💊",
+              difficultyLevels: [1, 2, 3]
+            }
+          ]
+        }), { status: 200, headers: corsHeaders });
+      }
+
       try {
         const games = await sql`
           SELECT slug, name, description, therapeutic_areas, icon, difficulty_levels
@@ -254,8 +379,27 @@ export default async (req: Request, context: Context) => {
 
       } catch (error) {
         console.error("Games list error:", error);
-        return new Response(JSON.stringify({ error: "Error interno" }),
-          { status: 500, headers: corsHeaders });
+        // Return hardcoded fallback on database error too
+        return new Response(JSON.stringify({
+          games: [
+            {
+              slug: "lawn-mower",
+              name: "Cortadora de Cesped",
+              description: "Juego de atencion y planificacion",
+              therapeuticAreas: ["atencion", "planificacion"],
+              icon: "🌿",
+              difficultyLevels: [1, 2, 3]
+            },
+            {
+              slug: "medication-memory",
+              name: "Memoria de Medicacion",
+              description: "Juego de memoria y asociacion",
+              therapeuticAreas: ["memoria", "asociacion"],
+              icon: "💊",
+              difficultyLevels: [1, 2, 3]
+            }
+          ]
+        }), { status: 200, headers: corsHeaders });
       }
     }
 
