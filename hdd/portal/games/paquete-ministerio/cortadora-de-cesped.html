@@ -394,6 +394,153 @@
     .celebration.hidden { display: none; }
 
     /* Responsive */
+    /* Instruction tip overlay */
+    .instruction-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 210;
+      padding: 1rem;
+    }
+    .instruction-overlay.hidden { display: none; }
+    .instruction-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.5rem 2rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .instruction-card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 0.8rem;
+      color: var(--primary);
+    }
+    .instruction-card .tip-list {
+      text-align: left;
+      margin: 0.8rem 0;
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .instruction-card .tip-list li {
+      margin-bottom: 0.3rem;
+    }
+    .instruction-card .start-btn {
+      margin-top: 1rem;
+      padding: 0.7rem 2rem;
+      background: var(--success);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .instruction-card .start-btn:hover { background: #16a34a; }
+
+    /* Blocked overlay */
+    .blocked-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(245,158,11,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 50;
+      gap: 0.8rem;
+    }
+    .blocked-overlay.hidden { display: none; }
+    .blocked-text {
+      background: var(--warning);
+      color: var(--text);
+      padding: 0.5rem 1.2rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      animation: pulse 0.5s ease-in-out infinite alternate;
+    }
+    .blocked-restart-btn {
+      padding: 0.5rem 1.2rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Metrics panel */
+    .metrics-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 220;
+      padding: 1rem;
+    }
+    .metrics-overlay.hidden { display: none; }
+    .metrics-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .metrics-card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+      text-align: center;
+    }
+    .metrics-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .chart-container {
+      margin: 1rem 0;
+      padding: 0.8rem;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .chart-container h3 {
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .chart-canvas {
+      width: 100%;
+      height: 180px;
+    }
+    .metrics-close-btn {
+      display: block;
+      margin: 1rem auto 0;
+      padding: 0.6rem 1.5rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     @media (max-width: 700px) {
       .dpad-container { display: flex; }
       .game-title { font-size: 0.9rem; }
@@ -414,6 +561,7 @@
     <div class="header-content">
       <div class="header-left">
         <a href="/hdd/portal" class="back-btn" id="backBtn">&#8592; Volver</a>
+        <button class="back-btn" id="restartBtn" style="background:#f59e0b; display:none;">&#8635; Reiniciar</button>
         <span class="game-title" id="gameTitle">Cortadora de Cesped</span>
         <span class="demo-badge" id="demoBadge" style="display:none; background:#f59e0b; color:#fff; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:600;">MODO DEMO</span>
       </div>
@@ -453,6 +601,10 @@
       <div class="tool-indicator" id="toolIndicator">Cortadora</div>
       <div class="stuck-overlay hidden" id="stuckOverlay">
         <div class="stuck-text">Atascado en cable!</div>
+      </div>
+      <div class="blocked-overlay hidden" id="blockedOverlay">
+        <div class="blocked-text" id="blockedText">Sin movimientos posibles!</div>
+        <button class="blocked-restart-btn" onclick="window._restartLevel()">Reiniciar Nivel</button>
       </div>
     </div>
     <div class="dpad-container">
@@ -621,8 +773,8 @@
 
         <!-- ESCALA 2: Niveles 21-40 (cuadros más pequeños) -->
         <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--border);">
-          <h3 style="text-align:center; color:var(--primary); margin-bottom:0.5rem;">Escala 2 - Cuadros Pequeños</h3>
-          <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Los mismos niveles con grilla más densa</p>
+          <h3 style="text-align:center; color:var(--primary); margin-bottom:0.5rem;">Escala 2 - Mayor Complejidad</h3>
+          <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Mismos niveles con grilla duplicada: mas cesped, mas precision requerida</p>
         </div>
         <button class="level-btn" data-level="21">
           <div class="level-num" style="background:#0891b2;">21</div>
@@ -730,10 +882,48 @@
       <h1 class="result-title" id="resultTitle"></h1>
       <div class="score-breakdown" id="scoreBreakdown"></div>
       <div class="result-actions">
+        <button class="btn-primary" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
         <button class="btn-primary" id="retryBtn">Reintentar</button>
+        <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Ver Metricas</button>
         <button class="btn-secondary" id="levelsBtn">Niveles</button>
         <a href="/hdd/portal" class="btn-secondary" style="text-decoration:none;">Volver al portal</a>
       </div>
+    </div>
+  </div>
+
+  <!-- Instruction Overlay -->
+  <div class="instruction-overlay hidden" id="instructionOverlay">
+    <div class="instruction-card">
+      <h2 id="instructionTitle">Instrucciones</h2>
+      <ul class="tip-list" id="instructionTips"></ul>
+      <button class="start-btn" id="instructionStartBtn">Comenzar</button>
+    </div>
+  </div>
+
+  <!-- Blocked Overlay (in canvas) -->
+
+  <!-- Metrics Panel -->
+  <div class="metrics-overlay hidden" id="metricsOverlay">
+    <div class="metrics-card">
+      <h2>Biomarcadores Clinicos</h2>
+      <p class="metrics-subtitle">Registro continuo de variables para homologacion FDA</p>
+      <div class="chart-container">
+        <h3>Tiempo de Reaccion (ms) - Variabilidad</h3>
+        <canvas class="chart-canvas" id="rtChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Eficiencia de Movimiento por Sesion</h3>
+        <canvas class="chart-canvas" id="efficiencyChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Errores: Comision vs Omision</h3>
+        <canvas class="chart-canvas" id="errorsChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Pausas y Fatiga (duracion promedio ms)</h3>
+        <canvas class="chart-canvas" id="pauseChart"></canvas>
+      </div>
+      <button class="metrics-close-btn" id="metricsCloseBtn">Cerrar</button>
     </div>
   </div>
 
@@ -813,6 +1003,355 @@
   let totalDryFlowers = 0;
   let currentScale = 1; // 1 = normal, 2 = small squares, 3 = mini squares
   let isPart2 = false;
+  let blockedCheckTimer = null;
+  let consecutiveBlockedChecks = 0;
+
+  // ---- SESSION METRICS HISTORY (persistent across levels for charts) ----
+  let metricsHistory = JSON.parse(localStorage.getItem('lawnmower_metrics_history') || '[]');
+
+  function saveMetricsToHistory(levelNum, stats) {
+    const entry = {
+      level: levelNum,
+      timestamp: Date.now(),
+      date: new Date().toISOString(),
+      duration_sec: stats.session_summary.total_duration_sec,
+      accuracy: stats.session_summary.accuracy_percentage,
+      mean_rt_ms: stats.clinical_markers.mean_reaction_time_ms,
+      rt_variability_sd: stats.clinical_markers.rt_variability_sd,
+      rt_cv: stats.clinical_markers.rt_coefficient_of_variation,
+      omission_errors: stats.clinical_markers.omission_errors,
+      omission_rate: stats.clinical_markers.omission_rate,
+      commission_errors: stats.clinical_markers.commission_errors,
+      impulsivity_ratio: stats.clinical_markers.impulsivity_ratio,
+      movement_efficiency: stats.clinical_markers.movement_efficiency,
+      path_efficiency: stats.clinical_markers.path_efficiency,
+      avg_pause_ms: stats.clinical_markers.avg_pause_duration_ms,
+      long_pauses: stats.clinical_markers.long_pauses_count,
+      time_to_first_action_ms: stats.clinical_markers.time_to_first_action_ms,
+      flowers_destroyed: stats.clinical_markers.flowers_destroyed,
+      pool_falls: stats.clinical_markers.pool_falls,
+      cable_stucks: stats.clinical_markers.cable_stucks,
+      input_method: stats.device_context.input_method
+    };
+    metricsHistory.push(entry);
+    // Keep last 200 entries
+    if (metricsHistory.length > 200) metricsHistory = metricsHistory.slice(-200);
+    localStorage.setItem('lawnmower_metrics_history', JSON.stringify(metricsHistory));
+  }
+
+  // ---- LEVEL INSTRUCTION TIPS ----
+  function getInstructionTips(level) {
+    const tips = [];
+    // Universal tips
+    tips.push('La cortadora solo puede avanzar cortando cesped o por donde ya esta cortado. Planifica bien tu recorrido.');
+    tips.push('Controles: Flechas/WASD en teclado, D-Pad en tactil, o arrastra con click derecho del mouse.');
+
+    if (level >= 6 && level <= 20 || (level >= 26 && level <= 60)) {
+      tips.push('Cables: Acercate y toca/clickea los cables para recogerlos antes de pasar.');
+    }
+    if (level >= 8 && level <= 20 || (level >= 28 && level <= 60)) {
+      tips.push('Bolsa de recoleccion: Se llena cada 15 cortes. Debes ir a la compostera (cuadro marron) para vaciarla. Planifica la ida a la compostera desde el inicio!');
+    }
+    if (level >= 10 && level <= 20 || (level >= 30 && level <= 60)) {
+      tips.push('Piscina sucia: Usa el boton "Limpiador de Piscina" para cambiar de herramienta y limpiarla.');
+    }
+    if (level >= 101) {
+      tips.push('Parte 2 - Tienes 3 herramientas: Cortadora, Limpiador de Piscina y Regadera. Cambia entre ellas con los botones.');
+      tips.push('Flores marchitas (marrones con gota azul): Usa la regadera para regarlas.');
+    }
+    tips.push('Si te bloqueas sin poder avanzar, usa el boton "Reiniciar" en la barra superior.');
+    return tips;
+  }
+
+  function showInstructions(level, callback) {
+    const overlay = document.getElementById('instructionOverlay');
+    const title = document.getElementById('instructionTitle');
+    const tipsList = document.getElementById('instructionTips');
+    const startBtn = document.getElementById('instructionStartBtn');
+
+    const tips = getInstructionTips(level);
+    let levelName = '';
+    if (level >= 101) levelName = 'Parte 2 - Nivel ' + (level - 100);
+    else if (level >= 41) levelName = 'Escala 3 - Nivel ' + (level - 40);
+    else if (level >= 21) levelName = 'Escala 2 - Nivel ' + (level - 20);
+    else levelName = 'Nivel ' + level;
+
+    title.textContent = levelName + ' - Instrucciones';
+    tipsList.innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
+
+    overlay.classList.remove('hidden');
+    const handler = function() {
+      overlay.classList.add('hidden');
+      startBtn.removeEventListener('click', handler);
+      if (callback) callback();
+    };
+    startBtn.addEventListener('click', handler);
+  }
+
+  // ---- BLOCKED DETECTION ----
+  function checkIfBlocked() {
+    if (!gameRunning || isStuck) return false;
+    // Player can move to: CUT, PATH, COMPOST, GRASS (if bag not full), CABLE, POOL_DIRTY (if pool cleaner), FLOWER_DRY (if watering can), FLOWER_WATERED
+    const directions = [[0,-1],[0,1],[-1,0],[1,0]];
+    for (const [dx, dy] of directions) {
+      const nx = playerX + dx;
+      const ny = playerY + dy;
+      if (ny < 0 || ny >= gridH || nx < 0 || nx >= gridW) continue;
+      const tile = grid[ny][nx];
+      if (tile === T.CUT || tile === T.PATH || tile === T.COMPOST || tile === T.FLOWER_WATERED) return false;
+      if (tile === T.GRASS && (!hasBag || bagCount < bagCapacity)) return false;
+      if (tile === T.CABLE) return false;
+      if (tile === T.FLOWER) return false; // can move there (with penalty)
+      if (tile === T.POOL_DIRTY && usingPoolCleaner) return false;
+      if (tile === T.FLOWER_DRY && usingWateringCan) return false;
+    }
+    return true;
+  }
+
+  function startBlockedDetection() {
+    clearInterval(blockedCheckTimer);
+    consecutiveBlockedChecks = 0;
+    blockedCheckTimer = setInterval(() => {
+      if (!gameRunning) { clearInterval(blockedCheckTimer); return; }
+      if (checkIfBlocked()) {
+        consecutiveBlockedChecks++;
+        if (consecutiveBlockedChecks >= 2) {
+          showBlockedOverlay();
+          clearInterval(blockedCheckTimer);
+        }
+      } else {
+        consecutiveBlockedChecks = 0;
+        hideBlockedOverlay();
+      }
+    }, 1500);
+  }
+
+  function showBlockedOverlay() {
+    const overlay = document.getElementById('blockedOverlay');
+    const text = document.getElementById('blockedText');
+    if (hasBag && bagCount >= bagCapacity) {
+      text.textContent = 'Bolsa llena y sin camino a la compostera! Reinicia el nivel.';
+    } else {
+      text.textContent = 'Sin movimientos posibles! Reinicia el nivel.';
+    }
+    overlay.classList.remove('hidden');
+    showToast('Te bloqueaste! Usa Reiniciar para volver a intentar.', 'warn', 4000);
+  }
+
+  function hideBlockedOverlay() {
+    document.getElementById('blockedOverlay').classList.add('hidden');
+  }
+
+  // Expose restart for the blocked overlay button
+  window._restartLevel = function() {
+    hideBlockedOverlay();
+    initGame(currentLevel);
+  };
+
+  // ---- CLINICAL BIOMARKERS (Digital Phenotyping) ----
+  // For ADHD/attention assessment (EndeavorRx-style metrics)
+  let clinicalMetrics = {
+    // Reaction Time Variability (RTV) - key ADHD marker
+    reactionTimes: [],       // Array of times (ms) between each grass cut
+    lastGrassCutTime: 0,     // Timestamp of last grass cut
+
+    // Movement Analysis
+    totalMoves: 0,           // Total movement commands issued
+    successfulMoves: 0,      // Moves that resulted in position change
+    invalidMoves: 0,         // Moves blocked by obstacles
+    totalDistanceTraveled: 0, // Manhattan distance traveled
+    movementPath: [],        // Array of {x, y, timestamp}
+
+    // Omission Errors (inattention) - grass left uncut when time runs out or quit
+    // Calculated at end: (totalGrass - grassCut) when not completed
+
+    // Commission Errors (impulsivity) - already tracked as flowersHit, poolHits
+    // These represent "Go/No-Go" task failures
+
+    // Hesitation/Pause patterns
+    pauseDurations: [],      // Times (ms) with no input
+    lastInputTime: 0,        // For detecting pauses
+
+    // Device context
+    inputMethod: 'unknown',  // 'keyboard', 'touch', 'mouse'
+    frameRateReadings: [],   // To detect lag issues
+    lastFrameTime: 0,
+
+    // Session timing
+    sessionStartTime: 0,
+    firstMoveTime: 0,        // Time to first action (reaction to start)
+    levelCompletionAttempts: 0  // How many times level was restarted
+  };
+
+  function resetClinicalMetrics() {
+    clinicalMetrics = {
+      reactionTimes: [],
+      lastGrassCutTime: 0,
+      totalMoves: 0,
+      successfulMoves: 0,
+      invalidMoves: 0,
+      totalDistanceTraveled: 0,
+      movementPath: [],
+      pauseDurations: [],
+      lastInputTime: Date.now(),
+      inputMethod: clinicalMetrics.inputMethod || 'unknown',
+      frameRateReadings: [],
+      lastFrameTime: 0,
+      sessionStartTime: Date.now(),
+      firstMoveTime: 0,
+      levelCompletionAttempts: clinicalMetrics.levelCompletionAttempts + 1
+    };
+  }
+
+  // Calculate clinical statistics
+  function calculateClinicalStats() {
+    const stats = {
+      session_summary: {
+        total_duration_sec: Math.floor((Date.now() - startTime) / 1000),
+        accuracy_percentage: totalGrass > 0 ? Math.round((grassCut / totalGrass) * 100) : 0,
+        level_reached: currentLevel
+      },
+      clinical_markers: {
+        // Reaction Time Variability (key ADHD biomarker)
+        mean_reaction_time_ms: 0,
+        rt_variability_sd: 0,
+        rt_coefficient_of_variation: 0,  // CV = SD/Mean - normalized variability
+
+        // Omission errors (inattention) - stimuli ignored
+        omission_errors: totalGrass - grassCut,
+        omission_rate: totalGrass > 0 ? ((totalGrass - grassCut) / totalGrass) : 0,
+
+        // Commission errors (impulsivity) - wrong actions taken
+        commission_errors: flowersHit + poolHits,
+        impulsivity_ratio: clinicalMetrics.totalMoves > 0
+          ? ((flowersHit + poolHits) / clinicalMetrics.totalMoves) : 0,
+
+        // Detailed commission breakdown
+        flowers_destroyed: flowersHit,
+        pool_falls: poolHits,
+        cable_stucks: cableStucks,
+
+        // Movement efficiency (planning/executive function)
+        movement_efficiency: clinicalMetrics.totalMoves > 0
+          ? (clinicalMetrics.successfulMoves / clinicalMetrics.totalMoves) : 0,
+        invalid_move_attempts: clinicalMetrics.invalidMoves,
+
+        // Visuomotor efficiency (distance traveled vs optimal path)
+        total_distance_traveled: clinicalMetrics.totalDistanceTraveled,
+        path_efficiency: (clinicalMetrics.totalDistanceTraveled > 0 && totalGrass > 0)
+          ? Math.min(1, totalGrass / clinicalMetrics.totalDistanceTraveled) : 0,
+
+        // Hesitation analysis (may indicate uncertainty or fatigue)
+        avg_pause_duration_ms: 0,
+        long_pauses_count: 0,  // pauses > 3 seconds
+
+        // Time to first action (initial reaction)
+        time_to_first_action_ms: clinicalMetrics.firstMoveTime > 0
+          ? (clinicalMetrics.firstMoveTime - clinicalMetrics.sessionStartTime) : 0
+      },
+      device_context: {
+        input_method: clinicalMetrics.inputMethod,
+        frame_rate_avg: 0,
+        session_restarts: clinicalMetrics.levelCompletionAttempts - 1
+      }
+    };
+
+    // Calculate Reaction Time statistics
+    if (clinicalMetrics.reactionTimes.length > 1) {
+      const rts = clinicalMetrics.reactionTimes;
+      const sum = rts.reduce((a, b) => a + b, 0);
+      const mean = sum / rts.length;
+      const squaredDiffs = rts.map(rt => Math.pow(rt - mean, 2));
+      const variance = squaredDiffs.reduce((a, b) => a + b, 0) / rts.length;
+      const sd = Math.sqrt(variance);
+
+      stats.clinical_markers.mean_reaction_time_ms = Math.round(mean);
+      stats.clinical_markers.rt_variability_sd = Math.round(sd);
+      stats.clinical_markers.rt_coefficient_of_variation = mean > 0 ? (sd / mean) : 0;
+    }
+
+    // Calculate pause statistics
+    if (clinicalMetrics.pauseDurations.length > 0) {
+      const pauses = clinicalMetrics.pauseDurations;
+      stats.clinical_markers.avg_pause_duration_ms =
+        Math.round(pauses.reduce((a, b) => a + b, 0) / pauses.length);
+      stats.clinical_markers.long_pauses_count = pauses.filter(p => p > 3000).length;
+    }
+
+    // Calculate frame rate average
+    if (clinicalMetrics.frameRateReadings.length > 0) {
+      const frs = clinicalMetrics.frameRateReadings;
+      stats.device_context.frame_rate_avg =
+        Math.round(frs.reduce((a, b) => a + b, 0) / frs.length);
+    }
+
+    return stats;
+  }
+
+  // Track input method
+  function recordInputMethod(method) {
+    if (clinicalMetrics.inputMethod === 'unknown') {
+      clinicalMetrics.inputMethod = method;
+    }
+  }
+
+  // Record movement for clinical analysis
+  function recordMovement(dx, dy, successful, timestamp) {
+    clinicalMetrics.totalMoves++;
+
+    if (successful) {
+      clinicalMetrics.successfulMoves++;
+      clinicalMetrics.totalDistanceTraveled += Math.abs(dx) + Math.abs(dy);
+      clinicalMetrics.movementPath.push({
+        x: playerX,
+        y: playerY,
+        timestamp: timestamp
+      });
+    } else {
+      clinicalMetrics.invalidMoves++;
+    }
+
+    // Track pauses (time since last input)
+    const pauseDuration = timestamp - clinicalMetrics.lastInputTime;
+    if (pauseDuration > 500) { // Only record pauses > 500ms
+      clinicalMetrics.pauseDurations.push(pauseDuration);
+    }
+    clinicalMetrics.lastInputTime = timestamp;
+
+    // Record first move time
+    if (clinicalMetrics.firstMoveTime === 0) {
+      clinicalMetrics.firstMoveTime = timestamp;
+    }
+  }
+
+  // Record grass cut timing for RTV calculation
+  function recordGrassCut() {
+    const now = Date.now();
+    if (clinicalMetrics.lastGrassCutTime > 0) {
+      const reactionTime = now - clinicalMetrics.lastGrassCutTime;
+      // Only record reasonable reaction times (50ms - 10s)
+      if (reactionTime >= 50 && reactionTime <= 10000) {
+        clinicalMetrics.reactionTimes.push(reactionTime);
+      }
+    }
+    clinicalMetrics.lastGrassCutTime = now;
+  }
+
+  // Frame rate monitoring (for device context)
+  function recordFrameRate() {
+    const now = performance.now();
+    if (clinicalMetrics.lastFrameTime > 0) {
+      const delta = now - clinicalMetrics.lastFrameTime;
+      if (delta > 0) {
+        const fps = 1000 / delta;
+        // Sample frame rate periodically (every ~60 frames)
+        if (clinicalMetrics.frameRateReadings.length < 100) {
+          clinicalMetrics.frameRateReadings.push(fps);
+        }
+      }
+    }
+    clinicalMetrics.lastFrameTime = now;
+  }
 
   // ---- DOM ----
   const canvas = document.getElementById('gameCanvas');
@@ -884,6 +1423,10 @@
   async function saveResult(completed) {
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
     const maxScore = totalGrass * 10 + 500 + 300;
+
+    // Calculate clinical biomarkers
+    const clinicalStats = calculateClinicalStats();
+
     await apiCall({
       action: 'save_result',
       gameSessionId: gameSessionId,
@@ -892,13 +1435,17 @@
       durationSeconds: durationSeconds,
       completed: completed,
       metrics: {
+        // Legacy metrics for backward compatibility
         errors: errors,
         flowersHit: flowersHit,
         poolHits: poolHits,
         cableStucks: cableStucks,
         grassCut: grassCut,
         totalGrass: totalGrass,
-        bagEmptyCount: bagEmptyCount
+        bagEmptyCount: bagEmptyCount,
+
+        // Clinical biomarkers (DTx / Digital Phenotyping)
+        ...clinicalStats
       }
     });
   }
@@ -1538,6 +2085,9 @@
     resultScreen.classList.add('hidden');
     celebCanvas.classList.add('hidden');
 
+    // Reset clinical metrics for new session
+    resetClinicalMetrics();
+
     const { map, startPos } = buildLevel(level);
     grid = map;
     gridH = grid.length;
@@ -1636,11 +2186,27 @@
       timerDisplay.textContent = formatTime(timerSeconds);
     }, 1000);
 
+    // Show restart button
+    document.getElementById('restartBtn').style.display = 'inline-flex';
+
+    // Hide blocked overlay
+    hideBlockedOverlay();
+
     updateUI();
     resizeCanvas();
     render();
 
+    // Start blocked detection
+    startBlockedDetection();
+
     startSession(level);
+  }
+
+  // Wrapper that shows instructions first, then starts the game
+  function startLevel(level) {
+    showInstructions(level, function() {
+      initGame(level);
+    });
   }
 
   function formatTime(s) {
@@ -1915,16 +2481,23 @@
   function movePlayer(dx, dy) {
     if (!gameRunning || isStuck) return;
 
+    const timestamp = Date.now();
     const nx = playerX + dx;
     const ny = playerY + dy;
 
     // Bounds check
-    if (ny < 0 || ny >= gridH || nx < 0 || nx >= gridW) return;
+    if (ny < 0 || ny >= gridH || nx < 0 || nx >= gridW) {
+      recordMovement(dx, dy, false, timestamp); // Invalid move - bounds
+      return;
+    }
 
     const tile = grid[ny][nx];
 
     // Impassable
-    if (tile === T.FENCE || tile === T.HOUSE || tile === T.EMPTY) return;
+    if (tile === T.FENCE || tile === T.HOUSE || tile === T.EMPTY) {
+      recordMovement(dx, dy, false, timestamp); // Invalid move - obstacle
+      return;
+    }
 
     // Pool collision
     if (tile === T.POOL) {
@@ -1932,6 +2505,7 @@
       poolHits++;
       score -= 100;
       showToast('Caiste en la piscina! -100 pts', 'error');
+      recordMovement(dx, dy, false, timestamp); // Commission error
       updateUI();
       render();
       return;
@@ -1944,6 +2518,7 @@
         playerX = nx;
         playerY = ny;
         showToast('Piscina limpiada!', 'info');
+        recordMovement(dx, dy, true, timestamp);
         // check if all dirty cleaned
         let dirtyLeft = false;
         for (let r = 0; r < gridH; r++)
@@ -1957,6 +2532,7 @@
         return;
       } else {
         showToast('Necesitas el limpiador de piscina!', 'warn');
+        recordMovement(dx, dy, false, timestamp);
         return;
       }
     }
@@ -1964,12 +2540,14 @@
     // Can't mow while using pool cleaner
     if (usingPoolCleaner && (tile === T.GRASS || tile === T.FLOWER || tile === T.FLOWER_DRY)) {
       showToast('Cambia a la cortadora para cortar cesped!', 'warn');
+      recordMovement(dx, dy, false, timestamp);
       return;
     }
 
     // Can't mow while using watering can
     if (usingWateringCan && (tile === T.GRASS || tile === T.FLOWER)) {
       showToast('Cambia a la cortadora para cortar cesped!', 'warn');
+      recordMovement(dx, dy, false, timestamp);
       return;
     }
 
@@ -1982,6 +2560,7 @@
         playerX = nx;
         playerY = ny;
         showToast('Flor regada! +25 pts', 'info');
+        recordMovement(dx, dy, true, timestamp);
         // check if all watered
         let dryLeft = false;
         for (let r = 0; r < gridH; r++)
@@ -1996,6 +2575,7 @@
         return;
       } else {
         showToast('Necesitas la regadera para regar flores!', 'warn');
+        recordMovement(dx, dy, false, timestamp);
         return;
       }
     }
@@ -2004,6 +2584,7 @@
     if (tile === T.FLOWER_WATERED) {
       playerX = nx;
       playerY = ny;
+      recordMovement(dx, dy, true, timestamp);
       updateUI();
       render();
       return;
@@ -2012,6 +2593,7 @@
     // Bag full check
     if (hasBag && bagCount >= bagCapacity && tile === T.GRASS) {
       showToast('Bolsa llena! Ve al compostera para vaciar.', 'warn');
+      recordMovement(dx, dy, false, timestamp);
       // Still allow movement onto non-grass
       return;
     }
@@ -2027,6 +2609,7 @@
         score -= 20;
         showToast('Atascado en un cable! -20 pts', 'error');
         stuckOverlay.classList.remove('hidden');
+        recordMovement(dx, dy, false, timestamp); // Commission error
         updateUI();
         clearTimeout(stuckTimer);
         stuckTimer = setTimeout(() => {
@@ -2036,6 +2619,7 @@
           // now treat as grass
           grid[ny][nx] = T.CUT;
           grassCut++;
+          recordGrassCut(); // Record timing for RTV
           score += 10;
           if (hasBag) bagCount++;
           playerX = nx;
@@ -2049,6 +2633,7 @@
         // already collected, treat as cut grass
         playerX = nx;
         playerY = ny;
+        recordMovement(dx, dy, true, timestamp);
         updateUI();
         render();
         return;
@@ -2064,6 +2649,7 @@
       showToast('Flor destruida! -50 pts', 'error');
       playerX = nx;
       playerY = ny;
+      recordMovement(dx, dy, true, timestamp); // Commission error - successful move but wrong target
       updateUI();
       render();
       return;
@@ -2078,6 +2664,7 @@
       }
       playerX = nx;
       playerY = ny;
+      recordMovement(dx, dy, true, timestamp);
       updateUI();
       render();
       return;
@@ -2087,6 +2674,7 @@
     if (tile === T.GRASS) {
       grid[ny][nx] = T.CUT;
       grassCut++;
+      recordGrassCut(); // Record timing for RTV
       score += 10;
       if (hasBag) bagCount++;
     }
@@ -2094,6 +2682,7 @@
     // PATH or CUT - just move
     playerX = nx;
     playerY = ny;
+    recordMovement(dx, dy, true, timestamp);
     updateUI();
     render();
     checkWin();
@@ -2164,11 +2753,16 @@
   function gameWin() {
     gameRunning = false;
     clearInterval(timerInterval);
+    clearInterval(blockedCheckTimer);
 
     // Bonuses
     const completionBonus = 500;
     const speedBonus = Math.max(0, 300 - timerSeconds);
     score += completionBonus + speedBonus;
+
+    // Save metrics to history for chart tracking
+    const clinicalStats = calculateClinicalStats();
+    saveMetricsToHistory(currentLevel, clinicalStats);
 
     showResultScreen(true, completionBonus, speedBonus);
     showCelebration();
@@ -2177,8 +2771,16 @@
 
   function showResultScreen(won, completionBonus, speedBonus) {
     resultScreen.classList.remove('hidden');
-    resultTitle.textContent = won ? 'Completado!' : 'Juego terminado';
+    resultTitle.textContent = won ? 'Completado! Muy bien!' : 'Juego terminado';
     resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
+
+    // Show/hide next level button
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    if (won && getNextLevel(currentLevel)) {
+      nextLevelBtn.style.display = 'inline-block';
+    } else {
+      nextLevelBtn.style.display = 'none';
+    }
 
     completionBonus = completionBonus || 0;
     speedBonus = speedBonus || 0;
@@ -2260,6 +2862,7 @@
   // ---- KEYBOARD INPUT ----
   document.addEventListener('keydown', function(e) {
     if (!gameRunning) return;
+    recordInputMethod('keyboard');
     switch (e.key) {
       case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePlayer(0, -1); break;
       case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePlayer(0, 1); break;
@@ -2273,6 +2876,7 @@
     function handler(e) {
       e.preventDefault();
       e.stopPropagation();
+      recordInputMethod('touch');
       const dir = btn.getAttribute('data-dir');
       if (dir === 'up') movePlayer(0, -1);
       else if (dir === 'down') movePlayer(0, 1);
@@ -2337,7 +2941,7 @@
   document.querySelectorAll('.level-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       const level = parseInt(this.getAttribute('data-level'));
-      initGame(level);
+      startLevel(level);
     });
   });
 
@@ -2353,7 +2957,43 @@
     resultScreen.classList.add('hidden');
     gameRunning = false;
     clearInterval(timerInterval);
+    document.getElementById('restartBtn').style.display = 'none';
     levelSelectScreen.classList.remove('hidden');
+  });
+
+  // ---- NEXT LEVEL BUTTON ----
+  const LEVEL_ORDER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,25,30,40,41,50,60,101,102,103,104,105];
+
+  function getNextLevel(current) {
+    const idx = LEVEL_ORDER.indexOf(current);
+    if (idx >= 0 && idx < LEVEL_ORDER.length - 1) return LEVEL_ORDER[idx + 1];
+    return null;
+  }
+
+  document.getElementById('nextLevelBtn').addEventListener('click', function() {
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
+    const next = getNextLevel(currentLevel);
+    if (next) {
+      startLevel(next);
+    }
+  });
+
+  // ---- RESTART BUTTON (in header) ----
+  document.getElementById('restartBtn').addEventListener('click', function() {
+    if (gameRunning) {
+      saveResult(false);
+    }
+    hideBlockedOverlay();
+    initGame(currentLevel);
+  });
+
+  // ---- METRICS BUTTON ----
+  document.getElementById('metricsBtn').addEventListener('click', function() {
+    showMetricsPanel();
+  });
+  document.getElementById('metricsCloseBtn').addEventListener('click', function() {
+    document.getElementById('metricsOverlay').classList.add('hidden');
   });
 
   // ---- BACK BUTTON (save on quit) ----
@@ -2389,6 +3029,7 @@
     // If it's a swipe (more movement), handle as movement
     if (dist >= 20) {
       e.preventDefault();
+      recordInputMethod('touch');
       if (Math.abs(dx) > Math.abs(dy)) {
         movePlayer(dx > 0 ? 1 : -1, 0);
       } else {
@@ -2409,6 +3050,7 @@
     // Right-click (button 2) or middle-click (button 1) for drag movement
     if (e.button === 2 || e.button === 1) {
       e.preventDefault();
+      recordInputMethod('mouse');
       mouseDown = true;
       mouseStartX = e.clientX;
       mouseStartY = e.clientY;
@@ -2472,6 +3114,178 @@
       this.quadraticCurveTo(x, y, x + r[0], y);
       this.closePath();
     };
+  }
+
+  // ---- METRICS CHARTS ----
+  function showMetricsPanel() {
+    const overlay = document.getElementById('metricsOverlay');
+    overlay.classList.remove('hidden');
+
+    // Draw all charts with available data
+    const history = metricsHistory;
+    if (history.length === 0) {
+      // No data yet, show message
+      document.querySelectorAll('.chart-container h3').forEach(h => {
+        h.textContent = h.textContent + ' (sin datos aun)';
+      });
+      return;
+    }
+
+    drawLineChart('rtChart', history, 'mean_rt_ms', 'rt_variability_sd', 'TR Promedio (ms)', 'Variabilidad (SD)', '#2563eb', '#ef4444');
+    drawBarChart('efficiencyChart', history, 'movement_efficiency', 'path_efficiency', 'Efic. Movimiento', 'Efic. Recorrido', '#10b981', '#0891b2');
+    drawGroupedBarChart('errorsChart', history, 'commission_errors', 'omission_errors', 'Comision', 'Omision', '#ef4444', '#f59e0b');
+    drawLineChart('pauseChart', history, 'avg_pause_ms', 'long_pauses', 'Pausa Prom. (ms)', 'Pausas Largas', '#8b5cf6', '#f97316');
+  }
+
+  function drawLineChart(canvasId, data, key1, key2, label1, label2, color1, color2) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.parentElement.clientWidth - 16;
+    const H = 180;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    const padding = { top: 25, right: 15, bottom: 30, left: 50 };
+    const chartW = W - padding.left - padding.right;
+    const chartH = H - padding.top - padding.bottom;
+
+    const vals1 = data.map(d => d[key1] || 0);
+    const vals2 = data.map(d => d[key2] || 0);
+    const allVals = [...vals1, ...vals2];
+    const maxVal = Math.max(...allVals, 1);
+    const minVal = Math.min(0, ...allVals);
+    const range = maxVal - minVal || 1;
+
+    // Grid lines
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const y = padding.top + chartH - (chartH * i / 4);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(W - padding.right, y);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(minVal + range * i / 4), padding.left - 5, y + 3);
+    }
+
+    // X axis labels (session numbers)
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(data.length / 8));
+    for (let i = 0; i < data.length; i += step) {
+      const x = padding.left + (chartW * i / Math.max(data.length - 1, 1));
+      ctx.fillText('S' + (i + 1), x, H - 5);
+    }
+
+    // Draw lines
+    function drawLine(vals, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < vals.length; i++) {
+        const x = padding.left + (chartW * i / Math.max(vals.length - 1, 1));
+        const y = padding.top + chartH - (chartH * (vals[i] - minVal) / range);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Draw dots
+      for (let i = 0; i < vals.length; i++) {
+        const x = padding.left + (chartW * i / Math.max(vals.length - 1, 1));
+        const y = padding.top + chartH - (chartH * (vals[i] - minVal) / range);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    drawLine(vals1, color1);
+    drawLine(vals2, color2);
+
+    // Legend
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = color1;
+    ctx.fillRect(padding.left, 5, 12, 12);
+    ctx.fillStyle = '#1e293b';
+    ctx.textAlign = 'left';
+    ctx.fillText(label1, padding.left + 16, 15);
+    const offset1 = ctx.measureText(label1).width + 30;
+    ctx.fillStyle = color2;
+    ctx.fillRect(padding.left + offset1, 5, 12, 12);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillText(label2, padding.left + offset1 + 16, 15);
+  }
+
+  function drawBarChart(canvasId, data, key1, key2, label1, label2, color1, color2) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.parentElement.clientWidth - 16;
+    const H = 180;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    const padding = { top: 25, right: 15, bottom: 30, left: 50 };
+    const chartW = W - padding.left - padding.right;
+    const chartH = H - padding.top - padding.bottom;
+
+    const vals1 = data.map(d => d[key1] || 0);
+    const vals2 = data.map(d => d[key2] || 0);
+    const maxVal = Math.max(...vals1, ...vals2, 0.1);
+
+    // Grid
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const y = padding.top + chartH - (chartH * i / 4);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(W - padding.right, y);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText((maxVal * i / 4).toFixed(2), padding.left - 5, y + 3);
+    }
+
+    const barGroupW = chartW / data.length;
+    const barW = Math.max(3, barGroupW * 0.35);
+
+    for (let i = 0; i < data.length; i++) {
+      const x = padding.left + barGroupW * i + barGroupW * 0.1;
+      const h1 = (vals1[i] / maxVal) * chartH;
+      const h2 = (vals2[i] / maxVal) * chartH;
+      ctx.fillStyle = color1;
+      ctx.fillRect(x, padding.top + chartH - h1, barW, h1);
+      ctx.fillStyle = color2;
+      ctx.fillRect(x + barW + 1, padding.top + chartH - h2, barW, h2);
+    }
+
+    // Legend
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = color1;
+    ctx.fillRect(padding.left, 5, 12, 12);
+    ctx.fillStyle = '#1e293b';
+    ctx.textAlign = 'left';
+    ctx.fillText(label1, padding.left + 16, 15);
+    const offset1 = ctx.measureText(label1).width + 30;
+    ctx.fillStyle = color2;
+    ctx.fillRect(padding.left + offset1, 5, 12, 12);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillText(label2, padding.left + offset1 + 16, 15);
+  }
+
+  function drawGroupedBarChart(canvasId, data, key1, key2, label1, label2, color1, color2) {
+    drawBarChart(canvasId, data, key1, key2, label1, label2, color1, color2);
   }
 
   // Show level select on load
