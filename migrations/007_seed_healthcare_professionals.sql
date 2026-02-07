@@ -1,6 +1,6 @@
 -- Migration: Seed Healthcare Professionals (Equipo Tecnico)
 -- This migration inserts authorized healthcare professionals directly into the database
--- Run this on Netlify DB: psql $NETLIFY_DATABASE_URL -f migrations/007_seed_healthcare_professionals.sql
+-- Run this on Supabase: psql $SUPABASE_DATABASE_URL -f migrations/007_seed_healthcare_professionals.sql
 --
 -- These professionals can then register via the portal with their institutional email
 -- and will be pre-approved for access.

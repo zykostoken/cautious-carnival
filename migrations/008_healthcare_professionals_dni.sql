@@ -2,7 +2,7 @@
 -- This migration adds a DNI field that will be used for password recovery
 -- instead of email-based verification codes (since email is not configured)
 --
--- Run this on Netlify DB: psql $NETLIFY_DATABASE_URL -f migrations/008_healthcare_professionals_dni.sql
+-- Run this on Supabase: psql $SUPABASE_DATABASE_URL -f migrations/008_healthcare_professionals_dni.sql
 
 -- Add dni column if it doesn't exist
 ALTER TABLE healthcare_professionals

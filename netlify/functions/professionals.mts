@@ -1,5 +1,7 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
+import { isAdminEmail, isValidProfessionalEmail } from "./lib/admin-roles.mts";
 
 // Flag to track if migration has been run
 let migrationRun = false;
@@ -9,7 +11,6 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
   if (migrationRun) return;
 
   try {
-    // Add missing columns if they don't exist
     await sql`
       ALTER TABLE healthcare_professionals
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE
@@ -30,7 +31,6 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
       ALTER TABLE healthcare_professionals
       ADD COLUMN IF NOT EXISTS session_token VARCHAR(255)
     `;
-    // Add DNI column for password recovery without email
     await sql`
       ALTER TABLE healthcare_professionals
       ADD COLUMN IF NOT EXISTS dni VARCHAR(20)
@@ -40,60 +40,20 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
     console.log('Healthcare professionals verification columns ensured');
   } catch (error) {
     console.error('Migration check failed:', error);
-    // Continue anyway - the columns might already exist
   }
 }
 
-// Admin emails that have full control - ALWAYS preset to avoid configuration issues
-// These are hardcoded to ensure admin access is never lost due to missing env vars
+// Admin emails - hardcoded defaults + env var additions
 const DEFAULT_ADMIN_EMAILS = [
-  'gonzaloperezcortizo@gmail.com',           // Developer/project creator
-  'direccionmedica@clinicajoseingenieros.ar', // Medical direction (institutional)
-  'gerencia@clinicajoseingenieros.ar'         // Administrative management
+  'gonzaloperezcortizo@gmail.com',
+  'direccionmedica@clinicajoseingenieros.ar',
+  'gerencia@clinicajoseingenieros.ar'
 ];
 
-// Allow additional admins via env var, but ALWAYS include the defaults
 const ADMIN_EMAILS = [
   ...DEFAULT_ADMIN_EMAILS,
   ...(process.env.ADDITIONAL_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [])
 ];
-
-// Valid professional email domains - only clinic staff can register (only .ar domain)
-const VALID_PROFESSIONAL_DOMAINS = ['clinicajoseingenieros.ar'];
-
-// Check if email domain is valid for professionals
-function isValidProfessionalEmail(email: string): boolean {
-  const domain = email.split('@')[1]?.toLowerCase();
-  return VALID_PROFESSIONAL_DOMAINS.includes(domain);
-}
-
-// Check if email is an admin email (case-insensitive)
-function isAdminEmail(email: string): boolean {
-  return ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === email.toLowerCase());
-}
-
-// Simple password hashing (in production, use bcrypt)
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + (process.env.PASSWORD_SALT || 'clinica_salt_2024'));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Generate a 6-digit verification code
-function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
-}
-
-function generateSessionToken(): string {
-  return crypto.randomUUID() + '-' + Date.now().toString(36);
-}
 
 // Helper to check if session belongs to admin
 async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
@@ -101,7 +61,7 @@ async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> 
     SELECT email FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
-  return professional && isAdminEmail(professional.email);
+  return professional && (isAdminEmail(professional.email) || ADMIN_EMAILS.some(a => a.toLowerCase() === professional.email.toLowerCase()));
 }
 
 export default async (req: Request, context: Context) => {
