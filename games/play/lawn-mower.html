@@ -766,10 +766,9 @@
     <div class="header-content">
       <div class="header-left">
         <a href="/games/portal" class="back-btn" id="backBtn" aria-label="Volver al portal de juegos">&#8592; Volver</a>
-        <button class="back-btn" id="restartBtn" style="background:#f59e0b; display:none;" aria-label="Reiniciar nivel actual">&#8635; Reiniciar</button>
         <span class="game-title" id="gameTitle" role="heading" aria-level="1">Cortadora de Cesped</span>
         <span class="demo-badge" id="demoBadge" style="display:none; background:#f59e0b; color:#fff; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:600;">MODO DEMO</span>
-        <button class="restart-btn" id="restartBtn" title="Reiniciar nivel">&#8635; Reiniciar</button>
+        <button class="restart-btn" id="restartBtn" title="Reiniciar nivel" aria-label="Reiniciar nivel actual">&#8635; Reiniciar</button>
       </div>
       <div class="stats-bar" id="statsBar" role="status" aria-live="polite" aria-label="Estadisticas del juego">
         <div class="stat stat-score">
@@ -809,9 +808,6 @@
         <div class="stuck-text">Atascado en cable!</div>
       </div>
       <div class="blocked-overlay hidden" id="blockedOverlay" role="alert">
-      <div class="blocked-overlay hidden" id="blockedOverlay">
-        <div class="blocked-text">Te bloqueaste! No hay cesped alcanzable.</div>
-        <button class="blocked-restart-btn" id="blockedRestartBtn">Reiniciar Nivel</button>
         <div class="blocked-text" id="blockedText">Sin movimientos posibles!</div>
         <button class="blocked-restart-btn" id="blockedRestartBtn" aria-label="Reiniciar nivel">Reiniciar Nivel</button>
       </div>
@@ -1092,12 +1088,6 @@
       <div class="score-breakdown" id="scoreBreakdown"></div>
       <div class="result-actions">
         <button class="btn-primary btn-next" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
-        <button class="btn-next hidden" id="nextLevelBtn">Siguiente Nivel &#8594;</button>
-        <button class="btn-primary" id="retryBtn">Reintentar</button>
-        <button class="btn-metrics" id="metricsBtn">Biomarcadores</button>
-        <button class="btn-secondary" id="levelsBtn">Niveles</button>
-        <a href="/games/portal" class="btn-secondary" style="text-decoration:none;">Volver al portal</a>
-        <button class="btn-primary" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
         <button class="btn-primary" id="retryBtn">Reintentar</button>
         <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Ver Metricas</button>
         <button class="btn-secondary" id="levelsBtn">Niveles</button>
@@ -1173,24 +1163,6 @@
         <h3>Pausas y Fatiga (duracion promedio ms)</h3>
         <canvas class="chart-canvas" id="pauseChart"></canvas>
       </div>
-      <button class="metrics-close-btn" id="metricsCloseBtn">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- Instruction Overlay -->
-  <div class="instruction-overlay hidden" id="instructionOverlay">
-    <div class="instruction-card">
-      <h2 id="instructionTitle">Instrucciones</h2>
-      <ul class="tip-list" id="instructionTips"></ul>
-      <button class="btn-start" id="instructionStartBtn">Comenzar!</button>
-    </div>
-  </div>
-
-  <!-- Metrics Overlay -->
-  <div class="metrics-overlay hidden" id="metricsOverlay">
-    <div class="metrics-card">
-      <h2>Biomarcadores Clinicos - Metricas en Tiempo Real</h2>
-      <div class="metrics-charts" id="metricsCharts"></div>
       <button class="metrics-close-btn" id="metricsCloseBtn">Cerrar</button>
     </div>
   </div>
@@ -3826,9 +3798,6 @@
     btn.addEventListener('click', function() {
       const level = parseInt(this.getAttribute('data-level'));
       levelSelectScreen.classList.add('hidden');
-      showInstructions(level, function() {
-        initGame(level);
-      });
       startLevel(level);
     });
   });
