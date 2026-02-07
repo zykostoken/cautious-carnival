@@ -1,6 +1,6 @@
 -- Migration: Seed HDD patients into the database
 -- This migration inserts all 23 authorized patients directly into hdd_patients table
--- Run this on Netlify DB: psql $NETLIFY_DATABASE_URL -f migrations/006_seed_hdd_patients.sql
+-- Run this on Supabase: psql $SUPABASE_DATABASE_URL -f migrations/006_seed_hdd_patients.sql
 --
 -- This removes the need for DNI validation during registration - patients will already
 -- exist in the database and can log in directly with their DNI + password (first login sets password)

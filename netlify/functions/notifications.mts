@@ -1,67 +1,11 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import nodemailer from "nodemailer";
+import { sendWhatsAppNotification, sendEmailNotification, type NotificationResult } from "./lib/notifications.mts";
+import { CORS_HEADERS } from "./lib/auth.mts";
 
 // Admin notification settings - hardcoded for reliability
 const ADMIN_PHONE = "+5492262656681";
 const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
-
-interface NotificationResult {
-  success: boolean;
-  channel: string;
-  error?: string;
-  externalId?: string;
-}
-
-function getEmailTransporter() {
-  const user = process.env.ZOHO_SMTP_USER;
-  const pass = process.env.ZOHO_SMTP_PASS;
-  if (!user || !pass) return null;
-
-  // Support different Zoho regions: smtp.zoho.com (US), smtp.zoho.eu (EU), smtp.zoho.in (India)
-  // Default to smtp.zoho.com for most users including LATAM
-  const host = process.env.ZOHO_SMTP_HOST || "smtp.zoho.com";
-
-  return nodemailer.createTransport({
-    host,
-    port: 465,
-    secure: true,
-    auth: { user, pass }
-  });
-}
-
-async function sendWhatsAppNotification(phone: string, message: string): Promise<NotificationResult> {
-  const apiKey = process.env.CALLMEBOT_API_KEY;
-  if (!apiKey) {
-    console.log(`[WhatsApp] To: ${phone}, Message: ${message}`);
-    return { success: false, channel: 'whatsapp', error: 'CALLMEBOT_API_KEY not configured' };
-  }
-  try {
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
-    const response = await fetch(url);
-    return response.ok ? { success: true, channel: 'whatsapp' } : { success: false, channel: 'whatsapp', error: `HTTP ${response.status}` };
-  } catch (error) {
-    return { success: false, channel: 'whatsapp', error: String(error) };
-  }
-}
-
-async function sendEmailNotification(to: string, subject: string, htmlBody: string): Promise<NotificationResult> {
-  const transporter = getEmailTransporter();
-  if (!transporter) {
-    console.log(`[Email] To: ${to}, Subject: ${subject}`);
-    return { success: false, channel: 'email', error: 'Zoho SMTP not configured' };
-  }
-  try {
-    const info = await transporter.sendMail({
-      from: `"Clinica Jose Ingenieros" <${process.env.ZOHO_SMTP_USER}>`,
-      to, subject, html: htmlBody
-    });
-    return { success: true, channel: 'email', externalId: info.messageId };
-  } catch (error) {
-    console.error("Email error:", error);
-    return { success: false, channel: 'email', error: error instanceof Error ? error.message : String(error) };
-  }
-}
 
 async function logNotification(sql: any, recipientType: string, recipientId: number, channel: string, destination: string, messageType: string, messageContent: string, result: NotificationResult) {
   try {

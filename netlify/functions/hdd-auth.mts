@@ -1,32 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-
-// Los pacientes autorizados ahora están directamente en la base de datos (tabla hdd_patients)
-// Ya no se necesita una lista hardcodeada de DNIs - los admins pueden agregar pacientes
-// directamente a través del panel de administración o la migración inicial
-
-// Simple password hashing (same as professionals)
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + (process.env.PASSWORD_SALT || 'clinica_salt_2024'));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
-}
-
-function generateSessionToken(): string {
-  return crypto.randomUUID() + '-' + Date.now().toString(36);
-}
-
-// Generate a 6-digit verification code
-function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
