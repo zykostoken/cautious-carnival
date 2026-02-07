@@ -1957,7 +1957,7 @@
 
   // ==================== API ====================
   const token = new URLSearchParams(window.location.search).get('token');
-  const isDemoMode = new URLSearchParams(window.location.search).get('demo') === 'true' || !token;
+  const isDemoMode = new URLSearchParams(window.location.search).get('demo') === 'true';
 
   // Show demo badge if in demo mode
   if (isDemoMode) {
