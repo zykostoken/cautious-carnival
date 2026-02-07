@@ -460,34 +460,7 @@
       display: none; /* response timer is in header */
     }
 
-    .med-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .med-card {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: all 0.2s;
-      overflow: hidden;
-      user-select: none;
-    }
-    .med-card:hover:not(.selected) {
-      border-color: var(--primary);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-    }
-    .med-card.selected {
-      border-color: var(--secondary);
-      box-shadow: 0 0 0 3px var(--secondary-light);
-    }
-    .med-card.selected .med-card-header {
-      background: var(--secondary) !important;
-    }
+    /* med-grid and med-card styles are in pharmacy vitrina section below */
 
     .med-card-header {
       padding: 0.5rem 0.65rem;
@@ -551,15 +524,7 @@
     .cat-anticolinergico { background: #be185d; }
     .cat-otro { background: #6366f1; }
 
-    /* ====== TRAY (selection area) ====== */
-    .tray-section {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem;
-      margin-bottom: 1rem;
-      min-height: 80px;
-    }
+    /* tray-section styles are in pastillero section below */
     .tray-title {
       font-size: 0.85rem;
       font-weight: 700;
@@ -854,6 +819,438 @@
     /* Utility */
     .hidden { display: none !important; }
     .text-center { text-align: center; }
+
+    /* ====== PHARMACY VITRINA THEME ====== */
+    .med-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(180deg, rgba(200,220,240,0.15) 0%, rgba(200,220,240,0.05) 100%);
+      border: 3px solid #94a3b8;
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
+      position: relative;
+    }
+    .med-grid::before {
+      content: 'VITRINA DE FARMACIA';
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: var(--surface);
+      padding: 0 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+    }
+
+    .med-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      user-select: none;
+      transform: perspective(400px) rotateX(2deg);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+    }
+    .med-card:hover:not(.selected) {
+      border-color: var(--primary);
+      box-shadow: 0 8px 20px rgba(37,99,235,0.15);
+      transform: perspective(400px) rotateX(0deg) translateY(-4px);
+    }
+    .med-card.selected {
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px var(--secondary-light), 0 0 15px rgba(16,185,129,0.2);
+      transform: perspective(400px) rotateX(0deg) scale(1.02);
+    }
+    .med-card.selected .med-card-header {
+      background: var(--secondary) !important;
+    }
+
+    /* Pastillero tray theme */
+    .tray-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e8f4f8 100%);
+      border: 3px solid #7dd3fc;
+      border-radius: 16px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      min-height: 80px;
+      position: relative;
+    }
+    .tray-section::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 15%;
+      right: 15%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      border-radius: 0 0 4px 4px;
+    }
+
+    /* ====== BONUS LEVEL STYLES ====== */
+    .bonus-area {
+      min-height: 400px;
+      position: relative;
+      padding: 1rem;
+    }
+    .bonus-instruction {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    /* Drag pills bonus */
+    .pastillero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-width: 500px;
+      margin: 0 auto 1.5rem;
+      background: #e0f2fe;
+      border: 3px solid #38bdf8;
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .pastillero-slot {
+      background: white;
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      min-height: 80px;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+    .pastillero-slot.drag-over {
+      background: #dcfce7;
+      border-color: var(--secondary);
+      border-style: solid;
+    }
+    .pastillero-slot.filled {
+      background: #f0fdf4;
+      border-color: var(--secondary);
+      border-style: solid;
+    }
+    .pastillero-slot .slot-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .pastillero-slot .slot-time {
+      font-size: 0.65rem;
+      color: var(--primary);
+    }
+    .pastillero-slot .slot-pill-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--secondary-dark);
+    }
+
+    .drag-pills-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .draggable-pill {
+      width: 80px;
+      height: 40px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      text-align: center;
+      line-height: 1.1;
+      padding: 0 6px;
+    }
+    .draggable-pill:active { cursor: grabbing; }
+    .draggable-pill.dragging {
+      opacity: 0.8;
+      transform: scale(1.1);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      z-index: 1000;
+      position: fixed;
+      pointer-events: none;
+    }
+
+    /* Count drops bonus */
+    .drops-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem;
+    }
+    .drops-bottle {
+      width: 100px;
+      height: 160px;
+      background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 40%, #3b82f6 100%);
+      border-radius: 15px 15px 25px 25px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.1s;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drops-bottle::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      left: 30px;
+      width: 40px;
+      height: 25px;
+      background: #94a3b8;
+      border-radius: 5px 5px 0 0;
+    }
+    .drops-bottle:active { transform: scale(0.95); }
+    .drops-bottle .bottle-label {
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 0 10px;
+    }
+
+    .drops-target {
+      width: 120px;
+      height: 50px;
+      background: linear-gradient(180deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+      border-radius: 8px 8px 25px 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #92400e;
+      position: relative;
+    }
+
+    .drops-counter {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .drops-target-label {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .drop-animation {
+      position: absolute;
+      width: 12px;
+      height: 16px;
+      background: #3b82f6;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation: dropFall 0.5s ease-in forwards;
+    }
+    @keyframes dropFall {
+      from { top: -30px; opacity: 1; }
+      to { top: 30px; opacity: 0; }
+    }
+
+    .drops-confirm-btn {
+      padding: 0.75rem 2rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .drops-confirm-btn:hover { background: var(--primary-dark); }
+
+    /* ====== LEVEL CARD BONUS STYLE ====== */
+    .level-card.bonus-card {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    }
+    .level-card.bonus-card .level-number {
+      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    }
+    .level-card.bonus-card .level-name {
+      color: #92400e;
+    }
+
+    /* ====== PSYCHOEDUCATION TIP ====== */
+    .psychoedu-tip {
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      border: 1px solid #93c5fd;
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      max-width: 560px;
+      width: 100%;
+    }
+    .psychoedu-tip .tip-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .psychoedu-tip .tip-text {
+      font-size: 0.85rem;
+      color: #1e40af;
+      line-height: 1.5;
+    }
+
+    .results-psychoedu {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 1px solid #86efac;
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: #166534;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    /* ====== METRICS OVERLAY ====== */
+    .metrics-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .metrics-overlay.active { display: block; }
+
+    .metrics-panel {
+      background: var(--surface);
+      border-radius: var(--radius);
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-xl);
+    }
+    .metrics-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .metrics-panel-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .metrics-close-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: var(--background);
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .metrics-close-btn:hover { background: var(--error-light); color: var(--error); }
+
+    .metrics-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-box {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+    }
+    .chart-box h4 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+    .chart-box canvas {
+      width: 100%;
+      height: 150px;
+    }
+
+    .fda-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .fda-metric {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .fda-metric .metric-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .fda-metric .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 0.2rem;
+    }
+
+    .progress-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin: 1.5rem auto 0;
+      display: block;
+      text-align: center;
+      max-width: 250px;
+    }
+    .progress-btn:hover { background: var(--primary); color: white; }
   </style>
 </head>
 <body>
@@ -862,7 +1259,7 @@
 <header class="game-header">
   <div class="header-content">
     <div class="header-left">
-      <a class="back-btn" id="backBtn" href="/hdd/portal">
+      <a class="back-btn" id="backBtn" href="/games/portal">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Volver
       </a>
@@ -901,6 +1298,8 @@
     </div>
 
     <div class="levels-grid" id="levelsGrid"></div>
+
+    <button class="progress-btn" id="showProgressBtn">Ver Progreso Terapeutico</button>
   </div>
 
   <!-- SCREEN: Prescription Phase -->
@@ -943,6 +1342,18 @@
       <span class="transition-icon">&#128138;</span>
       <div class="transition-text">Armá tu medicacion del dia</div>
       <div class="transition-sub">Seleccioná los medicamentos correctos y configurá las dosis</div>
+      <div id="transitionTip"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Bonus Level (drag pills / count drops) -->
+  <div id="screenBonus" class="screen">
+    <div class="bonus-area" id="bonusArea">
+      <p class="bonus-instruction" id="bonusInstruction"></p>
+      <div id="bonusContent"></div>
+      <div class="confirm-section">
+        <button class="confirm-btn" id="bonusConfirmBtn">Confirmar</button>
+      </div>
     </div>
   </div>
 
@@ -979,8 +1390,38 @@
       </div>
       <div class="results-body">
         <ul class="results-breakdown" id="resultsBreakdown"></ul>
+        <div id="resultsPsychoedu"></div>
       </div>
       <div class="results-footer" id="resultsFooter"></div>
+    </div>
+  </div>
+</div>
+
+<!-- METRICS OVERLAY (outside container) -->
+<div class="metrics-overlay" id="metricsOverlay">
+  <div class="metrics-panel">
+    <div class="metrics-panel-header">
+      <h2 class="metrics-panel-title">Progreso Terapeutico</h2>
+      <button class="metrics-close-btn" id="metricsCloseBtn">&times;</button>
+    </div>
+    <div class="fda-summary" id="fdaSummary"></div>
+    <div class="metrics-charts-grid" id="metricsChartsGrid">
+      <div class="chart-box">
+        <h4>Memoria (items recordados)</h4>
+        <canvas id="chartMemory" width="340" height="150"></canvas>
+      </div>
+      <div class="chart-box">
+        <h4>Velocidad de Decision (ms)</h4>
+        <canvas id="chartSpeed" width="340" height="150"></canvas>
+      </div>
+      <div class="chart-box">
+        <h4>Adherencia Simulada (MPR)</h4>
+        <canvas id="chartMPR" width="340" height="150"></canvas>
+      </div>
+      <div class="chart-box">
+        <h4>Errores (omision vs comision)</h4>
+        <canvas id="chartErrors" width="340" height="150"></canvas>
+      </div>
     </div>
   </div>
 </div>
@@ -1036,89 +1477,198 @@
     'Realizar litemia cada 15 dias'
   ];
 
+  // ==================== PSYCHOEDUCATION ====================
+  const PSYCHOEDU_TIPS = {
+    transition: [
+      { maxLevel: 3, tips: [
+        'Los medicamentos psiquiatricos necesitan tomarse todos los dias para mantener niveles estables en sangre.',
+        'La constancia en la toma es mas importante que la hora exacta. Elegí un momento del dia que te resulte facil recordar.',
+        'Si olvidás una dosis, no dupliques la siguiente. Consultá con tu medico.'
+      ]},
+      { maxLevel: 7, tips: [
+        'Un pastillero semanal reduce errores de medicacion hasta un 70%. Es una herramienta simple y muy efectiva.',
+        'Cada medicamento tiene una "ventana terapeutica": la dosis minima que hace efecto y la maxima segura.',
+        'Las interacciones entre medicamentos son comunes. Siempre informá a tu medico todo lo que tomás.'
+      ]},
+      { maxLevel: 12, tips: [
+        'Algunos medicamentos necesitan controles periodicos (analisis de sangre, presion). No los saltees.',
+        'Los efectos adversos suelen aparecer al inicio y disminuir con el tiempo. Paciencia y comunicacion con tu medico.',
+        'No suspendas la medicacion porque "ya te sentis bien". Eso es justamente señal de que está funcionando.'
+      ]},
+      { maxLevel: 999, tips: [
+        'La adherencia perfecta no existe. Lo importante es mantener una rutina lo mas consistente posible.',
+        'Involucrar a un familiar o amigo como "recordatorio humano" mejora la adherencia significativamente.',
+        'Las apps de recordatorio pueden ayudar, pero la mejor alarma es la que ya tenés: asociá la toma a una actividad diaria (desayuno, cepillado de dientes).'
+      ]}
+    ],
+    errorFeedback: {
+      missed: 'Olvidar un medicamento puede causar sintomas de rebote o recaida. Un pastillero y alarmas ayudan a no olvidar.',
+      wrongDose: 'La dosis correcta es clave: muy poco no hace efecto, demasiado puede causar efectos adversos. Siempre verificá.',
+      wrongFreq: 'La frecuencia mantiene niveles estables en sangre. Tomarlos a destiempo reduce su efectividad.',
+      wrongMed: 'Confundir medicamentos es un riesgo real. Guardalos en lugares separados y etiquetados.',
+      perfect: 'Excelente memoria y precision. La adherencia terapeutica es fundamental para la recuperacion.'
+    }
+  };
+
+  function getPsychoeduTip(levelId) {
+    const group = PSYCHOEDU_TIPS.transition.find(g => levelId <= g.maxLevel);
+    if (!group) return '';
+    return pickRandom(group.tips);
+  }
+
+  function getErrorFeedback(results) {
+    if (results.allPerfect) return PSYCHOEDU_TIPS.errorFeedback.perfect;
+    if (results.missedMeds > 0) return PSYCHOEDU_TIPS.errorFeedback.missed;
+    if (results.wrongMeds > 0) return PSYCHOEDU_TIPS.errorFeedback.wrongMed;
+    // Check for dose/freq errors from breakdown
+    const hasDoseErr = results.breakdown.some(b => b.text.includes('dosis incorrecta'));
+    const hasFreqErr = results.breakdown.some(b => b.text.includes('frecuencia incorrecta'));
+    if (hasDoseErr) return PSYCHOEDU_TIPS.errorFeedback.wrongDose;
+    if (hasFreqErr) return PSYCHOEDU_TIPS.errorFeedback.wrongFreq;
+    return PSYCHOEDU_TIPS.errorFeedback.perfect;
+  }
+
   // ==================== LEVEL DEFINITIONS ====================
+  // mechanic: 'name-only' = just identify correct med names
+  //           'name-and-dose' = identify med + correct dosage (same-name distractors)
+  //           'full-config' = identify + configure dose + frequency in tray
+  // type: 'regular' (default) or 'bonus' (motor skill challenge)
+  // bonusType: 'drag-pills' or 'count-drops' (only for bonus levels)
   const LEVELS = [
     {
-      id: 1, name: 'Tutorial', desc: '1 medicamento, tiempo amplio',
-      medCount: 1, viewTime: 20, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: true
+      id: 1, name: 'Tutorial', desc: 'Identifica 1 medicamento por nombre',
+      medCount: 1, viewTime: 25, optionCount: 4, mechanic: 'name-only',
+      splitDose: false, timing: false, notes: false, unlocked: true
     },
     {
-      id: 2, name: 'Basico I', desc: '1 medicamento, dosis simple',
-      medCount: 1, viewTime: 15, optionCount: 3, splitDose: false, timing: false, notes: false, unlocked: false
+      id: 2, name: 'Basico I', desc: '1 medicamento, identifica la dosis correcta',
+      medCount: 1, viewTime: 20, optionCount: 5, mechanic: 'name-and-dose',
+      splitDose: false, timing: false, notes: false, unlocked: false
     },
     {
-      id: 3, name: 'Basico II', desc: '2 medicamentos basicos',
-      medCount: 2, viewTime: 15, optionCount: 4, splitDose: false, timing: false, notes: false, unlocked: false
+      id: 3, name: 'Basico II', desc: '1 medicamento, configura dosis y frecuencia',
+      medCount: 1, viewTime: 18, optionCount: 4, mechanic: 'full-config',
+      splitDose: false, timing: false, notes: false, unlocked: false
     },
     {
-      id: 4, name: 'Intermedio I', desc: '2 medicamentos, dosis divididas',
-      medCount: 2, viewTime: 12, optionCount: 5, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 4, name: 'Intermedio I', desc: '2 medicamentos, solo nombres',
+      medCount: 2, viewTime: 15, optionCount: 6, mechanic: 'name-only',
+      splitDose: false, timing: false, notes: false, unlocked: false
     },
     {
-      id: 5, name: 'Intermedio II', desc: '2 medicamentos, mas opciones',
-      medCount: 2, viewTime: 12, optionCount: 6, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 100, name: 'Bonus: Pastillero', desc: 'Arrastra las pastillas al compartimiento correcto',
+      medCount: 2, viewTime: 15, optionCount: 0, mechanic: 'full-config',
+      splitDose: false, timing: false, notes: false, unlocked: false,
+      type: 'bonus', bonusType: 'drag-pills'
     },
     {
-      id: 6, name: 'Avanzado I', desc: '3 medicamentos, dosis variadas',
-      medCount: 3, viewTime: 12, optionCount: 7, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 5, name: 'Intermedio II', desc: '2 medicamentos, configuracion completa',
+      medCount: 2, viewTime: 15, optionCount: 5, mechanic: 'full-config',
+      splitDose: false, timing: false, notes: false, unlocked: false
     },
     {
-      id: 7, name: 'Avanzado II', desc: '3 medicamentos, tiempo reducido',
-      medCount: 3, viewTime: 10, optionCount: 7, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 6, name: 'Intermedio III', desc: '2 medicamentos, dosis divididas',
+      medCount: 2, viewTime: 12, optionCount: 6, mechanic: 'full-config',
+      splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 8, name: 'Avanzado III', desc: '3 medicamentos, mas distractores',
-      medCount: 3, viewTime: 10, optionCount: 8, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 7, name: 'Avanzado I', desc: '3 medicamentos, identifica dosis',
+      medCount: 3, viewTime: 12, optionCount: 8, mechanic: 'name-and-dose',
+      splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 9, name: 'Experto I', desc: '4 medicamentos basicos',
-      medCount: 4, viewTime: 10, optionCount: 8, splitDose: true, timing: false, notes: false, unlocked: false
+      id: 8, name: 'Avanzado II', desc: '3 medicamentos, configuracion completa',
+      medCount: 3, viewTime: 10, optionCount: 7, mechanic: 'full-config',
+      splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 10, name: 'Experto II', desc: '4 medicamentos con horarios',
-      medCount: 4, viewTime: 10, optionCount: 9, splitDose: true, timing: true, notes: false, unlocked: false
+      id: 101, name: 'Bonus: Cuenta Gotas', desc: 'Conta las gotas correctas para cada medicamento',
+      medCount: 1, viewTime: 10, optionCount: 0, mechanic: 'full-config',
+      splitDose: false, timing: false, notes: false, unlocked: false,
+      type: 'bonus', bonusType: 'count-drops'
     },
     {
-      id: 11, name: 'Experto III', desc: '4 medicamentos, tiempo ajustado',
-      medCount: 4, viewTime: 8, optionCount: 9, splitDose: true, timing: true, notes: false, unlocked: false
+      id: 9, name: 'Avanzado III', desc: '3 medicamentos, mas distractores',
+      medCount: 3, viewTime: 10, optionCount: 8, mechanic: 'full-config',
+      splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 12, name: 'Experto IV', desc: '4 medicamentos, muchas opciones',
-      medCount: 4, viewTime: 8, optionCount: 10, splitDose: true, timing: true, notes: false, unlocked: false
+      id: 10, name: 'Experto I', desc: '4 medicamentos basicos',
+      medCount: 4, viewTime: 10, optionCount: 8, mechanic: 'full-config',
+      splitDose: true, timing: false, notes: false, unlocked: false
     },
     {
-      id: 13, name: 'Maestro I', desc: '5 medicamentos introduccion',
-      medCount: 5, viewTime: 10, optionCount: 10, splitDose: true, timing: true, notes: false, unlocked: false
+      id: 11, name: 'Experto II', desc: '4 medicamentos con horarios',
+      medCount: 4, viewTime: 10, optionCount: 9, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: false, unlocked: false
     },
     {
-      id: 14, name: 'Maestro II', desc: '5 medicamentos con notas',
-      medCount: 5, viewTime: 9, optionCount: 11, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 102, name: 'Bonus: Pastillero', desc: 'Arma el pastillero semanal con 3 medicamentos',
+      medCount: 3, viewTime: 12, optionCount: 0, mechanic: 'full-config',
+      splitDose: true, timing: false, notes: false, unlocked: false,
+      type: 'bonus', bonusType: 'drag-pills'
     },
     {
-      id: 15, name: 'Maestro III', desc: '5 medicamentos, tiempo reducido',
-      medCount: 5, viewTime: 8, optionCount: 11, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 12, name: 'Experto III', desc: '4 medicamentos, tiempo ajustado',
+      medCount: 4, viewTime: 8, optionCount: 9, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: false, unlocked: false
     },
     {
-      id: 16, name: 'Maestro IV', desc: '5 medicamentos, muchos distractores',
-      medCount: 5, viewTime: 8, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 13, name: 'Experto IV', desc: '4 medicamentos, muchas opciones',
+      medCount: 4, viewTime: 8, optionCount: 10, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: false, unlocked: false
     },
     {
-      id: 17, name: 'Elite I', desc: '6 medicamentos introduccion',
-      medCount: 6, viewTime: 10, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 14, name: 'Maestro I', desc: '5 medicamentos introduccion',
+      medCount: 5, viewTime: 10, optionCount: 10, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: false, unlocked: false
     },
     {
-      id: 18, name: 'Elite II', desc: '6 medicamentos, tiempo ajustado',
-      medCount: 6, viewTime: 8, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 15, name: 'Maestro II', desc: '5 medicamentos con notas',
+      medCount: 5, viewTime: 9, optionCount: 11, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
     },
     {
-      id: 19, name: 'Gran Maestro', desc: '6 medicamentos, desafio completo',
-      medCount: 6, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 103, name: 'Bonus: Cuenta Gotas', desc: 'Dosis exacta con cuentagotas, 2 medicamentos',
+      medCount: 2, viewTime: 12, optionCount: 0, mechanic: 'full-config',
+      splitDose: false, timing: false, notes: false, unlocked: false,
+      type: 'bonus', bonusType: 'count-drops'
     },
     {
-      id: 20, name: 'Farmaceutico', desc: '7 medicamentos, el desafio final',
-      medCount: 7, viewTime: 7, optionCount: 12, splitDose: true, timing: true, notes: true, unlocked: false
+      id: 16, name: 'Maestro III', desc: '5 medicamentos, tiempo reducido',
+      medCount: 5, viewTime: 8, optionCount: 11, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 17, name: 'Maestro IV', desc: '5 medicamentos, muchos distractores',
+      medCount: 5, viewTime: 8, optionCount: 12, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 18, name: 'Elite I', desc: '6 medicamentos introduccion',
+      medCount: 6, viewTime: 10, optionCount: 12, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 19, name: 'Elite II', desc: '6 medicamentos, tiempo ajustado',
+      medCount: 6, viewTime: 8, optionCount: 12, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 20, name: 'Gran Maestro', desc: '6 medicamentos, desafio completo',
+      medCount: 6, viewTime: 7, optionCount: 12, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
+    },
+    {
+      id: 21, name: 'Farmaceutico', desc: '7 medicamentos, el desafio final',
+      medCount: 7, viewTime: 7, optionCount: 12, mechanic: 'full-config',
+      splitDose: true, timing: true, notes: true, unlocked: false
     }
   ];
+
+  // Helper: get level by ID (since bonus levels use non-sequential IDs)
+  function getLevelById(id) { return LEVELS.find(l => l.id === id); }
+  function getLevelIndex(id) { return LEVELS.findIndex(l => l.id === id); }
 
   // ==================== STATE ====================
   let state = {
@@ -1325,7 +1875,7 @@
         state.bestScores = data.bestScores || {};
         if (data.unlockedLevels) {
           data.unlockedLevels.forEach(id => {
-            const lvl = LEVELS.find(l => l.id === id);
+            const lvl = getLevelById(id);
             if (lvl) lvl.unlocked = true;
           });
         }
@@ -1343,6 +1893,66 @@
         unlockedLevels
       }));
     } catch(e) {}
+  }
+
+  // ==================== SESSION HISTORY (for trend charts) ====================
+  let metricsHistory = [];
+  try {
+    metricsHistory = JSON.parse(localStorage.getItem('medmemory_metrics_history') || '[]');
+  } catch(e) { metricsHistory = []; }
+
+  function saveMetricsToHistory(levelId, clinicalStats, results) {
+    const entry = {
+      timestamp: Date.now(),
+      date: new Date().toISOString(),
+      level: levelId,
+      duration_sec: clinicalStats.session_summary.total_duration_sec,
+      accuracy: clinicalStats.session_summary.accuracy_percentage,
+      score: results.score,
+      max_score: results.maxScore,
+      star_count: results.score / results.maxScore >= 0.95 ? 5 :
+                  results.score / results.maxScore >= 0.75 ? 4 :
+                  results.score / results.maxScore >= 0.5 ? 3 :
+                  results.score / results.maxScore >= 0.25 ? 2 : 1,
+      memory_span: clinicalStats.clinical_markers.memory_span,
+      mean_decision_time_ms: clinicalStats.clinical_markers.mean_decision_time_ms,
+      decision_variability_sd: clinicalStats.clinical_markers.decision_time_variability_sd,
+      simulated_mpr: clinicalStats.clinical_markers.simulated_mpr,
+      omission_errors: clinicalStats.clinical_markers.omission_errors,
+      commission_errors: clinicalStats.clinical_markers.commission_errors,
+      selection_changes: clinicalStats.clinical_markers.selection_changes
+    };
+    metricsHistory.push(entry);
+    if (metricsHistory.length > 200) metricsHistory = metricsHistory.slice(-200);
+    try {
+      localStorage.setItem('medmemory_metrics_history', JSON.stringify(metricsHistory));
+    } catch(e) {}
+  }
+
+  // ==================== INTRA-SESSION TIME SERIES ====================
+  let metricsTimeSeries = {
+    timestamps: [],
+    cumulativeSelections: [],
+    cumulativeDeselections: [],
+    cumulativeConfigChanges: []
+  };
+  let timeSeriesInterval = null;
+
+  function resetTimeSeries() {
+    metricsTimeSeries = {
+      timestamps: [], cumulativeSelections: [],
+      cumulativeDeselections: [], cumulativeConfigChanges: []
+    };
+    if (timeSeriesInterval) { clearInterval(timeSeriesInterval); timeSeriesInterval = null; }
+  }
+
+  function recordTimeSeriesPoint() {
+    if (!state.deskShownAt) return;
+    const elapsed = Math.floor((Date.now() - state.deskShownAt) / 1000);
+    metricsTimeSeries.timestamps.push(elapsed);
+    metricsTimeSeries.cumulativeSelections.push(clinicalMetrics.selectionTimes.length);
+    metricsTimeSeries.cumulativeDeselections.push(clinicalMetrics.selectionChanges);
+    metricsTimeSeries.cumulativeConfigChanges.push(clinicalMetrics.configurationChanges);
   }
 
   // ==================== API ====================
@@ -1414,8 +2024,8 @@
     return a;
   }
 
-  function generatePrescription(level) {
-    const lvl = LEVELS[level - 1];
+  function generatePrescription(levelId) {
+    const lvl = getLevelById(levelId);
     const available = shuffle([...MEDICATIONS]);
     const chosen = available.slice(0, lvl.medCount);
     const prescription = [];
@@ -1467,6 +2077,7 @@
   }
 
   function generateDeskOptions(prescription, totalOptions) {
+    const mechanic = state.currentLevel?.mechanic || 'full-config';
     const options = [];
     let idCounter = 0;
 
@@ -1482,14 +2093,32 @@
       });
     });
 
-    // Add distractors
+    // For name-and-dose: prioritize same-name distractors with wrong dosages
+    if (mechanic === 'name-and-dose') {
+      prescription.forEach(med => {
+        const medDef = MEDICATIONS.find(m => m.name === med.name);
+        if (!medDef) return;
+        const otherDosages = medDef.dosages.filter(d => d !== med.dosage);
+        otherDosages.forEach(d => {
+          if (options.length >= totalOptions) return;
+          options.push({
+            id: idCounter++,
+            name: med.name,
+            dosage: d,
+            form: med.form,
+            category: med.category,
+            isCorrect: false
+          });
+        });
+      });
+    }
+
+    // Add distractors from different medications
     const usedNames = new Set(prescription.map(m => m.name));
     const availableDistractors = MEDICATIONS.filter(m => !usedNames.has(m.name));
     const shuffledDistractors = shuffle(availableDistractors);
 
-    let distractorCount = totalOptions - prescription.length;
     let dIdx = 0;
-
     while (options.length < totalOptions && dIdx < shuffledDistractors.length) {
       const med = shuffledDistractors[dIdx];
       const dosage = pickRandom(med.dosages);
@@ -1509,7 +2138,7 @@
       prescription.forEach(med => {
         if (options.length >= totalOptions) return;
         const otherDosages = MEDICATIONS.find(m => m.name === med.name)
-          .dosages.filter(d => d !== med.dosage);
+          .dosages.filter(d => d !== med.dosage && !options.some(o => o.name === med.name && o.dosage === d));
         if (otherDosages.length > 0) {
           options.push({
             id: idCounter++,
@@ -1563,18 +2192,23 @@
     const grid = $('levelsGrid');
     grid.innerHTML = '';
 
-    LEVELS.forEach(lvl => {
+    const levelColors = ['#10b981','#2563eb','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#84cc16'];
+
+    LEVELS.forEach((lvl, idx) => {
       const card = document.createElement('div');
-      card.className = 'level-card' + (lvl.unlocked ? '' : ' locked');
+      const isBonus = lvl.type === 'bonus';
+      card.className = 'level-card' + (lvl.unlocked ? '' : ' locked') + (isBonus ? ' bonus-card' : '');
       const best = state.bestScores[lvl.id];
+      const color = isBonus ? '#f59e0b' : levelColors[idx % levelColors.length];
+      const displayNum = isBonus ? (lvl.bonusType === 'drag-pills' ? '&#9733;' : '&#128167;') : lvl.id;
       card.innerHTML = `
-        <div class="level-number">${lvl.id}</div>
+        <div class="level-number" style="background:${color}">${displayNum}</div>
         <div class="level-name">${lvl.name}</div>
         <div class="level-desc">${lvl.desc}</div>
-        <div class="level-meta">
+        ${!isBonus ? `<div class="level-meta">
           <span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${lvl.viewTime}s</span>
           <span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> ${lvl.optionCount}</span>
-        </div>
+        </div>` : '<div class="level-meta"><span>Motor skill</span></div>'}
         ${best !== undefined ? `<div class="level-best">Mejor: ${best} pts</div>` : ''}
       `;
       if (lvl.unlocked) {
@@ -1756,7 +2390,8 @@
   // ==================== GAME FLOW ====================
 
   async function startGame(levelId) {
-    const lvl = LEVELS[levelId - 1];
+    const lvl = getLevelById(levelId);
+    if (!lvl) return;
     state.currentLevel = lvl;
     state.score = 0;
     state.selectedMeds = [];
@@ -1765,10 +2400,21 @@
 
     // Reset clinical metrics for new session
     resetClinicalMetrics();
+    resetTimeSeries();
 
-    $('levelValue').textContent = levelId;
+    $('levelValue').textContent = lvl.type === 'bonus' ? 'B' : levelId;
     $('scoreValue').textContent = '0';
     showHeaderStats(true);
+
+    // For bonus levels, generate prescription but skip desk phase
+    if (lvl.type === 'bonus') {
+      state.prescription = generatePrescription(levelId);
+      await startSession(levelId);
+      renderPrescription();
+      showScreen('screenPrescription');
+      startCountdown(lvl.viewTime);
+      return;
+    }
 
     // Generate prescription and desk
     state.prescription = generatePrescription(levelId);
@@ -1830,11 +2476,38 @@
   function endPrescriptionPhase() {
     $('prescriptionPaper').classList.add('fade-out');
 
+    // Insert psychoeducation tip into transition screen
+    const tipText = getPsychoeduTip(state.currentLevel.id);
+    const tipDiv = $('transitionTip');
+    if (tipText) {
+      tipDiv.innerHTML = `<div class="psychoedu-tip"><span class="tip-icon">&#128161;</span><span class="tip-text">${tipText}</span></div>`;
+    } else {
+      tipDiv.innerHTML = '';
+    }
+
+    // Update transition text for bonus levels
+    if (state.currentLevel.type === 'bonus') {
+      $('screenTransition').querySelector('.transition-text').textContent =
+        state.currentLevel.bonusType === 'drag-pills' ? 'Armá el pastillero' : 'Contá las gotas';
+      $('screenTransition').querySelector('.transition-sub').textContent =
+        state.currentLevel.bonusType === 'drag-pills'
+          ? 'Arrastrá cada pastilla al compartimiento correcto'
+          : 'Tocá el frasco para dosificar la cantidad correcta';
+    } else {
+      $('screenTransition').querySelector('.transition-text').textContent = 'Armá tu medicacion del dia';
+      $('screenTransition').querySelector('.transition-sub').textContent =
+        'Seleccioná los medicamentos correctos y configurá las dosis';
+    }
+
     setTimeout(() => {
       showScreen('screenTransition');
 
       setTimeout(() => {
-        showDeskPhase();
+        if (state.currentLevel.type === 'bonus') {
+          startBonusLevel();
+        } else {
+          showDeskPhase();
+        }
       }, 1800);
     }, 600);
   }
@@ -1842,6 +2515,23 @@
   function showDeskPhase() {
     state.deskShownAt = Date.now();
     state.selectedMeds = [];
+
+    const mechanic = state.currentLevel?.mechanic || 'full-config';
+
+    // For name-only, update instruction and hide tray
+    if (mechanic === 'name-only') {
+      $('screenDesk').querySelector('.desk-instruction').textContent =
+        'Seleccioná solo los medicamentos que estaban en la receta.';
+      document.querySelector('.tray-section').style.display = 'none';
+    } else if (mechanic === 'name-and-dose') {
+      $('screenDesk').querySelector('.desk-instruction').textContent =
+        'Seleccioná los medicamentos con la dosis correcta de la receta.';
+      document.querySelector('.tray-section').style.display = 'none';
+    } else {
+      $('screenDesk').querySelector('.desk-instruction').textContent =
+        'Seleccioná los medicamentos de la receta y configurá las dosis correctas.';
+      document.querySelector('.tray-section').style.display = '';
+    }
 
     renderDeskGrid();
     renderTray();
@@ -1857,11 +2547,18 @@
       state.responseSeconds++;
       $('timerValue').textContent = state.responseSeconds + 's';
     }, 1000);
+
+    // Start intra-session time series recording
+    resetTimeSeries();
+    timeSeriesInterval = setInterval(recordTimeSeriesPoint, 2000);
   }
 
   function evaluateResults() {
     clearInterval(state.responseTimer);
+    if (timeSeriesInterval) { clearInterval(timeSeriesInterval); timeSeriesInterval = null; }
+    recordTimeSeriesPoint(); // final data point
 
+    const mechanic = state.currentLevel?.mechanic || 'full-config';
     const prescription = state.prescription;
     const selected = state.selectedMeds;
     const breakdown = [];
@@ -1873,6 +2570,12 @@
       selectedMap.set(s.name + '|' + s.dosage, s);
     });
 
+    // For name-only, also match by name alone (dosage doesn't matter)
+    const selectedByName = new Map();
+    selected.forEach(s => {
+      selectedByName.set(s.name, s);
+    });
+
     let correctMeds = 0;
     let wrongMeds = 0;
     let missedMeds = 0;
@@ -1880,79 +2583,83 @@
 
     // Check each prescribed medication
     prescription.forEach(rx => {
-      const key = rx.name + '|' + rx.dosage;
-      const sel = selectedMap.get(key);
-
-      if (sel) {
-        selectedMap.delete(key);
-        // Correct medication selected
-        correctMeds++;
-        totalScore += 100;
-        breakdown.push({
-          type: 'correct',
-          text: `${rx.name} ${rx.dosage} - medicamento correcto`,
-          points: '+100'
-        });
-
-        // Check quantity
-        if (sel.quantity === rx.quantity) {
-          totalScore += 100;
-          breakdown.push({
-            type: 'correct',
-            text: `${rx.name} - dosis correcta (${renderQuantityText(rx.quantity)})`,
-            points: '+100'
-          });
+      if (mechanic === 'name-only') {
+        // Only check name match
+        const sel = selectedByName.get(rx.name);
+        if (sel) {
+          selectedByName.delete(rx.name);
+          correctMeds++;
+          totalScore += 200;
+          breakdown.push({ type: 'correct', text: `${rx.name} - medicamento correcto`, points: '+200' });
         } else {
-          breakdown.push({
-            type: 'wrong',
-            text: `${rx.name} - dosis incorrecta (elegiste ${renderQuantityText(sel.quantity)}, era ${renderQuantityText(rx.quantity)})`,
-            points: '+0'
-          });
-        }
-
-        // Check frequency
-        if (sel.frequency === rx.frequency) {
-          totalScore += 50;
-          breakdown.push({
-            type: 'correct',
-            text: `${rx.name} - frecuencia correcta`,
-            points: '+50'
-          });
-        } else {
-          breakdown.push({
-            type: 'wrong',
-            text: `${rx.name} - frecuencia incorrecta (era ${renderFrequencyText(rx.frequency)})`,
-            points: '+0'
-          });
+          missedMeds++;
+          totalScore -= 50;
+          breakdown.push({ type: 'missed', text: `${rx.name} - no fue seleccionado`, points: '-50' });
         }
       } else {
-        // Missed medication
-        missedMeds++;
-        totalScore -= 50;
-        breakdown.push({
-          type: 'missed',
-          text: `${rx.name} ${rx.dosage} - no fue seleccionado`,
-          points: '-50'
-        });
+        const key = rx.name + '|' + rx.dosage;
+        const sel = selectedMap.get(key);
+        if (sel) {
+          selectedMap.delete(key);
+          correctMeds++;
+          totalScore += 100;
+          breakdown.push({ type: 'correct', text: `${rx.name} ${rx.dosage} - medicamento correcto`, points: '+100' });
+
+          if (mechanic === 'name-and-dose') {
+            // Extra points for correct dosage identification
+            totalScore += 150;
+            breakdown.push({ type: 'correct', text: `${rx.name} - dosis correcta (${rx.dosage})`, points: '+150' });
+          } else {
+            // full-config: check quantity
+            if (sel.quantity === rx.quantity) {
+              totalScore += 100;
+              breakdown.push({ type: 'correct', text: `${rx.name} - dosis correcta (${renderQuantityText(rx.quantity)})`, points: '+100' });
+            } else {
+              breakdown.push({ type: 'wrong', text: `${rx.name} - dosis incorrecta (elegiste ${renderQuantityText(sel.quantity)}, era ${renderQuantityText(rx.quantity)})`, points: '+0' });
+            }
+            // Check frequency
+            if (sel.frequency === rx.frequency) {
+              totalScore += 50;
+              breakdown.push({ type: 'correct', text: `${rx.name} - frecuencia correcta`, points: '+50' });
+            } else {
+              breakdown.push({ type: 'wrong', text: `${rx.name} - frecuencia incorrecta (era ${renderFrequencyText(rx.frequency)})`, points: '+0' });
+            }
+          }
+        } else {
+          // Check if they selected the right name but wrong dose
+          const byNameOnly = selected.find(s => s.name === rx.name && !selectedMap.has(s.name + '|' + s.dosage));
+          if (byNameOnly && mechanic === 'name-and-dose') {
+            correctMeds++;
+            totalScore += 50;
+            breakdown.push({ type: 'wrong', text: `${rx.name} - dosis incorrecta (elegiste ${byNameOnly.dosage}, era ${rx.dosage})`, points: '+50' });
+          } else {
+            missedMeds++;
+            totalScore -= 50;
+            breakdown.push({ type: 'missed', text: `${rx.name} ${rx.dosage} - no fue seleccionado`, points: '-50' });
+          }
+        }
       }
     });
 
-    // Check wrong selections (remaining in selectedMap)
-    selectedMap.forEach((sel, key) => {
-      wrongMeds++;
-      totalScore -= 75;
-      breakdown.push({
-        type: 'wrong',
-        text: `${sel.name} ${sel.dosage} - no estaba en la receta`,
-        points: '-75'
+    // Check wrong selections
+    if (mechanic === 'name-only') {
+      selectedByName.forEach((sel) => {
+        wrongMeds++;
+        totalScore -= 75;
+        breakdown.push({ type: 'wrong', text: `${sel.name} - no estaba en la receta`, points: '-75' });
       });
-    });
+    } else {
+      selectedMap.forEach((sel) => {
+        wrongMeds++;
+        totalScore -= 75;
+        breakdown.push({ type: 'wrong', text: `${sel.name} ${sel.dosage} - no estaba en la receta`, points: '-75' });
+      });
+    }
 
     // Completion bonus
     const allCorrect = correctMeds === totalMeds && wrongMeds === 0 && missedMeds === 0;
-    // Check if all doses and frequencies correct too
     let allPerfect = allCorrect;
-    if (allCorrect) {
+    if (allCorrect && mechanic === 'full-config') {
       prescription.forEach(rx => {
         const sel = selected.find(s => s.name === rx.name && s.dosage === rx.dosage);
         if (!sel || sel.quantity !== rx.quantity || sel.frequency !== rx.frequency) {
@@ -1962,12 +2669,9 @@
     }
 
     if (allPerfect) {
-      totalScore += 500;
-      breakdown.push({
-        type: 'bonus',
-        text: 'Todo perfecto - bonus de completitud',
-        points: '+500'
-      });
+      const bonus = mechanic === 'name-only' ? 300 : mechanic === 'name-and-dose' ? 400 : 500;
+      totalScore += bonus;
+      breakdown.push({ type: 'bonus', text: 'Todo perfecto - bonus de completitud', points: '+' + bonus });
     }
 
     // Speed bonus
@@ -1976,27 +2680,16 @@
       const speedBonus = Math.max(0, Math.round(200 - state.responseSeconds * 5));
       if (speedBonus > 0) {
         totalScore += speedBonus;
-        breakdown.push({
-          type: 'bonus',
-          text: `Bonus de velocidad (${state.responseSeconds}s)`,
-          points: '+' + speedBonus
-        });
+        breakdown.push({ type: 'bonus', text: `Bonus de velocidad (${state.responseSeconds}s)`, points: '+' + speedBonus });
       }
     }
 
     totalScore = Math.max(0, totalScore);
-    const maxScore = totalMeds * 250 + 500 + 200;
+    const maxScore = mechanic === 'name-only' ? totalMeds * 200 + 300 + 200 :
+                     mechanic === 'name-and-dose' ? totalMeds * 250 + 400 + 200 :
+                     totalMeds * 250 + 500 + 200;
 
-    return {
-      score: totalScore,
-      maxScore,
-      breakdown,
-      correctMeds,
-      wrongMeds,
-      missedMeds,
-      totalMeds,
-      allPerfect
-    };
+    return { score: totalScore, maxScore, breakdown, correctMeds, wrongMeds, missedMeds, totalMeds, allPerfect };
   }
 
   function showResults(results) {
@@ -2042,6 +2735,15 @@
       list.appendChild(li);
     });
 
+    // Psychoeducation feedback
+    const psychoeduDiv = $('resultsPsychoedu');
+    const feedback = getErrorFeedback(results);
+    if (feedback) {
+      psychoeduDiv.innerHTML = `<div class="results-psychoedu"><span>&#128218;</span> ${feedback}</div>`;
+    } else {
+      psychoeduDiv.innerHTML = '';
+    }
+
     // Footer buttons
     const footer = $('resultsFooter');
     footer.innerHTML = '';
@@ -2057,8 +2759,9 @@
 
     // Unlock next level if score is above 25%
     const currentId = state.currentLevel.id;
-    if (pct >= 0.25 && currentId < 20) {
-      const nextLvl = LEVELS[currentId]; // 0-indexed, currentId is next
+    const currentIdx = getLevelIndex(currentId);
+    if (pct >= 0.25 && currentIdx < LEVELS.length - 1) {
+      const nextLvl = LEVELS[currentIdx + 1];
       if (!nextLvl.unlocked) {
         nextLvl.unlocked = true;
       }
@@ -2067,7 +2770,7 @@
       nextBtn.textContent = 'Siguiente nivel';
       nextBtn.addEventListener('click', () => {
         $('resultsOverlay').classList.remove('active');
-        startGame(currentId + 1);
+        startGame(nextLvl.id);
       });
       footer.appendChild(nextBtn);
     }
@@ -2092,6 +2795,9 @@
     // Calculate clinical biomarkers
     const clinicalStats = calculateClinicalStats(results);
 
+    // Save session to history for trend charts
+    saveMetricsToHistory(currentId, clinicalStats, results);
+
     // API save
     saveResult(
       results.score,
@@ -2099,16 +2805,20 @@
       durationSeconds,
       results.allPerfect,
       {
-        // Legacy metrics for backward compatibility
+        // Legacy metrics
         correctMeds: results.correctMeds,
         wrongMeds: results.wrongMeds,
         missedMeds: results.missedMeds,
         totalMeds: results.totalMeds,
         viewTimeSeconds,
         responseTimeSeconds: state.responseSeconds,
+        mechanic: state.currentLevel?.mechanic || 'full-config',
 
         // Clinical biomarkers (DTx / Digital Phenotyping)
-        ...clinicalStats
+        ...clinicalStats,
+
+        // Intra-session time series
+        time_series: metricsTimeSeries
       }
     );
 
@@ -2116,11 +2826,513 @@
     $('resultsOverlay').classList.add('active');
   }
 
+  // ==================== BONUS LEVELS ====================
+
+  let bonusState = {
+    type: null,         // 'drag-pills' or 'count-drops'
+    pills: [],          // for drag-pills: {name, dosage, frequency, placed: false, slotId: null}
+    slots: [],          // for drag-pills: {id, label, time, correctPill: name}
+    dropCount: 0,       // for count-drops: current drops
+    targetDrops: 0,     // for count-drops: target number
+    currentDropMed: 0,  // for count-drops: which med we're dosing
+    dropMeds: [],       // for count-drops: [{name, targetDrops}]
+    dragData: null       // currently dragged pill element
+  };
+
+  function startBonusLevel() {
+    state.deskShownAt = Date.now();
+    const lvl = state.currentLevel;
+    const content = $('bonusContent');
+    content.innerHTML = '';
+
+    // Start response timer
+    state.responseSeconds = 0;
+    $('timerValue').textContent = '0s';
+    $('timerBadge').className = 'stat-badge timer';
+    state.responseTimer = setInterval(() => {
+      state.responseSeconds++;
+      $('timerValue').textContent = state.responseSeconds + 's';
+    }, 1000);
+
+    if (lvl.bonusType === 'drag-pills') {
+      startDragPillsBonus(content);
+    } else {
+      startCountDropsBonus(content);
+    }
+
+    showScreen('screenBonus');
+  }
+
+  function startDragPillsBonus(container) {
+    $('bonusInstruction').textContent = 'Arrastrá cada pastilla al compartimiento correcto del pastillero';
+
+    const timeSlots = ['Maniana', 'Mediodia', 'Noche'];
+    bonusState.type = 'drag-pills';
+    bonusState.pills = [];
+    bonusState.slots = [];
+
+    // Create slots from prescription
+    state.prescription.forEach(med => {
+      const freqMap = {
+        'maniana': ['Maniana'], 'mediodia': ['Mediodia'], 'noche': ['Noche'],
+        'maniana-noche': ['Maniana', 'Noche'], 'maniana-mediodia-noche': ['Maniana', 'Mediodia', 'Noche'],
+        'con-comida': ['Mediodia'], 'en-ayunas': ['Maniana']
+      };
+      const times = freqMap[med.frequency] || ['Maniana'];
+      times.forEach(time => {
+        const slotId = med.name + '-' + time;
+        bonusState.slots.push({ id: slotId, label: med.name.split(' ')[0], time, correctPill: med.name });
+        bonusState.pills.push({ name: med.name, dosage: med.dosage, time, placed: false, slotId: null });
+      });
+    });
+
+    // Render pastillero grid
+    const gridHtml = `<div class="pastillero-grid" id="pastilleroGrid">
+      ${bonusState.slots.map(s => `
+        <div class="pastillero-slot" data-slot-id="${s.id}" data-correct="${s.correctPill}">
+          <span class="slot-label">${s.label}</span>
+          <span class="slot-time">${s.time}</span>
+        </div>
+      `).join('')}
+    </div>`;
+
+    // Render draggable pills
+    const pillColors = ['#7c3aed', '#0891b2', '#059669', '#d97706', '#be185d', '#6366f1', '#ef4444'];
+    const pillsHtml = `<div class="drag-pills-area" id="dragPillsArea">
+      ${shuffle(bonusState.pills).map((p, i) => `
+        <div class="draggable-pill" data-pill-name="${p.name}" data-pill-time="${p.time}"
+             style="background:${pillColors[i % pillColors.length]}">
+          ${p.name.split(' ')[0]}<br>${p.dosage}
+        </div>
+      `).join('')}
+    </div>`;
+
+    container.innerHTML = gridHtml + pillsHtml;
+
+    // Setup drag handlers
+    container.querySelectorAll('.draggable-pill').forEach(pill => {
+      pill.addEventListener('mousedown', startDrag);
+      pill.addEventListener('touchstart', startDrag, { passive: false });
+    });
+
+    $('bonusConfirmBtn').style.display = '';
+    $('bonusConfirmBtn').onclick = evaluateDragPillsBonus;
+  }
+
+  function startDrag(e) {
+    e.preventDefault();
+    const pill = e.currentTarget;
+    if (pill.classList.contains('placed')) return;
+
+    const rect = pill.getBoundingClientRect();
+    const clone = pill.cloneNode(true);
+    clone.classList.add('dragging');
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    clone.style.width = rect.width + 'px';
+    document.body.appendChild(clone);
+
+    bonusState.dragData = { original: pill, clone, name: pill.dataset.pillName, time: pill.dataset.pillTime };
+    pill.style.opacity = '0.3';
+
+    const moveHandler = (ev) => {
+      ev.preventDefault();
+      const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      clone.style.left = (x - rect.width / 2) + 'px';
+      clone.style.top = (y - 20) + 'px';
+
+      // Highlight drop zones
+      document.querySelectorAll('.pastillero-slot').forEach(slot => {
+        const sr = slot.getBoundingClientRect();
+        if (x >= sr.left && x <= sr.right && y >= sr.top && y <= sr.bottom) {
+          slot.classList.add('drag-over');
+        } else {
+          slot.classList.remove('drag-over');
+        }
+      });
+    };
+
+    const upHandler = (ev) => {
+      const x = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
+      const y = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
+
+      // Check if dropped on a slot
+      let dropped = false;
+      document.querySelectorAll('.pastillero-slot').forEach(slot => {
+        slot.classList.remove('drag-over');
+        const sr = slot.getBoundingClientRect();
+        if (x >= sr.left && x <= sr.right && y >= sr.top && y <= sr.bottom && !slot.classList.contains('filled')) {
+          // Place pill in slot
+          slot.classList.add('filled');
+          slot.innerHTML += `<span class="slot-pill-name">${pill.dataset.pillName.split(' ')[0]}</span>`;
+          slot.dataset.placedPill = pill.dataset.pillName;
+          pill.style.display = 'none';
+          dropped = true;
+        }
+      });
+
+      if (!dropped) pill.style.opacity = '1';
+      clone.remove();
+      bonusState.dragData = null;
+
+      document.removeEventListener('mousemove', moveHandler);
+      document.removeEventListener('mouseup', upHandler);
+      document.removeEventListener('touchmove', moveHandler);
+      document.removeEventListener('touchend', upHandler);
+    };
+
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+    document.addEventListener('touchmove', moveHandler, { passive: false });
+    document.addEventListener('touchend', upHandler);
+  }
+
+  function evaluateDragPillsBonus() {
+    clearInterval(state.responseTimer);
+    const breakdown = [];
+    let totalScore = 0;
+    let correct = 0;
+    const total = bonusState.slots.length;
+
+    bonusState.slots.forEach(slot => {
+      const el = document.querySelector(`[data-slot-id="${slot.id}"]`);
+      const placed = el?.dataset.placedPill;
+      if (placed === slot.correctPill) {
+        correct++;
+        totalScore += 200;
+        breakdown.push({ type: 'correct', text: `${slot.label} (${slot.time}) - correcto`, points: '+200' });
+      } else if (placed) {
+        totalScore -= 100;
+        breakdown.push({ type: 'wrong', text: `${slot.label} (${slot.time}) - incorrecto (pusiste ${placed.split(' ')[0]})`, points: '-100' });
+      } else {
+        totalScore -= 50;
+        breakdown.push({ type: 'missed', text: `${slot.label} (${slot.time}) - vacio`, points: '-50' });
+      }
+    });
+
+    if (correct === total) {
+      totalScore += 300;
+      breakdown.push({ type: 'bonus', text: 'Pastillero perfecto', points: '+300' });
+    }
+
+    totalScore = Math.max(0, totalScore);
+    const maxScore = total * 200 + 300;
+    const results = {
+      score: totalScore, maxScore, breakdown,
+      correctMeds: correct, wrongMeds: 0, missedMeds: total - correct,
+      totalMeds: total, allPerfect: correct === total
+    };
+    showResults(results);
+  }
+
+  function startCountDropsBonus(container) {
+    $('bonusInstruction').textContent = 'Tocá el frasco para agregar gotas. Dosificá la cantidad indicada en la receta.';
+
+    bonusState.type = 'count-drops';
+    bonusState.dropCount = 0;
+    bonusState.currentDropMed = 0;
+    bonusState.dropMeds = state.prescription.map(med => {
+      const qtyMap = { '1/4': 5, '1/2': 10, '1': 20, '1+1/2': 30, '2': 40 };
+      return { name: med.name, targetDrops: qtyMap[med.quantity] || 20 };
+    });
+
+    renderDropsUI(container);
+    $('bonusConfirmBtn').style.display = '';
+    $('bonusConfirmBtn').onclick = confirmDrops;
+  }
+
+  function renderDropsUI(container) {
+    const med = bonusState.dropMeds[bonusState.currentDropMed];
+    if (!container) container = $('bonusContent');
+    container.innerHTML = `
+      <div class="drops-area">
+        <div class="drops-target-label">Medicamento ${bonusState.currentDropMed + 1}/${bonusState.dropMeds.length}: <strong>${med.name}</strong></div>
+        <div class="drops-target-label">Objetivo: <strong>${med.targetDrops} gotas</strong></div>
+        <div class="drops-bottle" id="dropsBottle">
+          <span class="bottle-label">${med.name.split(' ')[0]}</span>
+        </div>
+        <div class="drops-counter" id="dropsCounter">${bonusState.dropCount}</div>
+        <div class="drops-target">gotas</div>
+      </div>
+    `;
+
+    $('dropsBottle').addEventListener('click', addDrop);
+    $('dropsBottle').addEventListener('touchend', (e) => { e.preventDefault(); addDrop(); });
+  }
+
+  function addDrop() {
+    bonusState.dropCount++;
+    $('dropsCounter').textContent = bonusState.dropCount;
+
+    // Visual drop animation
+    const bottle = $('dropsBottle');
+    const drop = document.createElement('div');
+    drop.className = 'drop-animation';
+    drop.style.left = (bottle.offsetWidth / 2 - 6) + 'px';
+    bottle.appendChild(drop);
+    setTimeout(() => drop.remove(), 500);
+  }
+
+  function confirmDrops() {
+    const med = bonusState.dropMeds[bonusState.currentDropMed];
+    med.actualDrops = bonusState.dropCount;
+
+    bonusState.currentDropMed++;
+    bonusState.dropCount = 0;
+
+    if (bonusState.currentDropMed < bonusState.dropMeds.length) {
+      renderDropsUI();
+    } else {
+      evaluateDropsBonus();
+    }
+  }
+
+  function evaluateDropsBonus() {
+    clearInterval(state.responseTimer);
+    const breakdown = [];
+    let totalScore = 0;
+    let perfect = 0;
+
+    bonusState.dropMeds.forEach(med => {
+      const diff = Math.abs((med.actualDrops || 0) - med.targetDrops);
+      if (diff === 0) {
+        perfect++;
+        totalScore += 300;
+        breakdown.push({ type: 'correct', text: `${med.name} - ${med.targetDrops} gotas exactas`, points: '+300' });
+      } else if (diff <= 2) {
+        totalScore += 150;
+        breakdown.push({ type: 'correct', text: `${med.name} - casi perfecto (${med.actualDrops}/${med.targetDrops})`, points: '+150' });
+      } else if (diff <= 5) {
+        totalScore += 50;
+        breakdown.push({ type: 'wrong', text: `${med.name} - ${med.actualDrops}/${med.targetDrops} gotas (diferencia: ${diff})`, points: '+50' });
+      } else {
+        breakdown.push({ type: 'wrong', text: `${med.name} - ${med.actualDrops}/${med.targetDrops} gotas (diferencia: ${diff})`, points: '+0' });
+      }
+    });
+
+    if (perfect === bonusState.dropMeds.length) {
+      totalScore += 400;
+      breakdown.push({ type: 'bonus', text: 'Todas las dosis perfectas', points: '+400' });
+    }
+
+    totalScore = Math.max(0, totalScore);
+    const maxScore = bonusState.dropMeds.length * 300 + 400;
+    const results = {
+      score: totalScore, maxScore, breakdown,
+      correctMeds: perfect, wrongMeds: 0, missedMeds: bonusState.dropMeds.length - perfect,
+      totalMeds: bonusState.dropMeds.length, allPerfect: perfect === bonusState.dropMeds.length
+    };
+    showResults(results);
+  }
+
+  // ==================== CANVAS CHART DRAWING ====================
+
+  function drawLineChart(canvas, data, options = {}) {
+    if (!canvas || !data || data.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width = canvas.offsetWidth * 2;
+    const h = canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+    const cw = w / 2;
+    const ch = h / 2;
+    const pad = { top: 10, right: 15, bottom: 25, left: 45 };
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    const plotW = cw - pad.left - pad.right;
+    const plotH = ch - pad.top - pad.bottom;
+
+    const vals = data.map(d => d.value);
+    let minV = options.minY !== undefined ? options.minY : Math.min(...vals);
+    let maxV = options.maxY !== undefined ? options.maxY : Math.max(...vals);
+    if (minV === maxV) { minV -= 1; maxV += 1; }
+
+    // Grid lines
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + plotH * (1 - i / 4);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + plotW, y);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'right';
+      const val = minV + (maxV - minV) * (i / 4);
+      ctx.fillText(Math.round(val), pad.left - 4, y + 3);
+    }
+
+    // Data line
+    ctx.strokeStyle = options.color || '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = pad.left + (plotW * i / Math.max(data.length - 1, 1));
+      const y = pad.top + plotH * (1 - (d.value - minV) / (maxV - minV));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Data points
+    ctx.fillStyle = options.color || '#2563eb';
+    data.forEach((d, i) => {
+      const x = pad.left + (plotW * i / Math.max(data.length - 1, 1));
+      const y = pad.top + plotH * (1 - (d.value - minV) / (maxV - minV));
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // X axis labels (sparse)
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(data.length / 6));
+    for (let i = 0; i < data.length; i += step) {
+      const x = pad.left + (plotW * i / Math.max(data.length - 1, 1));
+      ctx.fillText(data[i].label || (i + 1), x, ch - 4);
+    }
+  }
+
+  function drawGroupedBarChart(canvas, data, options = {}) {
+    if (!canvas || !data || data.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width = canvas.offsetWidth * 2;
+    const h = canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+    const cw = w / 2;
+    const ch = h / 2;
+    const pad = { top: 10, right: 15, bottom: 25, left: 40 };
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    const plotW = cw - pad.left - pad.right;
+    const plotH = ch - pad.top - pad.bottom;
+
+    const colors = options.colors || ['#ef4444', '#f59e0b'];
+    const allVals = data.flatMap(d => d.values);
+    const maxV = Math.max(...allVals, 1);
+
+    // Grid
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + plotH * (1 - i / 4);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + plotW, y);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(maxV * i / 4), pad.left - 4, y + 3);
+    }
+
+    // Bars
+    const barGroupW = plotW / data.length;
+    const barW = barGroupW / (colors.length + 1);
+    data.forEach((d, i) => {
+      d.values.forEach((v, j) => {
+        const x = pad.left + barGroupW * i + barW * j + barW * 0.3;
+        const barH = (v / maxV) * plotH;
+        ctx.fillStyle = colors[j];
+        ctx.fillRect(x, pad.top + plotH - barH, barW * 0.7, barH);
+      });
+    });
+
+    // Labels
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(data.length / 8));
+    for (let i = 0; i < data.length; i += step) {
+      const x = pad.left + barGroupW * i + barGroupW / 2;
+      ctx.fillText(data[i].label || (i + 1), x, ch - 4);
+    }
+
+    // Legend
+    if (options.legends) {
+      ctx.font = '8px sans-serif';
+      let lx = pad.left;
+      options.legends.forEach((legend, i) => {
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(lx, 2, 8, 8);
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(legend, lx + 11, 9);
+        lx += ctx.measureText(legend).width + 20;
+      });
+    }
+  }
+
+  // ==================== METRICS PANEL ====================
+
+  function showMetricsPanel() {
+    if (metricsHistory.length === 0) {
+      alert('Todavia no hay datos de sesiones anteriores. Jugá al menos un nivel para ver tu progreso.');
+      return;
+    }
+
+    // FDA Summary stats (from latest session)
+    const latest = metricsHistory[metricsHistory.length - 1];
+    const fdaSummary = $('fdaSummary');
+    const metrics = [
+      { value: metricsHistory.length, label: 'Sesiones totales' },
+      { value: latest.memory_span, label: 'Memoria (ultimo)' },
+      { value: Math.max(...metricsHistory.map(h => h.memory_span)), label: 'Memoria (maximo)' },
+      { value: latest.mean_decision_time_ms + 'ms', label: 'Velocidad decision' },
+      { value: Math.round(latest.simulated_mpr * 100) + '%', label: 'Adherencia (MPR)' },
+      { value: latest.accuracy + '%', label: 'Precision (ultima)' },
+      { value: Math.round(metricsHistory.reduce((a, h) => a + h.accuracy, 0) / metricsHistory.length) + '%', label: 'Precision (promedio)' },
+      { value: latest.omission_errors + latest.commission_errors, label: 'Errores (ultima)' }
+    ];
+    fdaSummary.innerHTML = metrics.map(m =>
+      `<div class="fda-metric"><div class="metric-value">${m.value}</div><div class="metric-label">${m.label}</div></div>`
+    ).join('');
+
+    // Draw charts
+    const last30 = metricsHistory.slice(-30);
+
+    // Memory span chart
+    drawLineChart($('chartMemory'),
+      last30.map((h, i) => ({ value: h.memory_span, label: i + 1 })),
+      { color: '#2563eb', minY: 0 }
+    );
+
+    // Decision speed chart
+    drawLineChart($('chartSpeed'),
+      last30.map((h, i) => ({ value: h.mean_decision_time_ms, label: i + 1 })),
+      { color: '#f59e0b' }
+    );
+
+    // MPR chart
+    drawLineChart($('chartMPR'),
+      last30.map((h, i) => ({ value: h.simulated_mpr, label: i + 1 })),
+      { color: '#10b981', minY: 0, maxY: 1.0 }
+    );
+
+    // Error breakdown chart
+    drawGroupedBarChart($('chartErrors'),
+      last30.map((h, i) => ({ values: [h.omission_errors, h.commission_errors], label: i + 1 })),
+      { colors: ['#ef4444', '#f59e0b'], legends: ['Omision', 'Comision'] }
+    );
+
+    $('metricsOverlay').classList.add('active');
+  }
+
   // ==================== EVENT BINDINGS ====================
 
   $('confirmBtn').addEventListener('click', () => {
     const results = evaluateResults();
     showResults(results);
+  });
+
+  // Metrics panel
+  $('showProgressBtn').addEventListener('click', showMetricsPanel);
+  $('metricsCloseBtn').addEventListener('click', () => {
+    $('metricsOverlay').classList.remove('active');
   });
 
   // Back button with token preservation
