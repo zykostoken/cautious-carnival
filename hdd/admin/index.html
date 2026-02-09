@@ -307,7 +307,7 @@
           </div>
           <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-              Seleccione un paciente para ver sus metricas de uso, progreso en juegos y actividad en el portal.
+              Seleccione un paciente para ver metricas longitudinales: animo, colores, juegos y actividad a lo largo de las sesiones.
             </div>
 
             <div class="search-box">
@@ -339,6 +339,27 @@
                   <div class="stat-value" id="metric-time">-</div>
                   <div class="stat-label">Tiempo de Juego</div>
                 </div>
+              </div>
+
+              <!-- Mood Longitudinal Chart -->
+              <h3 style="margin: 1.5rem 0 0.75rem;">Registro de Animo (Longitudinal)</h3>
+              <div id="mood-chart-container" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem;">
+                <canvas id="mood-chart" width="700" height="200"></canvas>
+              </div>
+
+              <!-- Color Selection History -->
+              <h3 style="margin: 1rem 0 0.75rem;">Paleta de Colores Seleccionados</h3>
+              <div id="color-history-container" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem;">
+                <div id="color-history-dots" style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; min-height:40px;">
+                  <span style="color:var(--text-muted); font-size:0.85rem;">Sin datos de color aun.</span>
+                </div>
+                <div id="color-frequency" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+              </div>
+
+              <!-- Mood + Color Correlation Table -->
+              <h3 style="margin: 1rem 0 0.75rem;">Historial Check-in Diario</h3>
+              <div id="mood-history-table" class="table-container" style="margin-bottom:1.5rem;">
+                <!-- Loaded dynamically -->
               </div>
 
               <!-- Game Progress -->

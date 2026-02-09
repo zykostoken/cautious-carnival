@@ -1263,44 +1263,6 @@
   let isBlocked = false;
   let blockedCheckInterval = null;
 
-  // ---- CONTINUOUS METRICS TIME SERIES (FDA Biomarkers) ----
-  let metricsTimeSeries = {
-    timestamps: [],       // seconds since start
-    cumulativeGrassCut: [],
-    cumulativeErrors: [],
-    cumulativeScore: [],
-    reactionTimesOverTime: [], // RT at each grass cut
-    movementEfficiency: [],    // running efficiency ratio
-    pauseEvents: [],           // {time, duration}
-    commissionEvents: [],      // {time, type: 'flower'|'pool'|'cable'}
-    bagFullEvents: [],         // {time}
-  };
-
-  function resetMetricsTimeSeries() {
-    metricsTimeSeries = {
-      timestamps: [],
-      cumulativeGrassCut: [],
-      cumulativeErrors: [],
-      cumulativeScore: [],
-      reactionTimesOverTime: [],
-      movementEfficiency: [],
-      pauseEvents: [],
-      commissionEvents: [],
-      bagFullEvents: [],
-    };
-  }
-
-  function recordTimeSeriesPoint() {
-    if (!gameRunning) return;
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    metricsTimeSeries.timestamps.push(elapsed);
-    metricsTimeSeries.cumulativeGrassCut.push(grassCut);
-    metricsTimeSeries.cumulativeErrors.push(errors);
-    metricsTimeSeries.cumulativeScore.push(score);
-    metricsTimeSeries.movementEfficiency.push(
-      clinicalMetrics.totalMoves > 0 ? (clinicalMetrics.successfulMoves / clinicalMetrics.totalMoves) : 1
-    );
-  }
   let blockedCheckTimer = null;
   let consecutiveBlockedChecks = 0;
 
@@ -1867,7 +1829,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ ...body, sessionToken: token })
       });
       if (res.ok) return await res.json();
     } catch(e) { /* silent */ }
@@ -1880,8 +1842,8 @@
       gameSlug: 'lawn-mower',
       level: level
     });
-    if (data && data.gameSessionId) {
-      gameSessionId = data.gameSessionId;
+    if (data && data.sessionId) {
+      gameSessionId = data.sessionId;
     }
   }
 
@@ -1918,8 +1880,6 @@
         // Reset/restart tracking (registration data)
         reset_events: resetEvents,
         total_resets: resetEvents.length
-        // Continuous time series for statistical analysis
-        time_series: metricsTimeSeries
       }
     });
   }
@@ -3815,9 +3775,6 @@
     btn.addEventListener('click', function() {
       const level = parseInt(this.getAttribute('data-level'));
       levelSelectScreen.classList.add('hidden');
-      showInstructions(level, function() {
-        initGame(level);
-      });
       startLevel(level);
     });
   });
@@ -3827,23 +3784,6 @@
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
     initGame(currentLevel);
-  });
-  nextLevelBtn.addEventListener('click', function() {
-    cancelAnimationFrame(celebAnimId);
-    celebCanvas.classList.add('hidden');
-    resultScreen.classList.add('hidden');
-    const next = getNextLevel(currentLevel);
-    if (next) {
-      showInstructions(next, function() {
-        initGame(next);
-      });
-    }
-  });
-  metricsBtn.addEventListener('click', function() {
-    showMetricsPanel();
-  });
-  metricsCloseBtn.addEventListener('click', function() {
-    metricsOverlay.classList.add('hidden');
   });
   document.getElementById('levelsBtn').addEventListener('click', function() {
     cancelAnimationFrame(celebAnimId);
@@ -3860,21 +3800,20 @@
   restartBtn.addEventListener('click', function() {
     if (gameRunning || isBlocked) {
       if (grassCut > 0) saveResult(false);
+      recordResetEvent();
       cancelAnimationFrame(celebAnimId);
       celebCanvas.classList.add('hidden');
+      hideBlockedOverlay();
       initGame(currentLevel);
     }
   });
   blockedRestartBtn.addEventListener('click', function() {
     saveResult(false);
+    recordResetEvent();
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
     blockedOverlay.classList.add('hidden');
     initGame(currentLevel);
-  });
-
-    document.getElementById('restartBtn').style.display = 'none';
-    levelSelectScreen.classList.remove('hidden');
   });
 
   // ---- NEXT LEVEL BUTTON ----
@@ -3886,38 +3825,22 @@
     return null;
   }
 
-  document.getElementById('nextLevelBtn').addEventListener('click', function() {
+  nextLevelBtn.addEventListener('click', function() {
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
+    resultScreen.classList.add('hidden');
     const next = getNextLevel(currentLevel);
     if (next) {
       startLevel(next);
     }
   });
 
-  // ---- RESTART BUTTON (in header) ----
-  document.getElementById('restartBtn').addEventListener('click', function() {
-    if (gameRunning) {
-      saveResult(false);
-    }
-    recordResetEvent();
-    hideBlockedOverlay();
-    initGame(currentLevel);
-  });
-
   // ---- METRICS BUTTON ----
-  document.getElementById('metricsBtn').addEventListener('click', function() {
+  metricsBtn.addEventListener('click', function() {
     showMetricsPanel();
   });
-  document.getElementById('metricsCloseBtn').addEventListener('click', function() {
-    document.getElementById('metricsOverlay').classList.add('hidden');
-  });
-
-  // ---- BLOCKED OVERLAY RESTART BUTTON ----
-  document.getElementById('blockedRestartBtn').addEventListener('click', function() {
-    hideBlockedOverlay();
-    recordResetEvent();
-    initGame(currentLevel);
+  metricsCloseBtn.addEventListener('click', function() {
+    metricsOverlay.classList.add('hidden');
   });
 
   // ---- BACK BUTTON (save on quit) ----

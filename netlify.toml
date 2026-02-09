@@ -45,6 +45,17 @@
   to = "/hdd/index.html"
   status = 200
 
+# HDDD - Hospital de Dia Digital (standalone portal)
+[[redirects]]
+  from = "/HDDD"
+  to = "/HDDD/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/hddd"
+  to = "/HDDD/index.html"
+  status = 200
+
 # HDD Patient Portal
 [[redirects]]
   from = "/hdd/portal"

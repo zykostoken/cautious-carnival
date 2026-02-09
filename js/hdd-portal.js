@@ -3,6 +3,23 @@ let currentUser = null;
 let sessionToken = null;
 let uploadedImageUrl = null;
 let selectedMood = null;
+let selectedMoodColor = null;
+
+// Color labels for display
+const COLOR_LABELS = {
+  rojo: 'Rojo - Enojo, intensidad',
+  naranja: 'Naranja - Energia, inquietud',
+  amarillo: 'Amarillo - Alegria, claridad',
+  verde: 'Verde - Calma, esperanza',
+  celeste: 'Celeste - Tranquilidad, serenidad',
+  azul: 'Azul - Tristeza, profundidad',
+  violeta: 'Violeta - Confusion, transformacion',
+  rosa: 'Rosa - Ternura, vulnerabilidad',
+  marron: 'Marron - Cansancio, pesadez',
+  gris: 'Gris - Vacio, indiferencia',
+  negro: 'Negro - Oscuridad, angustia',
+  blanco: 'Blanco - Paz, alivio'
+};
 
 // API helpers
 const API_BASE = '/api/hdd';
@@ -31,6 +48,14 @@ function selectMood(value) {
   document.getElementById('submit-mood-btn').disabled = false;
 }
 
+function selectMoodColor(color, el) {
+  selectedMoodColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  const label = document.getElementById('mood-color-label');
+  if (label) label.textContent = COLOR_LABELS[color] || color;
+}
+
 function shouldShowMoodCheckin() {
   // Check if already checked in today
   const today = new Date().toISOString().split('T')[0];
@@ -42,9 +67,13 @@ function showMoodCheckinModal() {
   if (!shouldShowMoodCheckin()) return;
 
   selectedMood = null;
+  selectedMoodColor = null;
   document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
   document.getElementById('mood-note').value = '';
   document.getElementById('submit-mood-btn').disabled = true;
+  const colorLabel = document.getElementById('mood-color-label');
+  if (colorLabel) colorLabel.textContent = '';
   document.getElementById('mood-checkin-modal').classList.remove('hidden');
 }
 
@@ -65,6 +94,7 @@ async function submitMoodCheckin() {
         action: 'mood_checkin',
         sessionToken: sessionToken,
         mood: selectedMood,
+        color: selectedMoodColor || null,
         note: note || null
       })
     });
@@ -76,6 +106,7 @@ async function submitMoodCheckin() {
   const today = new Date().toISOString().split('T')[0];
   localStorage.setItem('hdd_mood_checkin_date', today);
   localStorage.setItem('hdd_last_mood', selectedMood.toString());
+  if (selectedMoodColor) localStorage.setItem('hdd_last_color', selectedMoodColor);
 
   hideMoodCheckinModal();
 }

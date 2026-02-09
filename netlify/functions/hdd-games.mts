@@ -1,5 +1,8 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { sendEmailNotification } from "./lib/notifications.mts";
+
+const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
   const [patient] = await sql`
@@ -216,16 +219,22 @@ export default async (req: Request, context: Context) => {
 
       // Save daily mood check-in
       if (action === "mood_checkin") {
-        const { mood, note } = body;
+        const { mood, note, color } = body;
 
         if (!mood || mood < 1 || mood > 5) {
           return new Response(JSON.stringify({ error: "Valor de estado de animo invalido" }), { status: 400, headers: corsHeaders });
         }
 
-        // Save mood check-in
+        // Save mood check-in (color column added via ALTER TABLE IF NOT EXISTS)
+        try {
+          await sql`
+            ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS color VARCHAR(20)
+          `;
+        } catch(e) { /* column may already exist */ }
+
         await sql`
-          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, created_at)
-          VALUES (${patient.id}, ${mood}, ${note || null}, NOW())
+          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color, created_at)
+          VALUES (${patient.id}, ${mood}, ${note || null}, ${color || null}, NOW())
         `;
 
         // Check for crisis protocol triggers
@@ -269,12 +278,32 @@ export default async (req: Request, context: Context) => {
           }
         }
 
-        // If alert triggered, create crisis alert
+        // If alert triggered, create crisis alert and notify admin
         if (alertTriggered) {
           await sql`
             INSERT INTO hdd_crisis_alerts (patient_id, alert_type, reason, mood_value, note, status, created_at)
             VALUES (${patient.id}, 'mood_checkin', ${alertReason}, ${mood}, ${note || null}, 'pending', NOW())
           `;
+
+          // Send email notification to admin
+          try {
+            const moodEmojis: Record<number,string> = { 1: '😢 Muy mal', 2: '😔 Mal', 3: '😐 Regular', 4: '🙂 Bien', 5: '😊 Muy bien' };
+            const colorLabel = color ? ` | Color: ${color}` : '';
+            await sendEmailNotification(
+              ADMIN_EMAIL,
+              `[ALERTA HDD] ${alertReason} - Paciente ${patient.full_name}`,
+              `<div style="font-family:sans-serif;max-width:600px;">
+                <h2 style="color:#dc2626;">Alerta de Estado de Animo</h2>
+                <p><strong>Paciente:</strong> ${patient.full_name} (DNI: ${patient.dni})</p>
+                <p><strong>Animo reportado:</strong> ${moodEmojis[mood] || mood}/5${colorLabel}</p>
+                <p><strong>Razon de alerta:</strong> ${alertReason}</p>
+                ${note ? `<p><strong>Nota del paciente:</strong> ${note}</p>` : ''}
+                <p style="margin-top:1rem;color:#64748b;font-size:0.9em;">Acceda al panel de administracion para revisar: <a href="https://clinicajoseingenieros.ar/hdd/admin">Panel HDD</a></p>
+              </div>`
+            );
+          } catch (e) {
+            console.error('Failed to send crisis alert notification:', e);
+          }
         }
 
         return new Response(JSON.stringify({

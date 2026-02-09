@@ -623,6 +623,35 @@ export default async (req: Request, context: Context) => {
             loginCount = patient.last_login ? 1 : 0;
           }
 
+          // Get mood check-in history (longitudinal)
+          let moodHistory: any[] = [];
+          try {
+            await sql`ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS color VARCHAR(20)`.catch(() => {});
+            moodHistory = await sql`
+              SELECT mood_value, note, color, created_at
+              FROM hdd_mood_checkins
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at ASC
+              LIMIT 90
+            `;
+          } catch (e) {
+            // Table might not exist
+          }
+
+          // Get crisis alerts for this patient
+          let crisisAlerts: any[] = [];
+          try {
+            crisisAlerts = await sql`
+              SELECT alert_type, reason, mood_value, status, created_at
+              FROM hdd_crisis_alerts
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at DESC
+              LIMIT 10
+            `;
+          } catch (e) {
+            // Table might not exist
+          }
+
           return new Response(JSON.stringify({
             metrics: {
               loginCount,
@@ -638,7 +667,20 @@ export default async (req: Request, context: Context) => {
               totalSessions: g.total_sessions,
               lastPlayed: g.last_played
             })),
-            recentActivity
+            recentActivity,
+            moodHistory: moodHistory.map((m: any) => ({
+              mood: m.mood_value,
+              note: m.note,
+              color: m.color,
+              date: m.created_at
+            })),
+            crisisAlerts: crisisAlerts.map((a: any) => ({
+              type: a.alert_type,
+              reason: a.reason,
+              mood: a.mood_value,
+              status: a.status,
+              date: a.created_at
+            }))
           }), { status: 200, headers: corsHeaders });
 
         } catch (err) {

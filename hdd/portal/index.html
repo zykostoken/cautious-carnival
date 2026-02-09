@@ -351,6 +351,25 @@
             </div>
           </div>
 
+          <div class="mood-color-section" id="mood-color-section">
+            <p class="mood-color-question">Elegi un color que represente como te sentis:</p>
+            <div class="mood-color-palette" id="mood-color-palette">
+              <button class="color-swatch" data-color="rojo" style="background:#dc2626;" onclick="selectMoodColor('rojo', this)" title="Rojo - Enojo, intensidad"></button>
+              <button class="color-swatch" data-color="naranja" style="background:#ea580c;" onclick="selectMoodColor('naranja', this)" title="Naranja - Energia, inquietud"></button>
+              <button class="color-swatch" data-color="amarillo" style="background:#eab308;" onclick="selectMoodColor('amarillo', this)" title="Amarillo - Alegria, claridad"></button>
+              <button class="color-swatch" data-color="verde" style="background:#16a34a;" onclick="selectMoodColor('verde', this)" title="Verde - Calma, esperanza"></button>
+              <button class="color-swatch" data-color="celeste" style="background:#0ea5e9;" onclick="selectMoodColor('celeste', this)" title="Celeste - Tranquilidad, serenidad"></button>
+              <button class="color-swatch" data-color="azul" style="background:#2563eb;" onclick="selectMoodColor('azul', this)" title="Azul - Tristeza, profundidad"></button>
+              <button class="color-swatch" data-color="violeta" style="background:#7c3aed;" onclick="selectMoodColor('violeta', this)" title="Violeta - Confusion, transformacion"></button>
+              <button class="color-swatch" data-color="rosa" style="background:#ec4899;" onclick="selectMoodColor('rosa', this)" title="Rosa - Ternura, vulnerabilidad"></button>
+              <button class="color-swatch" data-color="marron" style="background:#78350f;" onclick="selectMoodColor('marron', this)" title="Marron - Cansancio, pesadez"></button>
+              <button class="color-swatch" data-color="gris" style="background:#6b7280;" onclick="selectMoodColor('gris', this)" title="Gris - Vacio, indiferencia"></button>
+              <button class="color-swatch" data-color="negro" style="background:#1e1e1e;" onclick="selectMoodColor('negro', this)" title="Negro - Oscuridad, angustia"></button>
+              <button class="color-swatch" data-color="blanco" style="background:#f8fafc; border:2px solid #cbd5e1;" onclick="selectMoodColor('blanco', this)" title="Blanco - Paz, alivio"></button>
+            </div>
+            <p class="mood-color-selected" id="mood-color-label"></p>
+          </div>
+
           <div class="mood-note-section">
             <label for="mood-note">Queres agregar algo mas? (opcional)</label>
             <textarea id="mood-note" placeholder="Como dormiste? Tenes alguna preocupacion? Algo que quieras compartir..."></textarea>

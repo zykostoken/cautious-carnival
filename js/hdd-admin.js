@@ -607,6 +607,9 @@ async function loadPatientMetrics() {
 
       renderGamesProgress(result.gamesProgress || []);
       renderRecentActivity(result.recentActivity || []);
+      renderMoodChart(result.moodHistory || []);
+      renderColorHistory(result.moodHistory || []);
+      renderMoodHistoryTable(result.moodHistory || [], result.crisisAlerts || []);
     } else {
       setDefaultMetrics();
     }
@@ -705,6 +708,201 @@ function formatDuration(seconds) {
   const mins = Math.floor((seconds % 3600) / 60);
   if (hours > 0) return `${hours}h ${mins}m`;
   return `${mins} min`;
+}
+
+// =====================================
+// MOOD CHART (Longitudinal)
+// =====================================
+const MOOD_COLOR_MAP = {
+  rojo: '#dc2626', naranja: '#ea580c', amarillo: '#eab308',
+  verde: '#16a34a', celeste: '#0ea5e9', azul: '#2563eb',
+  violeta: '#7c3aed', rosa: '#ec4899', marron: '#78350f',
+  gris: '#6b7280', negro: '#1e1e1e', blanco: '#f8fafc'
+};
+
+const MOOD_EMOJIS = { 1: '😢', 2: '😔', 3: '😐', 4: '🙂', 5: '😊' };
+
+function renderMoodChart(moodHistory) {
+  const canvas = document.getElementById('mood-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const container = canvas.parentElement;
+  const W = container.clientWidth - 32;
+  const H = 200;
+  canvas.width = W;
+  canvas.height = H;
+
+  ctx.clearRect(0, 0, W, H);
+
+  if (!moodHistory || moodHistory.length === 0) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos de animo registrados', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 20, right: 20, bottom: 35, left: 45 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Grid lines
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    const y = pad.top + chartH - ((i - 1) / 4) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+    // Y axis labels (mood emoji)
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(MOOD_EMOJIS[i] || i, pad.left - 8, y + 4);
+  }
+
+  // Data line
+  const points = moodHistory.map((m, i) => ({
+    x: pad.left + (moodHistory.length > 1 ? (i / (moodHistory.length - 1)) * chartW : chartW / 2),
+    y: pad.top + chartH - ((m.mood - 1) / 4) * chartH,
+    color: m.color,
+    mood: m.mood,
+    date: m.date
+  }));
+
+  // Fill under curve
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
+  ctx.lineTo(points[0].x, pad.top + chartH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(37,99,235,0.08)';
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2.5;
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.stroke();
+
+  // Data points with color
+  points.forEach(p => {
+    const dotColor = p.color && MOOD_COLOR_MAP[p.color] ? MOOD_COLOR_MAP[p.color] : '#2563eb';
+    ctx.beginPath();
+    ctx.fillStyle = dotColor;
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // X axis dates (show a few)
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(moodHistory.length / 6));
+  for (let i = 0; i < moodHistory.length; i += step) {
+    const d = new Date(moodHistory[i].date);
+    const label = d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    ctx.fillText(label, points[i].x, H - 5);
+  }
+}
+
+function renderColorHistory(moodHistory) {
+  const dotsContainer = document.getElementById('color-history-dots');
+  const freqContainer = document.getElementById('color-frequency');
+  if (!dotsContainer || !freqContainer) return;
+
+  const withColor = moodHistory.filter(m => m.color);
+
+  if (withColor.length === 0) {
+    dotsContainer.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">Sin datos de color aun.</span>';
+    freqContainer.innerHTML = '';
+    return;
+  }
+
+  // Render color dots timeline
+  dotsContainer.innerHTML = withColor.map(m => {
+    const hex = MOOD_COLOR_MAP[m.color] || '#ccc';
+    const d = new Date(m.date);
+    const dateStr = d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    const border = m.color === 'blanco' ? 'border:2px solid #cbd5e1;' : '';
+    return `<div title="${dateStr} - ${m.color} (animo: ${MOOD_EMOJIS[m.mood] || m.mood})" style="width:28px;height:28px;border-radius:50%;background:${hex};${border}cursor:help;flex-shrink:0;"></div>`;
+  }).join('');
+
+  // Frequency analysis
+  const freq = {};
+  withColor.forEach(m => { freq[m.color] = (freq[m.color] || 0) + 1; });
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+
+  freqContainer.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);width:100%;margin-bottom:0.25rem;">Frecuencia:</p>' +
+    sorted.map(([color, count]) => {
+      const hex = MOOD_COLOR_MAP[color] || '#ccc';
+      const border = color === 'blanco' ? 'border:1px solid #cbd5e1;' : '';
+      return `<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.82rem;background:#f1f5f9;padding:0.2rem 0.5rem;border-radius:8px;"><span style="width:14px;height:14px;border-radius:50%;background:${hex};${border}display:inline-block;"></span>${color}: ${count}</span>`;
+    }).join('');
+}
+
+function renderMoodHistoryTable(moodHistory, crisisAlerts) {
+  const container = document.getElementById('mood-history-table');
+  if (!container) return;
+
+  if (!moodHistory || moodHistory.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>Sin registros de check-in diario</p></div>';
+    return;
+  }
+
+  // Show most recent first
+  const reversed = [...moodHistory].reverse().slice(0, 30);
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Animo</th>
+          <th>Color</th>
+          <th>Nota</th>
+          <th>Alerta</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reversed.map(m => {
+          const d = new Date(m.date);
+          const dateStr = d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
+          const hex = m.color && MOOD_COLOR_MAP[m.color] ? MOOD_COLOR_MAP[m.color] : null;
+          const colorDot = hex
+            ? `<span style="display:inline-flex;align-items:center;gap:0.3rem;"><span style="width:16px;height:16px;border-radius:50%;background:${hex};display:inline-block;${m.color==='blanco'?'border:1px solid #cbd5e1;':''}"></span>${m.color}</span>`
+            : '-';
+          const alertMatch = crisisAlerts.find(a => {
+            const aDate = new Date(a.date).toDateString();
+            return aDate === d.toDateString();
+          });
+          const alertBadge = alertMatch
+            ? `<span class="status-badge" style="background:#fee2e2;color:#991b1b;">${alertMatch.status}</span>`
+            : '';
+          return `
+            <tr${m.mood <= 2 ? ' style="background:#fef2f2;"' : ''}>
+              <td>${dateStr}</td>
+              <td>${MOOD_EMOJIS[m.mood] || m.mood} (${m.mood}/5)</td>
+              <td>${colorDot}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.note || '-')}</td>
+              <td>${alertBadge}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 // =====================================
