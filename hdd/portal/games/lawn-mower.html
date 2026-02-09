@@ -1825,7 +1825,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ ...body, sessionToken: token })
       });
       if (res.ok) return await res.json();
     } catch(e) { /* silent */ }
@@ -3620,38 +3620,22 @@
     return null;
   }
 
-  document.getElementById('nextLevelBtn').addEventListener('click', function() {
+  nextLevelBtn.addEventListener('click', function() {
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
+    resultScreen.classList.add('hidden');
     const next = getNextLevel(currentLevel);
     if (next) {
       startLevel(next);
     }
   });
 
-  // ---- RESTART BUTTON (in header) ----
-  document.getElementById('restartBtn').addEventListener('click', function() {
-    if (gameRunning) {
-      saveResult(false);
-    }
-    recordResetEvent();
-    hideBlockedOverlay();
-    initGame(currentLevel);
-  });
-
   // ---- METRICS BUTTON ----
-  document.getElementById('metricsBtn').addEventListener('click', function() {
+  metricsBtn.addEventListener('click', function() {
     showMetricsPanel();
   });
-  document.getElementById('metricsCloseBtn').addEventListener('click', function() {
-    document.getElementById('metricsOverlay').classList.add('hidden');
-  });
-
-  // ---- BLOCKED OVERLAY RESTART BUTTON ----
-  document.getElementById('blockedRestartBtn').addEventListener('click', function() {
-    hideBlockedOverlay();
-    recordResetEvent();
-    initGame(currentLevel);
+  metricsCloseBtn.addEventListener('click', function() {
+    metricsOverlay.classList.add('hidden');
   });
 
   // ---- BACK BUTTON (save on quit) ----

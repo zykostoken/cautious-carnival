@@ -590,6 +590,57 @@ body {
   color: var(--text);
 }
 
+/* Mood Color Palette */
+.mood-color-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.mood-color-question {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.mood-color-palette {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+  padding: 0;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.color-swatch.selected {
+  border-color: var(--text);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.3);
+}
+
+.mood-color-selected {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  min-height: 1.2em;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

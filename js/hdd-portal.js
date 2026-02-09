@@ -120,6 +120,14 @@ function selectMood(value) {
   document.getElementById('submit-mood-btn').disabled = false;
 }
 
+function selectMoodColor(color, el) {
+  selectedMoodColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  const label = document.getElementById('mood-color-label');
+  if (label) label.textContent = COLOR_LABELS[color] || color;
+}
+
 function shouldShowMoodCheckin() {
   // Check if already checked in today
   const today = new Date().toISOString().split('T')[0];
@@ -134,6 +142,7 @@ function showMoodCheckinModal() {
   selectedColor = null;
   selectedColorIntensity = 'vivid';
   document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
   document.getElementById('mood-note').value = '';
   document.getElementById('submit-mood-btn').disabled = true;
   document.getElementById('selected-color-preview').style.display = 'none';
