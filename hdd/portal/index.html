@@ -319,14 +319,26 @@
 
   <!-- Daily Mood Check-in Modal -->
   <div id="mood-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
-    <div class="modal" onclick="event.stopPropagation()" style="max-width: 520px;">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 540px;">
       <div class="modal-header">
-        <h3>Check-in Diario</h3>
-        <span></span>
+        <h3>Chequeo Diario de Bienestar</h3>
+        <button class="modal-close" onclick="skipMoodCheckin()">&times;</button>
       </div>
       <div class="modal-body">
         <div class="mood-checkin-container">
-          <p class="mood-question">Hola! Como empezaste tu dia? Como te sentis?</p>
+          <!-- Wellness reference guide -->
+          <div id="wellness-reference" style="background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; border: 1px solid #bae6fd;">
+            <p style="font-weight: 600; font-size: 0.95rem; color: #0369a1; margin-bottom: 0.5rem;">Referencia de Bienestar Diario</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.82rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="font-size: 1.2rem;">😢</span> <span style="color: #991b1b; font-weight: 500;">Muy mal</span> <span style="color: #64748b;">- Crisis / mucha angustia</span></div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="font-size: 1.2rem;">😔</span> <span style="color: #9a3412; font-weight: 500;">Mal</span> <span style="color: #64748b;">- Triste / ansioso</span></div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="font-size: 1.2rem;">😐</span> <span style="color: #854d0e; font-weight: 500;">Regular</span> <span style="color: #64748b;">- Ni bien ni mal</span></div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;"><span style="font-size: 1.2rem;">🙂</span> <span style="color: #166534; font-weight: 500;">Bien</span> <span style="color: #64748b;">- Tranquilo / contento</span></div>
+              <div style="display: flex; align-items: center; gap: 0.4rem; grid-column: 1 / -1; justify-content: center;"><span style="font-size: 1.2rem;">😊</span> <span style="color: #15803d; font-weight: 500;">Muy bien</span> <span style="color: #64748b;">- Entusiasmado / pleno</span></div>
+            </div>
+          </div>
+
+          <p class="mood-question">Hola! Como empezaste tu dia hoy? Como te sentis?</p>
 
           <div class="mood-options" id="mood-options">
             <div class="mood-option" data-value="1" onclick="selectMood(1)">
@@ -355,17 +367,32 @@
           <div class="color-palette-section" style="margin-top: 1.25rem;">
             <p style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Elegi un color que represente como te sentis:</p>
 
-            <!-- Intensity Selector -->
+            <!-- Intensity Selector with color preview swatches -->
             <div class="color-intensity-selector" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-              <button type="button" class="intensity-btn active" onclick="setColorIntensity('vivid')" data-intensity="vivid" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--primary); background: var(--primary); color: #fff; font-size: 0.8rem; cursor: pointer;">Vivos</button>
-              <button type="button" class="intensity-btn" onclick="setColorIntensity('soft')" data-intensity="soft" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Suaves</button>
-              <button type="button" class="intensity-btn" onclick="setColorIntensity('pastel')" data-intensity="pastel" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Pastel</button>
-              <button type="button" class="intensity-btn" onclick="setColorIntensity('dark')" data-intensity="dark" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Oscuros</button>
-              <button type="button" class="intensity-btn" onclick="setColorIntensity('muted')" data-intensity="muted" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Apagados</button>
+              <button type="button" class="intensity-btn active" onclick="setColorIntensity('vivid')" data-intensity="vivid" style="padding: 0.35rem 0.85rem; border-radius: 20px; border: 2px solid var(--primary); background: var(--primary); color: #fff; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                <span style="display: inline-flex; gap: 2px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FF0000;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #00FF00;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #0000FF;"></span></span>
+                Vivos
+              </button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('soft')" data-intensity="soft" style="padding: 0.35rem 0.85rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                <span style="display: inline-flex; gap: 2px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #F08080;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #98FB98;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #87CEEB;"></span></span>
+                Suaves
+              </button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('pastel')" data-intensity="pastel" style="padding: 0.35rem 0.85rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                <span style="display: inline-flex; gap: 2px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FFD1DC;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #C1E1C1;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #C1D4E0;"></span></span>
+                Pastel
+              </button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('dark')" data-intensity="dark" style="padding: 0.35rem 0.85rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                <span style="display: inline-flex; gap: 2px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #8B0000;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #006400;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #191970;"></span></span>
+                Oscuros
+              </button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('muted')" data-intensity="muted" style="padding: 0.35rem 0.85rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                <span style="display: inline-flex; gap: 2px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #BC8F8F;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #8FBC8F;"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #708090;"></span></span>
+                Apagados
+              </button>
             </div>
 
             <!-- Color Grid -->
-            <div id="color-palette-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;">
+            <div id="color-palette-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; min-height: 90px;">
               <!-- Colors rendered by JS based on intensity -->
             </div>
 
@@ -383,7 +410,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="submit-mood-btn" onclick="submitMoodCheckin()" disabled>Guardar</button>
+        <button class="btn btn-secondary" style="font-size: 0.85rem;" onclick="toggleWellnessReference()">Ver referencia</button>
+        <button class="btn btn-primary" id="submit-mood-btn" onclick="submitMoodCheckin()" disabled>Guardar mi estado</button>
       </div>
     </div>
   </div>

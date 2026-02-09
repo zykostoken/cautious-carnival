@@ -619,6 +619,12 @@ async function loadPatientMetrics() {
       renderGamesProgress(result.gamesProgress || []);
       renderRecentActivity(result.recentActivity || []);
       renderMonthlySummary(result.monthlySummary || []);
+
+      // Render clinical interpretations
+      renderMoodClinicalInterpretation(result.moodHistory || []);
+      renderColorClinicalInterpretation(result.colorHistory || []);
+      renderGameClinicalInterpretation(result.gameSessionDetails || []);
+      renderClinicalCorrelation(result.metrics, result.moodHistory || [], result.colorHistory || [], result.gameSessionDetails || []);
     } else {
       setDefaultMetrics();
     }
@@ -648,6 +654,302 @@ function setDefaultMetrics() {
   document.getElementById('games-progress-list').innerHTML = '<div class="alert alert-info">Las metricas se mostraran cuando el paciente utilice el portal.</div>';
   document.getElementById('recent-activity-list').innerHTML = '<div class="alert alert-info">La actividad se mostrara cuando el paciente interactue con el sistema.</div>';
   document.getElementById('monthly-summary-content').innerHTML = '<div class="alert alert-info">Los resumenes mensuales se generaran automaticamente.</div>';
+
+  // Clear clinical interpretations
+  const moodInterp = document.getElementById('mood-clinical-interpretation');
+  if (moodInterp) moodInterp.innerHTML = '';
+  const colorInterp = document.getElementById('color-clinical-interpretation');
+  if (colorInterp) colorInterp.innerHTML = '';
+  const gameInterp = document.getElementById('game-clinical-interpretation');
+  if (gameInterp) gameInterp.innerHTML = '';
+  const corrSection = document.getElementById('clinical-correlation-content');
+  if (corrSection) corrSection.innerHTML = '<p style="color:var(--text-muted);">Seleccione un paciente con datos para ver la correlacion clinica.</p>';
+}
+
+// =====================================
+// CLINICAL INTERPRETATION FUNCTIONS
+// =====================================
+
+function renderMoodClinicalInterpretation(moodHistory) {
+  const container = document.getElementById('mood-clinical-interpretation');
+  if (!container) return;
+
+  if (!moodHistory || moodHistory.length === 0) {
+    container.innerHTML = '<p><strong>Interpretacion:</strong> Sin datos de animo registrados. El paciente aun no ha realizado check-ins diarios.</p>';
+    return;
+  }
+
+  const moods = moodHistory.map(m => m.moodValue);
+  const avg = moods.reduce((a, b) => a + b, 0) / moods.length;
+  const recent = moods.slice(-7);
+  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+  const older = moods.slice(0, Math.max(1, moods.length - 7));
+  const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+
+  // Variability (standard deviation)
+  const variance = moods.reduce((s, m) => s + Math.pow(m - avg, 2), 0) / moods.length;
+  const stdDev = Math.sqrt(variance);
+
+  // Count low mood days
+  const lowDays = moods.filter(m => m <= 2).length;
+  const lowPct = ((lowDays / moods.length) * 100).toFixed(0);
+
+  // Trend detection
+  let trendText = '';
+  const trendDiff = recentAvg - olderAvg;
+  if (moods.length < 3) {
+    trendText = 'Datos insuficientes para tendencia.';
+  } else if (trendDiff > 0.5) {
+    trendText = '<span style="color:#166534;">Tendencia ascendente: el animo del paciente esta mejorando en los ultimos registros.</span>';
+  } else if (trendDiff < -0.5) {
+    trendText = '<span style="color:#991b1b;">Tendencia descendente: el animo del paciente esta empeorando. Evaluar posibles factores desencadenantes.</span>';
+  } else {
+    trendText = '<span style="color:#854d0e;">Tendencia estable: el animo se mantiene sin cambios significativos.</span>';
+  }
+
+  // Level interpretation
+  let levelText = '';
+  if (avg >= 4) {
+    levelText = 'Nivel de animo general positivo (promedio ' + avg.toFixed(1) + '/5).';
+  } else if (avg >= 3) {
+    levelText = 'Nivel de animo moderado (promedio ' + avg.toFixed(1) + '/5). El paciente presenta estado emocional neutral.';
+  } else if (avg >= 2) {
+    levelText = '<span style="color:#9a3412;">Nivel de animo bajo (promedio ' + avg.toFixed(1) + '/5). Se recomienda seguimiento cercano.</span>';
+  } else {
+    levelText = '<span style="color:#991b1b;">Nivel de animo critico (promedio ' + avg.toFixed(1) + '/5). Se recomienda evaluacion inmediata.</span>';
+  }
+
+  // Stability
+  let stabilityText = '';
+  if (stdDev < 0.5) {
+    stabilityText = 'Estabilidad emocional alta (baja variabilidad).';
+  } else if (stdDev < 1.2) {
+    stabilityText = 'Variabilidad emocional moderada (fluctuaciones normales).';
+  } else {
+    stabilityText = '<span style="color:#9a3412;">Alta variabilidad emocional (desv. est. ' + stdDev.toFixed(1) + '). Posible indicador de inestabilidad animica.</span>';
+  }
+
+  container.innerHTML = `
+    <p><strong>Interpretacion clinica</strong> (${moods.length} registros)</p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.2rem; list-style: disc;">
+      <li>${levelText}</li>
+      <li>${trendText}</li>
+      <li>${stabilityText}</li>
+      <li>Dias con animo bajo (1-2): <strong>${lowDays}</strong> (${lowPct}% del total).${lowDays > 0 && lowPct > 30 ? ' <span style="color:#991b1b;">Atencion: alta proporcion de dias con malestar.</span>' : ''}</li>
+    </ul>
+  `;
+}
+
+function renderColorClinicalInterpretation(colorHistory) {
+  const container = document.getElementById('color-clinical-interpretation');
+  if (!container) return;
+
+  if (!colorHistory || colorHistory.length === 0) {
+    container.innerHTML = '<p><strong>Interpretacion:</strong> Sin datos de seleccion de color. El paciente no ha elegido colores en sus check-ins.</p>';
+    return;
+  }
+
+  // Analyze color temperature (warm vs cool)
+  const warmColors = ['#FF0000', '#FF4500', '#FF8C00', '#FFD700', '#FFFF00', '#FF6347', '#FF69B4', '#DC143C', '#FF1493', '#8B0000', '#F08080', '#FFA07A', '#FFDAB9', '#FFE4B5', '#FFD1DC', '#FFDAC1', '#FFE5B4'];
+  const coolColors = ['#0000FF', '#00CED1', '#00BFFF', '#1E90FF', '#4B0082', '#228B22', '#32CD32', '#00FA9A', '#87CEEB', '#B0C4DE', '#ADD8E6', '#C1D4E0', '#C1C1E0', '#191970', '#006400'];
+  const darkColors = ['#8B0000', '#800000', '#4B0082', '#191970', '#006400', '#2F4F4F', '#36454F', '#483C32', '#301934', '#1B1B1B', '#3C1414', '#1C2833'];
+
+  let warm = 0, cool = 0, dark = 0, total = colorHistory.length;
+  colorHistory.forEach(c => {
+    const hex = (c.colorHex || '').toUpperCase();
+    if (warmColors.some(w => w.toUpperCase() === hex)) warm++;
+    if (coolColors.some(w => w.toUpperCase() === hex)) cool++;
+    if (darkColors.some(w => w.toUpperCase() === hex)) dark++;
+  });
+
+  // Intensity distribution
+  const intensityCounts = {};
+  colorHistory.forEach(c => {
+    const i = c.colorIntensity || 'vivid';
+    intensityCounts[i] = (intensityCounts[i] || 0) + 1;
+  });
+  const dominantIntensity = Object.entries(intensityCounts).sort((a, b) => b[1] - a[1])[0];
+
+  const intensityLabels = { vivid: 'Vivos', soft: 'Suaves', pastel: 'Pastel', dark: 'Oscuros', muted: 'Apagados' };
+
+  let interpretation = '';
+  if (dominantIntensity) {
+    const intLabel = intensityLabels[dominantIntensity[0]] || dominantIntensity[0];
+    const intPct = ((dominantIntensity[1] / total) * 100).toFixed(0);
+    interpretation += `Paleta predominante: <strong>${intLabel}</strong> (${intPct}%). `;
+  }
+
+  if (warm > cool && warm > dark) {
+    interpretation += 'Predominan colores calidos (asociados con energia, sociabilidad, estados activos). ';
+  } else if (cool > warm && cool > dark) {
+    interpretation += 'Predominan colores frios (asociados con calma, introspeccion, estado reflexivo). ';
+  } else if (dark > warm && dark > cool) {
+    interpretation += '<span style="color:#9a3412;">Predominan colores oscuros (pueden indicar estado animo bajo, fatiga o introversion. Correlacionar con nivel de animo).</span> ';
+  }
+
+  // Recent vs older color temperature
+  const recentColors = colorHistory.slice(-5);
+  const recentDark = recentColors.filter(c => darkColors.some(d => d.toUpperCase() === (c.colorHex || '').toUpperCase())).length;
+  if (recentDark >= 3 && recentColors.length >= 5) {
+    interpretation += '<span style="color:#991b1b;">Alerta: seleccion reciente concentrada en colores oscuros. Revisar estado emocional.</span>';
+  }
+
+  container.innerHTML = `
+    <p><strong>Interpretacion cromatica</strong> (${total} selecciones)</p>
+    <p style="margin-top: 0.3rem;">${interpretation}</p>
+    <p style="margin-top: 0.3rem; font-size: 0.8rem; color: #94a3b8;"><em>Nota: la seleccion de color es un indicador complementario subjetivo. Debe interpretarse en conjunto con el nivel de animo y la observacion clinica.</em></p>
+  `;
+}
+
+function renderGameClinicalInterpretation(sessions) {
+  const container = document.getElementById('game-clinical-interpretation');
+  if (!container) return;
+
+  if (!sessions || sessions.length === 0) {
+    container.innerHTML = '<p><strong>Interpretacion:</strong> Sin sesiones de juego registradas.</p>';
+    return;
+  }
+
+  const scores = sessions.map(s => s.score || 0);
+  const durations = sessions.map(s => s.duration || 0);
+  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+  // Trend
+  const recentScores = scores.slice(-5);
+  const olderScores = scores.slice(0, Math.max(1, Math.floor(scores.length / 2)));
+  const recentAvg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+  const olderAvg = olderScores.reduce((a, b) => a + b, 0) / olderScores.length;
+
+  let trendText = '';
+  if (sessions.length < 3) {
+    trendText = 'Datos insuficientes para evaluar tendencia de rendimiento.';
+  } else if (recentAvg > olderAvg * 1.15) {
+    trendText = '<span style="color:#166534;">Mejora progresiva en rendimiento. Indica buena adaptacion cognitiva y aprendizaje.</span>';
+  } else if (recentAvg < olderAvg * 0.85) {
+    trendText = '<span style="color:#9a3412;">Decline en rendimiento. Puede indicar fatiga, desinteres o dificultad cognitiva. Evaluar en contexto clinico.</span>';
+  } else {
+    trendText = 'Rendimiento estable a lo largo de las sesiones.';
+  }
+
+  // Engagement
+  let engagementText = '';
+  const completedCount = sessions.filter(s => s.completed).length;
+  const completionRate = ((completedCount / sessions.length) * 100).toFixed(0);
+  if (completionRate >= 70) {
+    engagementText = 'Alto nivel de compromiso (tasa de completado: ' + completionRate + '%). Buena motivacion y persistencia.';
+  } else if (completionRate >= 40) {
+    engagementText = 'Nivel de compromiso moderado (tasa de completado: ' + completionRate + '%). Tolerancia razonable a la frustracion.';
+  } else {
+    engagementText = '<span style="color:#9a3412;">Bajo nivel de completado (' + completionRate + '%). Posible indicador de baja tolerancia a la frustracion, desmotivacion o dificultad excesiva.</span>';
+  }
+
+  container.innerHTML = `
+    <p><strong>Interpretacion de rendimiento ludico</strong> (${sessions.length} sesiones)</p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.2rem; list-style: disc;">
+      <li>Puntuacion promedio: <strong>${avgScore.toFixed(0)}</strong> | Duracion promedio: <strong>${formatDuration(avgDuration)}</strong></li>
+      <li>${trendText}</li>
+      <li>${engagementText}</li>
+    </ul>
+    <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.3rem;"><em>Los juegos evaluan: motricidad fina, planificacion, atencion, memoria de trabajo y control de impulsos.</em></p>
+  `;
+}
+
+function renderClinicalCorrelation(metrics, moodHistory, colorHistory, gameSessions) {
+  const container = document.getElementById('clinical-correlation-content');
+  if (!container) return;
+
+  const hasData = (moodHistory && moodHistory.length > 0) || (gameSessions && gameSessions.length > 0);
+  if (!hasData) {
+    container.innerHTML = '<p style="color:var(--text-muted);">Se necesitan datos de animo y/o juegos para generar correlaciones clinicas. Los datos se acumularan a medida que el paciente use el portal.</p>';
+    return;
+  }
+
+  let html = '<div style="display: grid; gap: 0.75rem;">';
+
+  // Mood + Game correlation
+  if (moodHistory && moodHistory.length >= 3 && gameSessions && gameSessions.length >= 3) {
+    const moods = moodHistory.map(m => m.moodValue);
+    const avgMood = moods.reduce((a, b) => a + b, 0) / moods.length;
+    const scores = gameSessions.map(s => s.score || 0);
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // Check if mood and game performance move together
+    const recentMoods = moods.slice(-5);
+    const recentScores = scores.slice(-5);
+    const recentMoodAvg = recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length;
+    const recentScoreAvg = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+
+    const moodDirection = recentMoodAvg > avgMood ? 'mejorando' : recentMoodAvg < avgMood ? 'empeorando' : 'estable';
+    const scoreDirection = recentScoreAvg > avgScore ? 'mejorando' : recentScoreAvg < avgScore ? 'empeorando' : 'estable';
+
+    let corrText = '';
+    if (moodDirection === scoreDirection) {
+      corrText = `<strong>Correlacion positiva:</strong> El animo (${moodDirection}) y el rendimiento en juegos (${scoreDirection}) se mueven en la misma direccion. Esto sugiere coherencia entre el estado emocional y la capacidad cognitiva del paciente.`;
+    } else if (moodDirection === 'mejorando' && scoreDirection === 'empeorando') {
+      corrText = `<strong>Divergencia:</strong> El animo esta ${moodDirection} pero el rendimiento en juegos esta ${scoreDirection}. Posible fatiga cognitiva a pesar de mejora animica, o el paciente puede estar respondiendo al check-in de forma automatica.`;
+    } else if (moodDirection === 'empeorando' && scoreDirection === 'mejorando') {
+      corrText = `<strong>Divergencia:</strong> El animo esta ${moodDirection} pero el rendimiento en juegos esta ${scoreDirection}. El paciente mantiene capacidad cognitiva pero su estado emocional requiere atencion.`;
+    } else {
+      corrText = `Animo: ${moodDirection}. Rendimiento ludico: ${scoreDirection}. No se observa una correlacion clara.`;
+    }
+
+    html += `<div style="background: #fff; border-radius: 8px; padding: 0.75rem; border-left: 3px solid #2563eb;">
+      <p style="font-weight: 600; color: #1e40af; margin-bottom: 0.3rem;">Animo vs. Rendimiento Cognitivo</p>
+      <p>${corrText}</p>
+    </div>`;
+  }
+
+  // Engagement correlation
+  if (metrics) {
+    const engagement = metrics.loginCount || 0;
+    const gamePlays = metrics.gameSessions || 0;
+    const posts = metrics.postsCount || 0;
+
+    let engLevel = '';
+    const totalActivity = engagement + gamePlays + posts;
+    if (totalActivity >= 20) {
+      engLevel = '<span style="color:#166534;"><strong>Alto compromiso</strong> con el portal. El paciente utiliza activamente los recursos digitales.</span>';
+    } else if (totalActivity >= 5) {
+      engLevel = '<strong>Compromiso moderado</strong> con el portal. Uso intermitente de las herramientas digitales.';
+    } else {
+      engLevel = '<span style="color:#9a3412;"><strong>Bajo compromiso</strong> con el portal. Considerar motivar al paciente o evaluar barreras de acceso.</span>';
+    }
+
+    html += `<div style="background: #fff; border-radius: 8px; padding: 0.75rem; border-left: 3px solid #10b981;">
+      <p style="font-weight: 600; color: #065f46; margin-bottom: 0.3rem;">Nivel de Participacion Digital</p>
+      <p>${engLevel} (${engagement} logins, ${gamePlays} juegos, ${posts} publicaciones)</p>
+    </div>`;
+  }
+
+  // Color + Mood correlation
+  if (colorHistory && colorHistory.length >= 3 && moodHistory && moodHistory.length >= 3) {
+    const darkColors = ['#8B0000', '#800000', '#4B0082', '#191970', '#006400', '#2F4F4F', '#36454F', '#483C32', '#301934', '#1B1B1B'];
+    const darkCount = colorHistory.filter(c => darkColors.some(d => d.toUpperCase() === (c.colorHex || '').toUpperCase())).length;
+    const darkPct = ((darkCount / colorHistory.length) * 100).toFixed(0);
+
+    const moods = moodHistory.map(m => m.moodValue);
+    const avgMood = (moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1);
+
+    let colorMoodText = '';
+    if (darkPct > 40 && avgMood < 3) {
+      colorMoodText = '<span style="color:#991b1b;">Congruencia preocupante: alta seleccion de colores oscuros (' + darkPct + '%) con animo bajo (prom. ' + avgMood + '/5). Patrón consistente con estado depresivo.</span>';
+    } else if (darkPct > 40 && avgMood >= 3) {
+      colorMoodText = 'Seleccion de colores oscuros (' + darkPct + '%) con animo reportado como aceptable (' + avgMood + '/5). Posible discrepancia a explorar en sesion clinica.';
+    } else {
+      colorMoodText = 'La seleccion de colores es coherente con el nivel de animo reportado (prom. ' + avgMood + '/5, colores oscuros: ' + darkPct + '%).';
+    }
+
+    html += `<div style="background: #fff; border-radius: 8px; padding: 0.75rem; border-left: 3px solid #8b5cf6;">
+      <p style="font-weight: 600; color: #5b21b6; margin-bottom: 0.3rem;">Color vs. Estado Animo</p>
+      <p>${colorMoodText}</p>
+    </div>`;
+  }
+
+  html += '</div>';
+  html += '<p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.75rem;"><em>Las correlaciones son indicadores orientativos basados en datos del portal. No reemplazan la evaluacion clinica profesional.</em></p>';
+
+  container.innerHTML = html;
 }
 
 function clearCanvas(canvasId) {

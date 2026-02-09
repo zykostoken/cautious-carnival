@@ -368,6 +368,9 @@
                 <div id="mood-chart-container" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; min-height: 200px;">
                   <canvas id="moodChart" width="800" height="200"></canvas>
                 </div>
+                <div id="mood-clinical-interpretation" style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                  <!-- Clinical interpretation rendered dynamically -->
+                </div>
               </div>
 
               <!-- Color Selection History -->
@@ -380,6 +383,9 @@
                   <div id="color-distribution" style="margin-top: 1rem;">
                     <!-- Color frequency distribution -->
                   </div>
+                </div>
+                <div id="color-clinical-interpretation" style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                  <!-- Color interpretation rendered dynamically -->
                 </div>
               </div>
 
@@ -396,6 +402,9 @@
                     <canvas id="timeChart" width="400" height="180"></canvas>
                   </div>
                 </div>
+                <div id="game-clinical-interpretation" style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                  <!-- Game performance interpretation rendered dynamically -->
+                </div>
               </div>
 
               <!-- Biomarcadores / Game Metrics -->
@@ -405,6 +414,14 @@
                   <div id="biomarkers-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem;">
                     <!-- Biomarker cards rendered dynamically -->
                   </div>
+                </div>
+              </div>
+
+              <!-- Clinical Correlation Summary -->
+              <div id="clinical-correlation-section" style="margin-bottom: 2rem; background: linear-gradient(135deg, #f0f9ff, #fefce8); border: 1px solid #bae6fd; border-radius: 12px; padding: 1.25rem;">
+                <h3 style="margin-bottom: 0.75rem; color: #0c4a6e;">Correlacion Clinica</h3>
+                <div id="clinical-correlation-content" style="font-size: 0.88rem; line-height: 1.6;">
+                  <!-- Rendered dynamically based on all patient data -->
                 </div>
               </div>
 
