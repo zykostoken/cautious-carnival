@@ -1109,15 +1109,6 @@
     </div>
   </div>
 
-  <!-- Metrics Overlay -->
-  <div class="metrics-overlay hidden" id="metricsOverlay">
-    <div class="metrics-card">
-      <h2>Biomarcadores Clinicos - Metricas en Tiempo Real</h2>
-      <div class="metrics-charts" id="metricsCharts"></div>
-      <button class="start-btn" id="instructionStartBtn">Comenzar</button>
-    </div>
-  </div>
-
   <!-- Blocked Overlay (in canvas) -->
 
   <!-- Metrics Panel -->
@@ -1795,7 +1786,6 @@
   const instructionTips = document.getElementById('instructionTips');
   const instructionStartBtn = document.getElementById('instructionStartBtn');
   const metricsOverlay = document.getElementById('metricsOverlay');
-  const metricsCharts = document.getElementById('metricsCharts');
   const metricsCloseBtn = document.getElementById('metricsCloseBtn');
   const metricsBtn = document.getElementById('metricsBtn');
 
@@ -2621,69 +2611,6 @@
     ctx2.fillStyle = '#64748b';
     ctx2.fillText(ylabel || '', 0, 0);
     ctx2.restore();
-  }
-
-  function showMetricsPanel() {
-    metricsOverlay.classList.remove('hidden');
-    const stats = calculateClinicalStats();
-
-    metricsCharts.innerHTML = '';
-
-    // Chart 1: Cumulative grass cut over time
-    addChartBlock('Cesped Cortado (acumulado)', 'grassChart');
-    // Chart 2: Score over time
-    addChartBlock('Puntuacion (acumulado)', 'scoreChart');
-    // Chart 3: Errors over time
-    addChartBlock('Errores (acumulado)', 'errorsChart');
-    // Chart 4: Movement efficiency over time
-    addChartBlock('Eficiencia de Movimiento', 'effChart');
-    // Chart 5: Reaction times (bar chart)
-    addChartBlock('Tiempos de Reaccion (ms)', 'rtChart');
-    // Chart 6: Pause durations (bar chart)
-    addChartBlock('Pausas detectadas (ms)', 'pauseChart');
-
-    // Summary stats
-    const summaryDiv = document.createElement('div');
-    summaryDiv.style.cssText = 'grid-column: 1 / -1; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1rem;';
-    summaryDiv.innerHTML = '<h3 style="font-size:0.9rem; color:#15803d; margin-bottom:0.5rem;">Resumen Estadistico (FDA Biomarkers)</h3>'
-      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.5rem; font-size:0.82rem;">'
-      + metricItem('RT Media', stats.clinical_markers.mean_reaction_time_ms + ' ms')
-      + metricItem('RT Variabilidad (SD)', stats.clinical_markers.rt_variability_sd + ' ms')
-      + metricItem('Coef. Variacion RT', (stats.clinical_markers.rt_coefficient_of_variation * 100).toFixed(1) + '%')
-      + metricItem('Errores Omision', stats.clinical_markers.omission_errors)
-      + metricItem('Errores Comision', stats.clinical_markers.commission_errors)
-      + metricItem('Ratio Impulsividad', (stats.clinical_markers.impulsivity_ratio * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Movimiento', (stats.clinical_markers.movement_efficiency * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Trayecto', (stats.clinical_markers.path_efficiency * 100).toFixed(1) + '%')
-      + metricItem('Pausas >3s', stats.clinical_markers.long_pauses_count)
-      + metricItem('Pausa Media', stats.clinical_markers.avg_pause_duration_ms + ' ms')
-      + metricItem('T. Primera Accion', stats.clinical_markers.time_to_first_action_ms + ' ms')
-      + metricItem('Reinicios', stats.device_context.session_restarts)
-      + '</div>';
-    metricsCharts.appendChild(summaryDiv);
-
-    // Render charts after DOM is ready
-    requestAnimationFrame(() => {
-      const ts = metricsTimeSeries;
-      drawLineChart(document.getElementById('grassChart'), ts.cumulativeGrassCut, null, 'rgb(34,197,94)', 'Cesped');
-      drawLineChart(document.getElementById('scoreChart'), ts.cumulativeScore, null, 'rgb(37,99,235)', 'Puntos');
-      drawLineChart(document.getElementById('errorsChart'), ts.cumulativeErrors, null, 'rgb(239,68,68)', 'Errores');
-      drawLineChart(document.getElementById('effChart'), ts.movementEfficiency.map(v => Math.round(v * 100)), null, 'rgb(245,158,11)', '%');
-      drawBarChart(document.getElementById('rtChart'), clinicalMetrics.reactionTimes, 'Corte #', 'rgb(124,58,237)', 'ms');
-      drawBarChart(document.getElementById('pauseChart'), clinicalMetrics.pauseDurations.filter(p => p > 500), 'Pausa #', 'rgb(14,165,233)', 'ms');
-    });
-  }
-
-  function addChartBlock(title, canvasId) {
-    const div = document.createElement('div');
-    div.className = 'chart-container';
-    div.innerHTML = '<h3>' + title + '</h3><canvas id="' + canvasId + '"></canvas>';
-    metricsCharts.appendChild(div);
-  }
-
-  function metricItem(label, value) {
-    return '<div style="background:#fff; padding:0.4rem 0.6rem; border-radius:6px; border:1px solid #e2e8f0;">'
-      + '<span style="color:#64748b;">' + label + ':</span> <strong>' + value + '</strong></div>';
   }
 
   // ---- GAME INIT ----
