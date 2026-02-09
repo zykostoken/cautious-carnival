@@ -319,14 +319,14 @@
 
   <!-- Daily Mood Check-in Modal -->
   <div id="mood-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
-    <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 520px;">
       <div class="modal-header">
         <h3>Check-in Diario</h3>
         <span></span>
       </div>
       <div class="modal-body">
         <div class="mood-checkin-container">
-          <p class="mood-question">Hola! Como te sentis hoy?</p>
+          <p class="mood-question">Hola! Como empezaste tu dia? Como te sentis?</p>
 
           <div class="mood-options" id="mood-options">
             <div class="mood-option" data-value="1" onclick="selectMood(1)">
@@ -348,6 +348,29 @@
             <div class="mood-option" data-value="5" onclick="selectMood(5)">
               <span class="mood-emoji">😊</span>
               <span class="mood-label">Muy bien</span>
+            </div>
+          </div>
+
+          <!-- Color Palette Selection -->
+          <div class="color-palette-section" style="margin-top: 1.25rem;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Elegi un color que represente como te sentis:</p>
+
+            <!-- Intensity Selector -->
+            <div class="color-intensity-selector" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+              <button type="button" class="intensity-btn active" onclick="setColorIntensity('vivid')" data-intensity="vivid" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--primary); background: var(--primary); color: #fff; font-size: 0.8rem; cursor: pointer;">Vivos</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('soft')" data-intensity="soft" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Suaves</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('pastel')" data-intensity="pastel" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Pastel</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('dark')" data-intensity="dark" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Oscuros</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('muted')" data-intensity="muted" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Apagados</button>
+            </div>
+
+            <!-- Color Grid -->
+            <div id="color-palette-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;">
+              <!-- Colors rendered by JS based on intensity -->
+            </div>
+
+            <div id="selected-color-preview" style="display: none; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border-radius: 8px; text-align: center; font-size: 0.85rem; color: #fff;">
+              Color seleccionado
             </div>
           </div>
 

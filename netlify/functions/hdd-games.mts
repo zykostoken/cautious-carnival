@@ -1,5 +1,8 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { sendEmailNotification } from "./lib/notifications.mts";
+
+const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
   const [patient] = await sql`
@@ -216,17 +219,27 @@ export default async (req: Request, context: Context) => {
 
       // Save daily mood check-in
       if (action === "mood_checkin") {
-        const { mood, note } = body;
+        const { mood, note, colorHex, colorIntensity, context: checkinContext } = body;
 
         if (!mood || mood < 1 || mood > 5) {
           return new Response(JSON.stringify({ error: "Valor de estado de animo invalido" }), { status: 400, headers: corsHeaders });
         }
 
-        // Save mood check-in
+        // Save mood check-in with color data
         await sql`
-          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, created_at)
-          VALUES (${patient.id}, ${mood}, ${note || null}, NOW())
+          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color_hex, color_intensity, context, created_at)
+          VALUES (${patient.id}, ${mood}, ${note || null}, ${colorHex || null}, ${colorIntensity || null}, ${checkinContext || 'daily_checkin'}, NOW())
         `;
+
+        // Log interaction
+        try {
+          await sql`
+            INSERT INTO hdd_interaction_log (patient_id, interaction_type, details, created_at)
+            VALUES (${patient.id}, 'mood_checkin', ${JSON.stringify({ mood, colorHex, colorIntensity, context: checkinContext || 'daily_checkin' })}, NOW())
+          `;
+        } catch (e) {
+          // Table may not exist yet
+        }
 
         // Check for crisis protocol triggers
         // Trigger if: mood is 1 (very bad), or 3+ days with low mood, or keywords in note
@@ -269,12 +282,30 @@ export default async (req: Request, context: Context) => {
           }
         }
 
-        // If alert triggered, create crisis alert
+        // If alert triggered, create crisis alert and notify admin
         if (alertTriggered) {
           await sql`
             INSERT INTO hdd_crisis_alerts (patient_id, alert_type, reason, mood_value, note, status, created_at)
             VALUES (${patient.id}, 'mood_checkin', ${alertReason}, ${mood}, ${note || null}, 'pending', NOW())
           `;
+
+          // Send email notification to admin
+          try {
+            await sendEmailNotification(
+              ADMIN_EMAIL,
+              `[HDD ALERTA] ${alertReason} - Paciente ${patient.full_name}`,
+              `<h2>Alerta de Protocolo de Crisis - Hospital de Dia</h2>
+              <p><strong>Paciente:</strong> ${patient.full_name} (DNI: ${patient.dni})</p>
+              <p><strong>Razon:</strong> ${alertReason}</p>
+              <p><strong>Estado de animo reportado:</strong> ${mood}/5</p>
+              ${note ? `<p><strong>Nota del paciente:</strong> ${note}</p>` : ''}
+              <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</p>
+              <hr>
+              <p style="color: #666;">Este es un mensaje automatico del sistema HDD. Ingrese al <a href="https://clinicajoseingenieros.ar/hdd/admin">Panel de Administracion</a> para revisar.</p>`
+            );
+          } catch (emailErr) {
+            console.error('Failed to send crisis alert email:', emailErr);
+          }
         }
 
         return new Response(JSON.stringify({
@@ -282,6 +313,54 @@ export default async (req: Request, context: Context) => {
           mood,
           alertTriggered
         }), { headers: corsHeaders });
+      }
+
+      // Save color selection during game
+      if (action === "save_color") {
+        const { colorHex, colorIntensity, gameSessionId, context: colorContext } = body;
+
+        if (!colorHex) {
+          return new Response(JSON.stringify({ error: "Color requerido" }), { status: 400, headers: corsHeaders });
+        }
+
+        await sql`
+          INSERT INTO hdd_game_color_selections (patient_id, game_session_id, color_hex, color_intensity, context, created_at)
+          VALUES (${patient.id}, ${gameSessionId || null}, ${colorHex}, ${colorIntensity || 'vivid'}, ${colorContext || 'during_game'}, NOW())
+        `;
+
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Save detailed game metrics
+      if (action === "save_game_metrics") {
+        const { gameSessionId, gameSlug, metricType, metricValue, metricData } = body;
+
+        if (!metricType) {
+          return new Response(JSON.stringify({ error: "Tipo de metrica requerido" }), { status: 400, headers: corsHeaders });
+        }
+
+        await sql`
+          INSERT INTO hdd_game_metrics (patient_id, game_session_id, game_slug, metric_type, metric_value, metric_data, created_at)
+          VALUES (${patient.id}, ${gameSessionId || null}, ${gameSlug || null}, ${metricType}, ${metricValue || null}, ${JSON.stringify(metricData || {})}, NOW())
+        `;
+
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // Log interaction
+      if (action === "log_interaction") {
+        const { interactionType, details } = body;
+
+        if (!interactionType) {
+          return new Response(JSON.stringify({ error: "Tipo de interaccion requerido" }), { status: 400, headers: corsHeaders });
+        }
+
+        await sql`
+          INSERT INTO hdd_interaction_log (patient_id, interaction_type, details, created_at)
+          VALUES (${patient.id}, ${interactionType}, ${JSON.stringify(details || {})}, NOW())
+        `;
+
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
     } catch (err: any) {
