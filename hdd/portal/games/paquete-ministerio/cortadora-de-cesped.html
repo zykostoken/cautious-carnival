@@ -1113,15 +1113,6 @@
     </div>
   </div>
 
-  <!-- Metrics Overlay -->
-  <div class="metrics-overlay hidden" id="metricsOverlay">
-    <div class="metrics-card">
-      <h2>Biomarcadores Clinicos - Metricas en Tiempo Real</h2>
-      <div class="metrics-charts" id="metricsCharts"></div>
-      <button class="start-btn" id="instructionStartBtn">Comenzar</button>
-    </div>
-  </div>
-
   <!-- Blocked Overlay (in canvas) -->
 
   <!-- Metrics Panel -->
@@ -1263,45 +1254,6 @@
   let isBlocked = false;
   let blockedCheckInterval = null;
 
-  // ---- CONTINUOUS METRICS TIME SERIES (FDA Biomarkers) ----
-  let metricsTimeSeries = {
-    timestamps: [],       // seconds since start
-    cumulativeGrassCut: [],
-    cumulativeErrors: [],
-    cumulativeScore: [],
-    reactionTimesOverTime: [], // RT at each grass cut
-    movementEfficiency: [],    // running efficiency ratio
-    pauseEvents: [],           // {time, duration}
-    commissionEvents: [],      // {time, type: 'flower'|'pool'|'cable'}
-    bagFullEvents: [],         // {time}
-  };
-
-  function resetMetricsTimeSeries() {
-    metricsTimeSeries = {
-      timestamps: [],
-      cumulativeGrassCut: [],
-      cumulativeErrors: [],
-      cumulativeScore: [],
-      reactionTimesOverTime: [],
-      movementEfficiency: [],
-      pauseEvents: [],
-      commissionEvents: [],
-      bagFullEvents: [],
-    };
-  }
-
-  function recordTimeSeriesPoint() {
-    if (!gameRunning) return;
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    metricsTimeSeries.timestamps.push(elapsed);
-    metricsTimeSeries.cumulativeGrassCut.push(grassCut);
-    metricsTimeSeries.cumulativeErrors.push(errors);
-    metricsTimeSeries.cumulativeScore.push(score);
-    metricsTimeSeries.movementEfficiency.push(
-      clinicalMetrics.totalMoves > 0 ? (clinicalMetrics.successfulMoves / clinicalMetrics.totalMoves) : 1
-    );
-  }
-
   let blockedCheckTimer = null;
   let consecutiveBlockedChecks = 0;
 
@@ -1394,134 +1346,7 @@
     localStorage.setItem('lawnmower_metrics_history', JSON.stringify(metricsHistory));
   }
 
-  // ---- LEVEL INSTRUCTION TIPS (granular per-level from PR#56 + mechanic coverage from PR#57) ----
-  function getInstructionTips(level) {
-    const baseTips = [
-      'La cortadora solo puede avanzar cortando cesped o por donde ya esta cortado.',
-      'Planifica bien tu recorrido antes de moverte.',
-      'Controles: Flechas/WASD en teclado, D-Pad en tactil, o arrastra con click derecho del mouse.'
-    ];
-    let specific = [];
-    let title = 'Instrucciones del Nivel';
-
-    if (level === 1) {
-      title = 'Tutorial - Aprende los controles';
-      specific = ['Este es un jardin pequeno para practicar.', 'Evita pisar las flores!'];
-    } else if (level >= 2 && level <= 3) {
-      specific = ['Hay flores en el jardin, no las pises!'];
-    } else if (level >= 4 && level <= 5) {
-      specific = ['Cuidado con la piscina! Si caes, pierdes puntos.', 'No puedes caminar sobre la piscina.'];
-    } else if (level >= 6 && level <= 7) {
-      specific = ['Hay cables en el suelo que te atascaran 2 segundos.', 'Acercate y toca/clickea los cables para recogerlos antes de pisarlos.'];
-    } else if (level === 8) {
-      title = 'La Compostera - Nueva mecanica!';
-      specific = [
-        'Tu bolsa de recoleccion tiene capacidad limitada (15).',
-        'Cuando se llene, ve a la compostera (cuadro marron) para vaciarla.',
-        'IMPORTANTE: Planifica tu camino de ida a la compostera desde el inicio!'
-      ];
-    } else if (level >= 9 && level <= 10) {
-      specific = [
-        'Bolsa limitada: planifica tu recorrido hacia la compostera.',
-        'Cables: acercate y toca/clickea para recogerlos.'
-      ];
-      if (level >= 10) specific.push('Usa el boton "Limpiador de Piscina" para limpiar agua sucia.');
-    } else if (level >= 11 && level <= 20) {
-      specific = ['Nivel avanzado: multiples mecanicas activas.', 'Usa el boton Reiniciar si te bloqueas.'];
-      if (level >= 14) specific.push('Piscina sucia: cambia al limpiador de piscina para limpiarla.');
-    } else if (level >= 21 && level <= 40) {
-      title = 'Escala 2 - Cuadros mas pequenos';
-      specific = ['Los cuadros son mas finos, requiere mayor precision.', 'Mismas reglas, mayor dificultad motriz.'];
-      if (level >= 26) specific.push('Cables: acercate y toca/clickea para recogerlos.');
-      if (level >= 28) specific.push('Bolsa de recoleccion: ve a la compostera para vaciarla.');
-      if (level >= 30) specific.push('Piscina sucia: usa el limpiador de piscina.');
-    } else if (level >= 41 && level <= 60) {
-      title = 'Escala 3 - Cuadros mini';
-      specific = ['Cuadros diminutos para expertos.', 'Maxima precision requerida.'];
-      if (level >= 46) specific.push('Cables: acercate y toca/clickea para recogerlos.');
-      if (level >= 48) specific.push('Bolsa de recoleccion: ve a la compostera para vaciarla.');
-      if (level >= 50) specific.push('Piscina sucia: usa el limpiador de piscina.');
-    } else if (level >= 101) {
-      title = 'Parte 2 - Jardinero Completo';
-      specific = [
-        'Tres herramientas: Cortadora, Limpiador de Piscina y Regadera.',
-        'Corta el cesped, limpia la piscina sucia y riega las flores secas.',
-        'Cambia entre herramientas con los botones de la esquina.',
-        'Flores marchitas (marrones con gota azul): Usa la regadera para regarlas.'
-      ];
-    }
-    specific.push('Si te bloqueas sin poder avanzar, usa el boton "Reiniciar" en la barra superior.');
-    return { title, tips: [...baseTips, ...specific] };
-  }
-
-  function showInstructions(level, callback) {
-    const overlay = document.getElementById('instructionOverlay');
-    const titleEl = document.getElementById('instructionTitle');
-    const tipsList = document.getElementById('instructionTips');
-    const startBtn = document.getElementById('instructionStartBtn');
-
-    const { title, tips } = getInstructionTips(level);
-    titleEl.textContent = title;
-    tipsList.innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
-
-    overlay.classList.remove('hidden');
-    const handler = function() {
-      overlay.classList.add('hidden');
-      startBtn.removeEventListener('click', handler);
-      if (callback) callback();
-    };
-    startBtn.addEventListener('click', handler);
-  }
-
   // ---- BLOCKED DETECTION (BFS from PR#56 + contextual messages from PR#57) ----
-  function canReachGrass() {
-    // BFS from player position to see if any uncut grass is reachable
-    const visited = new Set();
-    const queue = [[playerX, playerY]];
-    visited.add(playerX + ',' + playerY);
-    let grassReachable = false;
-
-    while (queue.length > 0) {
-      const [cx, cy] = queue.shift();
-      const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-      for (const [ddx, ddy] of dirs) {
-        const nx = cx + ddx;
-        const ny = cy + ddy;
-        const key = nx + ',' + ny;
-        if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
-        if (visited.has(key)) continue;
-        visited.add(key);
-        const tile = grid[ny][nx];
-
-        if (tile === T.CUT || tile === T.PATH || tile === T.COMPOST || tile === T.FLOWER_WATERED) {
-          queue.push([nx, ny]);
-        } else if (tile === T.GRASS) {
-          if (hasBag && bagCount >= bagCapacity) {
-            // Can see grass but bag is full - still need to check compost
-          } else {
-            grassReachable = true;
-          }
-          queue.push([nx, ny]);
-        } else if (tile === T.CABLE) {
-          const cableKey = ny + ',' + nx;
-          if (collectedCables.has(cableKey)) {
-            queue.push([nx, ny]);
-          } else {
-            grassReachable = true;
-            queue.push([nx, ny]);
-          }
-        } else if (tile === T.FLOWER) {
-          queue.push([nx, ny]); // can move there with penalty
-          grassReachable = true; // flowers count as traversable toward grass
-        } else if (tile === T.POOL_DIRTY && usingPoolCleaner) {
-          queue.push([nx, ny]);
-        } else if (tile === T.FLOWER_DRY && usingWateringCan) {
-          queue.push([nx, ny]);
-        }
-      }
-    }
-    return grassReachable || (grassCut >= totalGrass);
-  }
 
   function canReachCompost() {
     // BFS from player position to see if compostera is reachable via walkable tiles
@@ -1546,24 +1371,6 @@
       }
     }
     return false;
-  }
-
-  function checkBlocked() {
-    if (!gameRunning || isStuck) return;
-    if (grassCut >= totalGrass) return;
-
-    // Check if bag is full and compostera is unreachable
-    if (hasBag && bagCount >= bagCapacity) {
-      if (!canReachCompost()) {
-        showBlockedOverlay('bag_full');
-        return;
-      }
-    }
-
-    // Check if any uncut grass is reachable via BFS
-    if (!canReachGrass()) {
-      showBlockedOverlay('no_moves');
-    }
   }
 
   function startBlockedDetection() {
@@ -1881,8 +1688,8 @@
       gameSlug: 'lawn-mower',
       level: level
     });
-    if (data && data.gameSessionId) {
-      gameSessionId = data.gameSessionId;
+    if (data && data.sessionId) {
+      gameSessionId = data.sessionId;
     }
   }
 
@@ -1919,9 +1726,6 @@
         // Reset/restart tracking (registration data)
         reset_events: resetEvents,
         total_resets: resetEvents.length
-        // Continuous time series for statistical analysis
-        time_series: metricsTimeSeries
-        ...clinicalStats
       }
     });
   }
@@ -3644,12 +3448,6 @@
     resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
 
     // Show/hide next level button
-    const nextLevel = getNextLevel(currentLevel);
-    if (won && nextLevel) {
-      nextLevelBtn.classList.remove('hidden');
-      nextLevelBtn.style.display = '';
-    } else {
-      nextLevelBtn.classList.add('hidden');
     const nextLevelBtn = document.getElementById('nextLevelBtn');
     if (won && getNextLevel(currentLevel)) {
       nextLevelBtn.style.display = 'inline-block';
@@ -3817,9 +3615,6 @@
     btn.addEventListener('click', function() {
       const level = parseInt(this.getAttribute('data-level'));
       levelSelectScreen.classList.add('hidden');
-      showInstructions(level, function() {
-        initGame(level);
-      });
       startLevel(level);
     });
   });
@@ -3829,17 +3624,6 @@
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
     initGame(currentLevel);
-  });
-  nextLevelBtn.addEventListener('click', function() {
-    cancelAnimationFrame(celebAnimId);
-    celebCanvas.classList.add('hidden');
-    resultScreen.classList.add('hidden');
-    const next = getNextLevel(currentLevel);
-    if (next) {
-      showInstructions(next, function() {
-        initGame(next);
-      });
-    }
   });
   metricsBtn.addEventListener('click', function() {
     showMetricsPanel();
@@ -3855,6 +3639,7 @@
     clearInterval(timerInterval);
     clearInterval(blockedCheckInterval);
     restartBtn.classList.remove('visible');
+    document.getElementById('restartBtn').style.display = 'none';
     levelSelectScreen.classList.remove('hidden');
   });
 
@@ -3873,10 +3658,6 @@
     celebCanvas.classList.add('hidden');
     blockedOverlay.classList.add('hidden');
     initGame(currentLevel);
-  });
-
-    document.getElementById('restartBtn').style.display = 'none';
-    levelSelectScreen.classList.remove('hidden');
   });
 
   // ---- NEXT LEVEL BUTTON ----

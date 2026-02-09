@@ -3416,12 +3416,6 @@
     resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
 
     // Show/hide next level button
-    const nextLevel = getNextLevel(currentLevel);
-    if (won && nextLevel) {
-      nextLevelBtn.classList.remove('hidden');
-      nextLevelBtn.style.display = '';
-    } else {
-      nextLevelBtn.classList.add('hidden');
     const nextLevelBtn = document.getElementById('nextLevelBtn');
     if (won && getNextLevel(currentLevel)) {
       nextLevelBtn.style.display = 'inline-block';
