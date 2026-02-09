@@ -5,6 +5,7 @@ let uploadedImageUrl = null;
 let selectedMood = null;
 let selectedColor = null;
 let selectedColorIntensity = 'vivid';
+const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'true';
 
 // API helpers
 const API_BASE = '/api/hdd';
@@ -53,18 +54,19 @@ const COLOR_PALETTES = {
 function setColorIntensity(intensity) {
   selectedColorIntensity = intensity;
   selectedColor = null;
-  document.getElementById('selected-color-preview').style.display = 'none';
+  const preview = document.getElementById('selected-color-preview');
+  if (preview) preview.style.display = 'none';
 
   document.querySelectorAll('.intensity-btn').forEach(btn => {
     if (btn.dataset.intensity === intensity) {
+      btn.style.borderColor = 'var(--primary)';
       btn.style.background = 'var(--primary)';
       btn.style.color = '#fff';
-      btn.style.borderColor = 'var(--primary)';
       btn.classList.add('active');
     } else {
+      btn.style.borderColor = 'var(--border)';
       btn.style.background = 'var(--surface)';
       btn.style.color = 'var(--text)';
-      btn.style.borderColor = 'var(--border)';
       btn.classList.remove('active');
     }
   });
@@ -120,19 +122,21 @@ function selectMood(value) {
   document.getElementById('submit-mood-btn').disabled = false;
 }
 
-function selectMoodColor(color, el) {
-  selectedMoodColor = color;
-  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  const label = document.getElementById('mood-color-label');
-  if (label) label.textContent = COLOR_LABELS[color] || color;
-}
-
 function shouldShowMoodCheckin() {
   // Check if already checked in today
   const today = new Date().toISOString().split('T')[0];
   const lastCheckin = localStorage.getItem('hdd_mood_checkin_date');
   return lastCheckin !== today;
+}
+
+function toggleWellnessReference() {
+  const ref = document.getElementById('wellness-reference');
+  if (!ref) return;
+  if (ref.style.display === 'none') {
+    ref.style.display = '';
+  } else {
+    ref.style.display = 'none';
+  }
 }
 
 function showMoodCheckinModal() {
@@ -141,27 +145,42 @@ function showMoodCheckinModal() {
   selectedMood = null;
   selectedColor = null;
   selectedColorIntensity = 'vivid';
+
+  const modal = document.getElementById('mood-checkin-modal');
+  if (!modal) return;
+
   document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
   document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-  document.getElementById('mood-note').value = '';
-  document.getElementById('submit-mood-btn').disabled = true;
-  document.getElementById('selected-color-preview').style.display = 'none';
-  document.getElementById('mood-checkin-modal').classList.remove('hidden');
 
-  // Render initial color palette
-  renderColorPalette('vivid');
-  // Reset intensity buttons
-  document.querySelectorAll('.intensity-btn').forEach(btn => {
-    if (btn.dataset.intensity === 'vivid') {
-      btn.style.background = 'var(--primary)';
-      btn.style.color = '#fff';
-      btn.style.borderColor = 'var(--primary)';
-    } else {
-      btn.style.background = 'var(--surface)';
-      btn.style.color = 'var(--text)';
-      btn.style.borderColor = 'var(--border)';
-    }
-  });
+  const noteEl = document.getElementById('mood-note');
+  if (noteEl) noteEl.value = '';
+
+  const submitBtn = document.getElementById('submit-mood-btn');
+  if (submitBtn) submitBtn.disabled = true;
+
+  const preview = document.getElementById('selected-color-preview');
+  if (preview) preview.style.display = 'none';
+
+  // Show the wellness reference by default
+  const wellnessRef = document.getElementById('wellness-reference');
+  if (wellnessRef) wellnessRef.style.display = '';
+
+  modal.classList.remove('hidden');
+
+  // Render initial color palette with small delay to ensure DOM is ready
+  setTimeout(() => {
+    renderColorPalette('vivid');
+    // Reset intensity buttons
+    document.querySelectorAll('.intensity-btn').forEach(btn => {
+      if (btn.dataset.intensity === 'vivid') {
+        btn.style.borderColor = 'var(--primary)';
+        btn.classList.add('active');
+      } else {
+        btn.style.borderColor = 'var(--border)';
+        btn.classList.remove('active');
+      }
+    });
+  }, 50);
 }
 
 function hideMoodCheckinModal() {
@@ -281,10 +300,12 @@ function showApp() {
   document.getElementById('app-view').classList.remove('hidden');
   document.getElementById('user-name').textContent = currentUser.fullName;
 
-  // Show daily mood check-in after a brief delay
-  setTimeout(() => {
-    showMoodCheckinModal();
-  }, 500);
+  // Show daily mood check-in after a brief delay (not in preview mode)
+  if (!isPreviewMode) {
+    setTimeout(() => {
+      showMoodCheckinModal();
+    }, 800);
+  }
 }
 
 // Registration - simplified (no code verification)
@@ -1336,9 +1357,6 @@ function openGame(slug) {
     window.open(`/hdd/portal/games/${slug}.html?token=${encodeURIComponent(token)}`, '_blank');
   }
 }
-
-// Check for preview mode (accessed from admin panel)
-const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'true';
 
 // Init
 async function init() {
