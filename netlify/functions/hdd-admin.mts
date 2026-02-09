@@ -572,6 +572,81 @@ export default async (req: Request, context: Context) => {
             // Table might not exist
           }
 
+          // Get mood check-in history (longitudinal)
+          let moodHistory: any[] = [];
+          try {
+            moodHistory = await sql`
+              SELECT mood_value, note, color_hex, color_intensity, context, created_at
+              FROM hdd_mood_checkins
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at ASC
+            `;
+          } catch (e) {
+            // Table might not have color columns yet
+            try {
+              moodHistory = await sql`
+                SELECT mood_value, note, created_at
+                FROM hdd_mood_checkins
+                WHERE patient_id = ${patientId}
+                ORDER BY created_at ASC
+              `;
+            } catch (e2) { /* table may not exist */ }
+          }
+
+          // Get color selection history
+          let colorHistory: any[] = [];
+          try {
+            colorHistory = await sql`
+              SELECT color_hex, color_intensity, context, created_at
+              FROM hdd_game_color_selections
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at ASC
+            `;
+          } catch (e) {
+            // Table might not exist yet
+          }
+
+          // Combine color data from mood checkins + game selections
+          const allColors = [
+            ...moodHistory.filter((m: any) => m.color_hex).map((m: any) => ({
+              colorHex: m.color_hex,
+              colorIntensity: m.color_intensity,
+              context: m.context || 'daily_checkin',
+              createdAt: m.created_at
+            })),
+            ...colorHistory.map((c: any) => ({
+              colorHex: c.color_hex,
+              colorIntensity: c.color_intensity,
+              context: c.context,
+              createdAt: c.created_at
+            }))
+          ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+          // Get game session details for charts
+          let gameSessionDetails: any[] = [];
+          try {
+            gameSessionDetails = await sql`
+              SELECT gs.score, gs.duration_seconds, gs.level, gs.completed, gs.metrics, gs.started_at,
+                     g.name as game_name, g.slug as game_slug
+              FROM hdd_game_sessions gs
+              LEFT JOIN hdd_games g ON g.id = gs.game_id
+              WHERE gs.patient_id = ${patientId}
+              ORDER BY gs.started_at ASC
+            `;
+          } catch (e) { /* table might not exist */ }
+
+          // Get game metrics (biomarcadores)
+          let gameMetrics: any[] = [];
+          try {
+            gameMetrics = await sql`
+              SELECT metric_type, metric_value, metric_data, game_slug, created_at
+              FROM hdd_game_metrics
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at DESC
+              LIMIT 100
+            `;
+          } catch (e) { /* table might not exist */ }
+
           // Get games progress
           let gamesProgress: any[] = [];
           try {
@@ -588,11 +663,21 @@ export default async (req: Request, context: Context) => {
               WHERE gp.patient_id = ${patientId}
               ORDER BY gp.last_played_at DESC
             `;
-          } catch (e) {
-            // Table might not exist
-          }
+          } catch (e) { /* table might not exist */ }
 
-          // Get recent activity (posts and game sessions)
+          // Get interaction log
+          let interactions: any[] = [];
+          try {
+            interactions = await sql`
+              SELECT interaction_type, details, created_at
+              FROM hdd_interaction_log
+              WHERE patient_id = ${patientId}
+              ORDER BY created_at DESC
+              LIMIT 50
+            `;
+          } catch (e) { /* table might not exist */ }
+
+          // Get recent activity (posts and game sessions combined)
           let recentActivity: any[] = [];
           try {
             const recentPosts = await sql`
@@ -600,18 +685,34 @@ export default async (req: Request, context: Context) => {
               FROM hdd_community_posts
               WHERE patient_id = ${patientId}
               ORDER BY created_at DESC
-              LIMIT 5
+              LIMIT 10
             `;
             recentActivity = recentPosts.map((p: any) => ({
               type: p.type,
               date: p.date,
-              details: (p.details || '').substring(0, 50) + '...'
+              details: (p.details || '').substring(0, 80) + (p.details && p.details.length > 80 ? '...' : '')
             }));
-          } catch (e) {
-            // Table might not exist
-          }
+          } catch (e) { /* table might not exist */ }
 
-          // Count logins from tracking
+          // Add game sessions to recent activity
+          try {
+            const recentGameSessions = await sql`
+              SELECT 'Juego' as type, gs.started_at as date,
+                     COALESCE(g.name, 'Juego') || ' - Nivel ' || gs.level || ' - Score: ' || COALESCE(gs.score, 0) as details
+              FROM hdd_game_sessions gs
+              LEFT JOIN hdd_games g ON g.id = gs.game_id
+              WHERE gs.patient_id = ${patientId}
+              ORDER BY gs.started_at DESC
+              LIMIT 10
+            `;
+            recentActivity = [...recentActivity, ...recentGameSessions.map((g: any) => ({
+              type: g.type,
+              date: g.date,
+              details: g.details
+            }))].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 20);
+          } catch (e) { /* table might not exist */ }
+
+          // Count logins
           let loginCount = 0;
           try {
             const [tracking] = await sql`
@@ -619,46 +720,63 @@ export default async (req: Request, context: Context) => {
             `;
             loginCount = tracking?.login_count || 0;
           } catch (e) {
-            // Table might not exist, estimate from last_login
             loginCount = patient.last_login ? 1 : 0;
           }
 
-          // Get mood check-in history (longitudinal)
-          let moodHistory: any[] = [];
-          try {
-            await sql`ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS color VARCHAR(20)`.catch(() => {});
-            moodHistory = await sql`
-              SELECT mood_value, note, color, created_at
-              FROM hdd_mood_checkins
-              WHERE patient_id = ${patientId}
-              ORDER BY created_at ASC
-              LIMIT 90
-            `;
-          } catch (e) {
-            // Table might not exist
-          }
+          // Calculate avg mood
+          const avgMood = moodHistory.length > 0
+            ? (moodHistory.reduce((sum: number, m: any) => sum + m.mood_value, 0) / moodHistory.length).toFixed(1)
+            : null;
 
-          // Get crisis alerts for this patient
-          let crisisAlerts: any[] = [];
+          // Monthly summary
+          let monthlySummary: any[] = [];
           try {
-            crisisAlerts = await sql`
-              SELECT alert_type, reason, mood_value, status, created_at
-              FROM hdd_crisis_alerts
+            monthlySummary = await sql`
+              SELECT month_year, total_logins, total_game_sessions, total_game_time_seconds,
+                     total_posts, avg_mood, mood_trend, color_distribution, game_performance,
+                     interaction_summary, generated_at
+              FROM hdd_patient_monthly_summaries
               WHERE patient_id = ${patientId}
-              ORDER BY created_at DESC
-              LIMIT 10
+              ORDER BY month_year DESC
+              LIMIT 12
             `;
-          } catch (e) {
-            // Table might not exist
-          }
+          } catch (e) { /* table might not exist */ }
 
           return new Response(JSON.stringify({
             metrics: {
               loginCount,
               gameSessions,
               postsCount: parseInt(postsCount.count) || 0,
-              totalGameTime
+              totalGameTime,
+              avgMood: avgMood ? parseFloat(avgMood) : null,
+              colorCount: allColors.length
             },
+            moodHistory: moodHistory.map((m: any) => ({
+              moodValue: m.mood_value,
+              note: m.note,
+              colorHex: m.color_hex || null,
+              colorIntensity: m.color_intensity || null,
+              context: m.context || 'daily_checkin',
+              createdAt: m.created_at
+            })),
+            colorHistory: allColors,
+            gameSessionDetails: gameSessionDetails.map((s: any) => ({
+              score: s.score,
+              duration: s.duration_seconds,
+              level: s.level,
+              completed: s.completed,
+              metrics: s.metrics,
+              gameName: s.game_name,
+              gameSlug: s.game_slug,
+              startedAt: s.started_at
+            })),
+            gameMetrics: gameMetrics.map((m: any) => ({
+              metricType: m.metric_type,
+              metricValue: m.metric_value,
+              metricData: m.metric_data,
+              gameSlug: m.game_slug,
+              createdAt: m.created_at
+            })),
             gamesProgress: gamesProgress.map((g: any) => ({
               gameName: g.game_name,
               currentLevel: g.current_level,
@@ -668,27 +786,37 @@ export default async (req: Request, context: Context) => {
               lastPlayed: g.last_played
             })),
             recentActivity,
-            moodHistory: moodHistory.map((m: any) => ({
-              mood: m.mood_value,
-              note: m.note,
-              color: m.color,
-              date: m.created_at
+            interactions: interactions.map((i: any) => ({
+              type: i.interaction_type,
+              details: i.details,
+              createdAt: i.created_at
             })),
-            crisisAlerts: crisisAlerts.map((a: any) => ({
-              type: a.alert_type,
-              reason: a.reason,
-              mood: a.mood_value,
-              status: a.status,
-              date: a.created_at
+            monthlySummary: monthlySummary.map((s: any) => ({
+              monthYear: s.month_year,
+              totalLogins: s.total_logins,
+              totalGameSessions: s.total_game_sessions,
+              totalGameTime: s.total_game_time_seconds,
+              totalPosts: s.total_posts,
+              avgMood: s.avg_mood ? parseFloat(s.avg_mood) : null,
+              moodTrend: s.mood_trend,
+              colorDistribution: s.color_distribution,
+              gamePerformance: s.game_performance,
+              interactionSummary: s.interaction_summary
             }))
           }), { status: 200, headers: corsHeaders });
 
         } catch (err) {
           console.error("Patient metrics error:", err);
           return new Response(JSON.stringify({
-            metrics: { loginCount: 0, gameSessions: 0, postsCount: 0, totalGameTime: 0 },
+            metrics: { loginCount: 0, gameSessions: 0, postsCount: 0, totalGameTime: 0, avgMood: null, colorCount: 0 },
+            moodHistory: [],
+            colorHistory: [],
+            gameSessionDetails: [],
+            gameMetrics: [],
             gamesProgress: [],
-            recentActivity: []
+            recentActivity: [],
+            interactions: [],
+            monthlySummary: []
           }), { status: 200, headers: corsHeaders });
         }
       }

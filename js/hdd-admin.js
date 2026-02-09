@@ -563,7 +563,7 @@ function hideGameStats() {
 }
 
 // =====================================
-// METRICS FUNCTIONS
+// METRICS FUNCTIONS - Clinical Dashboard
 // =====================================
 async function populateMetricsPatientSelect() {
   const select = document.getElementById('metrics-patient-select');
@@ -587,34 +587,43 @@ async function populateMetricsPatientSelect() {
 async function loadPatientMetrics() {
   const patientId = document.getElementById('metrics-patient-select').value;
   const contentDiv = document.getElementById('patient-metrics-content');
+  const exportBtn = document.getElementById('export-report-btn');
+  const dateRange = document.getElementById('metrics-date-range').value;
 
   if (!patientId) {
     contentDiv.classList.add('hidden');
+    if (exportBtn) exportBtn.style.display = 'none';
     return;
   }
 
   contentDiv.classList.remove('hidden');
+  if (exportBtn) exportBtn.style.display = '';
 
-  // Try to load metrics from API
   try {
-    const result = await api(`/api/hdd/admin?action=patient_metrics&patientId=${patientId}&sessionToken=${sessionToken}`);
+    const result = await api(`/api/hdd/admin?action=patient_metrics&patientId=${patientId}&dateRange=${dateRange}&sessionToken=${sessionToken}`);
 
     if (result.metrics) {
+      // Summary cards
       document.getElementById('metric-logins').textContent = result.metrics.loginCount || 0;
       document.getElementById('metric-games').textContent = result.metrics.gameSessions || 0;
       document.getElementById('metric-posts').textContent = result.metrics.postsCount || 0;
       document.getElementById('metric-time').textContent = formatDuration(result.metrics.totalGameTime || 0);
+      document.getElementById('metric-avg-mood').textContent = result.metrics.avgMood != null ? result.metrics.avgMood.toFixed(1) : '-';
+      document.getElementById('metric-color-count').textContent = result.metrics.colorCount || 0;
 
+      // Render charts
+      renderMoodChart(result.moodHistory || []);
+      renderColorHistory(result.colorHistory || []);
+      renderGameCharts(result.gameSessionDetails || []);
+      renderBiomarkers(result.gameMetrics || [], result.gameSessionDetails || []);
       renderGamesProgress(result.gamesProgress || []);
       renderRecentActivity(result.recentActivity || []);
-      renderMoodChart(result.moodHistory || []);
-      renderColorHistory(result.moodHistory || []);
-      renderMoodHistoryTable(result.moodHistory || [], result.crisisAlerts || []);
+      renderMonthlySummary(result.monthlySummary || []);
     } else {
       setDefaultMetrics();
     }
   } catch (e) {
-    // If API doesn't have this action yet, show placeholder data
+    console.error('Error loading metrics:', e);
     setDefaultMetrics();
   }
 }
@@ -624,18 +633,452 @@ function setDefaultMetrics() {
   document.getElementById('metric-games').textContent = '-';
   document.getElementById('metric-posts').textContent = '-';
   document.getElementById('metric-time').textContent = '-';
+  document.getElementById('metric-avg-mood').textContent = '-';
+  document.getElementById('metric-color-count').textContent = '-';
 
-  document.getElementById('games-progress-list').innerHTML = `
-    <div class="alert alert-info">
-      Las metricas detalladas de juegos se mostraran cuando el paciente utilice el portal.
+  // Clear charts
+  clearCanvas('moodChart');
+  clearCanvas('scoreChart');
+  clearCanvas('timeChart');
+
+  document.getElementById('color-timeline').innerHTML = '<div class="empty-state"><p>Sin datos de color</p></div>';
+  document.getElementById('color-distribution').innerHTML = '';
+  document.getElementById('biomarkers-grid').innerHTML = '<div class="empty-state"><p>Sin biomarcadores disponibles</p></div>';
+
+  document.getElementById('games-progress-list').innerHTML = '<div class="alert alert-info">Las metricas se mostraran cuando el paciente utilice el portal.</div>';
+  document.getElementById('recent-activity-list').innerHTML = '<div class="alert alert-info">La actividad se mostrara cuando el paciente interactue con el sistema.</div>';
+  document.getElementById('monthly-summary-content').innerHTML = '<div class="alert alert-info">Los resumenes mensuales se generaran automaticamente.</div>';
+}
+
+function clearCanvas(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ---- MOOD CHART (Longitudinal line chart) ----
+function renderMoodChart(moodHistory) {
+  const canvas = document.getElementById('moodChart');
+  if (!canvas || !moodHistory || moodHistory.length === 0) {
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sin datos de estado de animo', canvas.width / 2, canvas.height / 2);
+    }
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const pad = { top: 25, right: 20, bottom: 40, left: 45 };
+
+  ctx.clearRect(0, 0, w, h);
+
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  // Y axis (mood 1-5)
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  const moodLabels = ['Muy mal', 'Mal', 'Regular', 'Bien', 'Muy bien'];
+  for (let i = 1; i <= 5; i++) {
+    const y = pad.top + chartH - ((i - 1) / 4) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(moodLabels[i - 1], pad.left - 5, y + 4);
+  }
+
+  // X axis dates
+  const n = moodHistory.length;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+
+  // Draw data line
+  ctx.beginPath();
+  ctx.strokeStyle = '#6366f1';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+
+  const points = [];
+  for (let i = 0; i < n; i++) {
+    const x = pad.left + (n === 1 ? chartW / 2 : (i / (n - 1)) * chartW);
+    const y = pad.top + chartH - ((moodHistory[i].moodValue - 1) / 4) * chartH;
+    points.push({ x, y, data: moodHistory[i] });
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Draw gradient fill under line
+  const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  gradient.addColorStop(0, 'rgba(99, 102, 241, 0.15)');
+  gradient.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+    else ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
+  ctx.lineTo(points[0].x, pad.top + chartH);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Draw data points with color if available
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    if (p.data.colorHex) {
+      ctx.fillStyle = p.data.colorHex;
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1.5;
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#6366f1';
+      ctx.fill();
+    }
+
+    // Date labels (show every few points to avoid overlap)
+    if (n <= 15 || i % Math.ceil(n / 10) === 0 || i === n - 1) {
+      const date = new Date(p.data.createdAt);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }), p.x, pad.top + chartH + 15);
+    }
+  });
+
+  ctx.lineWidth = 1;
+}
+
+// ---- COLOR HISTORY ----
+function renderColorHistory(colorHistory) {
+  const timeline = document.getElementById('color-timeline');
+  const distribution = document.getElementById('color-distribution');
+
+  if (!colorHistory || colorHistory.length === 0) {
+    timeline.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center;">Sin datos de seleccion de color</div>';
+    distribution.innerHTML = '';
+    return;
+  }
+
+  // Timeline: color swatches ordered by date
+  timeline.innerHTML = colorHistory.map(c => {
+    const date = new Date(c.createdAt);
+    const dateStr = date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    return `<div title="${dateStr} - ${c.context || ''} - ${c.colorIntensity || 'vivid'}"
+                style="width: 28px; height: 28px; background: ${c.colorHex}; border-radius: 4px; border: 1px solid #e2e8f0; cursor: help;"
+                ></div>`;
+  }).join('');
+
+  // Color distribution (frequency analysis)
+  const colorCounts = {};
+  colorHistory.forEach(c => {
+    colorCounts[c.colorHex] = (colorCounts[c.colorHex] || 0) + 1;
+  });
+  const sortedColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1]);
+  const total = colorHistory.length;
+
+  distribution.innerHTML = `
+    <h4 style="margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Distribucion de colores (frecuencia)</h4>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+      ${sortedColors.slice(0, 12).map(([color, count]) => {
+        const pct = ((count / total) * 100).toFixed(0);
+        return `<div style="display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+          <div style="width: 16px; height: 16px; background: ${color}; border-radius: 3px; border: 1px solid #cbd5e1;"></div>
+          <span style="font-size: 0.8rem; color: var(--text);">${pct}%</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ---- GAME PERFORMANCE CHARTS ----
+function renderGameCharts(sessions) {
+  renderScoreChart(sessions);
+  renderTimeChart(sessions);
+}
+
+function renderScoreChart(sessions) {
+  const canvas = document.getElementById('scoreChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (!sessions || sessions.length === 0) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin sesiones de juego', w / 2, h / 2);
+    return;
+  }
+
+  const pad = { top: 15, right: 15, bottom: 30, left: 40 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  const scores = sessions.map(s => s.score || 0);
+  const maxScore = Math.max(...scores, 10);
+
+  // Y axis
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + chartH - (i / 4) * chartH;
+    const val = Math.round((i / 4) * maxScore);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(val.toString(), pad.left - 4, y + 3);
+  }
+
+  // Bars
+  const barW = Math.max(4, Math.min(20, chartW / sessions.length - 2));
+  sessions.forEach((s, i) => {
+    const x = pad.left + (i / sessions.length) * chartW + barW / 2;
+    const barH = (s.score / maxScore) * chartH;
+    const y = pad.top + chartH - barH;
+
+    ctx.fillStyle = s.completed ? '#22c55e' : '#f59e0b';
+    ctx.fillRect(x, y, barW, barH);
+  });
+
+  // X labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  const step = Math.ceil(sessions.length / 8);
+  sessions.forEach((s, i) => {
+    if (i % step === 0) {
+      const x = pad.left + (i / sessions.length) * chartW + barW / 2;
+      const date = new Date(s.startedAt);
+      ctx.fillText(date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }), x, h - 5);
+    }
+  });
+}
+
+function renderTimeChart(sessions) {
+  const canvas = document.getElementById('timeChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (!sessions || sessions.length === 0) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos de tiempo', w / 2, h / 2);
+    return;
+  }
+
+  const pad = { top: 15, right: 15, bottom: 30, left: 40 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  const durations = sessions.map(s => s.duration || 0);
+  const maxDur = Math.max(...durations, 60);
+
+  // Y axis
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + chartH - (i / 4) * chartH;
+    const val = Math.round((i / 4) * maxDur);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(w - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(val + 's', pad.left - 4, y + 3);
+  }
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#0ea5e9';
+  ctx.lineWidth = 2;
+  sessions.forEach((s, i) => {
+    const x = pad.left + (sessions.length === 1 ? chartW / 2 : (i / (sessions.length - 1)) * chartW);
+    const y = pad.top + chartH - ((s.duration || 0) / maxDur) * chartH;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Points
+  sessions.forEach((s, i) => {
+    const x = pad.left + (sessions.length === 1 ? chartW / 2 : (i / (sessions.length - 1)) * chartW);
+    const y = pad.top + chartH - ((s.duration || 0) / maxDur) * chartH;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#0ea5e9';
+    ctx.fill();
+  });
+
+  ctx.lineWidth = 1;
+}
+
+// ---- BIOMARKERS ----
+function renderBiomarkers(gameMetrics, sessions) {
+  const container = document.getElementById('biomarkers-grid');
+
+  if ((!gameMetrics || gameMetrics.length === 0) && (!sessions || sessions.length === 0)) {
+    container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center; grid-column: 1 / -1;">Los biomarcadores se generaran cuando el paciente juegue.</div>';
+    return;
+  }
+
+  // Compute biomarkers from sessions
+  const completedSessions = sessions.filter(s => s.completed);
+  const avgScore = sessions.length > 0 ? Math.round(sessions.reduce((s, g) => s + (g.score || 0), 0) / sessions.length) : 0;
+  const avgDuration = sessions.length > 0 ? Math.round(sessions.reduce((s, g) => s + (g.duration || 0), 0) / sessions.length) : 0;
+  const completionRate = sessions.length > 0 ? Math.round((completedSessions.length / sessions.length) * 100) : 0;
+  const maxLevel = sessions.length > 0 ? Math.max(...sessions.map(s => s.level || 0)) : 0;
+
+  // Check for improvement trend
+  const recentScores = sessions.slice(-5).map(s => s.score || 0);
+  const olderScores = sessions.slice(0, 5).map(s => s.score || 0);
+  const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : 0;
+  const olderAvg = olderScores.length > 0 ? olderScores.reduce((a, b) => a + b, 0) / olderScores.length : 0;
+  const trend = sessions.length >= 3 ? (recentAvg > olderAvg ? 'mejorando' : recentAvg < olderAvg ? 'declinando' : 'estable') : 'insuficiente';
+
+  // Aggregate game-specific metrics if present
+  const metricsByType = {};
+  gameMetrics.forEach(m => {
+    if (!metricsByType[m.metricType]) metricsByType[m.metricType] = [];
+    metricsByType[m.metricType].push(m);
+  });
+
+  let html = `
+    <div style="background: #f0f9ff; padding: 0.75rem; border-radius: 8px; border: 1px solid #bae6fd;">
+      <div style="font-size: 0.8rem; color: #0369a1;">Puntuacion Promedio</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #0c4a6e;">${avgScore}</div>
+    </div>
+    <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+      <div style="font-size: 0.8rem; color: #166534;">Tasa Completado</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #14532d;">${completionRate}%</div>
+    </div>
+    <div style="background: #fefce8; padding: 0.75rem; border-radius: 8px; border: 1px solid #fde68a;">
+      <div style="font-size: 0.8rem; color: #854d0e;">Duracion Prom.</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #713f12;">${formatDuration(avgDuration)}</div>
+    </div>
+    <div style="background: #fdf2f8; padding: 0.75rem; border-radius: 8px; border: 1px solid #fbcfe8;">
+      <div style="font-size: 0.8rem; color: #9d174d;">Nivel Maximo</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #831843;">${maxLevel}</div>
+    </div>
+    <div style="background: #f5f3ff; padding: 0.75rem; border-radius: 8px; border: 1px solid #ddd6fe;">
+      <div style="font-size: 0.8rem; color: #5b21b6;">Tendencia</div>
+      <div style="font-size: 1.1rem; font-weight: 700; color: #4c1d95;">${trend === 'mejorando' ? 'Mejorando' : trend === 'declinando' ? 'Declinando' : trend === 'estable' ? 'Estable' : 'Datos insuf.'}</div>
+    </div>
+    <div style="background: #fff7ed; padding: 0.75rem; border-radius: 8px; border: 1px solid #fed7aa;">
+      <div style="font-size: 0.8rem; color: #9a3412;">Total Sesiones</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #7c2d12;">${sessions.length}</div>
     </div>
   `;
 
-  document.getElementById('recent-activity-list').innerHTML = `
-    <div class="alert alert-info">
-      La actividad reciente se mostrara cuando el paciente interactue con el sistema.
-    </div>
+  // Add custom game metrics if available
+  Object.entries(metricsByType).forEach(([type, metrics]) => {
+    const latest = metrics[0];
+    const avg = metrics.reduce((s, m) => s + (parseFloat(m.metricValue) || 0), 0) / metrics.length;
+    html += `
+      <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="font-size: 0.8rem; color: #475569;">${escapeHtml(type)}</div>
+        <div style="font-size: 1.2rem; font-weight: 700; color: #1e293b;">${avg.toFixed(1)}</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;">${metrics.length} registros</div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ---- MONTHLY SUMMARY ----
+function renderMonthlySummary(summaries) {
+  const container = document.getElementById('monthly-summary-content');
+
+  if (!summaries || summaries.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">Los resumenes mensuales se generaran automaticamente con el uso del portal.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table style="width: 100%;">
+      <thead>
+        <tr>
+          <th>Mes</th>
+          <th>Logins</th>
+          <th>Sesiones Juego</th>
+          <th>Tiempo Juego</th>
+          <th>Posts</th>
+          <th>Animo Prom.</th>
+          <th>Tendencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summaries.map(s => `
+          <tr>
+            <td><strong>${s.monthYear}</strong></td>
+            <td>${s.totalLogins || 0}</td>
+            <td>${s.totalGameSessions || 0}</td>
+            <td>${formatDuration(s.totalGameTime || 0)}</td>
+            <td>${s.totalPosts || 0}</td>
+            <td>${s.avgMood != null ? s.avgMood.toFixed(1) : '-'}</td>
+            <td>${s.moodTrend || '-'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
   `;
+}
+
+// ---- EXPORT REPORT ----
+function exportPatientReport() {
+  const patientName = document.getElementById('metrics-patient-select').selectedOptions[0]?.textContent || 'Paciente';
+  const date = new Date().toLocaleDateString('es-AR');
+
+  // Collect visible data from the dashboard
+  const metrics = {
+    logins: document.getElementById('metric-logins').textContent,
+    games: document.getElementById('metric-games').textContent,
+    posts: document.getElementById('metric-posts').textContent,
+    time: document.getElementById('metric-time').textContent,
+    avgMood: document.getElementById('metric-avg-mood').textContent,
+    colorCount: document.getElementById('metric-color-count').textContent
+  };
+
+  let report = `REPORTE CLINICO - ${patientName}\n`;
+  report += `Fecha: ${date}\n`;
+  report += `========================================\n\n`;
+  report += `RESUMEN DE METRICAS:\n`;
+  report += `- Total Logins: ${metrics.logins}\n`;
+  report += `- Sesiones de Juego: ${metrics.games}\n`;
+  report += `- Publicaciones: ${metrics.posts}\n`;
+  report += `- Tiempo de Juego: ${metrics.time}\n`;
+  report += `- Animo Promedio: ${metrics.avgMood}\n`;
+  report += `- Registros de Color: ${metrics.colorCount}\n`;
+
+  const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `reporte_${patientName.replace(/[^a-zA-Z0-9]/g, '_')}_${date.replace(/\//g, '-')}.txt`;
+  a.click();
 }
 
 function renderGamesProgress(progress) {

@@ -299,15 +299,26 @@
         </div>
       </div>
 
-      <!-- Metrics Tab -->
+      <!-- Metrics Tab - Comprehensive Clinical Dashboard -->
       <div id="tab-metrics" class="hidden">
         <div class="card">
           <div class="card-header">
-            <h2>Metricas y Resultados de Pacientes</h2>
+            <h2>Dashboard Clinico Interactivo</h2>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select class="filter-select" id="metrics-date-range" onchange="loadPatientMetrics()" style="min-width: 140px;">
+                <option value="7">Ultimos 7 dias</option>
+                <option value="30" selected>Ultimo mes</option>
+                <option value="90">Ultimos 3 meses</option>
+                <option value="180">Ultimos 6 meses</option>
+                <option value="365">Ultimo ano</option>
+                <option value="all">Todo el historial</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" onclick="exportPatientReport()" id="export-report-btn" style="display:none;">Exportar Reporte</button>
+            </div>
           </div>
           <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-              Seleccione un paciente para ver metricas longitudinales: animo, colores, juegos y actividad a lo largo de las sesiones.
+              Panel de seguimiento longitudinal. Seleccione un paciente para ver metricas clinicas, estados de animo, seleccion de colores, biomarcadores de juegos y actividad en el portal.
             </div>
 
             <div class="search-box">
@@ -317,8 +328,8 @@
             </div>
 
             <div id="patient-metrics-content" class="hidden">
-              <!-- Patient Summary -->
-              <div class="metrics-summary" id="metrics-summary">
+              <!-- Summary Cards -->
+              <div class="metrics-summary" id="metrics-summary" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
                 <div class="stat-card">
                   <div class="stat-icon">📅</div>
                   <div class="stat-value" id="metric-logins">-</div>
@@ -327,7 +338,7 @@
                 <div class="stat-card">
                   <div class="stat-icon">🎮</div>
                   <div class="stat-value" id="metric-games">-</div>
-                  <div class="stat-label">Sesiones de Juego</div>
+                  <div class="stat-label">Sesiones Juego</div>
                 </div>
                 <div class="stat-card">
                   <div class="stat-icon">📝</div>
@@ -337,41 +348,84 @@
                 <div class="stat-card">
                   <div class="stat-icon">⏱️</div>
                   <div class="stat-value" id="metric-time">-</div>
-                  <div class="stat-label">Tiempo de Juego</div>
+                  <div class="stat-label">Tiempo Juego</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">😊</div>
+                  <div class="stat-value" id="metric-avg-mood">-</div>
+                  <div class="stat-label">Animo Promedio</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon">🎨</div>
+                  <div class="stat-value" id="metric-color-count">-</div>
+                  <div class="stat-label">Registros Color</div>
                 </div>
               </div>
 
-              <!-- Mood Longitudinal Chart -->
-              <h3 style="margin: 1.5rem 0 0.75rem;">Registro de Animo (Longitudinal)</h3>
-              <div id="mood-chart-container" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem;">
-                <canvas id="mood-chart" width="700" height="200"></canvas>
+              <!-- Mood Timeline Chart -->
+              <div style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 0.75rem;">Evolucion del Estado de Animo</h3>
+                <div id="mood-chart-container" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; min-height: 200px;">
+                  <canvas id="moodChart" width="800" height="200"></canvas>
+                </div>
               </div>
 
               <!-- Color Selection History -->
-              <h3 style="margin: 1rem 0 0.75rem;">Paleta de Colores Seleccionados</h3>
-              <div id="color-history-container" style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem;">
-                <div id="color-history-dots" style="display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; min-height:40px;">
-                  <span style="color:var(--text-muted); font-size:0.85rem;">Sin datos de color aun.</span>
+              <div style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 0.75rem;">Historial de Seleccion de Colores</h3>
+                <div id="color-history-container" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                  <div id="color-timeline" style="display: flex; flex-wrap: wrap; gap: 4px; min-height: 60px;">
+                    <!-- Color swatches rendered dynamically -->
+                  </div>
+                  <div id="color-distribution" style="margin-top: 1rem;">
+                    <!-- Color frequency distribution -->
+                  </div>
                 </div>
-                <div id="color-frequency" style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
               </div>
 
-              <!-- Mood + Color Correlation Table -->
-              <h3 style="margin: 1rem 0 0.75rem;">Historial Check-in Diario</h3>
-              <div id="mood-history-table" class="table-container" style="margin-bottom:1.5rem;">
-                <!-- Loaded dynamically -->
+              <!-- Game Performance Charts -->
+              <div style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 0.75rem;">Rendimiento en Juegos</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Puntuacion por Sesion</h4>
+                    <canvas id="scoreChart" width="400" height="180"></canvas>
+                  </div>
+                  <div style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Tiempo de Reaccion / Duracion</h4>
+                    <canvas id="timeChart" width="400" height="180"></canvas>
+                  </div>
+                </div>
               </div>
 
-              <!-- Game Progress -->
+              <!-- Biomarcadores / Game Metrics -->
+              <div style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 0.75rem;">Biomarcadores de Juego</h3>
+                <div id="biomarkers-container" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                  <div id="biomarkers-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem;">
+                    <!-- Biomarker cards rendered dynamically -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Game Progress Table -->
               <h3 style="margin: 1.5rem 0 1rem;">Progreso en Juegos</h3>
               <div id="games-progress-list" class="table-container">
                 <!-- Loaded dynamically -->
               </div>
 
-              <!-- Recent Activity -->
-              <h3 style="margin: 1.5rem 0 1rem;">Actividad Reciente</h3>
+              <!-- Interaction & Activity Log -->
+              <h3 style="margin: 1.5rem 0 1rem;">Actividad e Interacciones</h3>
               <div id="recent-activity-list" class="table-container">
                 <!-- Loaded dynamically -->
+              </div>
+
+              <!-- Monthly Summary -->
+              <h3 style="margin: 1.5rem 0 1rem;">Resumen Mensual</h3>
+              <div id="monthly-summary-container" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem;">
+                <div id="monthly-summary-content">
+                  <!-- Monthly summary rendered dynamically -->
+                </div>
               </div>
             </div>
           </div>

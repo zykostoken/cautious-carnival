@@ -319,14 +319,14 @@
 
   <!-- Daily Mood Check-in Modal -->
   <div id="mood-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
-    <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 520px;">
       <div class="modal-header">
         <h3>Check-in Diario</h3>
         <span></span>
       </div>
       <div class="modal-body">
         <div class="mood-checkin-container">
-          <p class="mood-question">Hola! Como te sentis hoy?</p>
+          <p class="mood-question">Hola! Como empezaste tu dia? Como te sentis?</p>
 
           <div class="mood-options" id="mood-options">
             <div class="mood-option" data-value="1" onclick="selectMood(1)">
@@ -351,23 +351,27 @@
             </div>
           </div>
 
-          <div class="mood-color-section" id="mood-color-section">
-            <p class="mood-color-question">Elegi un color que represente como te sentis:</p>
-            <div class="mood-color-palette" id="mood-color-palette">
-              <button class="color-swatch" data-color="rojo" style="background:#dc2626;" onclick="selectMoodColor('rojo', this)" title="Rojo - Enojo, intensidad"></button>
-              <button class="color-swatch" data-color="naranja" style="background:#ea580c;" onclick="selectMoodColor('naranja', this)" title="Naranja - Energia, inquietud"></button>
-              <button class="color-swatch" data-color="amarillo" style="background:#eab308;" onclick="selectMoodColor('amarillo', this)" title="Amarillo - Alegria, claridad"></button>
-              <button class="color-swatch" data-color="verde" style="background:#16a34a;" onclick="selectMoodColor('verde', this)" title="Verde - Calma, esperanza"></button>
-              <button class="color-swatch" data-color="celeste" style="background:#0ea5e9;" onclick="selectMoodColor('celeste', this)" title="Celeste - Tranquilidad, serenidad"></button>
-              <button class="color-swatch" data-color="azul" style="background:#2563eb;" onclick="selectMoodColor('azul', this)" title="Azul - Tristeza, profundidad"></button>
-              <button class="color-swatch" data-color="violeta" style="background:#7c3aed;" onclick="selectMoodColor('violeta', this)" title="Violeta - Confusion, transformacion"></button>
-              <button class="color-swatch" data-color="rosa" style="background:#ec4899;" onclick="selectMoodColor('rosa', this)" title="Rosa - Ternura, vulnerabilidad"></button>
-              <button class="color-swatch" data-color="marron" style="background:#78350f;" onclick="selectMoodColor('marron', this)" title="Marron - Cansancio, pesadez"></button>
-              <button class="color-swatch" data-color="gris" style="background:#6b7280;" onclick="selectMoodColor('gris', this)" title="Gris - Vacio, indiferencia"></button>
-              <button class="color-swatch" data-color="negro" style="background:#1e1e1e;" onclick="selectMoodColor('negro', this)" title="Negro - Oscuridad, angustia"></button>
-              <button class="color-swatch" data-color="blanco" style="background:#f8fafc; border:2px solid #cbd5e1;" onclick="selectMoodColor('blanco', this)" title="Blanco - Paz, alivio"></button>
+          <!-- Color Palette Selection -->
+          <div class="color-palette-section" style="margin-top: 1.25rem;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Elegi un color que represente como te sentis:</p>
+
+            <!-- Intensity Selector -->
+            <div class="color-intensity-selector" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+              <button type="button" class="intensity-btn active" onclick="setColorIntensity('vivid')" data-intensity="vivid" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--primary); background: var(--primary); color: #fff; font-size: 0.8rem; cursor: pointer;">Vivos</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('soft')" data-intensity="soft" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Suaves</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('pastel')" data-intensity="pastel" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Pastel</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('dark')" data-intensity="dark" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Oscuros</button>
+              <button type="button" class="intensity-btn" onclick="setColorIntensity('muted')" data-intensity="muted" style="padding: 0.3rem 0.75rem; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.8rem; cursor: pointer;">Apagados</button>
             </div>
-            <p class="mood-color-selected" id="mood-color-label"></p>
+
+            <!-- Color Grid -->
+            <div id="color-palette-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;">
+              <!-- Colors rendered by JS based on intensity -->
+            </div>
+
+            <div id="selected-color-preview" style="display: none; margin-top: 0.5rem; padding: 0.4rem 0.75rem; border-radius: 8px; text-align: center; font-size: 0.85rem; color: #fff;">
+              Color seleccionado
+            </div>
           </div>
 
           <div class="mood-note-section">

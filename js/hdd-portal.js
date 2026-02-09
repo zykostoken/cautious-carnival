@@ -3,23 +3,8 @@ let currentUser = null;
 let sessionToken = null;
 let uploadedImageUrl = null;
 let selectedMood = null;
-let selectedMoodColor = null;
-
-// Color labels for display
-const COLOR_LABELS = {
-  rojo: 'Rojo - Enojo, intensidad',
-  naranja: 'Naranja - Energia, inquietud',
-  amarillo: 'Amarillo - Alegria, claridad',
-  verde: 'Verde - Calma, esperanza',
-  celeste: 'Celeste - Tranquilidad, serenidad',
-  azul: 'Azul - Tristeza, profundidad',
-  violeta: 'Violeta - Confusion, transformacion',
-  rosa: 'Rosa - Ternura, vulnerabilidad',
-  marron: 'Marron - Cansancio, pesadez',
-  gris: 'Gris - Vacio, indiferencia',
-  negro: 'Negro - Oscuridad, angustia',
-  blanco: 'Blanco - Paz, alivio'
-};
+let selectedColor = null;
+let selectedColorIntensity = 'vivid';
 
 // API helpers
 const API_BASE = '/api/hdd';
@@ -33,6 +18,93 @@ async function api(endpoint, options = {}) {
     }
   });
   return response.json();
+}
+
+// ==================== COLOR PALETTE ====================
+
+const COLOR_PALETTES = {
+  vivid: [
+    '#FF0000', '#FF4500', '#FF8C00', '#FFD700', '#FFFF00', '#ADFF2F', '#00FF00', '#00CED1',
+    '#0000FF', '#4B0082', '#8B00FF', '#FF00FF', '#FF1493', '#DC143C', '#8B0000', '#FF6347',
+    '#00BFFF', '#1E90FF', '#228B22', '#32CD32', '#FF69B4', '#BA55D3', '#00FA9A', '#FFE4B5'
+  ],
+  soft: [
+    '#F08080', '#FFA07A', '#FFDAB9', '#FFE4B5', '#FFFACD', '#D2E4A0', '#98FB98', '#AFEEEE',
+    '#87CEEB', '#B0C4DE', '#DDA0DD', '#D8BFD8', '#FFB6C1', '#FFC0CB', '#E6E6FA', '#F0E68C',
+    '#ADD8E6', '#90EE90', '#FAFAD2', '#E0BBE4', '#F5CBA7', '#AED6F1', '#A9DFBF', '#F9E79F'
+  ],
+  pastel: [
+    '#FFD1DC', '#FFDAC1', '#FFE5B4', '#FFFDD0', '#FDFD96', '#D4F0C0', '#C1E1C1', '#C1F0F0',
+    '#C1D4E0', '#C1C1E0', '#D4C1E0', '#E0C1D4', '#F0C1C1', '#F5DEB3', '#E8DAEF', '#D5F5E3',
+    '#FCF3CF', '#FADBD8', '#D6EAF8', '#D1F2EB', '#F2D7D5', '#D7BDE2', '#A9CCE3', '#A3E4D7'
+  ],
+  dark: [
+    '#8B0000', '#800000', '#4B0082', '#191970', '#006400', '#2F4F4F', '#36454F', '#483C32',
+    '#301934', '#1B1B1B', '#3C1414', '#1C2833', '#0B3D0B', '#3B0A45', '#2C1608', '#0A2E36',
+    '#4A235A', '#1A5276', '#145A32', '#7B241C', '#4A4A4A', '#6C3483', '#1B4F72', '#196F3D'
+  ],
+  muted: [
+    '#BC8F8F', '#C0A080', '#BDB76B', '#8FBC8F', '#708090', '#778899', '#9D8F8F', '#A0809F',
+    '#809FA0', '#808F9F', '#9F808F', '#8F9D80', '#A09080', '#8F8F9D', '#9D808A', '#80A09D',
+    '#A0909F', '#8FA09D', '#9D8FA0', '#908F8F', '#8D9F80', '#80889F', '#9F8080', '#808F80'
+  ]
+};
+
+function setColorIntensity(intensity) {
+  selectedColorIntensity = intensity;
+  selectedColor = null;
+  document.getElementById('selected-color-preview').style.display = 'none';
+
+  document.querySelectorAll('.intensity-btn').forEach(btn => {
+    if (btn.dataset.intensity === intensity) {
+      btn.style.background = 'var(--primary)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'var(--primary)';
+      btn.classList.add('active');
+    } else {
+      btn.style.background = 'var(--surface)';
+      btn.style.color = 'var(--text)';
+      btn.style.borderColor = 'var(--border)';
+      btn.classList.remove('active');
+    }
+  });
+
+  renderColorPalette(intensity);
+}
+
+function renderColorPalette(intensity) {
+  const grid = document.getElementById('color-palette-grid');
+  if (!grid) return;
+  const colors = COLOR_PALETTES[intensity] || COLOR_PALETTES.vivid;
+
+  grid.innerHTML = colors.map(color => `
+    <div class="color-swatch" onclick="selectColor('${color}')"
+         style="width: 100%; aspect-ratio: 1; background: ${color}; border-radius: 6px; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s;"
+         data-color="${color}"
+         onmouseenter="this.style.transform='scale(1.15)'"
+         onmouseleave="this.style.transform='scale(1)'">
+    </div>
+  `).join('');
+}
+
+function selectColor(color) {
+  selectedColor = color;
+
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.style.borderColor = s.dataset.color === color ? '#1e293b' : 'transparent';
+    s.style.boxShadow = s.dataset.color === color ? '0 0 0 2px #fff, 0 0 0 4px #1e293b' : 'none';
+  });
+
+  const preview = document.getElementById('selected-color-preview');
+  preview.style.display = 'block';
+  preview.style.background = color;
+  // Determine text color for contrast
+  const r = parseInt(color.slice(1,3), 16);
+  const g = parseInt(color.slice(3,5), 16);
+  const b = parseInt(color.slice(5,7), 16);
+  const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+  preview.style.color = luma > 160 ? '#1e293b' : '#ffffff';
+  preview.textContent = 'Color seleccionado';
 }
 
 // ==================== MOOD CHECK-IN ====================
@@ -67,14 +139,29 @@ function showMoodCheckinModal() {
   if (!shouldShowMoodCheckin()) return;
 
   selectedMood = null;
-  selectedMoodColor = null;
+  selectedColor = null;
+  selectedColorIntensity = 'vivid';
   document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
   document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
   document.getElementById('mood-note').value = '';
   document.getElementById('submit-mood-btn').disabled = true;
-  const colorLabel = document.getElementById('mood-color-label');
-  if (colorLabel) colorLabel.textContent = '';
+  document.getElementById('selected-color-preview').style.display = 'none';
   document.getElementById('mood-checkin-modal').classList.remove('hidden');
+
+  // Render initial color palette
+  renderColorPalette('vivid');
+  // Reset intensity buttons
+  document.querySelectorAll('.intensity-btn').forEach(btn => {
+    if (btn.dataset.intensity === 'vivid') {
+      btn.style.background = 'var(--primary)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'var(--primary)';
+    } else {
+      btn.style.background = 'var(--surface)';
+      btn.style.color = 'var(--text)';
+      btn.style.borderColor = 'var(--border)';
+    }
+  });
 }
 
 function hideMoodCheckinModal() {
@@ -94,8 +181,10 @@ async function submitMoodCheckin() {
         action: 'mood_checkin',
         sessionToken: sessionToken,
         mood: selectedMood,
-        color: selectedMoodColor || null,
-        note: note || null
+        note: note || null,
+        colorHex: selectedColor || null,
+        colorIntensity: selectedColorIntensity || null,
+        context: 'daily_checkin'
       })
     });
   } catch (e) {
@@ -106,7 +195,9 @@ async function submitMoodCheckin() {
   const today = new Date().toISOString().split('T')[0];
   localStorage.setItem('hdd_mood_checkin_date', today);
   localStorage.setItem('hdd_last_mood', selectedMood.toString());
-  if (selectedMoodColor) localStorage.setItem('hdd_last_color', selectedMoodColor);
+  if (selectedColor) {
+    localStorage.setItem('hdd_last_color', selectedColor);
+  }
 
   hideMoodCheckinModal();
 }

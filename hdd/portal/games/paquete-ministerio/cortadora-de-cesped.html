@@ -2917,7 +2917,6 @@
   // ---- GAME INIT ----
   function initGame(level) {
     currentLevel = level;
-    levelSelectScreen.classList.remove('hidden');
     levelSelectScreen.classList.add('hidden');
     resultScreen.classList.add('hidden');
     celebCanvas.classList.add('hidden');
@@ -2925,10 +2924,6 @@
     metricsOverlay.classList.add('hidden');
     isBlocked = false;
     clearInterval(blockedCheckInterval);
-
-    // Reset clinical metrics for new session
-    resetClinicalMetrics();
-    resetMetricsTimeSeries();
 
     // Reset clinical metrics for new session
     resetClinicalMetrics();

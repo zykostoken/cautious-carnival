@@ -1092,12 +1092,8 @@
       <div class="score-breakdown" id="scoreBreakdown"></div>
       <div class="result-actions">
         <button class="btn-primary btn-next" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
-        <button class="btn-next hidden" id="nextLevelBtn">Siguiente Nivel &#8594;</button>
         <button class="btn-primary" id="retryBtn">Reintentar</button>
-        <button class="btn-metrics" id="metricsBtn">Biomarcadores</button>
-        <button class="btn-primary" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
-        <button class="btn-primary" id="retryBtn">Reintentar</button>
-        <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Ver Metricas</button>
+        <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Biomarcadores</button>
         <button class="btn-secondary" id="levelsBtn">Niveles</button>
         <a href="/games/portal" class="btn-secondary" style="text-decoration:none;">Volver al portal</a>
       </div>
@@ -2511,188 +2507,6 @@
     return { map, startPos };
   }
 
-  // ---- INSTRUCTION SYSTEM ----
-  function getLevelInstructions(level) {
-    const baseInstructions = [
-      'La cortadora solo puede avanzar cortando cesped o por donde ya esta cortado.',
-      'Planifica bien tu recorrido antes de moverte.',
-      'Usa las flechas del teclado, WASD, D-Pad tactil o arrastra con click derecho.',
-    ];
-
-    let specific = [];
-    let title = 'Instrucciones del Nivel';
-
-    if (level === 1) {
-      title = 'Tutorial - Aprende los controles';
-      specific = ['Este es un jardin pequeno para practicar.', 'Evita pisar las flores!'];
-    } else if (level >= 2 && level <= 3) {
-      specific = ['Hay flores en el jardin, no las pises!'];
-    } else if (level >= 4 && level <= 5) {
-      specific = ['Cuidado con la piscina! Si caes, pierdes puntos.', 'No puedes caminar sobre la piscina.'];
-    } else if (level >= 6 && level <= 7) {
-      specific = ['Hay cables en el suelo que te atascaran 2 segundos.', 'Toca/clickea cables cercanos para recogerlos antes de pisarlos.'];
-    } else if (level === 8) {
-      title = 'La Compostera - Nueva mecanica!';
-      specific = [
-        'Tu bolsa de recoleccion tiene capacidad limitada (15).',
-        'Cuando se llene, ve a la compostera (marron) para vaciarla.',
-        'IMPORTANTE: Planifica tu camino de ida a la compostera desde el inicio!',
-      ];
-    } else if (level >= 9 && level <= 10) {
-      specific = [
-        'Bolsa limitada: planifica tu recorrido hacia la compostera.',
-        level >= 10 ? 'Usa el boton "Limpiador de Piscina" para limpiar agua sucia.' : '',
-      ].filter(Boolean);
-    } else if (level >= 11 && level <= 20) {
-      specific = ['Nivel avanzado: multiples mecanicas activas.', 'Usa el boton Reiniciar si te bloqueas.'];
-    } else if (level >= 21 && level <= 40) {
-      title = 'Escala 2 - Cuadros mas pequenos';
-      specific = ['Los cuadros son mas finos, requiere mayor precision.', 'Mismas reglas, mayor dificultad motriz.'];
-    } else if (level >= 41 && level <= 60) {
-      title = 'Escala 3 - Cuadros mini';
-      specific = ['Cuadros diminutos para expertos.', 'Maxima precision requerida.'];
-    } else if (level >= 101) {
-      title = 'Parte 2 - Jardinero Completo';
-      specific = [
-        'Tres herramientas: Cortadora, Limpiador de Piscina y Regadera.',
-        'Corta el cesped, limpia la piscina sucia y riega las flores secas.',
-        'Cambia entre herramientas con los botones de la esquina.',
-      ];
-    }
-
-    return { title, tips: [...baseInstructions, ...specific] };
-  }
-
-  function showInstructions(level, callback) {
-    const { title, tips } = getLevelInstructions(level);
-    instructionTitle.textContent = title;
-    instructionTips.innerHTML = tips.map(t => '<li>' + t + '</li>').join('');
-    instructionOverlay.classList.remove('hidden');
-
-    instructionStartBtn.onclick = function() {
-      instructionOverlay.classList.add('hidden');
-      if (callback) callback();
-    };
-  }
-
-  // ---- BLOCKED DETECTION (BFS) ----
-  function canReachGrass() {
-    // BFS from player position to see if any uncut grass is reachable
-    // Player can move to: CUT, PATH, GRASS, CABLE (collected), COMPOST, FLOWER_WATERED, POOL (if pool cleaner), FLOWER_DRY (if watering)
-    const visited = new Set();
-    const queue = [[playerX, playerY]];
-    visited.add(playerX + ',' + playerY);
-    let grassReachable = false;
-
-    while (queue.length > 0) {
-      const [cx, cy] = queue.shift();
-      const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-      for (const [ddx, ddy] of dirs) {
-        const nx = cx + ddx;
-        const ny = cy + ddy;
-        const key = nx + ',' + ny;
-        if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
-        if (visited.has(key)) continue;
-        visited.add(key);
-        const tile = grid[ny][nx];
-        // Walkable tiles for pathfinding
-        if (tile === T.CUT || tile === T.PATH || tile === T.COMPOST || tile === T.FLOWER_WATERED) {
-          queue.push([nx, ny]);
-        } else if (tile === T.GRASS) {
-          // Check if we can actually cut it (bag not permanently full)
-          if (hasBag && bagCount >= bagCapacity) {
-            // Can we reach compost from here?
-            // For simplicity, if there's any grass reachable from anywhere, mark as reachable
-            // The bag full check is separate
-          }
-          grassReachable = true;
-          queue.push([nx, ny]);
-        } else if (tile === T.CABLE) {
-          const cableKey = ny + ',' + nx;
-          if (collectedCables.has(cableKey)) {
-            queue.push([nx, ny]); // Already collected, treated as cut
-          } else {
-            // Cable will get collected when stepped on (after stuck), so grass behind cable is reachable
-            grassReachable = true;
-            queue.push([nx, ny]);
-          }
-        } else if (tile === T.POOL_DIRTY && usingPoolCleaner) {
-          queue.push([nx, ny]);
-        } else if (tile === T.FLOWER_DRY && usingWateringCan) {
-          queue.push([nx, ny]);
-        }
-      }
-    }
-
-    return grassReachable || (grassCut >= totalGrass);
-  }
-
-  function checkBlocked() {
-    if (!gameRunning || isStuck || isBlocked) return;
-    if (grassCut >= totalGrass) return; // Already won or about to win
-
-    // Check if bag is full and compostera is unreachable
-    if (hasBag && bagCount >= bagCapacity) {
-      // BFS to check if compost is reachable from current position
-      const visited = new Set();
-      const queue = [[playerX, playerY]];
-      visited.add(playerX + ',' + playerY);
-      let compostReachable = false;
-      while (queue.length > 0) {
-        const [cx, cy] = queue.shift();
-        const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-        for (const [ddx, ddy] of dirs) {
-          const nx = cx + ddx;
-          const ny = cy + ddy;
-          const key = nx + ',' + ny;
-          if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
-          if (visited.has(key)) continue;
-          visited.add(key);
-          const tile = grid[ny][nx];
-          if (tile === T.COMPOST) {
-            compostReachable = true;
-            break;
-          }
-          if (tile === T.CUT || tile === T.PATH || tile === T.FLOWER_WATERED) {
-            queue.push([nx, ny]);
-          }
-        }
-        if (compostReachable) break;
-      }
-      if (!compostReachable) {
-        showBlocked('Bolsa llena y no puedes llegar a la compostera!');
-        return;
-      }
-    }
-
-    // Check if any uncut grass is reachable
-    if (!canReachGrass()) {
-      showBlocked('Te bloqueaste! No hay cesped alcanzable.');
-    }
-  }
-
-  function showBlocked(message) {
-    isBlocked = true;
-    const blockedText = blockedOverlay.querySelector('.blocked-text');
-    blockedText.textContent = message;
-    blockedOverlay.classList.remove('hidden');
-  }
-
-  // ---- NEXT LEVEL LOGIC ----
-  function getNextLevel(current) {
-    if (current >= 1 && current <= 19) return current + 1;
-    if (current === 20) return 21; // Go to Scale 2
-    if (current >= 21 && current < 25) return 25;
-    if (current >= 25 && current < 30) return 30;
-    if (current >= 30 && current < 40) return 40;
-    if (current === 40) return 41; // Go to Scale 3
-    if (current >= 41 && current < 50) return 50;
-    if (current >= 50 && current < 60) return 60;
-    if (current === 60) return 101; // Go to Part 2
-    if (current >= 101 && current <= 104) return current + 1;
-    return null; // No next level
-  }
-
   // ---- METRICS CHART RENDERING ----
   function drawLineChart(canvasEl, data, labels, color, ylabel) {
     if (!canvasEl || !data || data.length === 0) return;
@@ -3793,27 +3607,8 @@
     clearInterval(timerInterval);
     clearInterval(blockedCheckInterval);
     restartBtn.classList.remove('visible');
+    document.getElementById('restartBtn').style.display = 'none';
     levelSelectScreen.classList.remove('hidden');
-  });
-
-  // ---- RESTART BUTTON (in-game) ----
-  restartBtn.addEventListener('click', function() {
-    if (gameRunning || isBlocked) {
-      if (grassCut > 0) saveResult(false);
-      recordResetEvent();
-      cancelAnimationFrame(celebAnimId);
-      celebCanvas.classList.add('hidden');
-      hideBlockedOverlay();
-      initGame(currentLevel);
-    }
-  });
-  blockedRestartBtn.addEventListener('click', function() {
-    saveResult(false);
-    recordResetEvent();
-    cancelAnimationFrame(celebAnimId);
-    celebCanvas.classList.add('hidden');
-    blockedOverlay.classList.add('hidden');
-    initGame(currentLevel);
   });
 
   // ---- NEXT LEVEL BUTTON ----
