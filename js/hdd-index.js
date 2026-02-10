@@ -221,3 +221,32 @@ document.querySelectorAll('.chalk-color').forEach(el => {
 
 // Load messages on page load
 loadBoardMessages();
+
+// ========== DYNAMIC ACTIVITIES LOADING ==========
+async function loadPublicActivities() {
+  const container = document.getElementById('public-activities-grid');
+  if (!container) return;
+
+  try {
+    const response = await fetch('/api/hdd/admin?action=public_activities');
+    const data = await response.json();
+
+    if (data.activities && data.activities.length > 0) {
+      container.innerHTML = data.activities.map(a => `
+        <div class="activity-card">
+          <div class="activity-icon">${a.icon || '📋'}</div>
+          <div class="activity-info">
+            <div class="activity-name">${a.name}</div>
+            <div class="activity-schedule">${a.dayName} ${a.startTime} - ${a.endTime}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    // If no activities returned, keep the default HTML as fallback
+  } catch (e) {
+    // Keep default HTML activities on error
+    console.log('Could not load activities:', e);
+  }
+}
+
+loadPublicActivities();

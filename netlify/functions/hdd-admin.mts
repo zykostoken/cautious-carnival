@@ -276,6 +276,183 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
+      // =====================================
+      // ACTIVITY MANAGEMENT
+      // =====================================
+
+      // Add activity
+      if (action === "add_activity") {
+        const { name, description, dayOfWeek, startTime, endTime, icon, location, professional, maxCapacity } = body;
+
+        if (!name) {
+          return new Response(JSON.stringify({ error: "Nombre de actividad requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [activity] = await sql`
+          INSERT INTO hdd_activities (
+            name, description, day_of_week, start_time, end_time,
+            icon, location, professional, max_capacity, is_active, created_at, updated_at
+          )
+          VALUES (
+            ${name}, ${description || null}, ${dayOfWeek != null ? dayOfWeek : null},
+            ${startTime || null}, ${endTime || null},
+            ${icon || null}, ${location || null}, ${professional || null},
+            ${maxCapacity || null}, TRUE, NOW(), NOW()
+          )
+          RETURNING id, name
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          activity: { id: activity.id, name: activity.name },
+          message: "Actividad creada exitosamente"
+        }), { status: 201, headers: corsHeaders });
+      }
+
+      // Update activity
+      if (action === "update_activity") {
+        const { activityId, name, description, dayOfWeek, startTime, endTime, icon, location, professional, maxCapacity, isActive } = body;
+
+        if (!activityId) {
+          return new Response(JSON.stringify({ error: "ID de actividad requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [activity] = await sql`
+          UPDATE hdd_activities
+          SET
+            name = COALESCE(${name || null}, name),
+            description = COALESCE(${description || null}, description),
+            day_of_week = COALESCE(${dayOfWeek != null ? dayOfWeek : null}, day_of_week),
+            start_time = COALESCE(${startTime || null}, start_time),
+            end_time = COALESCE(${endTime || null}, end_time),
+            icon = COALESCE(${icon || null}, icon),
+            location = COALESCE(${location || null}, location),
+            professional = COALESCE(${professional || null}, professional),
+            max_capacity = COALESCE(${maxCapacity || null}, max_capacity),
+            is_active = COALESCE(${isActive != null ? isActive : null}, is_active),
+            updated_at = NOW()
+          WHERE id = ${activityId}
+          RETURNING id, name
+        `;
+
+        if (!activity) {
+          return new Response(JSON.stringify({ error: "Actividad no encontrada" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          activity,
+          message: "Actividad actualizada"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Delete activity
+      if (action === "delete_activity") {
+        const { activityId } = body;
+
+        if (!activityId) {
+          return new Response(JSON.stringify({ error: "ID de actividad requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        await sql`DELETE FROM hdd_activities WHERE id = ${activityId}`;
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Actividad eliminada"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // =====================================
+      // RESOURCE MANAGEMENT
+      // =====================================
+
+      // Add resource
+      if (action === "add_resource") {
+        const { title, description, resourceType, url: resourceUrl, duration, icon, category } = body;
+
+        if (!title || !resourceUrl) {
+          return new Response(JSON.stringify({ error: "Titulo y URL son requeridos" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [resource] = await sql`
+          INSERT INTO hdd_resources (
+            title, description, resource_type, url, duration, icon, category,
+            is_active, created_by, created_at, updated_at
+          )
+          VALUES (
+            ${title}, ${description || null}, ${resourceType || 'link'},
+            ${resourceUrl}, ${duration || null}, ${icon || null},
+            ${category || null}, TRUE, ${email}, NOW(), NOW()
+          )
+          RETURNING id, title
+        `;
+
+        return new Response(JSON.stringify({
+          success: true,
+          resource: { id: resource.id, title: resource.title },
+          message: "Recurso agregado exitosamente"
+        }), { status: 201, headers: corsHeaders });
+      }
+
+      // Update resource
+      if (action === "update_resource") {
+        const { resourceId, title, description, resourceType, url: resourceUrl, duration, icon, category, isActive } = body;
+
+        if (!resourceId) {
+          return new Response(JSON.stringify({ error: "ID de recurso requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [resource] = await sql`
+          UPDATE hdd_resources
+          SET
+            title = COALESCE(${title || null}, title),
+            description = COALESCE(${description || null}, description),
+            resource_type = COALESCE(${resourceType || null}, resource_type),
+            url = COALESCE(${resourceUrl || null}, url),
+            duration = COALESCE(${duration || null}, duration),
+            icon = COALESCE(${icon || null}, icon),
+            category = COALESCE(${category || null}, category),
+            is_active = COALESCE(${isActive != null ? isActive : null}, is_active),
+            updated_at = NOW()
+          WHERE id = ${resourceId}
+          RETURNING id, title
+        `;
+
+        if (!resource) {
+          return new Response(JSON.stringify({ error: "Recurso no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          resource,
+          message: "Recurso actualizado"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Delete resource
+      if (action === "delete_resource") {
+        const { resourceId } = body;
+
+        if (!resourceId) {
+          return new Response(JSON.stringify({ error: "ID de recurso requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        await sql`DELETE FROM hdd_resources WHERE id = ${resourceId}`;
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Recurso eliminado"
+        }), { status: 200, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: "Acción inválida" }),
         { status: 400, headers: corsHeaders });
 
@@ -291,6 +468,61 @@ export default async (req: Request, context: Context) => {
     const sessionToken = url.searchParams.get("sessionToken");
     const action = url.searchParams.get("action");
     const status = url.searchParams.get("status") || "active";
+
+    // Public endpoints (no auth required) - read-only active data
+    if (action === "public_activities") {
+      try {
+        const activities = await sql`
+          SELECT id, name, description, day_of_week, start_time, end_time,
+                 icon, location, professional
+          FROM hdd_activities
+          WHERE is_active = TRUE
+          ORDER BY day_of_week ASC, start_time ASC
+        `;
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        return new Response(JSON.stringify({
+          activities: activities.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            description: a.description,
+            dayOfWeek: a.day_of_week,
+            dayName: dayNames[a.day_of_week] || 'No definido',
+            startTime: a.start_time,
+            endTime: a.end_time,
+            icon: a.icon,
+            location: a.location,
+            professional: a.professional
+          }))
+        }), { status: 200, headers: corsHeaders });
+      } catch (e) {
+        return new Response(JSON.stringify({ activities: [] }), { status: 200, headers: corsHeaders });
+      }
+    }
+
+    if (action === "public_resources") {
+      try {
+        const resources = await sql`
+          SELECT id, title, description, resource_type, url, duration, icon, category
+          FROM hdd_resources
+          WHERE is_active = TRUE
+          ORDER BY sort_order ASC, created_at DESC
+        `;
+        return new Response(JSON.stringify({
+          resources: resources.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            resourceType: r.resource_type,
+            url: r.url,
+            duration: r.duration,
+            icon: r.icon,
+            category: r.category
+          }))
+        }), { status: 200, headers: corsHeaders });
+      } catch (e) {
+        return new Response(JSON.stringify({ resources: [] }), { status: 200, headers: corsHeaders });
+      }
+    }
 
     if (!sessionToken) {
       return new Response(JSON.stringify({ error: "Token requerido" }),
@@ -418,7 +650,8 @@ export default async (req: Request, context: Context) => {
       // Get activities
       if (action === "activities") {
         const activities = await sql`
-          SELECT id, name, description, day_of_week, start_time, end_time, is_active
+          SELECT id, name, description, day_of_week, start_time, end_time, is_active,
+                 icon, location, professional, max_capacity
           FROM hdd_activities
           ORDER BY day_of_week ASC, start_time ASC
         `;
@@ -434,7 +667,38 @@ export default async (req: Request, context: Context) => {
             dayName: dayNames[a.day_of_week] || 'No definido',
             startTime: a.start_time,
             endTime: a.end_time,
-            isActive: a.is_active
+            isActive: a.is_active,
+            icon: a.icon,
+            location: a.location,
+            professional: a.professional,
+            maxCapacity: a.max_capacity
+          }))
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Get resources
+      if (action === "resources") {
+        const resources = await sql`
+          SELECT id, title, description, resource_type, url, duration, icon,
+                 category, is_active, sort_order, created_by, created_at
+          FROM hdd_resources
+          ORDER BY sort_order ASC, created_at DESC
+        `;
+
+        return new Response(JSON.stringify({
+          resources: resources.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            resourceType: r.resource_type,
+            url: r.url,
+            duration: r.duration,
+            icon: r.icon,
+            category: r.category,
+            isActive: r.is_active,
+            sortOrder: r.sort_order,
+            createdBy: r.created_by,
+            createdAt: r.created_at
           }))
         }), { status: 200, headers: corsHeaders });
       }

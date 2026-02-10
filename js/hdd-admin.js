@@ -195,22 +195,36 @@ async function loadActivities() {
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>Actividad</th>
               <th>Dia</th>
               <th>Horario</th>
+              <th>Profesional</th>
+              <th>Ubicacion</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             ${result.activities.map(a => `
               <tr>
-                <td><strong>${escapeHtml(a.name)}</strong></td>
+                <td style="font-size: 1.5rem;">${a.icon || '📋'}</td>
+                <td><strong>${escapeHtml(a.name)}</strong>${a.description ? `<br><small style="color:var(--text-muted);">${escapeHtml(a.description)}</small>` : ''}</td>
                 <td>${a.dayName}</td>
                 <td>${a.startTime} - ${a.endTime}</td>
+                <td>${escapeHtml(a.professional || '-')}</td>
+                <td>${escapeHtml(a.location || '-')}</td>
                 <td>
                   <span class="status-badge ${a.isActive ? 'status-active' : 'status-discharged'}">
                     ${a.isActive ? 'Activa' : 'Inactiva'}
                   </span>
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="btn btn-secondary btn-sm" onclick="showEditActivity(${a.id})">Editar</button>
+                    <button class="btn btn-${a.isActive ? 'warning' : 'success'} btn-sm" onclick="toggleActivity(${a.id}, ${!a.isActive})">${a.isActive ? 'Desactivar' : 'Activar'}</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteActivity(${a.id})">Eliminar</button>
+                  </div>
                 </td>
               </tr>
             `).join('')}
@@ -219,7 +233,125 @@ async function loadActivities() {
       </div>
     `;
   } else {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No hay actividades configuradas</p></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No hay actividades configuradas</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="showAddActivityModal()">+ Agregar Primera Actividad</button></div>';
+  }
+}
+
+// Store loaded activities for editing
+let activitiesData = [];
+
+async function loadActivitiesData() {
+  const result = await api(`/api/hdd/admin?action=activities&sessionToken=${sessionToken}`);
+  activitiesData = result.activities || [];
+}
+
+function showAddActivityModal() {
+  document.getElementById('activity-modal-title').textContent = 'Agregar Actividad';
+  document.getElementById('add-activity-form').reset();
+  document.getElementById('activity-edit-id').value = '';
+  document.getElementById('add-activity-modal').classList.remove('hidden');
+}
+
+async function showEditActivity(activityId) {
+  // Refresh data
+  await loadActivitiesData();
+  const a = activitiesData.find(act => act.id === activityId);
+  if (!a) return;
+
+  document.getElementById('activity-modal-title').textContent = 'Editar Actividad';
+  document.getElementById('activity-edit-id').value = a.id;
+  document.getElementById('activity-name').value = a.name || '';
+  document.getElementById('activity-description').value = a.description || '';
+  document.getElementById('activity-day').value = a.dayOfWeek != null ? a.dayOfWeek : '';
+  document.getElementById('activity-start').value = a.startTime || '';
+  document.getElementById('activity-end').value = a.endTime || '';
+  document.getElementById('activity-icon').value = a.icon || '🎵';
+  document.getElementById('activity-professional').value = a.professional || '';
+  document.getElementById('activity-location').value = a.location || '';
+
+  document.getElementById('add-activity-modal').classList.remove('hidden');
+}
+
+async function saveActivity() {
+  const editId = document.getElementById('activity-edit-id').value;
+  const name = document.getElementById('activity-name').value.trim();
+  const description = document.getElementById('activity-description').value.trim();
+  const dayOfWeek = document.getElementById('activity-day').value;
+  const startTime = document.getElementById('activity-start').value;
+  const endTime = document.getElementById('activity-end').value;
+  const icon = document.getElementById('activity-icon').value;
+  const professional = document.getElementById('activity-professional').value.trim();
+  const location = document.getElementById('activity-location').value.trim();
+
+  if (!name || dayOfWeek === '' || !startTime || !endTime) {
+    alert('Complete los campos obligatorios (nombre, dia, horario)');
+    return;
+  }
+
+  const payload = {
+    action: editId ? 'update_activity' : 'add_activity',
+    sessionToken,
+    name,
+    description: description || null,
+    dayOfWeek: parseInt(dayOfWeek),
+    startTime,
+    endTime,
+    icon,
+    professional: professional || null,
+    location: location || null
+  };
+
+  if (editId) payload.activityId = parseInt(editId);
+
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+
+  if (result.success) {
+    hideModal('add-activity-modal');
+    loadActivities();
+    alert(editId ? 'Actividad actualizada' : 'Actividad creada exitosamente');
+  } else {
+    alert(result.error || 'Error al guardar actividad');
+  }
+}
+
+async function toggleActivity(activityId, isActive) {
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'update_activity',
+      sessionToken,
+      activityId,
+      isActive
+    })
+  });
+
+  if (result.success) {
+    loadActivities();
+  } else {
+    alert(result.error || 'Error al actualizar actividad');
+  }
+}
+
+async function deleteActivity(activityId) {
+  if (!confirm('Eliminar esta actividad? Esta accion no se puede deshacer.')) return;
+
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'delete_activity',
+      sessionToken,
+      activityId
+    })
+  });
+
+  if (result.success) {
+    loadActivities();
+    alert('Actividad eliminada');
+  } else {
+    alert(result.error || 'Error al eliminar actividad');
   }
 }
 
@@ -474,6 +606,14 @@ function switchTab(tabId) {
   // Load metrics patient selector when switching to metrics tab
   if (tabId === 'metrics') {
     populateMetricsPatientSelect();
+  }
+  // Load resources when switching to resources tab
+  if (tabId === 'resources') {
+    loadResources();
+  }
+  // Load activities when switching to activities tab
+  if (tabId === 'activities') {
+    loadActivities();
   }
 }
 
@@ -1740,67 +1880,157 @@ function copyRoomLink(roomSlug) {
 }
 
 // =====================================
-// RESOURCES FUNCTIONS
+// RESOURCES FUNCTIONS (DB-backed)
 // =====================================
-let customResources = JSON.parse(localStorage.getItem('hdd_resources') || '[]');
+let resourcesData = [];
+
+async function loadResources() {
+  const container = document.getElementById('resources-list');
+  try {
+    const result = await api(`/api/hdd/admin?action=resources&sessionToken=${sessionToken}`);
+    resourcesData = result.resources || [];
+    renderResourcesList();
+  } catch (e) {
+    container.innerHTML = '<div class="empty-state"><p>Error al cargar recursos</p></div>';
+  }
+}
+
+function renderResourcesList() {
+  const container = document.getElementById('resources-list');
+
+  if (resourcesData.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📚</div><p>No hay recursos configurados</p><button class="btn btn-primary" style="margin-top:1rem;" onclick="showAddResourceModal()">+ Agregar Primer Recurso</button></div>';
+    return;
+  }
+
+  container.innerHTML = resourcesData.map(r => `
+    <div class="resource-card" data-category="${r.resourceType}">
+      <div class="resource-icon">${r.icon || getResourceIcon(r.resourceType)}</div>
+      <div class="resource-content">
+        <h4>${escapeHtml(r.title)}</h4>
+        <p>${escapeHtml(r.description || 'Sin descripcion')}</p>
+        <div class="resource-meta">
+          <span class="resource-type">${r.resourceType}</span>
+          ${r.duration ? `<span>${escapeHtml(r.duration)}</span>` : ''}
+          ${!r.isActive ? '<span style="color:var(--error);">Inactivo</span>' : ''}
+        </div>
+      </div>
+      <div class="resource-actions">
+        <button class="btn btn-primary btn-sm" onclick="openResource('${r.resourceType}', '${escapeHtml(r.url)}')">Ver</button>
+        <button class="btn btn-secondary btn-sm" onclick="showEditResource(${r.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteResource(${r.id})">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
 
 function showAddResourceModal() {
   document.getElementById('add-resource-form').reset();
   document.getElementById('add-resource-modal').classList.remove('hidden');
 }
 
-function addResource() {
+async function addResource() {
   const title = document.getElementById('resource-title').value.trim();
-  const type = document.getElementById('resource-type').value;
+  const resourceType = document.getElementById('resource-type').value;
   const url = document.getElementById('resource-url').value.trim();
   const description = document.getElementById('resource-description').value.trim();
+  const duration = document.getElementById('resource-duration').value.trim();
 
   if (!title || !url) {
     alert('Complete los campos obligatorios');
     return;
   }
 
-  customResources.push({ title, type, url, description, createdAt: new Date().toISOString() });
-  localStorage.setItem('hdd_resources', JSON.stringify(customResources));
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'add_resource',
+      sessionToken,
+      title,
+      resourceType,
+      url,
+      description: description || null,
+      duration: duration || null
+    })
+  });
 
-  hideModal('add-resource-modal');
-  renderResources();
-  alert('Recurso agregado');
-}
-
-function renderResources() {
-  const container = document.getElementById('resources-list');
-  const existingCards = container.innerHTML;
-
-  // Add custom resources to the grid
-  if (customResources.length > 0) {
-    const customHtml = customResources.map((r, idx) => `
-      <div class="resource-card" data-category="${r.type}">
-        <div class="resource-icon">${getResourceIcon(r.type)}</div>
-        <div class="resource-content">
-          <h4>${escapeHtml(r.title)}</h4>
-          <p>${escapeHtml(r.description) || 'Sin descripcion'}</p>
-          <div class="resource-meta">
-            <span class="resource-type">${r.type}</span>
-          </div>
-        </div>
-        <div class="resource-actions">
-          <button class="btn btn-primary btn-sm" onclick="openResource('${r.type}', '${escapeHtml(r.url)}')">Ver</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteResource(${idx})">×</button>
-        </div>
-      </div>
-    `).join('');
-
-    // Append to existing
-    container.innerHTML = existingCards + customHtml;
+  if (result.success) {
+    hideModal('add-resource-modal');
+    loadResources();
+    alert('Recurso agregado exitosamente');
+  } else {
+    alert(result.error || 'Error al agregar recurso');
   }
 }
 
-function deleteResource(index) {
+function showEditResource(resourceId) {
+  const r = resourcesData.find(res => res.id === resourceId);
+  if (!r) return;
+
+  document.getElementById('edit-resource-id').value = r.id;
+  document.getElementById('edit-resource-title').value = r.title || '';
+  document.getElementById('edit-resource-type').value = r.resourceType || 'link';
+  document.getElementById('edit-resource-url').value = r.url || '';
+  document.getElementById('edit-resource-description').value = r.description || '';
+  document.getElementById('edit-resource-duration').value = r.duration || '';
+
+  document.getElementById('edit-resource-modal').classList.remove('hidden');
+}
+
+async function updateResource() {
+  const resourceId = parseInt(document.getElementById('edit-resource-id').value);
+  const title = document.getElementById('edit-resource-title').value.trim();
+  const resourceType = document.getElementById('edit-resource-type').value;
+  const url = document.getElementById('edit-resource-url').value.trim();
+  const description = document.getElementById('edit-resource-description').value.trim();
+  const duration = document.getElementById('edit-resource-duration').value.trim();
+
+  if (!title || !url) {
+    alert('Complete los campos obligatorios');
+    return;
+  }
+
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'update_resource',
+      sessionToken,
+      resourceId,
+      title,
+      resourceType,
+      url,
+      description: description || null,
+      duration: duration || null
+    })
+  });
+
+  if (result.success) {
+    hideModal('edit-resource-modal');
+    loadResources();
+    alert('Recurso actualizado');
+  } else {
+    alert(result.error || 'Error al actualizar recurso');
+  }
+}
+
+async function deleteResource(resourceId) {
   if (!confirm('Eliminar este recurso?')) return;
-  customResources.splice(index, 1);
-  localStorage.setItem('hdd_resources', JSON.stringify(customResources));
-  location.reload(); // Simpler than re-rendering
+
+  const result = await api('/api/hdd/admin', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'delete_resource',
+      sessionToken,
+      resourceId
+    })
+  });
+
+  if (result.success) {
+    loadResources();
+    alert('Recurso eliminado');
+  } else {
+    alert(result.error || 'Error al eliminar recurso');
+  }
 }
 
 function getResourceIcon(type) {
@@ -1810,7 +2040,7 @@ function getResourceIcon(type) {
 
 function filterResources(category) {
   document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
 
   document.querySelectorAll('.resource-card').forEach(card => {
     if (category === 'all' || card.dataset.category === category) {

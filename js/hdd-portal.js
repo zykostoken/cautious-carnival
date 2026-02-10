@@ -346,6 +346,76 @@ function switchTab(tabId) {
   if (tabId === 'games') {
     loadGames();
   }
+  if (tabId === 'activities') {
+    loadPortalActivities();
+    loadPortalResources();
+  }
+}
+
+// ==================== ACTIVITIES & RESOURCES (DB-backed) ====================
+
+async function loadPortalActivities() {
+  const container = document.getElementById('activities-list');
+  if (!container) return;
+
+  try {
+    const response = await fetch('/api/hdd/admin?action=public_activities');
+    const data = await response.json();
+
+    if (data.activities && data.activities.length > 0) {
+      container.innerHTML = data.activities.map(a => `
+        <div class="activity-card">
+          <div class="activity-icon">${a.icon || '📋'}</div>
+          <div class="activity-info">
+            <div class="activity-name">${escapeHtml(a.name)}</div>
+            <div class="activity-schedule">${a.dayName} ${a.startTime} - ${a.endTime}</div>
+            ${a.professional ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">Prof. ${escapeHtml(a.professional)}</div>` : ''}
+            ${a.location ? `<div style="font-size:0.8rem;color:var(--text-muted);">${escapeHtml(a.location)}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<p style="color:var(--text-muted);">No hay actividades programadas actualmente.</p>';
+    }
+  } catch (e) {
+    // Fallback to default activities
+    container.innerHTML = `
+      <div class="activity-card"><div class="activity-icon">🎵</div><div class="activity-info"><div class="activity-name">Musica</div><div class="activity-schedule">Lunes 10:00 - 11:30</div></div></div>
+      <div class="activity-card"><div class="activity-icon">🌱</div><div class="activity-info"><div class="activity-name">Huerta</div><div class="activity-schedule">Martes 10:00 - 12:00</div></div></div>
+      <div class="activity-card"><div class="activity-icon">🪵</div><div class="activity-info"><div class="activity-name">Carpinteria</div><div class="activity-schedule">Miercoles 10:00 - 12:00</div></div></div>
+      <div class="activity-card"><div class="activity-icon">🍳</div><div class="activity-info"><div class="activity-name">Cocina</div><div class="activity-schedule">Jueves 10:00 - 12:00</div></div></div>
+      <div class="activity-card"><div class="activity-icon">💃</div><div class="activity-info"><div class="activity-name">Expresion Corporal</div><div class="activity-schedule">Viernes 10:00 - 11:30</div></div></div>
+    `;
+  }
+}
+
+async function loadPortalResources() {
+  const container = document.getElementById('portal-resources-list');
+  if (!container) return;
+
+  try {
+    const response = await fetch('/api/hdd/admin?action=public_resources');
+    const data = await response.json();
+
+    if (data.resources && data.resources.length > 0) {
+      const icons = { video: '🎥', document: '📄', course: '🎓', link: '🔗' };
+      container.innerHTML = data.resources.map(r => `
+        <div class="activity-card" style="cursor:pointer;" onclick="window.open('${escapeHtml(r.url)}', '_blank')">
+          <div class="activity-icon" style="font-size:1.5rem;">${r.icon || icons[r.resourceType] || '📎'}</div>
+          <div class="activity-info">
+            <div class="activity-name">${escapeHtml(r.title)}</div>
+            <div class="activity-schedule">${escapeHtml(r.description || '')}</div>
+            ${r.duration ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">${escapeHtml(r.resourceType)} - ${escapeHtml(r.duration)}</div>` : ''}
+          </div>
+          <span style="color: var(--primary);">Ver →</span>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<p style="color:var(--text-muted);">No hay recursos disponibles actualmente.</p>';
+    }
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--text-muted);">No se pudieron cargar los recursos.</p>';
+  }
 }
 
 // Feed

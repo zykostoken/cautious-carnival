@@ -331,9 +331,24 @@
                             </form>
                         </div>
                     </div>
+
+                    <!-- Consultations Management -->
+                    <div class="admin-consultations" style="margin-top: 1.5rem;">
+                        <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📩 Consultas Recibidas</span>
+                            <span class="queue-count" id="consultations-count" style="background: var(--accent-green); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">0</span>
+                        </h4>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                            <button class="admin-btn" id="filter-pending" onclick="filterConsultations('pending')" style="font-size: 0.75rem; padding: 4px 10px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer;">Pendientes</button>
+                            <button class="admin-btn" id="filter-read" onclick="filterConsultations('read')" style="font-size: 0.75rem; padding: 4px 10px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Leídas</button>
+                            <button class="admin-btn" id="filter-responded" onclick="filterConsultations('responded')" style="font-size: 0.75rem; padding: 4px 10px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Respondidas</button>
+                            <button class="admin-btn" id="filter-all" onclick="filterConsultations(null)" style="font-size: 0.75rem; padding: 4px 10px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">Todas</button>
+                        </div>
+                        <div id="consultations-list" style="max-height: 500px; overflow-y: auto;">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">Cargando consultas...</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="professional-panel-footer">
                 <div class="toggle-availability">
                     <span style="color: var(--text-secondary); font-size: 0.9rem;">Disponible</span>
                     <div class="toggle-switch" id="availability-toggle" onclick="toggleAvailability()"></div>
@@ -797,7 +812,10 @@
             <div class="contact-form-container fade-in">
                 <h3>Envianos tu consulta</h3>
                 <p class="form-subtitle">Completá el formulario y te responderemos a la brevedad</p>
-                <form id="contact-form" class="contact-form" onsubmit="submitContactForm(event)">
+                <form id="contact-form" name="consultas" method="POST" class="contact-form" data-netlify="true" netlify-honeypot="bot-field" onsubmit="submitContactForm(event)">
+                    <input type="hidden" name="form-name" value="consultas">
+                    <p style="display:none"><label>No completar: <input name="bot-field"></label></p>
+                    <input type="hidden" name="subject" value="Nueva Consulta Web - %{formName}">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="contact-name">Nombre *</label>
