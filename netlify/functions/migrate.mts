@@ -430,6 +430,73 @@ CREATE INDEX IF NOT EXISTS idx_mp_payments_status ON mp_payments(status);
 CREATE INDEX IF NOT EXISTS idx_mp_payments_external_ref ON mp_payments(external_reference);
 `;
 
+// Resources and activity management tables
+const resourcesMigrationSQL = `
+-- HDD Resources table
+CREATE TABLE IF NOT EXISTS hdd_resources (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    resource_type VARCHAR(50) NOT NULL DEFAULT 'link',
+    url TEXT NOT NULL,
+    duration VARCHAR(50),
+    icon VARCHAR(10),
+    category VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    created_by VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- HDD Weekly Activities schedule table
+CREATE TABLE IF NOT EXISTS hdd_weekly_activities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    day_of_week INTEGER,
+    start_time TIME,
+    end_time TIME,
+    icon VARCHAR(10),
+    location VARCHAR(200),
+    professional VARCHAR(200),
+    max_capacity INTEGER,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add extra columns to hdd_activities schedule if it already exists from 001_initial.sql
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'hdd_activities'
+    AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_activities' AND column_name = 'day_of_week')) THEN
+    ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS icon VARCHAR(10);
+    ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS location VARCHAR(200);
+    ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS professional VARCHAR(200);
+    ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS max_capacity INTEGER;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'hdd_activities' AND column_name = 'created_at') THEN
+      ALTER TABLE hdd_activities ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+    END IF;
+    ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+  END IF;
+END $$;
+
+-- Seed default resources
+INSERT INTO hdd_resources (title, description, resource_type, url, duration, sort_order)
+VALUES
+    ('Tecnicas de Relajacion', 'Video introductorio sobre tecnicas de respiracion y relajacion muscular progresiva.', 'video', 'https://www.youtube.com/watch?v=aXItOY0sLRY', '15 min', 1),
+    ('Guia de Medicacion', 'Documento sobre manejo responsable de medicacion psiquiatrica.', 'document', '#', '10 paginas', 2),
+    ('Curso: Habilidades Sociales', 'Curso de 4 modulos sobre desarrollo de habilidades sociales y comunicacion asertiva.', 'course', '#', '4 modulos', 3),
+    ('Mindfulness para Principiantes', 'Sesion guiada de meditacion mindfulness para principiantes.', 'video', 'https://www.youtube.com/watch?v=ZToicYcHIqU', '20 min', 4),
+    ('Portal de Salud Mental', 'Enlace al portal nacional de recursos de salud mental.', 'link', 'https://www.argentina.gob.ar/salud/mental', NULL, 5)
+ON CONFLICT DO NOTHING;
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_hdd_resources_type ON hdd_resources(resource_type);
+CREATE INDEX IF NOT EXISTS idx_hdd_resources_active ON hdd_resources(is_active);
+`;
+
 // Seed HDD patients data
 const seedHDDPatientsSQL = `
 -- Insert all 23 authorized HDD patients
@@ -488,6 +555,11 @@ export default async (req: Request, context: Context) => {
     results.push("Seeding HDD patients...");
     await sql.unsafe(seedHDDPatientsSQL);
     results.push("HDD patients seeded successfully");
+
+    // Run resources and activity management migration
+    results.push("Creating resources and activity management tables...");
+    await sql.unsafe(resourcesMigrationSQL);
+    results.push("Resources and activity tables created successfully");
 
     // Verify tables exist
     const tables = await sql`

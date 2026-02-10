@@ -319,6 +319,15 @@ async function submitContactForm(event) {
             messageEl.textContent = data.message || 'Su consulta ha sido enviada. Nos pondremos en contacto a la brevedad.';
             messageEl.className = 'form-message success';
             messageEl.style.display = 'block';
+
+            // Also submit to Netlify Forms as backup notification channel
+            const formData = new URLSearchParams(new FormData(form)).toString();
+            fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            }).catch(() => {});
+
             form.reset();
 
             // Track the event
@@ -675,6 +684,165 @@ async function adminAddProfessional(event) {
     }
 }
 
+// ========== CONSULTATION MANAGEMENT ==========
+
+let currentConsultationFilter = 'pending';
+
+const consultationTypeLabels = {
+    general: 'Consulta General',
+    telemedicina: 'Telemedicina',
+    internacion: 'Internación',
+    hdd: 'Hospital de Día',
+    turnos: 'Turnos'
+};
+
+async function loadConsultations(statusFilter) {
+    if (!isAdmin()) return;
+
+    const listEl = document.getElementById('consultations-list');
+    const countEl = document.getElementById('consultations-count');
+    if (!listEl) return;
+
+    currentConsultationFilter = statusFilter;
+
+    // Update filter button styles
+    ['pending', 'read', 'responded', 'all'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (btn) {
+            if ((f === 'all' && !statusFilter) || f === statusFilter) {
+                btn.style.background = 'var(--accent-green)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+            } else {
+                btn.style.background = 'var(--bg-card)';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.border = '1px solid var(--border-color)';
+            }
+        }
+    });
+
+    try {
+        let url = `/api/consultations?sessionToken=${professionalSession}`;
+        if (statusFilter) url += `&status=${statusFilter}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.consultations) {
+            listEl.innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Error al cargar consultas</p>';
+            return;
+        }
+
+        // Update count badge
+        const pendingCount = data.counts?.pending || 0;
+        if (countEl) {
+            countEl.textContent = pendingCount;
+            countEl.style.background = pendingCount > 0 ? '#ef4444' : 'var(--accent-green)';
+        }
+
+        if (data.consultations.length === 0) {
+            listEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem;">No hay consultas ' + (statusFilter ? 'con este estado' : '') + '</p>';
+            return;
+        }
+
+        listEl.innerHTML = data.consultations.map(c => {
+            const date = new Date(c.createdAt).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const typeLabel = consultationTypeLabels[c.consultationType] || c.consultationType;
+            const statusColors = { pending: '#ef4444', read: '#f59e0b', responded: '#22c55e', archived: '#6b7280' };
+            const statusLabels = { pending: 'Pendiente', read: 'Leída', responded: 'Respondida', archived: 'Archivada' };
+            const statusColor = statusColors[c.status] || '#6b7280';
+            const statusLabel = statusLabels[c.status] || c.status;
+
+            return `
+                <div style="background: var(--bg-card); border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid ${statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="font-size: 0.9rem; color: var(--text-primary);">${c.name}</strong>
+                        <span style="font-size: 0.7rem; color: ${statusColor}; font-weight: bold;">${statusLabel}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
+                        ${typeLabel} · ${date}
+                    </div>
+                    ${c.email ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📧 <a href="mailto:${c.email}" style="color: var(--accent-green);">${c.email}</a></div>` : ''}
+                    ${c.phone ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📞 <a href="tel:${c.phone}" style="color: var(--accent-green);">${c.phone}</a></div>` : ''}
+                    ${c.subject ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;"><em>${c.subject}</em></div>` : ''}
+                    <div style="font-size: 0.85rem; color: var(--text-primary); background: var(--bg-primary); padding: 8px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; word-break: break-word;">${c.message}</div>
+                    ${c.respondedByName ? `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Respondida por: ${c.respondedByName}</div>` : ''}
+                    ${c.notes ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; padding: 6px; background: var(--bg-primary); border-radius: 4px;"><strong>Notas:</strong> ${c.notes}</div>` : ''}
+                    <div style="display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;">
+                        ${c.status === 'pending' ? `<button onclick="markConsultation(${c.id}, 'mark_read')" style="font-size: 0.7rem; padding: 3px 8px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Leída</button>` : ''}
+                        ${c.status !== 'responded' && c.status !== 'archived' ? `<button onclick="respondConsultation(${c.id})" style="font-size: 0.7rem; padding: 3px 8px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Respondida</button>` : ''}
+                        ${c.status !== 'archived' ? `<button onclick="markConsultation(${c.id}, 'archive')" style="font-size: 0.7rem; padding: 3px 8px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Archivar</button>` : ''}
+                        ${c.email ? `<a href="mailto:${c.email}?subject=Re: ${encodeURIComponent(c.subject || typeLabel)}" style="font-size: 0.7rem; padding: 3px 8px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none;">Responder por Email</a>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading consultations:', e);
+        listEl.innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Error al cargar consultas</p>';
+    }
+}
+
+function filterConsultations(status) {
+    loadConsultations(status);
+}
+
+async function markConsultation(consultationId, action) {
+    if (!isAdmin()) return;
+
+    try {
+        const res = await fetch('/api/consultations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action,
+                consultationId,
+                sessionToken: professionalSession
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            loadConsultations(currentConsultationFilter);
+        } else {
+            alert(data.error || 'Error al actualizar consulta');
+        }
+    } catch (e) {
+        alert('Error de conexión');
+    }
+}
+
+async function respondConsultation(consultationId) {
+    if (!isAdmin()) return;
+
+    const notes = prompt('Notas de la respuesta (opcional):');
+    if (notes === null) return; // cancelled
+
+    try {
+        const res = await fetch('/api/consultations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'mark_responded',
+                consultationId,
+                sessionToken: professionalSession,
+                notes: notes || null
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            loadConsultations(currentConsultationFilter);
+        } else {
+            alert(data.error || 'Error al actualizar consulta');
+        }
+    } catch (e) {
+        alert('Error de conexión');
+    }
+}
+
+// ========== ADMIN DASHBOARD OVERRIDE ==========
+
 // Override showProfessionalDashboard to include admin check
 const originalShowProfessionalDashboard = showProfessionalDashboard;
 showProfessionalDashboard = function() {
@@ -685,6 +853,7 @@ showProfessionalDashboard = function() {
     if (adminSection && isAdmin()) {
         adminSection.style.display = 'block';
         loadAdminProfessionalList();
+        loadConsultations('pending');
     }
 };
 

@@ -550,7 +550,7 @@
           </div>
           <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-              Biblioteca de recursos educativos, videos, cursos y material de apoyo para pacientes y profesionales.
+              Biblioteca de recursos educativos, videos, cursos y material de apoyo para pacientes y profesionales. Los recursos se muestran tambien en el portal de pacientes.
             </div>
 
             <!-- Resource Categories -->
@@ -563,80 +563,7 @@
             </div>
 
             <div class="resources-grid" id="resources-list">
-              <!-- Sample Resources -->
-              <div class="resource-card" data-category="video">
-                <div class="resource-icon">🎥</div>
-                <div class="resource-content">
-                  <h4>Tecnicas de Relajacion</h4>
-                  <p>Video introductorio sobre tecnicas de respiracion y relajacion muscular progresiva.</p>
-                  <div class="resource-meta">
-                    <span class="resource-type">Video</span>
-                    <span>Duracion: 15 min</span>
-                  </div>
-                </div>
-                <div class="resource-actions">
-                  <button class="btn btn-primary btn-sm" onclick="openResource('video', 'https://www.youtube.com/embed/dQw4w9WgXcQ')">Ver</button>
-                </div>
-              </div>
-
-              <div class="resource-card" data-category="document">
-                <div class="resource-icon">📄</div>
-                <div class="resource-content">
-                  <h4>Guia de Medicacion</h4>
-                  <p>Documento sobre manejo responsable de medicacion psiquiatrica.</p>
-                  <div class="resource-meta">
-                    <span class="resource-type">PDF</span>
-                    <span>10 paginas</span>
-                  </div>
-                </div>
-                <div class="resource-actions">
-                  <button class="btn btn-primary btn-sm" onclick="openResource('document', '#')">Descargar</button>
-                </div>
-              </div>
-
-              <div class="resource-card" data-category="course">
-                <div class="resource-icon">🎓</div>
-                <div class="resource-content">
-                  <h4>Curso: Habilidades Sociales</h4>
-                  <p>Curso de 4 modulos sobre desarrollo de habilidades sociales y comunicacion asertiva.</p>
-                  <div class="resource-meta">
-                    <span class="resource-type">Curso</span>
-                    <span>4 modulos</span>
-                  </div>
-                </div>
-                <div class="resource-actions">
-                  <button class="btn btn-primary btn-sm" onclick="openResource('course', '#')">Acceder</button>
-                </div>
-              </div>
-
-              <div class="resource-card" data-category="video">
-                <div class="resource-icon">🎥</div>
-                <div class="resource-content">
-                  <h4>Mindfulness para Principiantes</h4>
-                  <p>Sesion guiada de meditacion mindfulness para principiantes.</p>
-                  <div class="resource-meta">
-                    <span class="resource-type">Video</span>
-                    <span>Duracion: 20 min</span>
-                  </div>
-                </div>
-                <div class="resource-actions">
-                  <button class="btn btn-primary btn-sm" onclick="openResource('video', '#')">Ver</button>
-                </div>
-              </div>
-
-              <div class="resource-card" data-category="link">
-                <div class="resource-icon">🔗</div>
-                <div class="resource-content">
-                  <h4>Portal de Salud Mental</h4>
-                  <p>Enlace al portal nacional de recursos de salud mental.</p>
-                  <div class="resource-meta">
-                    <span class="resource-type">Enlace</span>
-                  </div>
-                </div>
-                <div class="resource-actions">
-                  <button class="btn btn-primary btn-sm" onclick="openResource('link', 'https://www.argentina.gob.ar/salud/mental')">Visitar</button>
-                </div>
-              </div>
+              <div class="empty-state">Cargando recursos...</div>
             </div>
           </div>
         </div>
@@ -647,8 +574,12 @@
         <div class="card">
           <div class="card-header">
             <h2>Actividades Semanales</h2>
+            <button class="btn btn-primary" onclick="showAddActivityModal()">+ Agregar Actividad</button>
           </div>
           <div class="card-body">
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+              Gestione las actividades semanales del Hospital de Dia. Estas actividades se muestran en el portal de pacientes y en la pagina publica.
+            </div>
             <div id="activities-list">
               <div class="empty-state">Cargando actividades...</div>
             </div>
@@ -852,11 +783,136 @@
             <label for="resource-description">Descripcion</label>
             <textarea id="resource-description" rows="2"></textarea>
           </div>
+          <div class="form-group">
+            <label for="resource-duration">Duracion / Info</label>
+            <input type="text" id="resource-duration" placeholder="Ej: 15 min, 4 modulos, 10 paginas">
+          </div>
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="hideModal('add-resource-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="addResource()">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Activity Modal -->
+  <div id="add-activity-modal" class="modal-overlay hidden" onclick="closeModal(event, 'add-activity-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="activity-modal-title">Agregar Actividad</h3>
+        <button class="modal-close" onclick="hideModal('add-activity-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-activity-form">
+          <input type="hidden" id="activity-edit-id">
+          <div class="form-group">
+            <label for="activity-name">Nombre *</label>
+            <input type="text" id="activity-name" placeholder="Ej: Taller de Musica" required>
+          </div>
+          <div class="form-group">
+            <label for="activity-description">Descripcion</label>
+            <textarea id="activity-description" rows="2" placeholder="Breve descripcion de la actividad..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="activity-day">Dia de la Semana *</label>
+            <select id="activity-day" required>
+              <option value="">Seleccionar...</option>
+              <option value="1">Lunes</option>
+              <option value="2">Martes</option>
+              <option value="3">Miercoles</option>
+              <option value="4">Jueves</option>
+              <option value="5">Viernes</option>
+              <option value="6">Sabado</option>
+              <option value="0">Domingo</option>
+            </select>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="activity-start">Hora Inicio *</label>
+              <input type="time" id="activity-start" required>
+            </div>
+            <div class="form-group">
+              <label for="activity-end">Hora Fin *</label>
+              <input type="time" id="activity-end" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="activity-icon">Icono</label>
+            <select id="activity-icon">
+              <option value="🎵">🎵 Musica</option>
+              <option value="🌱">🌱 Huerta / Naturaleza</option>
+              <option value="🪵">🪵 Carpinteria</option>
+              <option value="🍳">🍳 Cocina</option>
+              <option value="💃">💃 Expresion Corporal</option>
+              <option value="🎨">🎨 Arte / Pintura</option>
+              <option value="🧘">🧘 Relajacion / Yoga</option>
+              <option value="📚">📚 Lectura / Estudio</option>
+              <option value="🎮">🎮 Juegos</option>
+              <option value="💬">💬 Grupo Terapeutico</option>
+              <option value="🏥">🏥 Consulta Medica</option>
+              <option value="🎬">🎬 Cine / Video</option>
+              <option value="⚽">⚽ Deportes</option>
+              <option value="🧩">🧩 Estimulacion Cognitiva</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="activity-professional">Profesional a Cargo</label>
+            <input type="text" id="activity-professional" placeholder="Nombre del profesional">
+          </div>
+          <div class="form-group">
+            <label for="activity-location">Ubicacion / Sala</label>
+            <input type="text" id="activity-location" placeholder="Ej: Sala de Musica, Patio">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('add-activity-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveActivity()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Resource Modal -->
+  <div id="edit-resource-modal" class="modal-overlay hidden" onclick="closeModal(event, 'edit-resource-modal')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Editar Recurso</h3>
+        <button class="modal-close" onclick="hideModal('edit-resource-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-resource-form">
+          <input type="hidden" id="edit-resource-id">
+          <div class="form-group">
+            <label for="edit-resource-title">Titulo *</label>
+            <input type="text" id="edit-resource-title" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-resource-type">Tipo *</label>
+            <select id="edit-resource-type" required>
+              <option value="video">Video</option>
+              <option value="document">Documento</option>
+              <option value="course">Curso</option>
+              <option value="link">Enlace</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-resource-url">URL *</label>
+            <input type="url" id="edit-resource-url" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-resource-description">Descripcion</label>
+            <textarea id="edit-resource-description" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="edit-resource-duration">Duracion / Info</label>
+            <input type="text" id="edit-resource-duration" placeholder="Ej: 15 min, 4 modulos">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('edit-resource-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="updateResource()">Guardar Cambios</button>
       </div>
     </div>
   </div>
