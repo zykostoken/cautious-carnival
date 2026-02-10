@@ -648,40 +648,6 @@
     }
     .instruction-card .start-btn:hover { background: #16a34a; }
 
-    /* Blocked overlay */
-    .blocked-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(245,158,11,0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      z-index: 50;
-      gap: 0.8rem;
-    }
-    .blocked-overlay.hidden { display: none; }
-    .blocked-text {
-      background: var(--warning);
-      color: var(--text);
-      padding: 0.5rem 1.2rem;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 1rem;
-      animation: pulse 0.5s ease-in-out infinite alternate;
-    }
-    .blocked-restart-btn {
-      padding: 0.5rem 1.2rem;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
     /* Metrics panel */
     .metrics-overlay {
       position: fixed;
@@ -809,9 +775,6 @@
         <div class="stuck-text">Atascado en cable!</div>
       </div>
       <div class="blocked-overlay hidden" id="blockedOverlay" role="alert">
-      <div class="blocked-overlay hidden" id="blockedOverlay">
-        <div class="blocked-text">Te bloqueaste! No hay cesped alcanzable.</div>
-        <button class="blocked-restart-btn" id="blockedRestartBtn">Reiniciar Nivel</button>
         <div class="blocked-text" id="blockedText">Sin movimientos posibles!</div>
         <button class="blocked-restart-btn" id="blockedRestartBtn" aria-label="Reiniciar nivel">Reiniciar Nivel</button>
       </div>
@@ -1087,19 +1050,16 @@
 
   <!-- Result Overlay -->
   <div class="screen-overlay hidden" id="resultScreen">
-    <div class="screen-card">
+    <div class="screen-card" style="position:relative;">
+      <button id="resultCloseBtn" style="position:absolute;top:0.5rem;right:0.7rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);line-height:1;" aria-label="Cerrar">&times;</button>
       <h1 class="result-title" id="resultTitle"></h1>
       <div class="score-breakdown" id="scoreBreakdown"></div>
       <div class="result-actions">
-        <button class="btn-primary btn-next" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
-        <button class="btn-next hidden" id="nextLevelBtn">Siguiente Nivel &#8594;</button>
-        <button class="btn-primary" id="retryBtn">Reintentar</button>
-        <button class="btn-metrics" id="metricsBtn">Biomarcadores</button>
         <button class="btn-primary" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
         <button class="btn-primary" id="retryBtn">Reintentar</button>
         <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Ver Metricas</button>
         <button class="btn-secondary" id="levelsBtn">Niveles</button>
-        <a href="/games/portal" class="btn-secondary" style="text-decoration:none;">Volver al portal</a>
+        <button class="btn-secondary" id="endGameBtn" style="background:#ef4444;color:#fff;">Finalizar</button>
       </div>
     </div>
   </div>
@@ -3296,12 +3256,18 @@
         }, 2000);
         return;
       } else {
-        // already collected, treat as cut grass
+        // already collected, cut the grass underneath
+        grid[ny][nx] = T.CUT;
+        grassCut++;
+        recordGrassCut();
+        score += 10;
+        if (hasBag) bagCount++;
         playerX = nx;
         playerY = ny;
         recordMovement(dx, dy, true, timestamp);
         updateUI();
         render();
+        checkWin();
         return;
       }
     }
@@ -3383,6 +3349,7 @@
         const dist = Math.abs(row - playerY) + Math.abs(col - playerX);
         if (dist <= 2) {
           collectedCables.add(key);
+          grid[row][col] = T.GRASS;
           showToast('Cable recogido!', 'info');
           render();
         } else {
@@ -3620,6 +3587,22 @@
   });
 
   // ---- RESULT BUTTONS ----
+  document.getElementById('resultCloseBtn').addEventListener('click', function() {
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+  });
+  document.getElementById('endGameBtn').addEventListener('click', function() {
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+    gameRunning = false;
+    clearInterval(timerInterval);
+    clearInterval(blockedCheckInterval);
+    restartBtn.classList.remove('visible');
+    document.getElementById('restartBtn').style.display = 'none';
+    levelSelectScreen.classList.remove('hidden');
+  });
   document.getElementById('retryBtn').addEventListener('click', function() {
     cancelAnimationFrame(celebAnimId);
     celebCanvas.classList.add('hidden');
