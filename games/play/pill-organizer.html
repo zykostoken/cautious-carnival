@@ -125,51 +125,49 @@
     </div>
 
     <!-- ========================================= -->
-    <!-- MODAL: POST-GAME MOOD CHECK + INTENSITY -->
+    <!-- MODAL: PROJECTIVE COLOR SYSTEM (2 PHASES) -->
     <!-- ========================================= -->
-    <div id="mood-modal-post" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-10 mx-4 border-t-8 border-purple-600">
-            <div class="text-center mb-6">
-                <div class="text-6xl mb-4">💭</div>
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">¿Cómo te sentiste jugando?</h2>
-                <p class="text-sm text-gray-500">Tu experiencia es valiosa para nosotros</p>
+    
+    <!-- PHASE 1: Intensity/Arousal Selection -->
+    <div id="color-intensity-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-lg w-full p-12 mx-4 border-4 border-gray-700">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-white mb-4">¿Cómo se sintió esta partida?</h2>
+                <p class="text-base text-gray-300">Seleccioná la intensidad que mejor resuene con vos ahora:</p>
             </div>
             
-            <div class="grid grid-cols-5 gap-4 mb-8">
-                <button class="mood-btn-post bg-red-100 hover:bg-red-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="1">😢</button>
-                <button class="mood-btn-post bg-orange-100 hover:bg-orange-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="2">😕</button>
-                <button class="mood-btn-post bg-yellow-100 hover:bg-yellow-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="3">😐</button>
-                <button class="mood-btn-post bg-lime-100 hover:bg-lime-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="4">🙂</button>
-                <button class="mood-btn-post bg-green-100 hover:bg-green-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="5">😄</button>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-base font-semibold text-gray-700 mb-3">Intensidad Emocional</label>
-                <input type="range" id="intensity-slider" min="1" max="5" value="3" 
-                       class="w-full h-4 bg-gradient-to-r from-blue-300 via-purple-400 to-pink-500 rounded-lg appearance-none cursor-pointer">
-                <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
-                    <span>Pastel</span>
-                    <span>Apagado</span>
-                    <span>Normal</span>
-                    <span>Vivo</span>
-                    <span>Intenso</span>
+            <div class="flex justify-center gap-8 mb-6">
+                <!-- Dull/Low Energy (Grisáceo - Baja energía/Depresivo) -->
+                <div onclick="selectIntensity('dull')" 
+                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
+                     style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+                
+                <!-- Pastel/Calm (Suave - Calma/Equilibrio) -->
+                <div onclick="selectIntensity('pastel')" 
+                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
+                     style="background: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+                
+                <!-- Vivid/High Energy (Vívido - Alta energía/Ansiedad o Manía) -->
+                <div onclick="selectIntensity('vivid')" 
+                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
+                     style="background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ========================================= -->
-    <!-- MODAL: COLOR PALETTE SELECTOR -->
-    <!-- ========================================= -->
-    <div id="color-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-10 mx-4 border-t-8 border-indigo-600">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Elegí un color</h2>
-                <p class="text-sm text-gray-500">Tocá el color que mejor refleje cómo te sentís ahora</p>
+    <!-- PHASE 2: Valence/Tone Palette -->
+    <div id="color-palette-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-2xl w-full p-12 mx-4 border-4 border-gray-700">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-white mb-4">Elegí un color</h2>
+                <p class="text-base text-gray-300">Tocá el color que mejor refleje cómo te sentís ahora</p>
             </div>
             
-            <div id="color-palette" class="grid grid-cols-4 gap-6 justify-items-center">
-                <!-- Se llena dinámicamente según intensidad emocional -->
+            <div id="dynamic-palette" class="grid grid-cols-4 gap-6 justify-items-center">
+                <!-- Se llena dinámicamente según intensidad seleccionada -->
             </div>
         </div>
     </div>
@@ -321,14 +319,39 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ===========================================
-        // PALETAS DE COLORES POR INTENSIDAD
+        // PALETAS PROYECTIVAS POR INTENSIDAD
         // ===========================================
-        const COLOR_PALETTES = {
-            1: ['#FFE4E1', '#E6E6FA', '#F0FFF0', '#FFF8DC', '#F5F5DC', '#FAEBD7', '#FFE4B5', '#FFDAB9'],
-            2: ['#B0C4DE', '#D3D3D3', '#F5DEB3', '#DDA0DD', '#B0E0E6', '#AFEEEE', '#F0E68C', '#EEE8AA'],
-            3: ['#4682B4', '#32CD32', '#FFD700', '#FF6347', '#9370DB', '#3CB371', '#FF8C00', '#20B2AA'],
-            4: ['#FF4500', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF1493', '#7FFF00'],
-            5: ['#FF0000', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF1493', '#7FFF00']
+        const PROJECTIVE_PALETTES = {
+            'dull': [
+                '#546e7a', // Gris azulado oscuro
+                '#455a64', // Gris azulado medio
+                '#37474f', // Gris azulado profundo
+                '#263238', // Casi negro azulado
+                '#607d8b', // Gris azul claro
+                '#78909c', // Gris azul muy claro
+                '#90a4ae', // Gris azul pálido
+                '#b0bec5'  // Gris azul muy pálido
+            ],
+            'pastel': [
+                '#ffcdd2', // Rosa pastel
+                '#f8bbd0', // Rosa claro
+                '#e1bee7', // Violeta pastel
+                '#c5cae9', // Azul pastel
+                '#b2dfdb', // Verde agua pastel
+                '#c8e6c9', // Verde pastel
+                '#fff9c4', // Amarillo pastel
+                '#ffccbc'  // Naranja pastel
+            ],
+            'vivid': [
+                '#f44336', // Rojo intenso
+                '#e91e63', // Rosa fucsia
+                '#9c27b0', // Violeta saturado
+                '#673ab7', // Púrpura intenso
+                '#ffeb3b', // Amarillo brillante
+                '#ff9800', // Naranja saturado
+                '#4caf50', // Verde brillante
+                '#00bcd4'  // Cyan intenso
+            ]
         };
 
         // ===========================================
@@ -671,57 +694,59 @@
         }
 
         // ===========================================
-        // FINALIZACIÓN
+        // FINALIZACIÓN + SISTEMA PROYECTIVO (2 FASES)
         // ===========================================
         document.getElementById('finish-btn').addEventListener('click', () => {
             sessionState.endTime = Date.now();
-            showPostMoodModal();
+            showIntensitySelector();
         });
 
-        function showPostMoodModal() {
-            document.getElementById('mood-modal-post').classList.remove('hidden');
-            
-            document.querySelectorAll('.mood-btn-post').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.mood-btn-post').forEach(b => b.classList.remove('selected'));
-                    this.classList.add('selected');
-                    sessionState.moodPost = parseInt(this.dataset.mood);
-                    sessionState.emotionalIntensity = parseInt(document.getElementById('intensity-slider').value);
-                    
-                    setTimeout(() => {
-                        document.getElementById('mood-modal-post').classList.add('hidden');
-                        showColorPalette();
-                    }, 400);
-                });
-            });
+        // PHASE 1: Seleccionar Intensidad/Arousal
+        function showIntensitySelector() {
+            document.getElementById('color-intensity-modal').classList.remove('hidden');
         }
 
-        function showColorPalette() {
-            const intensity = sessionState.emotionalIntensity || 3;
-            const colors = COLOR_PALETTES[intensity];
-            const palette = document.getElementById('color-palette');
-            palette.innerHTML = '';
+        // Global function (llamada desde onclick en HTML)
+        window.selectIntensity = function(intensity) {
+            sessionState.emotionalIntensity = intensity;
+            
+            // Cerrar modal de intensidad
+            document.getElementById('color-intensity-modal').classList.add('hidden');
+            
+            // Abrir modal de paleta
+            setTimeout(() => {
+                showDynamicPalette(intensity);
+            }, 300);
+        };
+
+        // PHASE 2: Mostrar Paleta según Intensidad
+        function showDynamicPalette(intensity) {
+            const colors = PROJECTIVE_PALETTES[intensity];
+            const paletteContainer = document.getElementById('dynamic-palette');
+            paletteContainer.innerHTML = '';
             
             colors.forEach(color => {
-                const tile = document.createElement('div');
-                tile.className = 'color-tile';
-                tile.style.backgroundColor = color;
-                tile.addEventListener('click', () => selectColor(color));
-                palette.appendChild(tile);
+                const colorTile = document.createElement('div');
+                colorTile.className = 'w-24 h-24 rounded-2xl cursor-pointer transition-all hover:scale-110 hover:rotate-6 shadow-lg';
+                colorTile.style.backgroundColor = color;
+                colorTile.style.boxShadow = `0 8px 20px ${color}40`;
+                colorTile.addEventListener('click', () => selectFinalColor(color, intensity));
+                paletteContainer.appendChild(colorTile);
             });
             
-            document.getElementById('color-modal').classList.remove('hidden');
+            document.getElementById('color-palette-modal').classList.remove('hidden');
         }
 
-        async function selectColor(color) {
+        // Guardar selección final
+        async function selectFinalColor(color, intensity) {
             sessionState.selectedColor = color;
             
-            // Guardar biomarcadores post-game
+            // Guardar en Supabase
             await supabase.from('hdd_mood_checkins').insert({
                 patient_id: sessionState.patientId,
-                mood_level: sessionState.moodPost,
+                mood_level: null, // No usamos mood numérico en sistema proyectivo
                 color_hex: color,
-                color_intensity: ['pastel', 'apagado', 'normal', 'vivo', 'intenso'][sessionState.emotionalIntensity - 1],
+                color_intensity: intensity, // 'dull', 'pastel', 'vivid'
                 context: 'post_game'
             });
             
@@ -729,11 +754,11 @@
                 patient_id: sessionState.patientId,
                 game_session_id: sessionState.sessionId,
                 color_hex: color,
-                color_intensity: ['pastel', 'apagado', 'normal', 'vivo', 'intenso'][sessionState.emotionalIntensity - 1],
+                color_intensity: intensity,
                 context: 'post_game'
             });
             
-            document.getElementById('color-modal').classList.add('hidden');
+            document.getElementById('color-palette-modal').classList.add('hidden');
             await completeSession();
         }
 
