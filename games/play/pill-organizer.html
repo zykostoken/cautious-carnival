@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Medicación - Evaluación Motricidad Fina | CJI HDD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            color: #1e293b;
+        }
+        
+        .pill-source { 
+            cursor: grab; 
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+        }
+        .pill-source:active { 
+            cursor: grabbing; 
+            transform: scale(1.15) rotate(8deg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35);
+        }
+        
+        .slot { 
+            background: rgba(255, 255, 255, 0.12);
+            border: 3px dashed rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+            min-height: 70px;
+        }
+        .slot.drag-over { 
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+            border-style: solid;
+            transform: scale(1.08);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+        }
+        .slot.filled { 
+            border-style: solid;
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+        }
+
+        .mood-btn, .mood-btn-post {
+            transition: all 0.2s;
+            transform: scale(1);
+        }
+        .mood-btn:hover, .mood-btn-post:hover {
+            transform: scale(1.12);
+            box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.35);
+        }
+        .mood-btn.selected, .mood-btn-post.selected {
+            transform: scale(1.18);
+            box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.6);
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.6); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.3); }
+        }
+
+        .color-tile {
+            width: 90px;
+            height: 90px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .color-tile:hover {
+            transform: scale(1.18) rotate(6deg);
+            box-shadow: 0 18px 40px -5px rgba(0, 0, 0, 0.45);
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); }
+            50% { box-shadow: 0 0 45px rgba(139, 92, 246, 0.9); }
+        }
+        .glow-animation {
+            animation: glow-pulse 2.2s ease-in-out infinite;
+        }
+
+        .tremor-indicator {
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- ========================================= -->
+    <!-- MODAL: PRE-GAME MOOD CHECK -->
+    <!-- ========================================= -->
+    <div id="mood-modal-pre" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-10 mx-4 border-t-8 border-teal-600">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">🧠</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">¿Cómo te sentís ahora?</h2>
+                <p class="text-sm text-gray-500">Esto nos ayuda a personalizar la evaluación</p>
+            </div>
+            
+            <div class="grid grid-cols-5 gap-4 mb-8">
+                <button class="mood-btn bg-red-100 hover:bg-red-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="1">😢</button>
+                <button class="mood-btn bg-orange-100 hover:bg-orange-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="2">😕</button>
+                <button class="mood-btn bg-yellow-100 hover:bg-yellow-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="3">😐</button>
+                <button class="mood-btn bg-lime-100 hover:bg-lime-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="4">🙂</button>
+                <button class="mood-btn bg-green-100 hover:bg-green-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="5">😄</button>
+            </div>
+            
+            <div class="text-center">
+                <button id="skip-mood-pre" class="text-sm text-gray-400 hover:text-gray-700 underline transition">
+                    Prefiero no responder
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MODAL: POST-GAME MOOD CHECK + INTENSITY -->
+    <!-- ========================================= -->
+    <div id="mood-modal-post" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-10 mx-4 border-t-8 border-purple-600">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">💭</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">¿Cómo te sentiste jugando?</h2>
+                <p class="text-sm text-gray-500">Tu experiencia es valiosa para nosotros</p>
+            </div>
+            
+            <div class="grid grid-cols-5 gap-4 mb-8">
+                <button class="mood-btn-post bg-red-100 hover:bg-red-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="1">😢</button>
+                <button class="mood-btn-post bg-orange-100 hover:bg-orange-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="2">😕</button>
+                <button class="mood-btn-post bg-yellow-100 hover:bg-yellow-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="3">😐</button>
+                <button class="mood-btn-post bg-lime-100 hover:bg-lime-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="4">🙂</button>
+                <button class="mood-btn-post bg-green-100 hover:bg-green-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="5">😄</button>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-base font-semibold text-gray-700 mb-3">Intensidad Emocional</label>
+                <input type="range" id="intensity-slider" min="1" max="5" value="3" 
+                       class="w-full h-4 bg-gradient-to-r from-blue-300 via-purple-400 to-pink-500 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                    <span>Pastel</span>
+                    <span>Apagado</span>
+                    <span>Normal</span>
+                    <span>Vivo</span>
+                    <span>Intenso</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MODAL: COLOR PALETTE SELECTOR -->
+    <!-- ========================================= -->
+    <div id="color-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-10 mx-4 border-t-8 border-indigo-600">
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">🎨</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">¿Qué color te representa ahora?</h2>
+                <p class="text-sm text-gray-500 mb-1">Elegí el que mejor refleje tu estado actual</p>
+                <p class="text-xs text-gray-400">No hay respuestas correctas o incorrectas</p>
+            </div>
+            
+            <div id="color-palette" class="grid grid-cols-4 gap-6 justify-items-center">
+                <!-- Se llena dinámicamente según intensidad emocional -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- HEADER -->
+    <!-- ========================================= -->
+    <header class="bg-white/10 backdrop-blur-md text-white p-5 shadow-2xl border-b-2 border-white/20">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">💊 Organizador de Medicación</h1>
+                <p class="text-sm opacity-85 mt-1">Clínica Psiquiátrica José Ingenieros · Hospital de Día (HDD)</p>
+            </div>
+            <div class="text-right">
+                <div id="patient-display" class="text-sm opacity-90 mb-1">Paciente: Cargando...</div>
+                <div id="timer-display" class="text-3xl font-mono font-bold">00:00</div>
+                <div id="tremor-badge" class="text-xs opacity-75 mt-1">Precisión: --</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================= -->
+    <!-- MAIN GAME INTERFACE -->
+    <!-- ========================================= -->
+    <main id="game-container" class="flex-grow p-6 max-w-7xl mx-auto w-full hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- DISPENSADOR DE MEDICACIÓN -->
+            <div class="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border-t-6 border-teal-600">
+                <h3 class="text-2xl font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <span>💊</span> Dispensador
+                </h3>
+                <p class="text-sm text-gray-600 mb-8">Arrastrá cada medicación al casillero correcto</p>
+                
+                <div class="space-y-8">
+                    <!-- Risperidona -->
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl border-3 border-red-300 shadow-md">
+                        <div class="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-xl">
+                            <div class="pill-source w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-red-600 border-3 border-red-700" 
+                                 draggable="true" data-med="risperidona"></div>
+                        </div>
+                        <div class="text-center">
+                            <span class="font-bold text-lg text-gray-800 block">Risperidona</span>
+                            <span class="text-xs text-gray-600 block mt-1">1 comp. Mañana (08:00)</span>
+                            <span class="text-xs text-gray-600 block">1 comp. Noche (20:00)</span>
+                        </div>
+                    </div>
+
+                    <!-- Clonazepam -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border-3 border-blue-300 shadow-md">
+                        <div class="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-xl">
+                            <div class="pill-source w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-3 border-blue-700" 
+                                 draggable="true" data-med="clonazepam"></div>
+                        </div>
+                        <div class="text-center">
+                            <span class="font-bold text-lg text-gray-800 block">Clonazepam</span>
+                            <span class="text-xs text-gray-600 block mt-1">1 comp. Noche (20:00)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL DE MÉTRICAS EN TIEMPO REAL -->
+                <div class="mt-8 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 shadow-inner">
+                    <h4 class="text-sm font-bold text-purple-900 mb-4 flex items-center gap-2">
+                        <span>📊</span> Métricas Biométricas
+                    </h4>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Precisión motora:</span>
+                            <span id="tremor-display" class="font-bold text-purple-700 tremor-indicator">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Movimientos:</span>
+                            <span id="moves-count" class="font-bold text-gray-800">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Precisión:</span>
+                            <span id="accuracy-display" class="font-bold text-teal-700">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ORGANIZADOR SEMANAL -->
+            <div class="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-2xl lg:col-span-2 border-t-6 border-indigo-600">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-700 flex items-center gap-2">
+                        <span>📅</span> Organizador Semanal
+                    </h3>
+                    <button id="finish-btn" 
+                            class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-8 py-3 rounded-2xl font-bold text-lg hover:shadow-2xl transition-all glow-animation">
+                        ✓ FINALIZAR
+                    </button>
+                </div>
+
+                <!-- Headers de días -->
+                <div class="grid grid-cols-8 gap-3 text-center text-xs font-bold text-gray-600 mb-4">
+                    <div></div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">LUN</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">MAR</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">MIE</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">JUE</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">VIE</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">SAB</div>
+                    <div class="bg-indigo-100 rounded-lg py-2 shadow-sm">DOM</div>
+                </div>
+
+                <!-- MAÑANA ROW -->
+                <div class="grid grid-cols-8 gap-3 mb-6">
+                    <div class="flex flex-col items-center justify-center bg-gradient-to-br from-orange-400 to-yellow-500 text-white rounded-2xl font-bold text-xs p-3 shadow-lg">
+                        <span class="text-2xl mb-1">☀️</span>
+                        <span>MAÑANA</span>
+                        <span class="text-[10px] opacity-90">08:00</span>
+                    </div>
+                    <div class="slot rounded-2xl" data-day="1" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="2" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="3" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="4" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="5" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="6" data-time="am"></div>
+                    <div class="slot rounded-2xl" data-day="7" data-time="am"></div>
+                </div>
+
+                <!-- NOCHE ROW -->
+                <div class="grid grid-cols-8 gap-3">
+                    <div class="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl font-bold text-xs p-3 shadow-lg">
+                        <span class="text-2xl mb-1">🌙</span>
+                        <span>NOCHE</span>
+                        <span class="text-[10px] opacity-90">20:00</span>
+                    </div>
+                    <div class="slot rounded-2xl" data-day="1" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="2" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="3" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="4" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="5" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="6" data-time="pm"></div>
+                    <div class="slot rounded-2xl" data-day="7" data-time="pm"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ===========================================
+        // CONFIGURACIÓN SUPABASE
+        // ===========================================
+        const SUPABASE_URL = 'https://buzblnkpfydehejngzgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlamluZ3pnbiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM2NDQ5NzUxLCJleHAiOjIwNTIwMjU3NTF9.vA1aNN48ypx55l-HSPBPS_tOsxJPgKK2YT_1iQJgR_I';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ===========================================
+        // PALETAS DE COLORES POR INTENSIDAD
+        // ===========================================
+        const COLOR_PALETTES = {
+            1: ['#FFE4E1', '#E6E6FA', '#F0FFF0', '#FFF8DC', '#F5F5DC', '#FAEBD7', '#FFE4B5', '#FFDAB9'],
+            2: ['#B0C4DE', '#D3D3D3', '#F5DEB3', '#DDA0DD', '#B0E0E6', '#AFEEEE', '#F0E68C', '#EEE8AA'],
+            3: ['#4682B4', '#32CD32', '#FFD700', '#FF6347', '#9370DB', '#3CB371', '#FF8C00', '#20B2AA'],
+            4: ['#FF4500', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF1493', '#7FFF00'],
+            5: ['#FF0000', '#00FF00', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF1493', '#7FFF00']
+        };
+
+        // ===========================================
+        // ESTADO DE LA SESIÓN
+        // ===========================================
+        const sessionState = {
+            patientId: null,
+            patientDni: null,
+            sessionId: null,
+            gameId: null,
+            level: 1,
+            startTime: null,
+            endTime: null,
+            
+            // Biomarcadores mood
+            moodPre: null,
+            moodPost: null,
+            emotionalIntensity: null,
+            selectedColor: null,
+            
+            // Tracking biométrico de movimientos
+            movements: [],
+            currentDrag: {
+                active: false,
+                medType: null,
+                startX: 0,
+                startY: 0,
+                startTime: 0,
+                pathPoints: [],
+                lastMoveTime: 0
+            },
+            
+            // Métricas de gameplay
+            correctPlacements: 0,
+            totalErrors: 0,
+            totalMoves: 0
+        };
+
+        // ===========================================
+        // INICIALIZACIÓN
+        // ===========================================
+        async function initGame() {
+            // Simular paciente (en producción vendría del auth)
+            sessionState.patientDni = 'HDD-2026-001';
+            sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
+            
+            document.getElementById('patient-display').textContent = `Paciente: ${sessionState.patientDni}`;
+            
+            // Obtener game_id desde Supabase
+            const { data: game } = await supabase
+                .from('hdd_games')
+                .select('id')
+                .eq('slug', 'pill-organizer')
+                .single();
+            
+            sessionState.gameId = game?.id || null;
+            
+            if (!sessionState.gameId) {
+                console.error('Game ID not found in Supabase. Please run migrations.');
+            }
+            
+            setupDragAndDrop();
+        }
+
+        async function getOrCreatePatient(dni) {
+            const { data: existing } = await supabase
+                .from('hdd_patients')
+                .select('id')
+                .eq('dni', dni)
+                .single();
+            
+            if (existing) return existing.id;
+            
+            // Crear paciente demo
+            const { data: newPatient } = await supabase
+                .from('hdd_patients')
+                .insert({ 
+                    dni: dni,
+                    full_name: 'Paciente Demo HDD',
+                    admission_date: new Date().toISOString().split('T')[0]
+                })
+                .select('id')
+                .single();
+            
+            return newPatient?.id;
+        }
+
+        // ===========================================
+        // MOOD CHECK PRE-GAME
+        // ===========================================
+        document.querySelectorAll('.mood-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                const mood = parseInt(this.dataset.mood);
+                sessionState.moodPre = mood;
+                
+                await supabase.from('hdd_mood_checkins').insert({
+                    patient_id: sessionState.patientId,
+                    mood_level: mood,
+                    context: 'pre_game'
+                });
+                
+                setTimeout(() => {
+                    document.getElementById('mood-modal-pre').classList.add('hidden');
+                    startGameSession();
+                }, 400);
+            });
+        });
+
+        document.getElementById('skip-mood-pre').addEventListener('click', () => {
+            document.getElementById('mood-modal-pre').classList.add('hidden');
+            startGameSession();
+        });
+
+        async function startGameSession() {
+            sessionState.startTime = Date.now();
+            document.getElementById('game-container').classList.remove('hidden');
+            
+            // Crear sesión en Supabase
+            const { data: session } = await supabase
+                .from('hdd_game_sessions')
+                .insert({
+                    patient_id: sessionState.patientId,
+                    game_id: sessionState.gameId,
+                    level: sessionState.level,
+                    started_at: new Date().toISOString()
+                })
+                .select('id')
+                .single();
+            
+            sessionState.sessionId = session?.id;
+            startTimer();
+        }
+
+        function startTimer() {
+            const display = document.getElementById('timer-display');
+            setInterval(() => {
+                const elapsed = Math.floor((Date.now() - sessionState.startTime) / 1000);
+                const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const s = (elapsed % 60).toString().padStart(2, '0');
+                display.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        // ===========================================
+        // DRAG & DROP + TRACKING BIOMÉTRICO
+        // ===========================================
+        function setupDragAndDrop() {
+            const draggables = document.querySelectorAll('.pill-source');
+            const slots = document.querySelectorAll('.slot');
+
+            // Tracking global de mouse durante drag
+            document.addEventListener('dragover', (e) => {
+                if (sessionState.currentDrag.active) {
+                    const now = Date.now();
+                    sessionState.currentDrag.pathPoints.push({
+                        x: e.clientX,
+                        y: e.clientY,
+                        t: now
+                    });
+                    sessionState.currentDrag.lastMoveTime = now;
+                }
+            });
+
+            draggables.forEach(pill => {
+                pill.addEventListener('dragstart', (e) => {
+                    const cd = sessionState.currentDrag;
+                    cd.active = true;
+                    cd.medType = pill.dataset.med;
+                    cd.startX = e.clientX;
+                    cd.startY = e.clientY;
+                    cd.startTime = Date.now();
+                    cd.lastMoveTime = cd.startTime;
+                    cd.pathPoints = [{ x: e.clientX, y: e.clientY, t: cd.startTime }];
+                    
+                    e.dataTransfer.setData('med', cd.medType);
+                    e.dataTransfer.effectAllowed = 'copy';
+                    
+                    pill.style.opacity = '0.4';
+                    pill.style.transform = 'scale(1.3) rotate(12deg)';
+                });
+
+                pill.addEventListener('dragend', (e) => {
+                    sessionState.currentDrag.active = false;
+                    pill.style.opacity = '1';
+                    pill.style.transform = 'scale(1) rotate(0deg)';
+                });
+            });
+
+            slots.forEach(slot => {
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    slot.classList.add('drag-over');
+                });
+
+                slot.addEventListener('dragleave', () => {
+                    slot.classList.remove('drag-over');
+                });
+
+                slot.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('drag-over');
+                    
+                    const medType = e.dataTransfer.getData('med');
+                    const cd = sessionState.currentDrag;
+                    
+                    // === CÁLCULOS BIOMÉTRICOS AVANZADOS ===
+                    const endTime = Date.now();
+                    const endX = e.clientX;
+                    const endY = e.clientY;
+                    
+                    // 1. Distancia ideal (línea recta Euclidiana)
+                    const directDist = Math.sqrt(
+                        Math.pow(endX - cd.startX, 2) + 
+                        Math.pow(endY - cd.startY, 2)
+                    );
+                    
+                    // 2. Distancia real recorrida (suma de segmentos del path)
+                    let pathLength = 0;
+                    for (let i = 1; i < cd.pathPoints.length; i++) {
+                        const p1 = cd.pathPoints[i-1];
+                        const p2 = cd.pathPoints[i];
+                        pathLength += Math.sqrt(
+                            Math.pow(p2.x - p1.x, 2) + 
+                            Math.pow(p2.y - p1.y, 2)
+                        );
+                    }
+                    
+                    // 3. Índice de temblor/ineficiencia (1.0 = perfecto, >1.5 = temblor)
+                    const tremorIndex = pathLength / (directDist || 1);
+                    
+                    // 4. Calcular hesitation (pausas >200ms sin movimiento)
+                    let hesitationMs = 0;
+                    for (let i = 1; i < cd.pathPoints.length; i++) {
+                        const timeDiff = cd.pathPoints[i].t - cd.pathPoints[i-1].t;
+                        if (timeDiff > 200) {
+                            hesitationMs += timeDiff;
+                        }
+                    }
+                    
+                    // Validar si la colocación es correcta
+                    const isCorrect = validatePlacement(medType, slot.dataset.day, slot.dataset.time);
+                    
+                    if (!isCorrect) sessionState.totalErrors++;
+                    else sessionState.correctPlacements++;
+                    
+                    sessionState.totalMoves++;
+                    
+                    // Guardar movimiento completo
+                    const movement = {
+                        med: medType,
+                        targetSlot: `day${slot.dataset.day}-${slot.dataset.time}`,
+                        durationMs: endTime - cd.startTime,
+                        tremorIndex: parseFloat(tremorIndex.toFixed(3)),
+                        pathLength: Math.round(pathLength),
+                        directDistance: Math.round(directDist),
+                        pathEfficiency: parseFloat((directDist / pathLength).toFixed(3)),
+                        hesitationMs: hesitationMs,
+                        isCorrect: isCorrect,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    sessionState.movements.push(movement);
+                    
+                    // Guardar métrica granular en Supabase
+                    await supabase.from('hdd_game_metrics').insert({
+                        patient_id: sessionState.patientId,
+                        game_session_id: sessionState.sessionId,
+                        game_slug: 'pill-organizer',
+                        metric_type: 'pill_placement',
+                        metric_value: tremorIndex,
+                        metric_data: movement
+                    });
+                    
+                    // Actualizar UI
+                    renderPillInSlot(slot, medType, isCorrect);
+                    updateRealTimeMetrics();
+                });
+            });
+        }
+
+        function validatePlacement(medType, day, time) {
+            // Risperidona: MAÑANA (am) y NOCHE (pm) todos los días
+            // Clonazepam: solo NOCHE (pm)
+            if (medType === 'risperidona') return true;
+            if (medType === 'clonazepam' && time === 'pm') return true;
+            return false;
+        }
+
+        function renderPillInSlot(slot, medType, isCorrect) {
+            const pill = document.createElement('div');
+            const colorClass = medType === 'risperidona' 
+                ? 'bg-gradient-to-br from-red-400 to-red-600 border-red-700' 
+                : 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-700';
+            
+            const errorClass = isCorrect ? '' : 'ring-4 ring-yellow-400 animate-pulse';
+            
+            pill.className = `w-10 h-10 rounded-full ${colorClass} inline-block m-1 shadow-lg border-3 border-white ${errorClass}`;
+            slot.appendChild(pill);
+            slot.classList.add('filled');
+        }
+
+        function updateRealTimeMetrics() {
+            if (sessionState.movements.length === 0) return;
+            
+            // Tremor Index promedio
+            const avgTremor = sessionState.movements.reduce((sum, m) => sum + m.tremorIndex, 0) / sessionState.movements.length;
+            const tremorDisplay = document.getElementById('tremor-display');
+            const tremorBadge = document.getElementById('tremor-badge');
+            
+            let tremorLabel, tremorClass;
+            if (avgTremor < 1.2) {
+                tremorLabel = 'Excelente';
+                tremorClass = 'text-green-600';
+            } else if (avgTremor < 1.5) {
+                tremorLabel = 'Bueno';
+                tremorClass = 'text-yellow-600';
+            } else if (avgTremor < 2.0) {
+                tremorLabel = 'Aceptable';
+                tremorClass = 'text-orange-600';
+            } else {
+                tremorLabel = 'Revisar';
+                tremorClass = 'text-red-600';
+            }
+            
+            tremorDisplay.textContent = `${avgTremor.toFixed(2)} (${tremorLabel})`;
+            tremorDisplay.className = `font-bold tremor-indicator ${tremorClass}`;
+            tremorBadge.textContent = `Precisión: ${tremorLabel}`;
+            
+            // Accuracy
+            const accuracy = sessionState.totalMoves > 0 
+                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 
+                : 0;
+            document.getElementById('accuracy-display').textContent = `${accuracy.toFixed(0)}%`;
+            
+            // Moves count
+            document.getElementById('moves-count').textContent = sessionState.totalMoves;
+        }
+
+        // ===========================================
+        // FINALIZACIÓN
+        // ===========================================
+        document.getElementById('finish-btn').addEventListener('click', () => {
+            sessionState.endTime = Date.now();
+            showPostMoodModal();
+        });
+
+        function showPostMoodModal() {
+            document.getElementById('mood-modal-post').classList.remove('hidden');
+            
+            document.querySelectorAll('.mood-btn-post').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.mood-btn-post').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    sessionState.moodPost = parseInt(this.dataset.mood);
+                    sessionState.emotionalIntensity = parseInt(document.getElementById('intensity-slider').value);
+                    
+                    setTimeout(() => {
+                        document.getElementById('mood-modal-post').classList.add('hidden');
+                        showColorPalette();
+                    }, 400);
+                });
+            });
+        }
+
+        function showColorPalette() {
+            const intensity = sessionState.emotionalIntensity || 3;
+            const colors = COLOR_PALETTES[intensity];
+            const palette = document.getElementById('color-palette');
+            palette.innerHTML = '';
+            
+            colors.forEach(color => {
+                const tile = document.createElement('div');
+                tile.className = 'color-tile';
+                tile.style.backgroundColor = color;
+                tile.addEventListener('click', () => selectColor(color));
+                palette.appendChild(tile);
+            });
+            
+            document.getElementById('color-modal').classList.remove('hidden');
+        }
+
+        async function selectColor(color) {
+            sessionState.selectedColor = color;
+            
+            // Guardar biomarcadores post-game
+            await supabase.from('hdd_mood_checkins').insert({
+                patient_id: sessionState.patientId,
+                mood_level: sessionState.moodPost,
+                color_hex: color,
+                color_intensity: ['pastel', 'apagado', 'normal', 'vivo', 'intenso'][sessionState.emotionalIntensity - 1],
+                context: 'post_game'
+            });
+            
+            await supabase.from('hdd_game_color_selections').insert({
+                patient_id: sessionState.patientId,
+                game_session_id: sessionState.sessionId,
+                color_hex: color,
+                color_intensity: ['pastel', 'apagado', 'normal', 'vivo', 'intenso'][sessionState.emotionalIntensity - 1],
+                context: 'post_game'
+            });
+            
+            document.getElementById('color-modal').classList.add('hidden');
+            await completeSession();
+        }
+
+        async function completeSession() {
+            const duration = Math.floor((sessionState.endTime - sessionState.startTime) / 1000);
+            
+            // Calcular métricas finales
+            const avgTremor = sessionState.movements.reduce((sum, m) => sum + m.tremorIndex, 0) / (sessionState.movements.length || 1);
+            const avgHesitation = sessionState.movements.reduce((sum, m) => sum + m.hesitationMs, 0) / (sessionState.movements.length || 1);
+            const accuracy = sessionState.totalMoves > 0 
+                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 
+                : 0;
+            
+            const finalMetrics = {
+                total_placements: sessionState.totalMoves,
+                correct_placements: sessionState.correctPlacements,
+                errors: sessionState.totalErrors,
+                accuracy_percentage: Math.round(accuracy),
+                
+                // Métricas motoras
+                avg_tremor_index: parseFloat(avgTremor.toFixed(3)),
+                avg_hesitation_ms: Math.round(avgHesitation),
+                avg_path_efficiency: parseFloat((sessionState.movements.reduce((sum, m) => sum + m.pathEfficiency, 0) / sessionState.movements.length).toFixed(3)),
+                
+                // Duración
+                total_duration_sec: duration,
+                
+                // Data completa
+                movements: sessionState.movements
+            };
+            
+            // Calcular score
+            const baseScore = sessionState.correctPlacements * 100;
+            const tremorBonus = avgTremor < 1.2 ? 300 : avgTremor < 1.5 ? 150 : avgTremor < 2.0 ? 50 : 0;
+            const timeBonus = Math.max(0, 400 - duration);
+            const errorPenalty = sessionState.totalErrors * 75;
+            const finalScore = Math.max(0, baseScore + tremorBonus + timeBonus - errorPenalty);
+            
+            // Actualizar sesión en Supabase
+            await supabase
+                .from('hdd_game_sessions')
+                .update({
+                    completed_at: new Date().toISOString(),
+                    completed: true,
+                    score: finalScore,
+                    max_score: 1500,
+                    duration_seconds: duration,
+                    metrics: finalMetrics
+                })
+                .eq('id', sessionState.sessionId);
+            
+            // Mostrar resultados
+            alert(`
+✅ ¡Sesión Completada y Guardada en Supabase!
+
+📊 RESULTADOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Score Final: ${finalScore} / 1500
+Precisión: ${accuracy.toFixed(1)}%
+Errores: ${sessionState.totalErrors}
+
+🔬 MÉTRICAS BIOMÉTRICAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Índice Temblor: ${avgTremor.toFixed(2)} ${avgTremor < 1.2 ? '(Excelente)' : avgTremor < 1.5 ? '(Bueno)' : '(Revisar)'}
+Hesitación Promedio: ${Math.round(avgHesitation)}ms
+Eficiencia Motora: ${(finalMetrics.avg_path_efficiency * 100).toFixed(0)}%
+
+⏱️ TIEMPO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Duración: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}
+
+Todos los datos están guardados en:
+- hdd_game_sessions
+- hdd_game_metrics
+- hdd_mood_checkins
+- hdd_game_color_selections
+            `);
+            
+            console.log('=== SESIÓN COMPLETADA ===');
+            console.log('Session ID:', sessionState.sessionId);
+            console.log('Métricas Finales:', finalMetrics);
+            console.log('Movimientos:', sessionState.movements);
+        }
+
+        // ===========================================
+        // INIT
+        // ===========================================
+        initGame();
+    </script>
+</body>
+</html>
