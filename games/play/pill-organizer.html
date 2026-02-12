@@ -50,25 +50,6 @@
             backdrop-filter: blur(10px);
         }
 
-        .mood-btn, .mood-btn-post {
-            transition: all 0.2s;
-            transform: scale(1);
-        }
-        .mood-btn:hover, .mood-btn-post:hover {
-            transform: scale(1.12);
-            box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.35);
-        }
-        .mood-btn.selected, .mood-btn-post.selected {
-            transform: scale(1.18);
-            box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.6);
-            animation: pulse 0.6s ease-in-out;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.6); }
-            50% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.3); }
-        }
-
         .color-tile {
             width: 90px;
             height: 90px;
@@ -98,26 +79,37 @@
 <body class="flex flex-col min-h-screen">
 
     <!-- ========================================= -->
-    <!-- MODAL: PRE-GAME MOOD CHECK -->
+    <!-- MODAL: PRE-GAME INTENSITY CHECK -->
     <!-- ========================================= -->
     <div id="mood-modal-pre" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-10 mx-4 border-t-8 border-teal-600">
-            <div class="text-center mb-6">
-                <div class="text-6xl mb-4">🧠</div>
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">¿Cómo te sentís ahora?</h2>
-                <p class="text-sm text-gray-500">Esto nos ayuda a personalizar la evaluación</p>
+        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-lg w-full p-12 mx-4 border-4 border-gray-700">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-white mb-4">¿Cómo te sentís ahora?</h2>
+                <p class="text-base text-gray-300">Seleccioná la intensidad que mejor resuene con vos:</p>
             </div>
             
-            <div class="grid grid-cols-5 gap-4 mb-8">
-                <button class="mood-btn bg-red-100 hover:bg-red-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="1">😢</button>
-                <button class="mood-btn bg-orange-100 hover:bg-orange-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="2">😕</button>
-                <button class="mood-btn bg-yellow-100 hover:bg-yellow-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="3">😐</button>
-                <button class="mood-btn bg-lime-100 hover:bg-lime-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="4">🙂</button>
-                <button class="mood-btn bg-green-100 hover:bg-green-200 p-6 rounded-2xl text-5xl shadow-md" data-mood="5">😄</button>
+            <div class="flex justify-center gap-8 mb-6">
+                <!-- Dull/Low Energy -->
+                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
+                     data-mood="dull"
+                     style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+                
+                <!-- Pastel/Calm -->
+                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
+                     data-mood="pastel"
+                     style="background: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+                
+                <!-- Vivid/High Energy -->
+                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
+                     data-mood="vivid"
+                     style="background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
             </div>
             
             <div class="text-center">
-                <button id="skip-mood-pre" class="text-sm text-gray-400 hover:text-gray-700 underline transition">
+                <button id="skip-mood-pre" class="text-sm text-gray-400 hover:text-gray-300 underline transition">
                     Prefiero no responder
                 </button>
             </div>
@@ -442,17 +434,20 @@
         // ===========================================
         // MOOD CHECK PRE-GAME
         // ===========================================
-        document.querySelectorAll('.mood-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
-                this.classList.add('selected');
+        // PRE-GAME: INTENSIDAD (solo círculos, sin paleta)
+        // ===========================================
+        document.querySelectorAll('.mood-circle').forEach(circle => {
+            circle.addEventListener('click', async function() {
+                document.querySelectorAll('.mood-circle').forEach(c => c.classList.remove('ring-4', 'ring-white'));
+                this.classList.add('ring-4', 'ring-white');
                 
-                const mood = parseInt(this.dataset.mood);
-                sessionState.moodPre = mood;
+                const intensity = this.dataset.mood; // 'dull', 'pastel', 'vivid'
+                sessionState.moodPre = intensity;
                 
                 await supabase.from('hdd_mood_checkins').insert({
                     patient_id: sessionState.patientId,
-                    mood_level: mood,
+                    mood_level: null, // No usamos escala numérica
+                    color_intensity: intensity,
                     context: 'pre_game'
                 });
                 
