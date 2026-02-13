@@ -178,16 +178,23 @@ async function ensureModalContent() {
 }
 
 async function openModal(id) {
+    console.log('[openModal] Called with id:', id);
     await ensureModalContent();
+    console.log('[openModal] Modal content loaded, checking for id:', id);
     const content = modalContent[id];
     if (content) {
+        console.log('[openModal] Content found for', id, 'length:', content.length);
         document.getElementById('modal-inner').innerHTML = content;
         document.getElementById('modal-overlay').classList.add('active');
         document.body.style.overflow = 'hidden';
         // If telemedicine modal, fetch current price
         if (id === 'telemedicina' && typeof telemedFetchCurrentPrice === 'function') {
+            console.log('[openModal] Fetching telemedicine price...');
             telemedFetchCurrentPrice();
         }
+    } else {
+        console.error('[openModal] NO CONTENT FOUND for id:', id);
+        console.log('[openModal] Available modal IDs:', Object.keys(modalContent || {}));
     }
 }
 
