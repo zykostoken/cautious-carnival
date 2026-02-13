@@ -1471,9 +1471,17 @@ function launchGame(gameSlug) {
   const token = sessionToken;
   const patientId = currentUser?.id || 'preview';
   
+  // Map game slugs to actual paths
+  const gamePaths = {
+    'pill-organizer': '/games/play/pill-organizer.html',
+    'neuro-chef': '/games/play/neuro-chef/index.html'
+  };
+  
+  const gamePath = gamePaths[gameSlug] || `/games/play/${gameSlug}.html`;
+  
   if (isPreviewMode) {
-    window.open(`/games/play/${gameSlug}?demo=true&patient_id=${patientId}`, '_blank');
+    window.open(`${gamePath}?demo=true&patient_id=${patientId}`, '_blank');
   } else {
-    window.open(`/games/play/${gameSlug}?session=${encodeURIComponent(token)}&patient_id=${patientId}`, '_blank');
+    window.open(`${gamePath}?session=${encodeURIComponent(token)}&patient_id=${patientId}`, '_blank');
   }
 }
