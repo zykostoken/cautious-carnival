@@ -1252,6 +1252,7 @@
     }
     .progress-btn:hover { background: var(--primary); color: white; }
   </style>
+  <script src="/games/shared/mood-modals.js"></script>
 </head>
 <body>
 
@@ -3347,5 +3348,17 @@
 
 })();
 </script>
+
+  <!-- Load shared mood modals -->
+  <div id="mood-modals-container"></div>
+  <script>
+    fetch('/games/shared/mood-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('mood-modals-container').innerHTML = html;
+      })
+      .catch(err => console.error('Failed to load mood modals:', err));
+  </script>
+
 </body>
 </html>

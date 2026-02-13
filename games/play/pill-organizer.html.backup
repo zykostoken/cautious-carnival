@@ -75,38 +75,14 @@
             transition: all 0.3s;
         }
     </style>
+  <script src="/games/shared/mood-modals.js"></script>
 </head>
 <body class="flex flex-col min-h-screen">
 
     <!-- ========================================= -->
     <!-- MODAL: PRE-GAME INTENSITY CHECK -->
     <!-- ========================================= -->
-    <div id="mood-modal-pre" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
-        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-lg w-full p-12 mx-4 border-4 border-gray-700">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-bold text-white mb-4">¿Cómo te sentís ahora?</h2>
-                <p class="text-base text-gray-300">Seleccioná la intensidad que mejor resuene con vos:</p>
-            </div>
-            
-            <div class="flex justify-center gap-8 mb-6">
-                <!-- Dull/Low Energy -->
-                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
-                     data-mood="dull"
-                     style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-                
-                <!-- Pastel/Calm -->
-                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
-                     data-mood="pastel"
-                     style="background: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-                
-                <!-- Vivid/High Energy -->
-                <div class="mood-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white" 
-                     data-mood="vivid"
-                     style="background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-            </div>
+    <!-- Removed old modal - using shared modals -->
             
             <div class="text-center">
                 <button id="skip-mood-pre" class="text-sm text-gray-400 hover:text-gray-300 underline transition">
@@ -121,47 +97,12 @@
     <!-- ========================================= -->
     
     <!-- PHASE 1: Intensity/Arousal Selection -->
-    <div id="color-intensity-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
-        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-lg w-full p-12 mx-4 border-4 border-gray-700">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-bold text-white mb-4">¿Cómo se sintió esta partida?</h2>
-                <p class="text-base text-gray-300">Seleccioná la intensidad que mejor resuene con vos ahora:</p>
-            </div>
-            
-            <div class="flex justify-center gap-8 mb-6">
-                <!-- Dull/Low Energy (Grisáceo - Baja energía/Depresivo) -->
-                <div onclick="selectIntensity('dull')" 
-                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
-                     style="background: linear-gradient(135deg, #607d8b 0%, #455a64 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-                
-                <!-- Pastel/Calm (Suave - Calma/Equilibrio) -->
-                <div onclick="selectIntensity('pastel')" 
-                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
-                     style="background: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-                
-                <!-- Vivid/High Energy (Vívido - Alta energía/Ansiedad o Manía) -->
-                <div onclick="selectIntensity('vivid')" 
-                     class="intensity-circle w-28 h-28 rounded-full cursor-pointer transition-all hover:scale-110 hover:ring-4 hover:ring-white"
-                     style="background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                </div>
-            </div>
+    <!-- Removed old modal - using shared modals -->
         </div>
     </div>
 
     <!-- PHASE 2: Valence/Tone Palette -->
-    <div id="color-palette-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
-        <div class="bg-gray-900 rounded-3xl shadow-2xl max-w-2xl w-full p-12 mx-4 border-4 border-gray-700">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl font-bold text-white mb-4">Elegí un color</h2>
-                <p class="text-base text-gray-300">Tocá el color que mejor refleje cómo te sentís ahora</p>
-            </div>
-            
-            <div id="dynamic-palette" class="grid grid-cols-4 gap-6 justify-items-center">
-                <!-- Se llena dinámicamente según intensidad seleccionada -->
-            </div>
-        </div>
+    <!-- Removed old modal - using shared modals -->
     </div>
 
     <!-- ========================================= -->
@@ -843,5 +784,17 @@ Todos los datos están guardados en:
         // ===========================================
         initGame();
     </script>
+
+  <!-- Load shared mood modals -->
+  <div id="mood-modals-container"></div>
+  <script>
+    fetch('/games/shared/mood-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('mood-modals-container').innerHTML = html;
+      })
+      .catch(err => console.error('Failed to load mood modals:', err));
+  </script>
+
 </body>
 </html>
