@@ -1468,6 +1468,7 @@ init();
 
 // Launch game in /games/play/ directory (for new games like pill-organizer, neuro-chef)
 function launchGame(gameSlug) {
+  console.log('[launchGame] Called with slug:', gameSlug);
   const token = sessionToken;
   const patientId = currentUser?.id || 'preview';
   
@@ -1478,10 +1479,17 @@ function launchGame(gameSlug) {
   };
   
   const gamePath = gamePaths[gameSlug] || `/games/play/${gameSlug}.html`;
+  console.log('[launchGame] Game path:', gamePath);
+  console.log('[launchGame] Preview mode:', isPreviewMode);
+  console.log('[launchGame] Patient ID:', patientId);
   
   if (isPreviewMode) {
-    window.open(`${gamePath}?demo=true&patient_id=${patientId}`, '_blank');
+    const url = `${gamePath}?demo=true&patient_id=${patientId}`;
+    console.log('[launchGame] Opening URL:', url);
+    window.open(url, '_blank');
   } else {
-    window.open(`${gamePath}?session=${encodeURIComponent(token)}&patient_id=${patientId}`, '_blank');
+    const url = `${gamePath}?session=${encodeURIComponent(token)}&patient_id=${patientId}`;
+    console.log('[launchGame] Opening URL:', url);
+    window.open(url, '_blank');
   }
 }

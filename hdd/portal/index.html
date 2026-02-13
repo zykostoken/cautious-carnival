@@ -125,6 +125,7 @@
         <button class="nav-tab active" data-tab="feed" onclick="switchTab('feed')">Comunidad</button>
         <button class="nav-tab" data-tab="games" onclick="switchTab('games')">Juegos</button>
         <button class="nav-tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
+        <button class="nav-tab" data-tab="salas" onclick="switchTab('salas')">📹 Salas de Video</button>
         <button class="nav-tab" data-tab="my-posts" onclick="switchTab('my-posts')">Mis Publicaciones</button>
         <button class="nav-tab" data-tab="metrics" onclick="switchTab('metrics')">📊 Métricas</button>
       </div>
@@ -170,7 +171,7 @@
           </div>
 
           <!-- Game 2: Memory Prescriptions -->
-          <div class="activity-card" style="cursor: pointer;" onclick="openGame('memory-meds')">
+          <div class="activity-card" style="cursor: pointer;" onclick="openGame('medication-memory')">
             <div class="activity-icon" style="font-size: 2rem;">💊</div>
             <div class="activity-info">
               <div class="activity-name">Memoria de Medicamentos</div>
@@ -249,6 +250,58 @@
       <!-- Metrics Tab -->
       <div id="tab-metrics" class="hidden">
         <iframe src="/hdd/portal/metrics.html" style="width: 100%; height: 800px; border: none; border-radius: 12px;"></iframe>
+      </div>
+
+      <!-- Salas de Video Tab -->
+      <div id="tab-salas" class="feed-container hidden">
+        <h2 style="margin-bottom: 1rem;">📹 Salas de Videollamada Grupal</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Accede a las salas de videollamada para sesiones grupales, talleres y actividades terapéuticas.</p>
+
+        <div style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+          
+          <!-- Sala 1: Consulta Grupal -->
+          <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">👥</div>
+            <h3 style="margin-bottom: 0.5rem; text-align: center;">Consulta Grupal</h3>
+            <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala principal para consultas grupales con pacientes del HDD.</p>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 20 participantes</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('/hdd/admin/salas/consulta-grupal', '_blank')">Unirse a la Sala</button>
+          </div>
+
+          <!-- Sala 2: Aula Virtual -->
+          <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">🎓</div>
+            <h3 style="margin-bottom: 0.5rem; text-align: center;">Aula Virtual</h3>
+            <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala para clases, talleres educativos y presentaciones.</p>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 30 participantes</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('/hdd/admin/salas/aula-virtual', '_blank')">Unirse a la Sala</button>
+          </div>
+
+          <!-- Sala 3: Terapia Grupal -->
+          <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">🧘</div>
+            <h3 style="margin-bottom: 0.5rem; text-align: center;">Terapia Grupal</h3>
+            <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala para sesiones de terapia grupal y mindfulness.</p>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 15 participantes</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('/hdd/admin/salas/terapia-grupal', '_blank')">Unirse a la Sala</button>
+          </div>
+
+          <!-- Sala 4: Sala Multimedia -->
+          <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">🎬</div>
+            <h3 style="margin-bottom: 0.5rem; text-align: center;">Sala Multimedia</h3>
+            <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Para compartir videos, películas y contenido multimedia.</p>
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 25 participantes</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('/hdd/admin/salas/sala-multimedia', '_blank')">Unirse a la Sala</button>
+          </div>
+
+        </div>
+
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 1.5rem; margin-top: 2rem;">
+          <p style="color: var(--text-primary); font-size: 0.9rem; margin: 0;">
+            <strong>💡 Nota:</strong> Las salas utilizan tecnología Jitsi Meet (gratuita y segura). No necesitas instalar nada, funciona directo desde el navegador.
+          </p>
+        </div>
       </div>
 
     </main>
