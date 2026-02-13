@@ -198,6 +198,7 @@ async function openModal(id) {
     }
 }
 
+function closeModal(event) {
     if (!event || event.target.id === 'modal-overlay') {
         const overlay = document.getElementById('modal-overlay');
         overlay.classList.add('closing');
