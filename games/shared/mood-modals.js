@@ -203,6 +203,17 @@ function startGame() {
 // ====================================================================
 
 function showPostGameIntensityModal() {
+    // Check if in demo mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDemoMode = urlParams.get('demo') === 'true';
+    
+    if (isDemoMode) {
+        // In demo mode, just show completion message and reload
+        alert('¡Juego completado! En modo demo no se registran métricas.');
+        // Allow user to play again
+        return;
+    }
+    
     document.getElementById('post-game-intensity-modal').classList.remove('hidden');
 }
 
