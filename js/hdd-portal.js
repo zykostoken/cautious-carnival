@@ -1465,3 +1465,15 @@ async function init() {
 }
 
 init();
+
+// Launch game in /games/play/ directory (for new games like pill-organizer, neuro-chef)
+function launchGame(gameSlug) {
+  const token = sessionToken;
+  const patientId = currentUser?.id || 'preview';
+  
+  if (isPreviewMode) {
+    window.open(`/games/play/${gameSlug}?demo=true&patient_id=${patientId}`, '_blank');
+  } else {
+    window.open(`/games/play/${gameSlug}?session=${encodeURIComponent(token)}&patient_id=${patientId}`, '_blank');
+  }
+}
