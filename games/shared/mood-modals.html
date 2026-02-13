@@ -1,0 +1,212 @@
+<!-- ====================================================================== -->
+<!-- SHARED COMPONENT: 3-PHASE MOOD/COLOR TRACKING MODALS -->
+<!-- Version: 2.0 - Mega Fix HDD -->
+<!-- Include this in all game HTML files -->
+<!-- ====================================================================== -->
+
+<style>
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(15px);
+    }
+
+    .chat-bubble {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 18px;
+        padding: 16px 20px;
+        margin: 12px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .color-tile {
+        width: 85px;
+        height: 85px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 16px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    }
+
+    .color-tile:hover {
+        transform: scale(1.15) rotate(3deg);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .color-tile.selected {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.7);
+        animation: pulse-glow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.7); }
+        50% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.4); }
+    }
+
+    .intensity-circle {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .intensity-circle:hover {
+        transform: scale(1.12);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+
+    .intensity-circle.selected {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.75);
+    }
+</style>
+
+<!-- ====================================================================== -->
+<!-- FASE A: PRE-GAME CONVERSATIONAL CHAT -->
+<!-- ====================================================================== -->
+<div id="pre-game-chat-modal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full p-10 mx-4 border-4 border-purple-600">
+        
+        <!-- Chat Header -->
+        <div class="text-center mb-8">
+            <div class="text-6xl mb-4">💭</div>
+            <h2 class="text-3xl font-bold text-white mb-2">Antes de empezar...</h2>
+            <p class="text-gray-300">Contame cómo estás hoy</p>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="chat-messages" class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-4">
+            <!-- Messages will be appended here dynamically -->
+        </div>
+
+        <!-- User Input Area -->
+        <div id="chat-input-area" class="hidden">
+            <textarea 
+                id="chat-user-input" 
+                class="w-full bg-white/10 text-white border-2 border-purple-500 rounded-2xl p-4 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400" 
+                placeholder="Escribí tu respuesta..."
+                rows="3"
+            ></textarea>
+            <button 
+                onclick="submitChatResponse()" 
+                class="mt-3 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl transition">
+                Enviar
+            </button>
+        </div>
+
+        <!-- Skip Button -->
+        <div class="text-center mt-4">
+            <button 
+                onclick="skipPreGameChat()" 
+                class="text-sm text-gray-400 hover:text-gray-200 underline transition">
+                Prefiero no responder
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- FASE C: POST-GAME INTENSITY SELECTION -->
+<!-- ====================================================================== -->
+<div id="post-game-intensity-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full p-10 mx-4 border-4 border-emerald-600">
+        
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-white mb-4">¿Cómo se sintió esta partida?</h2>
+            <p class="text-lg text-gray-300">Elegí la intensidad que mejor refleje tu experiencia</p>
+        </div>
+
+        <!-- 5 Intensity Circles -->
+        <div class="flex justify-center items-center gap-8 mb-8 flex-wrap">
+            
+            <!-- Vivid -->
+            <div 
+                onclick="selectPostIntensity('vivid')" 
+                class="intensity-circle" 
+                style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);"
+                data-intensity="vivid">
+            </div>
+
+            <!-- Soft -->
+            <div 
+                onclick="selectPostIntensity('soft')" 
+                class="intensity-circle" 
+                style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);"
+                data-intensity="soft">
+            </div>
+
+            <!-- Pastel -->
+            <div 
+                onclick="selectPostIntensity('pastel')" 
+                class="intensity-circle" 
+                style="background: linear-gradient(135deg, #ffd3b6 0%, #ffaaa5 100%);"
+                data-intensity="pastel">
+            </div>
+
+            <!-- Dark -->
+            <div 
+                onclick="selectPostIntensity('dark')" 
+                class="intensity-circle" 
+                style="background: linear-gradient(135deg, #2d3436 0%, #0984e3 100%);"
+                data-intensity="dark">
+            </div>
+
+            <!-- Muted -->
+            <div 
+                onclick="selectPostIntensity('muted')" 
+                class="intensity-circle" 
+                style="background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);"
+                data-intensity="muted">
+            </div>
+
+        </div>
+
+        <div class="text-center">
+            <p class="text-sm text-gray-400">Tocá el círculo que mejor resuene con vos</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- FASE C: POST-GAME COLOR PALETTE SELECTION -->
+<!-- ====================================================================== -->
+<div id="post-game-color-modal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl max-w-4xl w-full p-10 mx-4 border-4 border-emerald-600">
+        
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-white mb-4">Elegí un color</h2>
+            <p class="text-lg text-gray-300">Tocá el color que mejor refleje cómo te sentís ahora</p>
+        </div>
+
+        <!-- Dynamic Color Palette Grid (12 colors in 4x3 grid) -->
+        <div id="color-palette-grid" class="grid grid-cols-4 gap-6 justify-items-center mb-8">
+            <!-- Will be populated dynamically based on selected intensity -->
+        </div>
+
+        <div class="text-center">
+            <p class="text-sm text-gray-400">Sin referencias - Solo tu intuición</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- JAVASCRIPT LOGIC -->
+<!-- ====================================================================== -->
+<script src="/games/shared/mood-modals.js"></script>
