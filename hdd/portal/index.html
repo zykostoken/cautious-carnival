@@ -155,16 +155,16 @@
 
       <!-- Games Tab -->
       <div id="tab-games" class="feed-container hidden">
-        <h2 style="margin-bottom: 1rem;">Juegos Terapeuticos</h2>
-        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Ejercicios ludicos para trabajar habilidades cognitivas y motoras.</p>
+        <h2 style="margin-bottom: 1rem;">Juegos Terapéuticos</h2>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Ejercicios lúdicos para trabajar habilidades cognitivas y motoras.</p>
 
-        <div style="display: grid; gap: 1rem;">
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
           <!-- Game 1: Lawn Mower -->
           <div class="activity-card" style="cursor: pointer;" onclick="openGame('lawn-mower')">
             <div class="activity-icon" style="font-size: 2rem;">🌿</div>
             <div class="activity-info">
-              <div class="activity-name">Cortadora de Cesped</div>
-              <div class="activity-schedule">Motricidad fina, planificacion, atencion</div>
+              <div class="activity-name">Cortadora de Césped</div>
+              <div class="activity-schedule">Motricidad fina, planificación, atención</div>
             </div>
             <span style="color: var(--primary);">Jugar →</span>
           </div>
@@ -174,45 +174,39 @@
             <div class="activity-icon" style="font-size: 2rem;">💊</div>
             <div class="activity-info">
               <div class="activity-name">Memoria de Medicamentos</div>
-              <div class="activity-schedule">Memoria, atencion, seguimiento de instrucciones</div>
+              <div class="activity-schedule">Memoria, atención, seguimiento de instrucciones</div>
+            </div>
+            <span style="color: var(--primary);">Jugar →</span>
+          </div>
+
+          <!-- Game 3: Pill Organizer -->
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('pill-organizer')">
+            <div class="activity-icon" style="font-size: 2rem;">💊</div>
+            <div class="activity-info">
+              <div class="activity-name">Organizador de Medicación</div>
+              <div class="activity-schedule">Motricidad fina, organización cognitiva</div>
+            </div>
+            <span style="color: var(--primary);">Jugar →</span>
+          </div>
+
+          <!-- Game 4: Neuro-Chef -->
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('neuro-chef')">
+            <div class="activity-icon" style="font-size: 2rem;">🍽️</div>
+            <div class="activity-info">
+              <div class="activity-name">Neuro-Chef: La Mesa Puesta</div>
+              <div class="activity-schedule">Planificación motora, memoria procedimental</div>
             </div>
             <span style="color: var(--primary);">Jugar →</span>
           </div>
         </div>
 
-        <!-- Game Container -->
+        <!-- Game Container (for inline games if needed) -->
         <div id="game-container" class="hidden" style="margin-top: 2rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 id="game-title"></h3>
             <button class="btn btn-secondary" onclick="closeGame()">Cerrar juego</button>
           </div>
           <div id="game-area" style="background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;"></div>
-        <h2 style="margin-bottom: 0.5rem;">Juegos Terapeuticos</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Actividades ludicas disenadas para estimular habilidades cognitivas y motoras. Los juegos se habilitan en horarios programados.</p>
-        <div id="games-list">
-          <div class="loading">Cargando juegos...</div>
-        </div>
-        <div id="games-progress" style="margin-top: 2rem;">
-        
-        <div class="game-card">
-          <div class="game-icon">💊</div>
-          <h3>Organizador de Medicación</h3>
-          <p>Evaluación de motricidad fina y organización cognitiva</p>
-          <div class="game-stats">
-            <span>⏱️ 3-5 min</span>
-            <span>📊 Precisión motora</span>
-          </div>
-          <button class="btn btn-primary" onclick="launchGame('pill-organizer')">Jugar</button>
-                
-        <div class="game-card">
-          <div class="game-icon">🍽️</div>
-          <h3>Neuro-Chef: La Mesa Puesta</h3>
-          <p>Evaluación de planificación motora y memoria procedimental</p>
-          <div class="game-stats">
-            <span>⏱️ 5-8 min</span>
-            <span>📊 Coordinación y secuenciación</span>
-          </div>
-          <button class="btn btn-primary" onclick="launchGame('neuro-chef')">Jugar</button>
         </div>
 
       </div>
