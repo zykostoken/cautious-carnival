@@ -219,23 +219,78 @@ export default async (req: Request, context: Context) => {
 
       // Save daily mood check-in
       if (action === "mood_checkin") {
-        const { mood, note, colorHex, colorIntensity, context: checkinContext } = body;
+        const { 
+          mood, 
+          note, 
+          colorHex, 
+          colorIntensity, 
+          context: checkinContext,
+          // New 3-phase system fields
+          phase,  // 'pre' or 'post'
+          chat_responses,  // Array of {question, answer}
+          intensity,  // 'vivid', 'soft', 'pastel', 'dark', 'muted'
+          color_hex,  // Selected color
+          game_metrics  // Game performance data
+        } = body;
 
-        if (!mood || mood < 1 || mood > 5) {
+        // Support both old (mood 1-5) and new (phase-based) systems
+        const isNewSystem = phase && (phase === 'pre' || phase === 'post');
+        
+        if (!isNewSystem && (!mood || mood < 1 || mood > 5)) {
           return new Response(JSON.stringify({ error: "Valor de estado de animo invalido" }), { status: 400, headers: corsHeaders });
         }
 
-        // Save mood check-in with color data
-        await sql`
-          INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color_hex, color_intensity, context, created_at)
-          VALUES (${patient.id}, ${mood}, ${note || null}, ${colorHex || null}, ${colorIntensity || null}, ${checkinContext || 'daily_checkin'}, NOW())
-        `;
+        // Save mood check-in with new 3-phase support
+        if (isNewSystem) {
+          // New 3-phase system
+          if (phase === 'pre') {
+            // Pre-game: Save chat responses
+            await sql`
+              INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color_hex, color_intensity, context, created_at)
+              VALUES (
+                ${patient.id}, 
+                NULL,  -- No mood value for pre-game
+                ${chat_responses ? JSON.stringify(chat_responses) : null}, 
+                NULL,  -- No color yet
+                NULL,  -- No intensity yet
+                'pre_game_chat', 
+                NOW()
+              )
+            `;
+          } else if (phase === 'post') {
+            // Post-game: Save intensity + color + game metrics
+            await sql`
+              INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color_hex, color_intensity, context, created_at)
+              VALUES (
+                ${patient.id}, 
+                NULL,  -- No numeric mood in new system
+                ${game_metrics ? JSON.stringify(game_metrics) : null}, 
+                ${color_hex || null}, 
+                ${intensity || null}, 
+                'post_game_projective', 
+                NOW()
+              )
+            `;
+          }
+        } else {
+          // Old system: backward compatibility
+          await sql`
+            INSERT INTO hdd_mood_checkins (patient_id, mood_value, note, color_hex, color_intensity, context, created_at)
+            VALUES (${patient.id}, ${mood}, ${note || null}, ${colorHex || null}, ${colorIntensity || null}, ${checkinContext || 'daily_checkin'}, NOW())
+          `;
+        }
 
         // Log interaction
         try {
           await sql`
             INSERT INTO hdd_interaction_log (patient_id, interaction_type, details, created_at)
-            VALUES (${patient.id}, 'mood_checkin', ${JSON.stringify({ mood, colorHex, colorIntensity, context: checkinContext || 'daily_checkin' })}, NOW())
+            VALUES (${patient.id}, 'mood_checkin', ${JSON.stringify({ 
+              phase, 
+              mood, 
+              colorHex: color_hex || colorHex, 
+              colorIntensity: intensity || colorIntensity, 
+              context: checkinContext || (phase ? `${phase}_game` : 'daily_checkin')
+            })}, NOW())
           `;
         } catch (e) {
           // Table may not exist yet

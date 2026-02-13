@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuro-Chef: La Mesa Puesta | HDD</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/games/shared/mood-modals.js"></script>
+    <style>
+        body { margin:0; background:#2d2d2d; font-family: Arial, sans-serif; color:#fff; }
+        #game-container { width: 900px; height: 600px; margin: 24px auto; position: relative; }
+        #ui { position: absolute; top: 8px; left: 8px; z-index: 20; }
+        button { font-size:14px; padding:8px 10px; margin-right:6px; }
+        #back-link { color: white; text-decoration: none; display: block; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="ui">
+    <button id="startBtn">Iniciar Sesión</button>
+    <button id="endBtn">Finalizar Sesión</button>
+  </div>
+  <a href="/hdd/portal" id="back-link">← Volver al Portal HDD</a>
+
+  <!-- Load shared mood modals -->
+  <div id="mood-modals-container"></div>
+  <script>
+    fetch('/games/shared/mood-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('mood-modals-container').innerHTML = html;
+      })
+      .catch(err => console.error('Failed to load mood modals:', err));
+  </script>
+
+  <script type="module">
+    import { createGame } from './game.js';
+    import { Telemetry } from './telemetry.js';
+
+    const SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg4NTczODUsImV4cCI6MjA1NDQzMzM4NX0.iSEbjuVqIWFTlUgvPYJCdl75jlFqNkITCKk5C-gqiDI';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const sessionId = crypto.randomUUID();
+    const patientId = localStorage.getItem('hdd_patient_id') || crypto.randomUUID();
+    window.currentPatientId = patientId;
+
+    const telemetry = new Telemetry({ supabase, sessionId, patientId, batchInterval: 20000 });
+    const game = createGame({ parent: 'game-container', telemetry });
+
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      telemetry.startSession();
+      if (typeof initPreGameChat === 'function') {
+        initPreGameChat();
+      } else {
+        game.scene.start('MainScene');
+      }
+    });
+
+    document.getElementById('endBtn').addEventListener('click', async () => {
+      await telemetry.flush();
+      telemetry.endSession();
+      if (typeof showPostGameIntensityModal === 'function') {
+        showPostGameIntensityModal();
+      } else {
+        alert('Sesión finalizada');
+      }
+    });
+
+    window.startGameAfterChat = () => game.scene.start('MainScene');
+  </script>
+</body>
+</html>

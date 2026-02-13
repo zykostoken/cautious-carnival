@@ -126,6 +126,7 @@
         <button class="nav-tab" data-tab="games" onclick="switchTab('games')">Juegos</button>
         <button class="nav-tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
         <button class="nav-tab" data-tab="my-posts" onclick="switchTab('my-posts')">Mis Publicaciones</button>
+        <button class="nav-tab" data-tab="metrics" onclick="switchTab('metrics')">📊 Métricas</button>
       </div>
 
       <!-- Feed Tab -->
@@ -192,10 +193,32 @@
           <div class="loading">Cargando juegos...</div>
         </div>
         <div id="games-progress" style="margin-top: 2rem;">
+        
+        <div class="game-card">
+          <div class="game-icon">💊</div>
+          <h3>Organizador de Medicación</h3>
+          <p>Evaluación de motricidad fina y organización cognitiva</p>
+          <div class="game-stats">
+            <span>⏱️ 3-5 min</span>
+            <span>📊 Precisión motora</span>
+          </div>
+          <button class="btn btn-primary" onclick="launchGame('pill-organizer')">Jugar</button>
+                
+        <div class="game-card">
+          <div class="game-icon">🍽️</div>
+          <h3>Neuro-Chef: La Mesa Puesta</h3>
+          <p>Evaluación de planificación motora y memoria procedimental</p>
+          <div class="game-stats">
+            <span>⏱️ 5-8 min</span>
+            <span>📊 Coordinación y secuenciación</span>
+          </div>
+          <button class="btn btn-primary" onclick="launchGame('neuro-chef')">Jugar</button>
         </div>
-      </div>
 
-      <!-- Activities Tab -->
+      </div>
+    </div>
+
+    <!-- Activities Tab -->
       <div id="tab-activities" class="feed-container hidden">
         <h2 style="margin-bottom: 1rem;">Actividades Semanales</h2>
         <div id="activities-list">
@@ -228,6 +251,12 @@
           <div class="loading">Cargando...</div>
         </div>
       </div>
+    
+      <!-- Metrics Tab -->
+      <div id="tab-metrics" class="hidden">
+        <iframe src="/hdd/portal/metrics.html" style="width: 100%; height: 800px; border: none; border-radius: 12px;"></iframe>
+      </div>
+
     </main>
   </div>
 
