@@ -126,6 +126,7 @@
         <button class="nav-tab" data-tab="games" onclick="switchTab('games')">Juegos</button>
         <button class="nav-tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
         <button class="nav-tab" data-tab="my-posts" onclick="switchTab('my-posts')">Mis Publicaciones</button>
+        <button class="nav-tab" data-tab="metrics" onclick="switchTab('metrics')">📊 Métricas</button>
       </div>
 
       <!-- Feed Tab -->
@@ -240,6 +241,12 @@
           <div class="loading">Cargando...</div>
         </div>
       </div>
+    
+      <!-- Metrics Tab -->
+      <div id="tab-metrics" class="hidden">
+        <iframe src="/hdd/portal/metrics.html" style="width: 100%; height: 800px; border: none; border-radius: 12px;"></iframe>
+      </div>
+
     </main>
   </div>
 

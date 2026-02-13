@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Métricas - HDD</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #2d3748;
+      margin-bottom: 0.5rem;
+      font-size: 2.5rem;
+    }
+    .subtitle {
+      color: #718096;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .chart-card {
+      background: #f7fafc;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .chart-title {
+      font-size: 1.2rem;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .color-heatmap {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px;
+      margin-top: 1rem;
+    }
+    .color-cell {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+    }
+    .color-cell:hover {
+      transform: scale(1.2);
+      z-index: 10;
+    }
+    .color-count {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 3px black;
+    }
+    .sessions-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .sessions-table th {
+      background: #667eea;
+      color: white;
+      padding: 0.75rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    .sessions-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .sessions-table tr:hover {
+      background: #f7fafc;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .export-section {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #718096;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Dashboard de Métricas</h1>
+    <p class="subtitle">Análisis individual del progreso del paciente</p>
+
+    <div class="export-section">
+      <button class="btn btn-primary" onclick="exportToCSV()">📥 Exportar CSV</button>
+      <button class="btn btn-primary" onclick="exportToPDF()">📄 Exportar PDF</button>
+      <button class="btn btn-primary" onclick="window.location.href='/hdd/portal'">← Volver al Portal</button>
+    </div>
+
+    <div id="loading" class="loading">
+      <h2>⏳ Cargando métricas del paciente...</h2>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total de Sesiones</div>
+          <div class="stat-value" id="stat-total-sessions">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Última Partida</div>
+          <div class="stat-value" id="stat-last-played" style="font-size: 1.5rem;">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Intensidad Más Común</div>
+          <div class="stat-value" id="stat-common-intensity" style="font-size: 1.5rem;">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tiempo Promedio</div>
+          <div class="stat-value" id="stat-avg-duration">-</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <!-- Mood Timeline -->
+        <div class="chart-card">
+          <div class="chart-title">Evolución Temporal de Intensidad</div>
+          <canvas id="mood-timeline-chart"></canvas>
+        </div>
+
+        <!-- Game Distribution -->
+        <div class="chart-card">
+          <div class="chart-title">Distribución por Juego</div>
+          <canvas id="game-distribution-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Color Heatmap -->
+      <div class="chart-card">
+        <div class="chart-title">Mapa de Calor de Colores Elegidos</div>
+        <p style="color: #718096; margin-bottom: 1rem;">Frecuencia de selección de cada color (tamaño = cantidad)</p>
+        <div id="color-heatmap" class="color-heatmap"></div>
+      </div>
+
+      <!-- Sessions Table -->
+      <div class="chart-card">
+        <div class="chart-title">Historial de Sesiones</div>
+        <table class="sessions-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Juego</th>
+              <th>Duración</th>
+              <th>Intensidad</th>
+              <th>Color</th>
+              <th>Métricas</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get patient session
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionToken = urlParams.get('sessionToken') || localStorage.getItem('hdd_session_token');
+
+    if (!sessionToken) {
+      window.location.href = '/hdd/portal';
+    }
+
+    // Initialize Supabase (use environment variables in production)
+    const supabase = window.supabase.createClient(
+      'YOUR_SUPABASE_URL',
+      'YOUR_SUPABASE_ANON_KEY'
+    );
+
+    let patientData = null;
+    let sessionsData = [];
+
+    async function loadDashboard() {
+      try {
+        // Get patient info
+        const patientRes = await fetch(`/api/hdd/games?action=profile&sessionToken=${sessionToken}`);
+        const patientJson = await patientRes.json();
+        patientData = patientJson.patient;
+
+        // Get sessions data
+        const sessionsRes = await fetch(`/api/hdd/games?action=metrics&sessionToken=${sessionToken}`);
+        const sessionsJson = await sessionsRes.json();
+        sessionsData = sessionsJson.sessions || [];
+
+        renderDashboard();
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById('loading').innerHTML = '<h2>❌ Error cargando métricas</h2>';
+      }
+    }
+
+    function renderDashboard() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      // Stats
+      document.getElementById('stat-total-sessions').textContent = sessionsData.length;
+      
+      if (sessionsData.length > 0) {
+        const lastSession = sessionsData[0];
+        const lastDate = new Date(lastSession.completed_at);
+        document.getElementById('stat-last-played').textContent = lastDate.toLocaleDateString('es-AR');
+
+        // Most common intensity
+        const intensities = sessionsData.map(s => s.post_intensity).filter(Boolean);
+        const intensityCount = {};
+        intensities.forEach(i => intensityCount[i] = (intensityCount[i] || 0) + 1);
+        const mostCommon = Object.keys(intensityCount).reduce((a, b) => intensityCount[a] > intensityCount[b] ? a : b, '-');
+        document.getElementById('stat-common-intensity').textContent = mostCommon;
+
+        // Average duration
+        const avgDuration = Math.round(sessionsData.reduce((sum, s) => sum + (s.session_duration_seconds || 0), 0) / sessionsData.length);
+        document.getElementById('stat-avg-duration').textContent = Math.floor(avgDuration / 60) + ' min';
+      }
+
+      renderCharts();
+      renderColorHeatmap();
+      renderSessionsTable();
+    }
+
+    function renderCharts() {
+      // Mood timeline
+      const ctx1 = document.getElementById('mood-timeline-chart').getContext('2d');
+      new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: sessionsData.map(s => new Date(s.completed_at).toLocaleDateString('es-AR')),
+          datasets: [{
+            label: 'Intensidad Post-Juego',
+            data: sessionsData.map(s => {
+              const intensityMap = { vivid: 5, soft: 4, pastel: 3, dark: 2, muted: 1 };
+              return intensityMap[s.post_intensity] || 0;
+            }),
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true } }
+        }
+      });
+
+      // Game distribution
+      const gameCounts = {};
+      sessionsData.forEach(s => {
+        const gameType = s.game_type || 'unknown';
+        gameCounts[gameType] = (gameCounts[gameType] || 0) + 1;
+      });
+
+      const ctx2 = document.getElementById('game-distribution-chart').getContext('2d');
+      new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(gameCounts),
+          datasets: [{
+            data: Object.values(gameCounts),
+            backgroundColor: ['#667eea', '#764ba2', '#f093fb']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderColorHeatmap() {
+      const colorCounts = {};
+      sessionsData.forEach(s => {
+        if (s.post_color_hex) {
+          colorCounts[s.post_color_hex] = (colorCounts[s.post_color_hex] || 0) + 1;
+        }
+      });
+
+      const heatmapEl = document.getElementById('color-heatmap');
+      heatmapEl.innerHTML = '';
+
+      Object.entries(colorCounts).forEach(([color, count]) => {
+        const cell = document.createElement('div');
+        cell.className = 'color-cell';
+        cell.style.backgroundColor = color;
+        cell.title = `${color}: ${count} veces`;
+        
+        if (count > 0) {
+          const countEl = document.createElement('span');
+          countEl.className = 'color-count';
+          countEl.textContent = count;
+          cell.appendChild(countEl);
+        }
+        
+        heatmapEl.appendChild(cell);
+      });
+    }
+
+    function renderSessionsTable() {
+      const tbody = document.getElementById('sessions-tbody');
+      tbody.innerHTML = '';
+
+      sessionsData.forEach(session => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${new Date(session.completed_at).toLocaleString('es-AR')}</td>
+          <td>${session.game_type || '-'}</td>
+          <td>${Math.floor((session.session_duration_seconds || 0) / 60)} min</td>
+          <td>${session.post_intensity || '-'}</td>
+          <td><div style="width: 30px; height: 30px; background: ${session.post_color_hex || '#ccc'}; border-radius: 6px;"></div></td>
+          <td>${session.game_metrics ? JSON.stringify(session.game_metrics).substring(0, 50) + '...' : '-'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function exportToCSV() {
+      let csv = 'Fecha,Juego,Duración (seg),Intensidad,Color,Métricas\n';
+      sessionsData.forEach(s => {
+        csv += `"${s.completed_at}","${s.game_type}",${s.session_duration_seconds},"${s.post_intensity}","${s.post_color_hex}","${JSON.stringify(s.game_metrics)}"\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `metricas-hdd-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    }
+
+    function exportToPDF() {
+      window.print();
+    }
+
+    // Load on page load
+    loadDashboard();
+  </script>
+</body>
+</html>
