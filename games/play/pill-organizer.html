@@ -331,7 +331,7 @@
             sessionState.patientDni = 'HDD-2026-001';
             sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
             
-            document.getElementById('patient-display').textContent = `Paciente: ${sessionState.patientDni}`;
+            document.getElementById('patient-display').textContent = `Paciente: Cargando...`;
             
             // Obtener game_id desde Supabase
             const { data: game } = await supabase
@@ -347,6 +347,15 @@
             }
             
             setupDragAndDrop();
+            
+            // ✅ FIX: En modo demo, iniciar juego INMEDIATAMENTE sin modales
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDemoMode = urlParams.get('demo') === 'true';
+            
+            if (isDemoMode) {
+                // Iniciar juego directo en modo demo
+                startGameSession();
+            }
         }
 
         async function getOrCreatePatient(dni) {
