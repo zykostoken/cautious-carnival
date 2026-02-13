@@ -297,5 +297,11 @@ function updateGameMetrics(metrics) {
 // ====================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-    initPreGameChat();
+    // Only show pre-game chat if NOT in demo mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDemoMode = urlParams.get('demo') === 'true';
+    
+    if (!isDemoMode) {
+        initPreGameChat();
+    }
 });
