@@ -168,41 +168,92 @@ document.addEventListener('DOMContentLoaded', () => {
 // modalContent will be defined globally by modal-content.js
 
 async function ensureModalContent() {
-    if (window.modalContent) return;
+    console.log('[ensureModalContent] START');
+    console.log('[ensureModalContent] window.modalContent already exists?', !!window.modalContent);
+    
+    if (window.modalContent) {
+        console.log('[ensureModalContent] ✅ Already loaded, skipping');
+        return;
+    }
+    
+    console.log('[ensureModalContent] Loading modal-content.js...');
+    
     return new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = '/js/modal-content.js';
+        
         script.onload = () => {
+            console.log('[ensureModalContent] ✅ Script loaded');
+            console.log('[ensureModalContent] window.modalContent exists after load?', !!window.modalContent);
+            
             // Esperar un frame para asegurar ejecución completa
-            setTimeout(() => resolve(), 50);
+            setTimeout(() => {
+                console.log('[ensureModalContent] ✅ After setTimeout, window.modalContent:', !!window.modalContent);
+                if (window.modalContent) {
+                    console.log('[ensureModalContent] Available keys:', Object.keys(window.modalContent).length);
+                }
+                resolve();
+            }, 50);
         };
+        
         script.onerror = () => {
-            console.error('[ensureModalContent] Failed to load modal-content.js');
+            console.error('[ensureModalContent] ❌ Failed to load modal-content.js');
             resolve(); // Resolve anyway to avoid blocking
         };
+        
         document.head.appendChild(script);
+        console.log('[ensureModalContent] Script tag appended to head');
     });
 }
 
 async function openModal(id) {
-    console.log('[openModal] Called with id:', id);
+    console.log('============================================');
+    console.log('[openModal] ⭐ CALLED with id:', id);
+    console.log('[openModal] window.modalContent exists?', !!window.modalContent);
+    
     await ensureModalContent();
-    console.log('[openModal] Modal content loaded, checking for id:', id);
-    const content = window.modalContent[id];
+    
+    console.log('[openModal] After ensureModalContent()');
+    console.log('[openModal] window.modalContent exists NOW?', !!window.modalContent);
+    console.log('[openModal] Available keys:', window.modalContent ? Object.keys(window.modalContent) : 'NONE');
+    
+    const content = window.modalContent?.[id];
+    
+    console.log('[openModal] Content for', id, ':', content ? `EXISTS (${content.length} chars)` : 'NOT FOUND');
+    
     if (content) {
-        console.log('[openModal] Content found for', id, 'length:', content.length);
-        document.getElementById('modal-inner').innerHTML = content;
-        document.getElementById('modal-overlay').classList.add('active');
-        document.body.style.overflow = 'hidden';
-        // If telemedicine modal, fetch current price
-        if (id === 'telemedicina' && typeof telemedFetchCurrentPrice === 'function') {
-            console.log('[openModal] Fetching telemedicine price...');
-            telemedFetchCurrentPrice();
+        console.log('[openModal] ✅ Setting modal content...');
+        const modalInner = document.getElementById('modal-inner');
+        console.log('[openModal] modal-inner element:', modalInner ? 'FOUND' : 'NOT FOUND');
+        
+        if (modalInner) {
+            modalInner.innerHTML = content;
+            console.log('[openModal] ✅ Content set, opening modal...');
+            
+            const overlay = document.getElementById('modal-overlay');
+            console.log('[openModal] modal-overlay element:', overlay ? 'FOUND' : 'NOT FOUND');
+            
+            if (overlay) {
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                console.log('[openModal] ✅ Modal opened!');
+                
+                // If telemedicine modal, fetch current price
+                if (id === 'telemedicina' && typeof telemedFetchCurrentPrice === 'function') {
+                    console.log('[openModal] Fetching telemedicine price...');
+                    telemedFetchCurrentPrice();
+                }
+            } else {
+                console.error('[openModal] ❌ modal-overlay NOT FOUND IN DOM');
+            }
+        } else {
+            console.error('[openModal] ❌ modal-inner NOT FOUND IN DOM');
         }
     } else {
-        console.error('[openModal] NO CONTENT FOUND for id:', id);
+        console.error('[openModal] ❌ NO CONTENT FOUND for id:', id);
         console.log('[openModal] Available modal IDs:', Object.keys(window.modalContent || {}));
     }
+    console.log('============================================');
 }
 
 function closeModal(event) {
