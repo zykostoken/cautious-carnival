@@ -165,10 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== MODAL SYSTEM ====================
 // Modal content is lazy-loaded from modal-content.js
-let modalContent = null;
+// modalContent will be defined globally by modal-content.js
 
 async function ensureModalContent() {
-    if (modalContent) return;
+    if (window.modalContent) return;
     return new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = '/js/modal-content.js';
@@ -181,7 +181,7 @@ async function openModal(id) {
     console.log('[openModal] Called with id:', id);
     await ensureModalContent();
     console.log('[openModal] Modal content loaded, checking for id:', id);
-    const content = modalContent[id];
+    const content = window.modalContent[id];
     if (content) {
         console.log('[openModal] Content found for', id, 'length:', content.length);
         document.getElementById('modal-inner').innerHTML = content;
@@ -194,7 +194,7 @@ async function openModal(id) {
         }
     } else {
         console.error('[openModal] NO CONTENT FOUND for id:', id);
-        console.log('[openModal] Available modal IDs:', Object.keys(modalContent || {}));
+        console.log('[openModal] Available modal IDs:', Object.keys(window.modalContent || {}));
     }
 }
 
@@ -852,18 +852,21 @@ async function respondConsultation(consultationId) {
 // ========== ADMIN DASHBOARD OVERRIDE ==========
 
 // Override showProfessionalDashboard to include admin check
-const originalShowProfessionalDashboard = showProfessionalDashboard;
-showProfessionalDashboard = function() {
-    originalShowProfessionalDashboard();
+// ONLY if the function exists (telemedicine.js loaded)
+if (typeof showProfessionalDashboard !== 'undefined') {
+    const originalShowProfessionalDashboard = showProfessionalDashboard;
+    showProfessionalDashboard = function() {
+        originalShowProfessionalDashboard();
 
-    // Show admin section if user is admin
-    const adminSection = document.getElementById('admin-section');
-    if (adminSection && isAdmin()) {
-        adminSection.style.display = 'block';
-        loadAdminProfessionalList();
-        loadConsultations('pending');
-    }
-};
+        // Show admin section if user is admin
+        const adminSection = document.getElementById('admin-section');
+        if (adminSection && isAdmin()) {
+            adminSection.style.display = 'block';
+            loadAdminProfessionalList();
+            loadConsultations('pending');
+        }
+    };
+}
 
 // ========== INITIALIZATION ==========
 

@@ -1,5 +1,5 @@
 // Modal content templates - lazy loaded
-const modalContent = {
+window.modalContent = {
     metodologia: `
         <div class="modal-header">
             <span style="font-size:2rem"></span>
