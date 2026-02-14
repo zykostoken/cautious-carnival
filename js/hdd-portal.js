@@ -109,6 +109,37 @@ function selectColor(color) {
   preview.textContent = 'Color seleccionado';
 }
 
+// Selección de color sin requerir mood (modo neutral)
+function selectColorOnly(color) {
+  selectedColor = color;
+  selectedMood = null; // No hay mood asociado
+
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    const isSelected = s.dataset.color === color;
+    s.style.borderColor = isSelected ? '#fff' : 'transparent';
+    s.style.boxShadow = isSelected ? '0 0 0 3px #fff, 0 0 0 5px ' + color : 'none';
+    s.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+  });
+
+  const preview = document.getElementById('selected-color-preview');
+  if (preview) {
+    preview.style.display = 'block';
+    preview.style.background = color;
+    const r = parseInt(color.slice(1,3), 16);
+    const g = parseInt(color.slice(3,5), 16);
+    const b = parseInt(color.slice(5,7), 16);
+    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+    preview.style.color = luma > 160 ? '#1e293b' : '#ffffff';
+    preview.textContent = 'Color seleccionado';
+  }
+
+  // Habilitar botón de guardar
+  const submitBtn = document.getElementById('submit-mood-btn');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+  }
+}
+
 // ==================== MOOD CHECK-IN ====================
 
 function selectMood(value) {
