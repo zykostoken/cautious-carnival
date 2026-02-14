@@ -73,46 +73,39 @@
     <div id="pre-game-modal" class="modal-overlay">
         <div class="modal-content compact">
             <div class="modal-header">
-                <div class="emoji">💭</div>
-                <h2>Antes de empezar...</h2>
-                <p>Contame cómo estás hoy</p>
+                <h2>Antes de empezar</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Opcional</p>
             </div>
             <div class="modal-body">
                 <div class="question-group">
-                    <label>¿Cómo estás hoy?</label>
-                    <input type="text" id="q1" placeholder="Bien, cansado, nervioso...">
+                    <label>¿Cómo estás?</label>
+                    <input type="text" id="q1" placeholder="">
                 </div>
                 <div class="question-group">
-                    <label>¿Qué desayunaste o almorzaste?</label>
-                    <input type="text" id="q2" placeholder="Café con tostadas...">
+                    <label>¿Qué comiste?</label>
+                    <input type="text" id="q2" placeholder="">
                 </div>
                 <div class="question-group">
-                    <label>¿Cómo dormiste anoche?</label>
-                    <input type="text" id="q3" placeholder="Bien, mal, poco...">
+                    <label>¿Cómo dormiste?</label>
+                    <input type="text" id="q3" placeholder="">
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="btn-skip-pre" class="btn-text">Prefiero no responder</button>
+                <button id="btn-skip-pre" class="btn-text">Omitir</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal POST-juego (selector de color) -->
+    <!-- Modal POST-juego (selector de color neutral) -->
     <div id="post-game-modal" class="modal-overlay hidden">
         <div class="modal-content compact">
             <div class="modal-header">
-                <h2>Según tu experiencia elegí:</h2>
+                <h2>¿Cómo te sentís ahora?</h2>
             </div>
             <div class="modal-body">
-                <div class="intensity-selector">
-                    <button class="intensity-btn" data-intensity="opaco">OPACO</button>
-                    <button class="intensity-btn" data-intensity="pastel">PASTEL</button>
-                    <button class="intensity-btn" data-intensity="fluor">FLUOR</button>
-                </div>
-                <div id="color-selector" class="color-selector hidden">
-                    <p>Elegí el color que mejor representa cómo te sentís:</p>
-                    <div class="color-grid">
-                        <!-- 12 colores generados dinámicamente según intensidad -->
+                <div id="color-selector" class="color-selector">
+                    <div class="color-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                        <!-- 12 colores fijos sin condicionamiento -->
                     </div>
                 </div>
             </div>

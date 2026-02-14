@@ -508,32 +508,26 @@ function showPostGameModal() {
     const modal = document.getElementById('post-game-modal');
     modal.classList.remove('hidden');
     
-    // Setup intensity selector
-    const intensityBtns = document.querySelectorAll('.intensity-btn');
-    intensityBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            intensityBtns.forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            
-            const intensity = btn.dataset.intensity;
-            gameState.postMood.intensity = intensity;
-            
-            // Mostrar selector de colores
-            showColorSelector(intensity);
-        });
-    });
+    // Mostrar directamente 12 colores fijos
+    showColorSelectorDirect();
 }
 
-function showColorSelector(intensity) {
+function showColorSelectorDirect() {
     const colorSelector = document.getElementById('color-selector');
     const colorGrid = colorSelector.querySelector('.color-grid');
     
-    const colors = COLORES[intensity];
+    // 12 colores fijos sin intensidades
+    const colors = [
+        '#dc2626', '#ea580c', '#f59e0b', 
+        '#eab308', '#84cc16', '#22c55e',
+        '#06b6d4', '#3b82f6', '#6366f1',
+        '#8b5cf6', '#ec4899', '#64748b'
+    ];
     
-    colorGrid.innerHTML = Object.entries(colors).map(([name, hex]) => `
+    colorGrid.innerHTML = colors.map(hex => `
         <button class="color-btn" 
-                data-color="${name}" 
-                style="background: ${hex}">
+                data-color="${hex}" 
+                style="width: 100%; aspect-ratio: 1; background: ${hex}; border: 3px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
         </button>
     `).join('');
     
@@ -544,9 +538,21 @@ function showColorSelector(intensity) {
     colorBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             gameState.postMood.color = btn.dataset.color;
+            gameState.postMood.intensity = null; // No intensity
             
-            // Guardar y finalizar
-            savePostMoodAndFinish();
+            // Visual feedback
+            colorBtns.forEach(b => {
+                b.style.borderColor = 'transparent';
+                b.style.transform = 'scale(1)';
+            });
+            btn.style.borderColor = '#fff';
+            btn.style.boxShadow = '0 0 0 3px #fff, 0 0 0 5px ' + btn.dataset.color;
+            btn.style.transform = 'scale(1.1)';
+            
+            // Guardar y finalizar después de 500ms
+            setTimeout(() => {
+                savePostMoodAndFinish();
+            }, 500);
         });
     });
 }
@@ -557,7 +563,7 @@ async function savePostMoodAndFinish() {
         patient_id: gameState.patientId,
         context: 'post_game_neuro_chef',
         mood_level: null,
-        color_intensity: gameState.postMood.intensity,
+        color_intensity: null, // No intensity
         color_selected: gameState.postMood.color
     });
     
