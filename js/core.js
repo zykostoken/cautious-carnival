@@ -172,7 +172,14 @@ async function ensureModalContent() {
     return new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = '/js/modal-content.js';
-        script.onload = () => resolve();
+        script.onload = () => {
+            // Esperar un frame para asegurar ejecución completa
+            setTimeout(() => resolve(), 50);
+        };
+        script.onerror = () => {
+            console.error('[ensureModalContent] Failed to load modal-content.js');
+            resolve(); // Resolve anyway to avoid blocking
+        };
         document.head.appendChild(script);
     });
 }
