@@ -62,35 +62,34 @@ async function getOrCreatePatient(dni) {
 // ========== PRE-GAME MODAL ==========
 function setupPreGameModal() {
     const btnSkip = document.getElementById('btn-skip-pre');
+    const btnContinue = document.getElementById('btn-continue-pre');
     
     btnSkip.addEventListener('click', () => {
         // Guardar respuestas vacías
-        gameState.preMood = { q1: '', q2: '', q3: '' };
+        gameState.preMood = { q1: '', q2: '', q3: '', skipped: true };
         
         // Cerrar modal y empezar juego
         document.getElementById('pre-game-modal').classList.add('hidden');
         startGame();
     });
     
-    // Auto-submit al completar las 3 preguntas
-    const inputs = ['q1', 'q2', 'q3'];
-    inputs.forEach(id => {
-        document.getElementById(id).addEventListener('blur', () => {
-            checkAllQuestionsAnswered();
-        });
-    });
-}
-
-function checkAllQuestionsAnswered() {
-    const q1 = document.getElementById('q1').value.trim();
-    const q2 = document.getElementById('q2').value.trim();
-    const q3 = document.getElementById('q3').value.trim();
-    
-    if (q1 && q2 && q3) {
-        // Guardar respuestas
-        gameState.preMood = { q1, q2, q3 };
+    btnContinue.addEventListener('click', () => {
+        // Guardar respuestas (aunque estén vacías)
+        const q1 = document.getElementById('q1').value.trim();
+        const q2 = document.getElementById('q2').value.trim();
+        const q3 = document.getElementById('q3').value.trim();
         
-        // Auto-cerrar modal después de 500ms
+        gameState.preMood = { q1, q2, q3, skipped: false };
+        
+        // Cerrar modal y empezar juego
+        document.getElementById('pre-game-modal').classList.add('hidden');
+        startGame();
+    });
+    
+    // Botón SIEMPRE habilitado - pueden continuar con respuestas vacías
+    btnContinue.disabled = false;
+    btnContinue.style.opacity = '1';
+}
         setTimeout(() => {
             document.getElementById('pre-game-modal').classList.add('hidden');
             startGame();
@@ -508,11 +507,25 @@ function showPostGameModal() {
     const modal = document.getElementById('post-game-modal');
     modal.classList.remove('hidden');
     
+    // Setup botones
+    const btnSkip = document.getElementById('btn-skip-post');
+    const btnContinue = document.getElementById('btn-continue-post');
+    
+    btnSkip.addEventListener('click', () => {
+        gameState.postMood.color = null;
+        gameState.postMood.skipped = true;
+        savePostMoodAndFinish();
+    });
+    
+    btnContinue.addEventListener('click', () => {
+        savePostMoodAndFinish();
+    });
+    
     // Mostrar directamente 12 colores fijos
-    showColorSelectorDirect();
+    showColorSelectorDirect(btnContinue);
 }
 
-function showColorSelectorDirect() {
+function showColorSelectorDirect(btnContinue) {
     const colorSelector = document.getElementById('color-selector');
     const colorGrid = colorSelector.querySelector('.color-grid');
     
@@ -539,6 +552,7 @@ function showColorSelectorDirect() {
         btn.addEventListener('click', () => {
             gameState.postMood.color = btn.dataset.color;
             gameState.postMood.intensity = null; // No intensity
+            gameState.postMood.skipped = false;
             
             // Visual feedback
             colorBtns.forEach(b => {
@@ -549,10 +563,9 @@ function showColorSelectorDirect() {
             btn.style.boxShadow = '0 0 0 3px #fff, 0 0 0 5px ' + btn.dataset.color;
             btn.style.transform = 'scale(1.1)';
             
-            // Guardar y finalizar después de 500ms
-            setTimeout(() => {
-                savePostMoodAndFinish();
-            }, 500);
+            // Habilitar botón Listo
+            btnContinue.disabled = false;
+            btnContinue.style.opacity = '1';
         });
     });
 }
@@ -564,7 +577,8 @@ async function savePostMoodAndFinish() {
         context: 'post_game_neuro_chef',
         mood_level: null,
         color_intensity: null, // No intensity
-        color_selected: gameState.postMood.color
+        color_selected: gameState.postMood.color,
+        skipped: gameState.postMood.skipped || false
     });
     
     // Cerrar modal
