@@ -529,12 +529,12 @@ function showColorSelectorDirect(btnContinue) {
     const colorSelector = document.getElementById('color-selector');
     const colorGrid = colorSelector.querySelector('.color-grid');
     
-    // 12 colores fijos sin intensidades
+    // 12 colores PASTEL suaves (no intensos, no apagados)
     const colors = [
-        '#dc2626', '#ea580c', '#f59e0b', 
-        '#eab308', '#84cc16', '#22c55e',
-        '#06b6d4', '#3b82f6', '#6366f1',
-        '#8b5cf6', '#ec4899', '#64748b'
+        '#f8b4b4', '#ffc9a3', '#ffe4a3',  // rojos/naranjas/amarillos pastel
+        '#fff9a3', '#d4f4a3', '#b8e6b8',  // amarillos/verdes pastel
+        '#a3e4f1', '#a3c9f1', '#c4b5fd',  // cielos/azules/violetas pastel
+        '#d8b4fe', '#f5b4d8', '#c8c8c8'   // violetas/rosas/gris pastel
     ];
     
     colorGrid.innerHTML = colors.map(hex => `

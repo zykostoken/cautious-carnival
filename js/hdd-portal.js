@@ -331,12 +331,12 @@ function showApp() {
   document.getElementById('app-view').classList.remove('hidden');
   document.getElementById('user-name').textContent = currentUser.fullName;
 
-  // Show daily mood check-in after a brief delay (not in preview mode)
-  if (!isPreviewMode) {
-    setTimeout(() => {
-      showMoodCheckinModal();
-    }, 800);
-  }
+  // Mood check-in DESACTIVADO - solo en juegos
+  // if (!isPreviewMode) {
+  //   setTimeout(() => {
+  //     showMoodCheckinModal();
+  //   }, 800);
+  // }
 }
 
 // Registration - simplified (no code verification)
