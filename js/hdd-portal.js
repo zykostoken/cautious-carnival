@@ -4,7 +4,7 @@ let sessionToken = null;
 let uploadedImageUrl = null;
 let selectedMood = null;
 let selectedColor = null;
-let selectedColorIntensity = 'vivid';
+// Intensidad eliminada - ahora 12 colores fijos proyectivos
 const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'true';
 
 // API helpers
@@ -21,73 +21,21 @@ async function api(endpoint, options = {}) {
   return response.json();
 }
 
-// ==================== COLOR PALETTE ====================
+// ==================== 12 COLORES PROYECTIVOS ====================
+// Misma paleta que games/shared/mood-modals.js
+// Fundamento: Lüscher, Heller, Boyatzis & Varghese, Kaya & Epps
 
-const COLOR_PALETTES = {
-  vivid: [
-    '#FF0000', '#FF4500', '#FF8C00', '#FFD700', '#FFFF00', '#ADFF2F', '#00FF00', '#00CED1',
-    '#0000FF', '#4B0082', '#8B00FF', '#FF00FF', '#FF1493', '#DC143C', '#8B0000', '#FF6347',
-    '#00BFFF', '#1E90FF', '#228B22', '#32CD32', '#FF69B4', '#BA55D3', '#00FA9A', '#FFE4B5'
-  ],
-  soft: [
-    '#F08080', '#FFA07A', '#FFDAB9', '#FFE4B5', '#FFFACD', '#D2E4A0', '#98FB98', '#AFEEEE',
-    '#87CEEB', '#B0C4DE', '#DDA0DD', '#D8BFD8', '#FFB6C1', '#FFC0CB', '#E6E6FA', '#F0E68C',
-    '#ADD8E6', '#90EE90', '#FAFAD2', '#E0BBE4', '#F5CBA7', '#AED6F1', '#A9DFBF', '#F9E79F'
-  ],
-  pastel: [
-    '#FFD1DC', '#FFDAC1', '#FFE5B4', '#FFFDD0', '#FDFD96', '#D4F0C0', '#C1E1C1', '#C1F0F0',
-    '#C1D4E0', '#C1C1E0', '#D4C1E0', '#E0C1D4', '#F0C1C1', '#F5DEB3', '#E8DAEF', '#D5F5E3',
-    '#FCF3CF', '#FADBD8', '#D6EAF8', '#D1F2EB', '#F2D7D5', '#D7BDE2', '#A9CCE3', '#A3E4D7'
-  ],
-  dark: [
-    '#8B0000', '#800000', '#4B0082', '#191970', '#006400', '#2F4F4F', '#36454F', '#483C32',
-    '#301934', '#1B1B1B', '#3C1414', '#1C2833', '#0B3D0B', '#3B0A45', '#2C1608', '#0A2E36',
-    '#4A235A', '#1A5276', '#145A32', '#7B241C', '#4A4A4A', '#6C3483', '#1B4F72', '#196F3D'
-  ],
-  muted: [
-    '#BC8F8F', '#C0A080', '#BDB76B', '#8FBC8F', '#708090', '#778899', '#9D8F8F', '#A0809F',
-    '#809FA0', '#808F9F', '#9F808F', '#8F9D80', '#A09080', '#8F8F9D', '#9D808A', '#80A09D',
-    '#A0909F', '#8FA09D', '#9D8FA0', '#908F8F', '#8D9F80', '#80889F', '#9F8080', '#808F80'
-  ]
-};
+const PROJECTIVE_COLORS = [
+  '#D32F2F', '#F57C00', '#FBC02D', '#388E3C',
+  '#00897B', '#1E88E5', '#1A237E', '#7B1FA2',
+  '#D81B60', '#5D4037', '#78909C', '#212121'
+];
 
-function setColorIntensity(intensity) {
-  selectedColorIntensity = intensity;
-  selectedColor = null;
-  const preview = document.getElementById('selected-color-preview');
-  if (preview) preview.style.display = 'none';
+// setColorIntensity ya no aplica - 12 colores fijos
+function setColorIntensity() {}
 
-  document.querySelectorAll('.intensity-btn').forEach(btn => {
-    if (btn.dataset.intensity === intensity) {
-      btn.style.borderColor = 'var(--primary)';
-      btn.style.background = 'var(--primary)';
-      btn.style.color = '#fff';
-      btn.classList.add('active');
-    } else {
-      btn.style.borderColor = 'var(--border)';
-      btn.style.background = 'var(--surface)';
-      btn.style.color = 'var(--text)';
-      btn.classList.remove('active');
-    }
-  });
-
-  renderColorPalette(intensity);
-}
-
-function renderColorPalette(intensity) {
-  const grid = document.getElementById('color-palette-grid');
-  if (!grid) return;
-  const colors = COLOR_PALETTES[intensity] || COLOR_PALETTES.vivid;
-
-  grid.innerHTML = colors.map(color => `
-    <div class="color-swatch" onclick="selectColor('${color}')"
-         style="width: 100%; aspect-ratio: 1; background: ${color}; border-radius: 6px; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s;"
-         data-color="${color}"
-         onmouseenter="this.style.transform='scale(1.15)'"
-         onmouseleave="this.style.transform='scale(1)'">
-    </div>
-  `).join('');
-}
+// renderColorPalette ya no aplica - colores hardcoded en HTML
+function renderColorPalette() {}
 
 function selectColor(color) {
   selectedColor = color;
@@ -175,7 +123,6 @@ function showMoodCheckinModal() {
 
   selectedMood = null;
   selectedColor = null;
-  selectedColorIntensity = 'vivid';
 
   const modal = document.getElementById('mood-checkin-modal');
   if (!modal) return;
@@ -198,18 +145,11 @@ function showMoodCheckinModal() {
 
   modal.classList.remove('hidden');
 
-  // Render initial color palette with small delay to ensure DOM is ready
+  // Reset color swatches
   setTimeout(() => {
-    renderColorPalette('vivid');
-    // Reset intensity buttons
-    document.querySelectorAll('.intensity-btn').forEach(btn => {
-      if (btn.dataset.intensity === 'vivid') {
-        btn.style.borderColor = 'var(--primary)';
-        btn.classList.add('active');
-      } else {
-        btn.style.borderColor = 'var(--border)';
-        btn.classList.remove('active');
-      }
+    document.querySelectorAll('.color-swatch').forEach(s => {
+      s.style.borderColor = 'transparent';
+      s.style.boxShadow = 'none';
     });
   }, 50);
 }
@@ -233,7 +173,6 @@ async function submitMoodCheckin() {
         mood: selectedMood,
         note: note || null,
         colorHex: selectedColor || null,
-        colorIntensity: selectedColorIntensity || null,
         context: 'daily_checkin'
       })
     });
