@@ -75,7 +75,7 @@
             transition: all 0.3s;
         }
     </style>
-  <script src="/games/shared/mood-modals.js"></script>
+  <!-- mood-modals.js se carga desde mood-modals.html (shared) -->
 </head>
 <body class="flex flex-col min-h-screen">
 
@@ -254,38 +254,8 @@
         // ===========================================
         // PALETAS PROYECTIVAS POR INTENSIDAD
         // ===========================================
-        const PROJECTIVE_PALETTES = {
-            'dull': [
-                '#546e7a', // Gris azulado oscuro
-                '#455a64', // Gris azulado medio
-                '#37474f', // Gris azulado profundo
-                '#263238', // Casi negro azulado
-                '#607d8b', // Gris azul claro
-                '#78909c', // Gris azul muy claro
-                '#90a4ae', // Gris azul pálido
-                '#b0bec5'  // Gris azul muy pálido
-            ],
-            'pastel': [
-                '#ffcdd2', // Rosa pastel
-                '#f8bbd0', // Rosa claro
-                '#e1bee7', // Violeta pastel
-                '#c5cae9', // Azul pastel
-                '#b2dfdb', // Verde agua pastel
-                '#c8e6c9', // Verde pastel
-                '#fff9c4', // Amarillo pastel
-                '#ffccbc'  // Naranja pastel
-            ],
-            'vivid': [
-                '#f44336', // Rojo intenso
-                '#e91e63', // Rosa fucsia
-                '#9c27b0', // Violeta saturado
-                '#673ab7', // Púrpura intenso
-                '#ffeb3b', // Amarillo brillante
-                '#ff9800', // Naranja saturado
-                '#4caf50', // Verde brillante
-                '#00bcd4'  // Cyan intenso
-            ]
-        };
+        // Paleta de colores: usa el sistema compartido en /games/shared/mood-modals.js
+        // 12 colores proyectivos con fundamento en psicología del color
 
         // ===========================================
         // ESTADO DE LA SESIÓN
@@ -639,73 +609,29 @@
         }
 
         // ===========================================
-        // FINALIZACIÓN + SISTEMA PROYECTIVO (2 FASES)
+        // FINALIZACIÓN → Usa modal compartido de 12 colores
         // ===========================================
         document.getElementById('finish-btn').addEventListener('click', () => {
             sessionState.endTime = Date.now();
-            showIntensitySelector();
+            // Pasar métricas al shared system antes de mostrar modal
+            if (typeof updateGameMetrics === 'function') {
+                updateGameMetrics({
+                    total_placements: sessionState.totalMoves,
+                    correct_placements: sessionState.correctPlacements,
+                    errors: sessionState.totalErrors,
+                    movements: sessionState.movements
+                });
+            }
+            // Mostrar modal de 12 colores (shared)
+            if (typeof showPostGameColorModal === 'function') {
+                showPostGameColorModal();
+            }
         });
 
-        // PHASE 1: Seleccionar Intensidad/Arousal
-        function showIntensitySelector() {
-            document.getElementById('color-intensity-modal').classList.remove('hidden');
-        }
-
-        // Global function (llamada desde onclick en HTML)
-        window.selectIntensity = function(intensity) {
-            sessionState.emotionalIntensity = intensity;
-            
-            // Cerrar modal de intensidad
-            document.getElementById('color-intensity-modal').classList.add('hidden');
-            
-            // Abrir modal de paleta
-            setTimeout(() => {
-                showDynamicPalette(intensity);
-            }, 300);
+        // Callback que el shared modal invoca tras elegir color
+        window.showMetricsModal = function() {
+            completeSession();
         };
-
-        // PHASE 2: Mostrar Paleta según Intensidad
-        function showDynamicPalette(intensity) {
-            const colors = PROJECTIVE_PALETTES[intensity];
-            const paletteContainer = document.getElementById('dynamic-palette');
-            paletteContainer.innerHTML = '';
-            
-            colors.forEach(color => {
-                const colorTile = document.createElement('div');
-                colorTile.className = 'w-24 h-24 rounded-2xl cursor-pointer transition-all hover:scale-110 hover:rotate-6 shadow-lg';
-                colorTile.style.backgroundColor = color;
-                colorTile.style.boxShadow = `0 8px 20px ${color}40`;
-                colorTile.addEventListener('click', () => selectFinalColor(color, intensity));
-                paletteContainer.appendChild(colorTile);
-            });
-            
-            document.getElementById('color-palette-modal').classList.remove('hidden');
-        }
-
-        // Guardar selección final
-        async function selectFinalColor(color, intensity) {
-            sessionState.selectedColor = color;
-            
-            // Guardar en Supabase
-            await supabase.from('hdd_mood_checkins').insert({
-                patient_id: sessionState.patientId,
-                mood_level: null, // No usamos mood numérico en sistema proyectivo
-                color_hex: color,
-                color_intensity: intensity, // 'dull', 'pastel', 'vivid'
-                context: 'post_game'
-            });
-            
-            await supabase.from('hdd_game_color_selections').insert({
-                patient_id: sessionState.patientId,
-                game_session_id: sessionState.sessionId,
-                color_hex: color,
-                color_intensity: intensity,
-                context: 'post_game'
-            });
-            
-            document.getElementById('color-palette-modal').classList.add('hidden');
-            await completeSession();
-        }
 
         async function completeSession() {
             const duration = Math.floor((sessionState.endTime - sessionState.startTime) / 1000);
