@@ -76,7 +76,7 @@
                 <h2>Antes de empezar</h2>
                 <p style="font-size: 0.9rem; color: var(--text-muted);">Opcional</p>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 2rem; padding-bottom: 0.5rem;">
                 <div class="question-group">
                     <label>¿Cómo estás?</label>
                     <input type="text" id="q1" placeholder="">
@@ -85,14 +85,14 @@
                     <label>¿Qué comiste?</label>
                     <input type="text" id="q2" placeholder="">
                 </div>
-                <div class="question-group">
+                <div class="question-group" style="margin-bottom: 0.5rem;">
                     <label>¿Cómo dormiste?</label>
                     <input type="text" id="q3" placeholder="">
                 </div>
             </div>
-            <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 1rem;">
-                <button id="btn-skip-pre" class="btn-text">Omitir</button>
-                <button id="btn-continue-pre" class="btn-primary" style="padding: 0.75rem 1.5rem;">Continuar</button>
+            <div class="modal-footer" style="display: flex !important; justify-content: space-between; gap: 1rem; margin-top: 0; padding: 1rem 2rem 1.5rem 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
+                <button id="btn-skip-pre" class="btn-text" style="color: #666; background: none; border: none; cursor: pointer; font-size: 0.9rem;">Omitir</button>
+                <button id="btn-continue-pre" class="btn-primary" style="padding: 0.75rem 1.5rem; background: #D4A574; color: #1a1a1a; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Continuar</button>
             </div>
         </div>
     </div>
@@ -110,9 +110,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 1rem;">
-                <button id="btn-skip-post" class="btn-text">Omitir</button>
-                <button id="btn-continue-post" class="btn-primary" disabled style="padding: 0.75rem 1.5rem; opacity: 0.5;">Listo</button>
+            <div class="modal-footer" style="display: flex !important; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button id="btn-skip-post" class="btn-text" style="color: rgba(255,255,255,0.6); background: none; border: none; cursor: pointer; font-size: 0.9rem;">Omitir</button>
+                <button id="btn-continue-post" class="btn-primary" disabled style="padding: 0.75rem 1.5rem; opacity: 0.5; background: #D4A574; color: #1a1a1a; border: none; border-radius: 8px; font-weight: 600;">Listo</button>
             </div>
         </div>
     </div>
