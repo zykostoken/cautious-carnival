@@ -1057,7 +1057,7 @@
       <div class="result-actions">
         <button class="btn-primary" id="nextLevelBtn" style="display:none; background:#10b981;">Siguiente Nivel &#9654;</button>
         <button class="btn-primary" id="retryBtn">Reintentar</button>
-        <button class="btn-primary" id="metricsBtn" style="background:#8b5cf6;">Ver Metricas</button>
+        <button class="btn-primary" id="metricsBtn" style="display:none;">Ver Metricas</button>
         <button class="btn-secondary" id="levelsBtn">Niveles</button>
         <button class="btn-secondary" id="endGameBtn" style="background:#ef4444;color:#fff;">Finalizar</button>
       </div>
@@ -3631,21 +3631,7 @@
   });
 
   // ---- RESTART BUTTON (in-game) ----
-  restartBtn.addEventListener('click', function() {
-    if (gameRunning || isBlocked) {
-      if (grassCut > 0) saveResult(false);
-      cancelAnimationFrame(celebAnimId);
-      celebCanvas.classList.add('hidden');
-      initGame(currentLevel);
-    }
-  });
-  blockedRestartBtn.addEventListener('click', function() {
-    saveResult(false);
-    cancelAnimationFrame(celebAnimId);
-    celebCanvas.classList.add('hidden');
-    blockedOverlay.classList.add('hidden');
-    initGame(currentLevel);
-  });
+  // Handlers moved to unified section below (line ~3669)
 
   // ---- NEXT LEVEL BUTTON ----
   const LEVEL_ORDER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,25,30,40,41,50,60,101,102,103,104,105];
@@ -3667,9 +3653,11 @@
 
   // ---- RESTART BUTTON (in header) ----
   document.getElementById('restartBtn').addEventListener('click', function() {
-    if (gameRunning) {
+    if (gameRunning && grassCut > 0) {
       saveResult(false);
     }
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
     recordResetEvent();
     hideBlockedOverlay();
     initGame(currentLevel);
@@ -3685,6 +3673,9 @@
 
   // ---- BLOCKED OVERLAY RESTART BUTTON ----
   document.getElementById('blockedRestartBtn').addEventListener('click', function() {
+    if (grassCut > 0) saveResult(false);
+    cancelAnimationFrame(celebAnimId);
+    celebCanvas.classList.add('hidden');
     hideBlockedOverlay();
     recordResetEvent();
     initGame(currentLevel);
