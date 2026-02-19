@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuro-Chef | Dashboard Biométrico</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #e8e0d6; min-height: 100vh; }
+        .dashboard { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .dash-header h1 { font-size: 1.5rem; color: #D4A574; }
+        .dash-header .patient-info { background: rgba(255,255,255,0.05); padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.9rem; }
+        .dash-header .patient-info strong { color: #D4A574; }
+        .back-btn { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.85rem; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; transition: all 0.2s; }
+        .back-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+        /* Summary cards */
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin-bottom: 2rem; }
+        .summary-card { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
+        .summary-card .val { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .summary-card .lbl { font-size: 0.7rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
+
+        /* Charts */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+        .chart-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 1.2rem; border: 1px solid rgba(255,255,255,0.06); }
+        .chart-box h3 { font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-bottom: 0.8rem; }
+        .chart-box canvas { max-height: 280px; }
+
+        /* Sessions table */
+        .sessions-section h2 { font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem; }
+        .sessions-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .sessions-table th { text-align: left; padding: 0.6rem; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+        .sessions-table td { padding: 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.7); }
+        .sessions-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+        .loading { text-align: center; padding: 4rem; color: rgba(255,255,255,0.4); }
+        .no-data { text-align: center; padding: 3rem; color: rgba(255,255,255,0.3); font-style: italic; }
+
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+            .sessions-table { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dash-header">
+            <h1>Dashboard Biométrico</h1>
+            <div class="patient-info" id="patient-info">Cargando...</div>
+            <a href="/games/play/neuro-chef/" class="back-btn">Volver al juego</a>
+        </div>
+
+        <div id="content">
+            <div class="loading" id="loading">Cargando datos del paciente...</div>
+        </div>
+    </div>
+
+    <script>
+    const supabaseUrl = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+    const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const params = new URLSearchParams(window.location.search);
+    const patientId = params.get('patient_id');
+
+    if (!patientId) {
+        document.getElementById('content').innerHTML = '<div class="no-data">No se especificó paciente. Agregá ?patient_id=UUID a la URL.</div>';
+    } else {
+        loadDashboard(patientId);
+    }
+
+    async function loadDashboard(pid) {
+        try {
+            // Get patient info
+            const { data: patient } = await sb.from('hdd_patients').select('*').eq('id', pid).single();
+            if (patient) {
+                document.getElementById('patient-info').innerHTML = `<strong>${patient.full_name || patient.dni}</strong> | DNI: ${patient.dni}`;
+            }
+
+            // Get all sessions
+            const { data: sessions } = await sb.from('hdd_game_sessions')
+                .select('*').eq('patient_id', pid).order('started_at', { ascending: true });
+
+            // Get all metrics
+            const { data: metrics } = await sb.from('hdd_game_metrics')
+                .select('*').eq('patient_id', pid).eq('game_slug', 'neuro-chef-v2').order('created_at', { ascending: true });
+
+            // Get mood checkins
+            const { data: moods } = await sb.from('hdd_mood_checkins')
+                .select('*').eq('patient_id', pid).order('created_at', { ascending: true });
+
+            if (!sessions || sessions.length === 0) {
+                document.getElementById('content').innerHTML = '<div class="no-data">Este paciente no tiene sesiones registradas aún.</div>';
+                return;
+            }
+
+            // Process biometric data
+            const bioMetrics = (metrics || []).filter(m => m.metric_type.startsWith('biometric_level_'));
+            const levelMetrics = (metrics || []).filter(m => m.metric_type.startsWith('level_'));
+
+            // Group by session
+            const sessionMap = {};
+            sessions.forEach(s => { sessionMap[s.id] = { ...s, bio: [], levels: [] }; });
+            bioMetrics.forEach(m => { if (sessionMap[m.game_session_id]) sessionMap[m.game_session_id].bio.push(m); });
+            levelMetrics.forEach(m => { if (sessionMap[m.game_session_id]) sessionMap[m.game_session_id].levels.push(m); });
+
+            const sessionList = Object.values(sessionMap).sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
+
+            renderDashboard(sessionList, bioMetrics, moods || []);
+        } catch (e) {
+            console.error('Dashboard error:', e);
+            document.getElementById('content').innerHTML = '<div class="no-data">Error cargando datos. Verificá la conexión.</div>';
+        }
+    }
+
+    function renderDashboard(sessions, bioMetrics, moods) {
+        const content = document.getElementById('content');
+
+        // Calculate aggregates
+        const totalSessions = sessions.length;
+        const completedSessions = sessions.filter(s => s.completed_at).length;
+        const allBio = bioMetrics.map(m => m.metric_data).filter(Boolean);
+        const avgRT = allBio.length ? Math.round(allBio.reduce((a, b) => a + (b.reaction_time_ms || 0), 0) / allBio.length) : 0;
+        const avgDPrime = allBio.length ? (allBio.reduce((a, b) => a + (b.d_prime || 0), 0) / allBio.length).toFixed(2) : '---';
+        const avgTremor = allBio.length ? (allBio.reduce((a, b) => a + (b.tremor_avg || 0), 0) / allBio.length).toFixed(1) : '---';
+        const totalOmissions = allBio.reduce((a, b) => a + (b.misses || 0), 0);
+        const totalCommissions = allBio.reduce((a, b) => a + (b.false_alarms || 0), 0);
+        const totalHesitations = allBio.reduce((a, b) => a + (b.hesitation_count || 0), 0);
+
+        content.innerHTML = `
+            <div class="summary-row">
+                <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones</div></div>
+                <div class="summary-card"><div class="val">${completedSessions}</div><div class="lbl">Completadas</div></div>
+                <div class="summary-card"><div class="val">${avgRT}ms</div><div class="lbl">RT promedio</div></div>
+                <div class="summary-card"><div class="val">${avgDPrime}</div><div class="lbl">d' promedio</div></div>
+                <div class="summary-card"><div class="val">${avgTremor}</div><div class="lbl">Tremor idx</div></div>
+                <div class="summary-card"><div class="val">${totalOmissions}</div><div class="lbl">Omisiones totales</div></div>
+                <div class="summary-card"><div class="val">${totalCommissions}</div><div class="lbl">Comisiones totales</div></div>
+                <div class="summary-card"><div class="val">${totalHesitations}</div><div class="lbl">Hesitaciones</div></div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-box"><h3>Evolución Tiempo de Reacción (ms)</h3><canvas id="chart-rt"></canvas></div>
+                <div class="chart-box"><h3>Evolución d' (Sensibilidad)</h3><canvas id="chart-dprime"></canvas></div>
+                <div class="chart-box"><h3>Omisiones vs Comisiones por Sesión</h3><canvas id="chart-errors"></canvas></div>
+                <div class="chart-box"><h3>Índice de Tremor</h3><canvas id="chart-tremor"></canvas></div>
+            </div>
+
+            <div class="sessions-section">
+                <h2>Historial de Sesiones</h2>
+                <table class="sessions-table">
+                    <thead><tr>
+                        <th>Fecha</th><th>Score</th><th>RT (ms)</th><th>d'</th>
+                        <th>Omis.</th><th>Comis.</th><th>Tremor</th><th>Hesit.</th><th>Duración</th>
+                    </tr></thead>
+                    <tbody id="sessions-tbody"></tbody>
+                </table>
+            </div>
+        `;
+
+        // Build per-session aggregated data for charts
+        const chartData = sessions.map(s => {
+            const sBio = s.bio.map(m => m.metric_data).filter(Boolean);
+            const date = new Date(s.started_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+            return {
+                date,
+                rt: sBio.length ? Math.round(sBio.reduce((a,b) => a + (b.reaction_time_ms||0), 0) / sBio.length) : null,
+                dprime: sBio.length ? +(sBio.reduce((a,b) => a + (b.d_prime||0), 0) / sBio.length).toFixed(2) : null,
+                omissions: sBio.reduce((a,b) => a + (b.misses||0), 0),
+                commissions: sBio.reduce((a,b) => a + (b.false_alarms||0), 0),
+                tremor: sBio.length ? +(sBio.reduce((a,b) => a + (b.tremor_avg||0), 0) / sBio.length).toFixed(2) : null,
+                hesitations: sBio.reduce((a,b) => a + (b.hesitation_count||0), 0),
+                score: s.final_score,
+                duration: s.completed_at ? Math.round((new Date(s.completed_at) - new Date(s.started_at)) / 1000) : null
+            };
+        });
+
+        const labels = chartData.map(d => d.date);
+        const chartOpts = {
+            responsive: true,
+            plugins: { legend: { labels: { color: 'rgba(255,255,255,0.6)', font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        };
+
+        // RT Chart
+        new Chart(document.getElementById('chart-rt'), {
+            type: 'line', data: { labels, datasets: [{
+                label: 'RT (ms)', data: chartData.map(d => d.rt),
+                borderColor: '#D4A574', backgroundColor: 'rgba(212,165,116,0.1)', tension: 0.3, fill: true
+            }]}, options: chartOpts
+        });
+
+        // d' Chart
+        new Chart(document.getElementById('chart-dprime'), {
+            type: 'line', data: { labels, datasets: [{
+                label: "d'", data: chartData.map(d => d.dprime),
+                borderColor: '#4fc3f7', backgroundColor: 'rgba(79,195,247,0.1)', tension: 0.3, fill: true
+            }]}, options: chartOpts
+        });
+
+        // Errors Chart
+        new Chart(document.getElementById('chart-errors'), {
+            type: 'bar', data: { labels, datasets: [
+                { label: 'Omisiones', data: chartData.map(d => d.omissions), backgroundColor: 'rgba(255,183,77,0.7)' },
+                { label: 'Comisiones', data: chartData.map(d => d.commissions), backgroundColor: 'rgba(239,83,80,0.7)' }
+            ]}, options: { ...chartOpts, scales: { ...chartOpts.scales, x: { ...chartOpts.scales.x, stacked: false }, y: { ...chartOpts.scales.y, stacked: false } } }
+        });
+
+        // Tremor Chart
+        new Chart(document.getElementById('chart-tremor'), {
+            type: 'line', data: { labels, datasets: [{
+                label: 'Tremor', data: chartData.map(d => d.tremor),
+                borderColor: '#ce93d8', backgroundColor: 'rgba(206,147,216,0.1)', tension: 0.3, fill: true
+            }]}, options: chartOpts
+        });
+
+        // Sessions table
+        const tbody = document.getElementById('sessions-tbody');
+        chartData.reverse().forEach(d => {
+            const dur = d.duration ? `${Math.floor(d.duration/60)}:${(d.duration%60).toString().padStart(2,'0')}` : '---';
+            tbody.innerHTML += `<tr>
+                <td>${d.date}</td><td>${d.score ?? '---'}</td><td>${d.rt ?? '---'}</td>
+                <td>${d.dprime ?? '---'}</td><td>${d.omissions}</td><td>${d.commissions}</td>
+                <td>${d.tremor ?? '---'}</td><td>${d.hesitations}</td><td>${dur}</td>
+            </tr>`;
+        });
+    }
+    </script>
+</body>
+</html>

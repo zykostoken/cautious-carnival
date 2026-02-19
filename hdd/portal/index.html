@@ -367,50 +367,53 @@
     </div>
   </div>
 
-  <!-- Daily Mood Check-in Modal -->
-  <div id="mood-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
-    <div class="modal" onclick="event.stopPropagation()" style="max-width: 420px;">
-      <div class="modal-header">
-        <h3>Registro de Estado</h3>
-        <button class="modal-close" onclick="skipMoodCheckin()">&times;</button>
+  <!-- Portal Check-in: Chat conversacional + Triaje + 12 colores proyectivos -->
+  <div id="portal-checkin-modal" class="modal-overlay hidden" onclick="event.stopPropagation()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 480px; border-radius: 20px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">🏥</span>
+          <div>
+            <h3 style="margin: 0; color: #fff; font-size: 1.05rem; font-weight: 600;">Hospital de Día</h3>
+            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">Registro diario</p>
+          </div>
+        </div>
+        <button onclick="skipPortalCheckin()" style="background: none; border: none; color: rgba(255,255,255,0.6); font-size: 1.3rem; cursor: pointer; padding: 4px;">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="mood-checkin-container">
-          
-          <p class="mood-question" style="font-size: 1rem; color: var(--text); margin-bottom: 1.5rem; text-align: center;">¿Cómo te sentís hoy?</p>
 
-          <!-- Grid de 12 colores proyectivos sin etiquetas -->
-          <div class="color-palette-section">
-            <div id="color-palette-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem;">
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#D32F2F')" data-color="#D32F2F" style="width: 100%; aspect-ratio: 1; background: #D32F2F; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#F57C00')" data-color="#F57C00" style="width: 100%; aspect-ratio: 1; background: #F57C00; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#FBC02D')" data-color="#FBC02D" style="width: 100%; aspect-ratio: 1; background: #FBC02D; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#388E3C')" data-color="#388E3C" style="width: 100%; aspect-ratio: 1; background: #388E3C; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#00897B')" data-color="#00897B" style="width: 100%; aspect-ratio: 1; background: #00897B; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#1E88E5')" data-color="#1E88E5" style="width: 100%; aspect-ratio: 1; background: #1E88E5; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#1A237E')" data-color="#1A237E" style="width: 100%; aspect-ratio: 1; background: #1A237E; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#7B1FA2')" data-color="#7B1FA2" style="width: 100%; aspect-ratio: 1; background: #7B1FA2; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#D81B60')" data-color="#D81B60" style="width: 100%; aspect-ratio: 1; background: #D81B60; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#5D4037')" data-color="#5D4037" style="width: 100%; aspect-ratio: 1; background: #5D4037; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#78909C')" data-color="#78909C" style="width: 100%; aspect-ratio: 1; background: #78909C; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-              <button type="button" class="color-swatch" onclick="selectColorOnly('#212121')" data-color="#212121" style="width: 100%; aspect-ratio: 1; background: #212121; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: all 0.2s;"></button>
-            </div>
+      <div style="padding: 1.25rem 1.5rem; max-height: 65vh; overflow-y: auto;">
+        <!-- Chat area -->
+        <div id="portal-chat-messages" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
 
-            <div id="selected-color-preview" style="display: none; padding: 0.75rem; border-radius: 8px; text-align: center; font-size: 0.9rem; font-weight: 500; color: white; margin-bottom: 1.5rem;">
-              Color seleccionado
-            </div>
+        <!-- Input area (hidden until needed) -->
+        <div id="portal-chat-input-area" style="display: none;">
+          <textarea id="portal-chat-input" rows="2" placeholder="Escribí tu respuesta..."
+            style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 0.95rem; resize: none; font-family: inherit; outline: none; box-sizing: border-box;"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();portalChatSend()}"></textarea>
+          <button onclick="portalChatSend()" style="display: block; width: 100%; margin-top: 8px; padding: 10px; background: #2e86c1; color: #fff; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer;">Enviar</button>
+        </div>
+
+        <!-- Quick options (shown contextually) -->
+        <div id="portal-quick-options" style="display: none; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+
+        <!-- Color palette (phase 2) -->
+        <div id="portal-color-phase" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; justify-items: center; padding: 8px 0;">
+            <!-- 12 colores proyectivos Lüscher -->
           </div>
+        </div>
 
-          <div class="mood-note-section">
-            <label for="mood-note" style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; color: var(--text);">Observaciones (opcional):</label>
-            <textarea id="mood-note" placeholder="" style="width: 100%; min-height: 70px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; resize: vertical; font-family: inherit;"></textarea>
-          </div>
-
-          <span class="mood-skip" onclick="skipMoodCheckin()" style="display: block; text-align: center; margin-top: 1.25rem; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">Omitir</span>
+        <!-- Urgency confirmation -->
+        <div id="portal-urgency-confirm" style="display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 1rem; margin-top: 12px;">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #92400e;">⚠️ Notificación enviada</p>
+          <p style="margin: 0; font-size: 0.9rem; color: #78350f;">Tu pedido fue registrado y se notificó al equipo. Te van a contactar a la brevedad.</p>
+          <button onclick="portalCheckinFinish()" style="margin-top: 12px; width: 100%; padding: 10px; background: #f59e0b; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Continuar al portal</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" id="submit-mood-btn" onclick="submitMoodCheckin()" disabled style="width: 100%;">Guardar</button>
+
+      <!-- Skip link -->
+      <div style="padding: 0 1.5rem 1rem; text-align: center;">
+        <span id="portal-checkin-skip" onclick="skipPortalCheckin()" style="color: #9ca3af; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Prefiero no responder</span>
       </div>
     </div>
   </div>

@@ -352,17 +352,24 @@
       } catch (e) {}
     }
 
-    // Verify session on load
+    // Verify session on load (resilient to serverless cold starts)
     async function verifySession() {
       try {
         const response = await fetch('/api/games/auth?action=verify&sessionToken=' + sessionToken);
         const data = await response.json();
 
         if (!data.valid) {
-          localStorage.removeItem('games_session');
-          localStorage.removeItem('games_user');
-          window.location.href = '/games/';
-          return false;
+          // Only clear session if we DON'T have cached user data
+          // (protects against serverless cold start losing in-memory sessions)
+          if (!userData) {
+            localStorage.removeItem('games_session');
+            localStorage.removeItem('games_user');
+            window.location.href = '/games/';
+            return false;
+          }
+          // Have user data = was logged in successfully before, keep session
+          console.warn('Session verify failed but user data exists, keeping session');
+          return true;
         }
         return true;
       } catch (error) {

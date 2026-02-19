@@ -167,7 +167,7 @@
 <!-- ====================================================================== -->
 <!-- PRE-GAME: Chat conversacional (ánimo, sueño, apetito) -->
 <!-- ====================================================================== -->
-<div id="pre-game-chat-modal" class="modal-overlay" style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;">
+<div id="pre-game-chat-modal" class="modal-overlay" style="position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;">
     <div class="modal-card">
         <p class="modal-title">Antes de empezar...</p>
         <p class="modal-subtitle">Contame cómo estás hoy</p>
@@ -192,7 +192,7 @@
 <div id="post-game-color-modal" class="modal-overlay" style="position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;">
     <div class="modal-card modal-card-wide">
         <p class="modal-title">Elegí un color</p>
-        <p class="modal-subtitle">Según cómo te sentís, tocá el que más resuene con vos</p>
+        <p class="modal-subtitle">Según tu partida, elegí el que más te llame la atención</p>
 
         <div id="color-palette-grid" class="color-grid">
             <!-- Se llena dinámicamente con 12 colores desde mood-modals.js -->
@@ -204,5 +204,4 @@
     </div>
 </div>
 
-<!-- JS -->
-<script src="/games/shared/mood-modals.js"></script>
+<!-- JS loaded separately by each game -->

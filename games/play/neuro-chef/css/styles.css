@@ -232,3 +232,107 @@ body {
     .cart-slot { width: 60px; height: 60px; }
     .heladera-container, .cocina-container, .licuadora-container, .mesa-container, .habitacion-container { grid-template-columns: 1fr; }
 }
+
+/* ========== PLAYER LOGIN ========== */
+.recent-player-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    text-align: left;
+}
+.recent-player-btn:hover {
+    background: rgba(212,165,116,0.15);
+    border-color: rgba(212,165,116,0.4);
+}
+.rp-name { font-weight: 600; flex: 1; }
+.rp-dni { color: rgba(255,255,255,0.4); font-size: 0.75rem; font-family: monospace; }
+.rp-date { color: rgba(255,255,255,0.3); font-size: 0.7rem; }
+
+/* ========== RESULTS SCREEN ========== */
+.results-screen {
+    text-align: center;
+    padding: 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+.results-screen h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #D4A574;
+}
+.results-screen h3 {
+    font-size: 1.1rem;
+    margin: 1.5rem 0 1rem;
+    color: rgba(255,255,255,0.7);
+}
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+.results-grid.bio-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+.result-card {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 1rem 0.5rem;
+    backdrop-filter: blur(8px);
+}
+.result-card.bio {
+    background: rgba(212,165,116,0.08);
+    border: 1px solid rgba(212,165,116,0.15);
+}
+.result-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+}
+.result-label {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.results-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+.results-actions .btn-primary,
+.results-actions .btn-secondary {
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-size: 0.9rem;
+}
+.results-actions .btn-primary {
+    background: #D4A574;
+    color: #1a1a1a;
+}
+.results-actions .btn-secondary {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+@media (max-width: 600px) {
+    .results-grid { grid-template-columns: repeat(2, 1fr); }
+    .results-grid.bio-grid { grid-template-columns: repeat(2, 1fr); }
+}

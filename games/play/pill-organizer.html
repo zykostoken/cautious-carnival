@@ -82,28 +82,12 @@
     <!-- ========================================= -->
     <!-- MODAL: PRE-GAME INTENSITY CHECK -->
     <!-- ========================================= -->
-    <!-- Removed old modal - using shared modals -->
-            
-            <div class="text-center">
-                <button id="skip-mood-pre" class="text-sm text-gray-400 hover:text-gray-300 underline transition">
-                    Prefiero no responder
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Using shared modals (loaded at bottom) -->
 
     <!-- ========================================= -->
-    <!-- MODAL: PROJECTIVE COLOR SYSTEM (2 PHASES) -->
+    <!-- MODAL: PROJECTIVE COLOR SYSTEM -->
     <!-- ========================================= -->
-    
-    <!-- PHASE 1: Intensity/Arousal Selection -->
-    <!-- Removed old modal - using shared modals -->
-        </div>
-    </div>
-
-    <!-- PHASE 2: Valence/Tone Palette -->
-    <!-- Removed old modal - using shared modals -->
-    </div>
+    <!-- Using shared modals (loaded at bottom) -->
 
     <!-- ========================================= -->
     <!-- HEADER -->
@@ -724,11 +708,15 @@ Todos los datos están guardados en:
   <div id="mood-modals-container"></div>
   <script>
     fetch('/games/shared/mood-modals.html')
-      .then(r => r.text())
-      .then(html => {
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
         document.getElementById('mood-modals-container').innerHTML = html;
+        // Load JS separately (innerHTML doesn't execute script tags)
+        var s = document.createElement('script');
+        s.src = '/games/shared/mood-modals.js';
+        document.body.appendChild(s);
       })
-      .catch(err => console.error('Failed to load mood modals:', err));
+      .catch(function(err) { console.error('Failed to load mood modals:', err); });
   </script>
 
 </body>

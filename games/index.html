@@ -300,11 +300,20 @@
         .then(data => {
           if (data.valid) {
             window.location.href = '/games/portal/';
+          } else if (localStorage.getItem('games_user')) {
+            // Had valid login before, serverless may have lost in-memory session
+            // Redirect anyway - portal will handle gracefully
+            window.location.href = '/games/portal/';
           } else {
             localStorage.removeItem('games_session');
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          // Network error but have session - try portal anyway
+          if (localStorage.getItem('games_user')) {
+            window.location.href = '/games/portal/';
+          }
+        });
     }
 
     const form = document.getElementById('loginForm');

@@ -1260,7 +1260,7 @@
 <header class="game-header">
   <div class="header-content">
     <div class="header-left">
-      <a class="back-btn" id="backBtn" href="/games/portal">
+      <a class="back-btn" id="backBtn" href="/hdd/portal/">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Volver
       </a>
@@ -3336,10 +3336,18 @@
     $('metricsOverlay').classList.remove('active');
   });
 
-  // Back button with token preservation
-  if (token) {
-    $('backBtn').href = '/hdd/portal?token=' + encodeURIComponent(token);
-  }
+  // Smart back button: detect partner vs portal origin
+  (function() {
+    var backBtn = $('backBtn');
+    if (!backBtn) return;
+    if (localStorage.getItem('games_session')) {
+      backBtn.href = '/games/portal/';
+    } else if (token) {
+      backBtn.href = '/hdd/portal?token=' + encodeURIComponent(token);
+    } else {
+      backBtn.href = '/hdd/portal/';
+    }
+  })();
 
   // ==================== INIT ====================
   loadProgress();
@@ -3353,11 +3361,14 @@
   <div id="mood-modals-container"></div>
   <script>
     fetch('/games/shared/mood-modals.html')
-      .then(r => r.text())
-      .then(html => {
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
         document.getElementById('mood-modals-container').innerHTML = html;
+        var s = document.createElement('script');
+        s.src = '/games/shared/mood-modals.js';
+        document.body.appendChild(s);
       })
-      .catch(err => console.error('Failed to load mood modals:', err));
+      .catch(function(err) { console.error('Failed to load mood modals:', err); });
   </script>
 
 </body>

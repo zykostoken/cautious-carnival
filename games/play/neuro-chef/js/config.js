@@ -355,61 +355,136 @@ const RECETAS = {
         nombre: 'Pastel de Papas',
         ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos'],
         ingredientes_opcionales: ['aceitunas', 'sal'],
-        distractores: ['tomate', 'lechuga', 'pan', 'azucar', 'pescado']
+        distractores: ['tomate', 'lechuga', 'pan', 'azucar', 'pescado'],
+        pasos: [
+            'Hervir las papas con piel en agua con sal',
+            'Hacer un sofrito de cebolla hasta transparentar',
+            'Agregar la carne picada y cocinar hasta dorar',
+            'Pelar las papas y hacer un puré con leche y manteca',
+            'En una fuente, poner la carne abajo y el puré arriba',
+            'Pintar con huevo batido',
+            'Gratinar en el horno a 200°C por 15 minutos'
+        ]
     },
-    licuado_frutilla: {
-        id: 'licuado_frutilla',
-        nombre: 'Licuado de Frutilla',
-        ingredientes_base: ['leche', 'hielo'],
-        ingredientes_opcionales: ['azucar'],
-        secuencia_licuadora: ['leche', 'hielo']
+    lasagna: {
+        id: 'lasagna',
+        nombre: 'Lasaña',
+        ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche'],
+        ingredientes_opcionales: ['sal', 'aceite'],
+        distractores: ['papa', 'lechuga', 'arroz', 'azucar', 'pescado'],
+        pasos: [
+            'Hacer la salsa bolognesa con carne, cebolla y tomate',
+            'Preparar la salsa blanca con leche, manteca y harina',
+            'Hervir las láminas de lasaña en agua con sal',
+            'En una fuente, alternar capas: salsa, pasta, queso',
+            'Terminar con salsa blanca y queso rallado',
+            'Hornear a 180°C por 30 minutos hasta gratinar'
+        ]
+    },
+    budin_ingles: {
+        id: 'budin_ingles',
+        nombre: 'Budín Inglés',
+        ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche'],
+        ingredientes_opcionales: ['sal'],
+        distractores: ['carne_picada', 'lechuga', 'papa', 'pollo', 'pescado'],
+        pasos: [
+            'Batir la manteca pomada con el azúcar hasta cremar',
+            'Agregar los huevos de a uno, batiendo bien',
+            'Incorporar la harina tamizada alternando con la leche',
+            'Agregar frutas secas y pasas enharinadas',
+            'Volcar en molde de budín enmantecado y enharinado',
+            'Hornear a 170°C por 45 minutos'
+        ]
+    },
+    ensalada_completa: {
+        id: 'ensalada_completa',
+        nombre: 'Ensalada Completa',
+        ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'zanahoria'],
+        ingredientes_opcionales: ['aceitunas', 'aceite', 'sal'],
+        distractores: ['carne_picada', 'azucar', 'leche', 'pan', 'arroz'],
+        pasos: [
+            'Lavar bien la lechuga hoja por hoja',
+            'Hervir los huevos durante 10 minutos',
+            'Pelar y rallar la zanahoria',
+            'Cortar el tomate en gajos',
+            'Cortar la cebolla en aros finos',
+            'Mezclar todo en un bol grande y condimentar'
+        ]
+    },
+    milanesas: {
+        id: 'milanesas',
+        nombre: 'Milanesas',
+        ingredientes_base: ['bife', 'huevos', 'pan'],
+        ingredientes_opcionales: ['sal', 'aceite'],
+        distractores: ['leche', 'azucar', 'lechuga', 'arroz', 'manteca'],
+        pasos: [
+            'Golpear los bifes con un martillo hasta aplanar',
+            'Salar los bifes por ambos lados',
+            'Batir los huevos en un plato hondo',
+            'Pasar cada bife por huevo',
+            'Pasar por pan rallado presionando bien',
+            'Freír en aceite caliente o cocinar al horno'
+        ]
     }
 };
 
-// ========== COLORES PARA POST-GAME ==========
-const COLORES = {
-    opaco: {
-        rojo: '#8B4545',
-        naranja: '#8B6914',
-        amarillo: '#8B8B45',
-        verde: '#458B45',
-        azul: '#45458B',
-        violeta: '#6A458B',
-        marron: '#5C4033',
-        negro: '#2C2C2C',
-        blanco: '#BEBEBE',
-        gris: '#6E6E6E',
-        rosa: '#8B6B7A',
-        celeste: '#6B8B9A'
+// ========== COLORES POST-GAME (12 proyectivos) ==========
+// Usa el shared system de /games/shared/mood-modals.js
+// Solo referencia para fallback
+const COLORES_PROYECTIVOS = [
+    '#FF0000', '#FF8C00', '#FFD700', '#008000',
+    '#00CED1', '#87CEEB', '#00008B', '#800080',
+    '#FF69B4', '#8B4513', '#808080', '#000000'
+];
+
+// ========== LICUADORA: COMBINACIONES ==========
+const LICUADOS = {
+    banana_frutilla: {
+        nombre: 'Licuado de Banana y Frutilla',
+        secuencia_correcta: ['leche', 'banana', 'frutilla', 'hielo'],
+        explicacion: 'Primero el líquido para que las cuchillas no se traben, luego las frutas blandas y al final el hielo.'
     },
-    pastel: {
-        rojo: '#FFB3BA',
-        naranja: '#FFDFBA',
-        amarillo: '#FFFFBA',
-        verde: '#BAFFC9',
-        azul: '#BAE1FF',
-        violeta: '#D4BAFF',
-        marron: '#C9A88A',
-        negro: '#8C8C8C',
-        blanco: '#F5F5F5',
-        gris: '#C8C8C8',
-        rosa: '#FFC8DD',
-        celeste: '#BFD7EA'
-    },
-    fluor: {
-        rojo: '#FF073A',
-        naranja: '#FF6B00',
-        amarillo: '#FFFF00',
-        verde: '#39FF14',
-        azul: '#00D9FF',
-        violeta: '#BF00FF',
-        marron: '#8B4513',
-        negro: '#000000',
-        blanco: '#FFFFFF',
-        gris: '#7F7F7F',
-        rosa: '#FF1493',
-        celeste: '#00BFFF'
+    tropical: {
+        nombre: 'Smoothie Tropical',
+        secuencia_correcta: ['jugo_naranja', 'banana', 'mango', 'hielo'],
+        explicacion: 'El líquido siempre primero. Las frutas más blandas antes. El hielo siempre al final para no dañar cuchillas.'
     }
+};
+
+// ========== MESA: ELEMENTOS ==========
+const ELEMENTOS_MESA = {
+    mantel: { id: 'mantel', nombre: 'Mantel', emoji: '🧺', zona: 'base', orden: 1 },
+    plato_base: { id: 'plato_base', nombre: 'Plato grande', emoji: '🍽️', zona: 'centro', orden: 2 },
+    plato_hondo: { id: 'plato_hondo', nombre: 'Plato hondo', emoji: '🥣', zona: 'centro', orden: 3 },
+    tenedor: { id: 'tenedor', nombre: 'Tenedor', emoji: '🍴', zona: 'izquierda', orden: 4 },
+    cuchillo: { id: 'cuchillo', nombre: 'Cuchillo', emoji: '🔪', zona: 'derecha', orden: 5 },
+    cuchara: { id: 'cuchara', nombre: 'Cuchara', emoji: '🥄', zona: 'derecha', orden: 6 },
+    vaso: { id: 'vaso', nombre: 'Vaso', emoji: '🥛', zona: 'derecha_arriba', orden: 7 },
+    servilleta: { id: 'servilleta', nombre: 'Servilleta', emoji: '🧻', zona: 'izquierda', orden: 8 },
+    // Distractores
+    sarten: { id: 'sarten', nombre: 'Sartén', emoji: '🍳', zona: 'NO_VA', orden: 0 },
+    olla: { id: 'olla', nombre: 'Olla', emoji: '🫕', zona: 'NO_VA', orden: 0 },
+    esponja: { id: 'esponja', nombre: 'Esponja', emoji: '🧽', zona: 'NO_VA', orden: 0 },
+    tabla: { id: 'tabla', nombre: 'Tabla de picar', emoji: '🪵', zona: 'NO_VA', orden: 0 }
+};
+
+// ========== HABITACIÓN: ROPA ==========
+const ROPA = {
+    camisa: { id: 'camisa', nombre: 'Camisa', emoji: '👔', destino: 'placard' },
+    pantalon: { id: 'pantalon', nombre: 'Pantalón', emoji: '👖', destino: 'placard' },
+    campera: { id: 'campera', nombre: 'Campera', emoji: '🧥', destino: 'placard' },
+    vestido: { id: 'vestido', nombre: 'Vestido', emoji: '👗', destino: 'placard' },
+    remera: { id: 'remera', nombre: 'Remera', emoji: '👕', destino: 'cajon' },
+    medias: { id: 'medias', nombre: 'Medias', emoji: '🧦', destino: 'cajon' },
+    ropa_interior: { id: 'ropa_interior', nombre: 'Ropa interior', emoji: '🩲', destino: 'cajon' },
+    pijama: { id: 'pijama', nombre: 'Pijama', emoji: '🛌', destino: 'cajon' },
+    zapatos: { id: 'zapatos', nombre: 'Zapatos', emoji: '👞', destino: 'zapatera' },
+    zapatillas: { id: 'zapatillas', nombre: 'Zapatillas', emoji: '👟', destino: 'zapatera' },
+    ojotas: { id: 'ojotas', nombre: 'Ojotas', emoji: '🩴', destino: 'zapatera' },
+    botas: { id: 'botas', nombre: 'Botas', emoji: '🥾', destino: 'zapatera' },
+    // Distractores - NO va en ninguno
+    paraguas: { id: 'paraguas', nombre: 'Paraguas', emoji: '☂️', destino: 'NO_VA' },
+    toalla: { id: 'toalla', nombre: 'Toalla', emoji: '🧖', destino: 'NO_VA' }
 };
 
 // ========== ESTADO DEL JUEGO ==========
@@ -439,5 +514,14 @@ const gameState = {
     postMood: {
         intensity: '',
         color: ''
-    }
+    },
+    
+    // Biometric data per level (array)
+    biometricData: [],
+    
+    // Player session history (loaded from Supabase)
+    playerHistory: [],
+    
+    // Game registry
+    gameId: null
 };

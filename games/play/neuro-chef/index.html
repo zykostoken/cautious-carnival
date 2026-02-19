@@ -10,8 +10,9 @@
     <!-- Header con métricas en tiempo real -->
     <header id="game-header">
         <div class="header-left">
+            <a id="back-link" href="/hdd/portal/" style="color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.8rem;display:flex;align-items:center;gap:4px;">← Salir</a>
             <h1>Neuro-Chef</h1>
-            <p id="patient-display">Paciente: Cargando...</p>
+            <p id="patient-display">Paciente: ---</p>
         </div>
         <div class="header-metrics">
             <div class="metric">
@@ -33,81 +34,92 @@
         </div>
     </header>
 
+    <!-- ========== PLAYER LOGIN MODAL ========== -->
+    <div id="player-login-modal" class="modal-overlay">
+        <div class="modal-content compact">
+            <div class="modal-header">
+                <h2>Identificación del Jugador</h2>
+                <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">Cada jugador tiene su perfil de seguimiento</p>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem 2rem;">
+                <form id="player-login-form" autocomplete="off">
+                    <div class="question-group">
+                        <label for="player-dni">DNI o Identificador *</label>
+                        <input type="text" id="player-dni" placeholder="Ej: 30123456" required autofocus>
+                    </div>
+                    <div class="question-group">
+                        <label for="player-name">Nombre (opcional)</label>
+                        <input type="text" id="player-name" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <p id="login-error-msg" class="hidden" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;"></p>
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.85rem; background: #D4A574; color: #1a1a1a; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer;">Comenzar</button>
+                </form>
+                <div id="recent-players-section" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <p style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 0.5rem;">Jugadores recientes:</p>
+                    <div id="recent-players" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Contenedor principal del juego -->
     <main id="game-container" class="hidden">
-        <!-- Instrucciones del nivel actual -->
         <div id="level-instructions" class="instructions-panel">
             <h2 id="level-title">Nivel 1: Supermercado</h2>
             <p id="level-description">Elegí los ingredientes para hacer un <strong>Pastel de Papas</strong></p>
         </div>
-
-        <!-- Área de juego (cambia según nivel) -->
-        <div id="game-area">
-            <!-- Se carga dinámicamente según nivel -->
-        </div>
-
-        <!-- Botones de control -->
+        <div id="game-area"></div>
         <div id="controls">
+            <button id="btn-reset" class="btn-text hidden" style="color: rgba(255,255,255,0.5); background: none; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; padding: 0.6rem 1rem; border-radius: 6px; font-size: 0.85rem;">Reiniciar nivel</button>
             <button id="btn-verify" class="btn-primary">Verificar</button>
             <button id="btn-next" class="btn-secondary hidden">Siguiente Nivel</button>
         </div>
     </main>
 
-    <!-- Modal de consejos educativos post-nivel -->
+    <!-- Modal educativo post-nivel -->
     <div id="educational-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Nivel Completado</h2>
                 <p id="level-score">Puntaje: <span id="score-value">0</span>/100</p>
             </div>
-            <div class="modal-body" id="educational-content">
-                <!-- Contenido educativo dinámico -->
-            </div>
+            <div class="modal-body" id="educational-content"></div>
             <div class="modal-footer">
                 <button id="btn-continue" class="btn-primary">Continuar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal PRE-juego (preguntas ánimo) -->
-    <div id="pre-game-modal" class="modal-overlay">
-        <div class="modal-content compact">
-            <div class="modal-header">
-                <h2>Antes de empezar</h2>
-                <p style="font-size: 0.9rem; color: var(--text-muted);">Opcional</p>
+    <!-- Modal PRE-juego -->
+    <div id="pre-game-modal" class="modal-overlay hidden">
+        <div class="modal-content compact" style="max-width: 420px; padding: 0; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #D4A574; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">👨‍🍳</div>
+                    <div>
+                        <div style="color: #D4A574; font-weight: 600; font-size: 0.95rem;">Chef</div>
+                        <div style="color: #888; font-size: 0.7rem;">en línea</div>
+                    </div>
+                </div>
+                <button id="btn-skip-pre" style="color: #888; background: none; border: 1px solid #444; border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.75rem; transition: all 0.2s;">Saltar ⏭</button>
             </div>
-            <div class="modal-body" style="padding: 2rem; padding-bottom: 0.5rem;">
-                <div class="question-group">
-                    <label>¿Cómo estás?</label>
-                    <input type="text" id="q1" placeholder="">
-                </div>
-                <div class="question-group">
-                    <label>¿Qué comiste?</label>
-                    <input type="text" id="q2" placeholder="">
-                </div>
-                <div class="question-group" style="margin-bottom: 0.5rem;">
-                    <label>¿Cómo dormiste?</label>
-                    <input type="text" id="q3" placeholder="">
-                </div>
+            <div id="chat-messages" style="height: 280px; overflow-y: auto; padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; background: #0d0d0d;">
             </div>
-            <div class="modal-footer" style="display: flex !important; justify-content: space-between; gap: 1rem; margin-top: 0; padding: 1rem 2rem 1.5rem 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
-                <button id="btn-skip-pre" class="btn-text" style="color: #666; background: none; border: none; cursor: pointer; font-size: 0.9rem;">Omitir</button>
-                <button id="btn-continue-pre" class="btn-primary" style="padding: 0.75rem 1.5rem; background: #D4A574; color: #1a1a1a; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Continuar</button>
+            <div id="chat-input-area" style="padding: 0.8rem 1rem; background: #1a1a1a; border-top: 1px solid #333; display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="chat-input" placeholder="Escribí acá..." style="flex: 1; background: #2a2a2a; border: 1px solid #444; border-radius: 20px; padding: 0.6rem 1rem; color: #eee; font-size: 0.9rem; outline: none;" autocomplete="off">
+                <button id="chat-send" style="width: 36px; height: 36px; border-radius: 50%; background: #D4A574; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: transform 0.15s;">➤</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal POST-juego (selector de color neutral) -->
+    <!-- Modal POST-juego (selector de color) -->
     <div id="post-game-modal" class="modal-overlay hidden">
         <div class="modal-content compact">
-            <div class="modal-header">
-                <h2>¿Cómo te sentís ahora?</h2>
-            </div>
+            <div class="modal-header"><h2>Según tu partida, elegí un color</h2></div>
             <div class="modal-body">
                 <div id="color-selector" class="color-selector">
-                    <div class="color-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
-                        <!-- 12 colores fijos sin condicionamiento -->
-                    </div>
+                    <div class="color-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; justify-items: center; padding: 8px 0;"></div>
+                    <p style="text-align:center;color:rgba(255,255,255,0.35);font-size:0.8rem;margin-top:12px;">No hay respuestas correctas ni incorrectas</p>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex !important; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -122,6 +134,11 @@
     <script src="js/config.js"></script>
     <script src="js/levels.js"></script>
     <script src="js/educational-tips.js"></script>
+    <script src="js/biometrics.js"></script>
     <script src="js/game.js"></script>
+    <script>
+    // Smart back link: detect partner vs portal origin
+    (function(){var l=document.getElementById('back-link');if(!l)return;var r=document.referrer||'';if(r.indexOf('/games/portal')!==-1||r.indexOf('/games/index')!==-1||r.match(/\/games\/?$/))l.href='/games/portal/';})();
+    </script>
 </body>
 </html>

@@ -954,3 +954,13 @@ body {
     justify-content: space-between;
   }
 }
+
+/* Portal chat check-in animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#portal-checkin-modal .modal-overlay { background: rgba(0,0,0,0.5); }
+#portal-quick-options { display: flex; flex-wrap: wrap; gap: 8px; }
+

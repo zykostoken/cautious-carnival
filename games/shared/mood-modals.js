@@ -1,116 +1,45 @@
 // ====================================================================
 // MODAL SYSTEM: MOOD/COLOR TRACKING - Clínica José Ingenieros
-// Version: 3.0 - 12 colores proyectivos
+// Version: 3.1 - 12 colores proyectivos (fixed loading)
 // 
 // FLUJO:
 //   PRE-GAME  → Preguntas: ánimo, sueño, apetito
 //   GAME      → Juego normal
 //   POST-GAME → "Según cómo te sentís, elegí un color" → 12 colores
 //
-// FUNDAMENTO: Lüscher Color Test, Heller (Psicología del color),
-//   Boyatzis & Varghese (2003), Kaya & Epps (2004)
-// 
-// IMPORTANTE: El paciente NO ve nombres, etiquetas ni significados.
-//   Solo colores puros. La interpretación es clínica y posterior.
+// FUNDAMENTO: Lüscher Color Test (psicología funcional),
+//   Heller (Psicología del color), Berlin & Kay,
+//   Teoría de procesos oponentes
 // ====================================================================
 
 // ── 12 COLORES PROYECTIVOS ──────────────────────────────────────────
-// Criterios de selección:
-//   1. Máxima diferenciación perceptual entre los 12
-//   2. Cada color mapea a un estado emocional documentado
-//   3. Equilibrio entre valencia positiva, negativa y neutra
-//   4. Sin pares ambiguos (ej: NO dos verdes, NO dos azules similares)
-//
-// METADATA CLÍNICA (solo para dashboard/análisis, jamás para el paciente)
-
-const MOOD_COLORS = [
-    {
-        hex: '#D32F2F',
-        family: 'red',
-        clinicalTags: ['ira', 'agitación', 'energía_alta', 'activación'],
-        clinicalNote: 'Lüscher: activación simpática. Heller: poder, pasión, agresión.'
-    },
-    {
-        hex: '#F57C00',
-        family: 'orange',
-        clinicalTags: ['optimismo', 'motivación', 'sociabilidad', 'entusiasmo'],
-        clinicalNote: 'Heller: calidez social, extroversión. Kaya & Epps: energía positiva.'
-    },
-    {
-        hex: '#FBC02D',
-        family: 'yellow',
-        clinicalTags: ['alegría', 'esperanza', 'claridad_mental', 'liviandad'],
-        clinicalNote: 'Lüscher: expansión, liberación. Boyatzis: asociado a felicidad en adultos.'
-    },
-    {
-        hex: '#388E3C',
-        family: 'green',
-        clinicalTags: ['calma', 'equilibrio', 'seguridad', 'estabilidad'],
-        clinicalNote: 'Lüscher: tensión elástica, autoafirmación. Heller: naturaleza, salud, armonía.'
-    },
-    {
-        hex: '#00897B',
-        family: 'teal',
-        clinicalTags: ['frescura', 'renovación', 'claridad_emocional', 'apertura'],
-        clinicalNote: 'Intermedio verde-azul: combina calma del verde con profundidad del azul.'
-    },
-    {
-        hex: '#1E88E5',
-        family: 'blue_light',
-        clinicalTags: ['serenidad', 'confianza', 'tranquilidad', 'receptividad'],
-        clinicalNote: 'Lüscher: reposo, satisfacción. Heller: simpatía, fidelidad.'
-    },
-    {
-        hex: '#1A237E',
-        family: 'blue_dark',
-        clinicalTags: ['tristeza', 'melancolía', 'introspección', 'profundidad'],
-        clinicalNote: 'Lüscher: profundidad, concentración. Boyatzis: asociado a tristeza.'
-    },
-    {
-        hex: '#7B1FA2',
-        family: 'violet',
-        clinicalTags: ['confusión', 'ambivalencia', 'transformación', 'inquietud'],
-        clinicalNote: 'Lüscher: identificación mágica, deseo de fascinación. Heller: ambigüedad.'
-    },
-    {
-        hex: '#D81B60',
-        family: 'pink',
-        clinicalTags: ['ternura', 'vulnerabilidad', 'necesidad_afectiva', 'sensibilidad'],
-        clinicalNote: 'Heller: suavidad, delicadeza. Asociado a necesidad de contención.'
-    },
-    {
-        hex: '#5D4037',
-        family: 'brown',
-        clinicalTags: ['cansancio', 'pesadez', 'necesidad_arraigo', 'agotamiento'],
-        clinicalNote: 'Lüscher: bienestar corporal, sensorialidad. Heller: lo cotidiano, fatiga.'
-    },
-    {
-        hex: '#78909C',
-        family: 'grey',
-        clinicalTags: ['apatía', 'neutralidad', 'desconexión', 'anhedonia'],
-        clinicalNote: 'Lüscher: frontera, no participación. Heller: indiferencia, vacío afectivo.'
-    },
-    {
-        hex: '#212121',
-        family: 'black',
-        clinicalTags: ['vacío', 'desesperanza', 'rechazo', 'negación'],
-        clinicalNote: 'Lüscher: negación absoluta, extinción. Heller: final, poder, elegancia o muerte.'
-    }
+var MOOD_COLORS = [
+    { hex: '#FF0000', family: 'red', clinicalTags: ['impulso', 'acción', 'energía_vital', 'irritabilidad', 'urgencia'] },
+    { hex: '#FF8C00', family: 'orange', clinicalTags: ['sociabilidad', 'estímulo', 'apetito', 'energía_extrovertida'] },
+    { hex: '#FFD700', family: 'yellow', clinicalTags: ['optimismo', 'futuro', 'esperanza', 'ansiedad_por_solución'] },
+    { hex: '#008000', family: 'green', clinicalTags: ['autoafirmación', 'control', 'tenacidad', 'resistencia_cambio'] },
+    { hex: '#00CED1', family: 'turquoise', clinicalTags: ['claridad_mental', 'distancia', 'barrera_defensiva', 'purificación'] },
+    { hex: '#87CEEB', family: 'sky_blue', clinicalTags: ['despreocupación', 'relajación', 'fantasía_ligera', 'regresión'] },
+    { hex: '#00008B', family: 'dark_blue', clinicalTags: ['paz', 'pertenencia', 'calma_profunda', 'vínculo_seguro'] },
+    { hex: '#800080', family: 'violet', clinicalTags: ['sensibilidad', 'transformación', 'intuición', 'inmadurez_emocional'] },
+    { hex: '#FF69B4', family: 'pink', clinicalTags: ['necesidad_afectiva', 'protección', 'ternura', 'vulnerabilidad'] },
+    { hex: '#8B4513', family: 'brown', clinicalTags: ['somático', 'corporal', 'dolor_físico', 'agotamiento'] },
+    { hex: '#808080', family: 'grey', clinicalTags: ['neutralidad', 'barrera', 'indiferencia', 'cansancio'] },
+    { hex: '#000000', family: 'black', clinicalTags: ['negación', 'bloqueo', 'rechazo', 'protesta'] }
 ];
 
-// Solo los hex para renderizar (el paciente ve SOLO esto)
-const PALETTE_COLORS = MOOD_COLORS.map(c => c.hex);
+var PALETTE_COLORS = MOOD_COLORS.map(function(c) { return c.hex; });
 
-let chatStep = 0;
-let chatResponses = [];
-let currentPatientId = null;
-let gameMetrics = {};
+var chatStep = 0;
+var chatResponses = [];
+var currentPatientId = null;
+var gameMetrics = {};
 
 // ====================================================================
 // PHASE A: PRE-GAME - Preguntas ánimo, sueño, apetito
 // ====================================================================
 
-const chatQuestions = [
+var chatQuestions = [
     "¿Cómo te sentís hoy?",
     "¿Cómo dormiste anoche?",
     "¿Cómo está tu apetito hoy?"
@@ -120,8 +49,12 @@ function initPreGameChat() {
     chatStep = 0;
     chatResponses = [];
 
-    const urlParams = new URLSearchParams(window.location.search);
+    var urlParams = new URLSearchParams(window.location.search);
     currentPatientId = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id');
+
+    // Show the modal (starts hidden in HTML)
+    var modal = document.getElementById('pre-game-chat-modal');
+    if (modal) modal.style.display = 'flex';
 
     showNextChatQuestion();
 }
@@ -133,22 +66,22 @@ function showNextChatQuestion() {
         return;
     }
 
-    const question = chatQuestions[chatStep];
+    var question = chatQuestions[chatStep];
     appendMessage('bot', question);
 
-    setTimeout(() => {
-        const inputArea = document.getElementById('chat-input-area');
-        const input = document.getElementById('chat-user-input');
-        if (inputArea) inputArea.classList.remove('hidden');
+    setTimeout(function() {
+        var inputArea = document.getElementById('chat-input-area');
+        var input = document.getElementById('chat-user-input');
+        if (inputArea) inputArea.style.display = 'block';
         if (input) input.focus();
     }, 500);
 }
 
 function appendMessage(sender, text) {
-    const container = document.getElementById('chat-messages');
+    var container = document.getElementById('chat-messages');
     if (!container) return;
 
-    const bubble = document.createElement('div');
+    var bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + (sender === 'bot' ? 'bot-bubble' : 'user-bubble');
     bubble.innerHTML = '<p>' + text + '</p>';
     container.appendChild(bubble);
@@ -156,21 +89,18 @@ function appendMessage(sender, text) {
 }
 
 function submitChatResponse() {
-    const input = document.getElementById('chat-user-input');
+    var input = document.getElementById('chat-user-input');
     if (!input) return;
 
-    const response = input.value.trim();
+    var response = input.value.trim();
     if (!response) return;
 
     appendMessage('user', response);
-
-    chatResponses.push({
-        question: chatQuestions[chatStep],
-        answer: response
-    });
+    chatResponses.push({ question: chatQuestions[chatStep], answer: response });
 
     input.value = '';
-    document.getElementById('chat-input-area').classList.add('hidden');
+    var inputArea = document.getElementById('chat-input-area');
+    if (inputArea) inputArea.style.display = 'none';
 
     chatStep++;
     setTimeout(showNextChatQuestion, 600);
@@ -201,12 +131,15 @@ async function savePreGameData() {
 }
 
 function startGame() {
-    const modal = document.getElementById('pre-game-chat-modal');
-    if (modal) modal.classList.add('hidden');
+    // Hide pre-game modal (style.display overrides inline style)
+    var modal = document.getElementById('pre-game-chat-modal');
+    if (modal) modal.style.display = 'none';
 
-    const gameContainer = document.getElementById('game-container');
+    // Show game container
+    var gameContainer = document.getElementById('game-container');
     if (gameContainer) gameContainer.classList.remove('hidden');
 
+    // Call game-specific init
     if (typeof initGameLogic === 'function') {
         initGameLogic();
     } else if (typeof startGameTimer === 'function') {
@@ -215,18 +148,19 @@ function startGame() {
 }
 
 // ====================================================================
-// PHASE C: POST-GAME - 12 colores proyectivos (SIN paso de intensidad)
+// PHASE C: POST-GAME - 12 colores proyectivos
 // ====================================================================
 
 function showPostGameColorModal() {
-    const urlParams = new URLSearchParams(window.location.search);
+    var urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('demo') === 'true') {
         alert('¡Juego completado! En modo demo no se registran métricas.');
         return;
     }
 
     renderColorPalette();
-    document.getElementById('post-game-color-modal').classList.remove('hidden');
+    var modal = document.getElementById('post-game-color-modal');
+    if (modal) modal.style.display = 'flex';
 }
 
 // Alias backward-compatible
@@ -235,13 +169,12 @@ function showPostGameIntensityModal() {
 }
 
 function renderColorPalette() {
-    const grid = document.getElementById('color-palette-grid');
+    var grid = document.getElementById('color-palette-grid');
     if (!grid) return;
 
     grid.innerHTML = '';
-
     PALETTE_COLORS.forEach(function(hex) {
-        const tile = document.createElement('div');
+        var tile = document.createElement('div');
         tile.className = 'color-tile';
         tile.style.backgroundColor = hex;
         tile.addEventListener('click', function() {
@@ -252,7 +185,6 @@ function renderColorPalette() {
 }
 
 async function selectColor(colorHex, element) {
-    // Visual feedback
     document.querySelectorAll('.color-tile').forEach(function(t) {
         t.classList.remove('selected');
     });
@@ -276,9 +208,9 @@ async function selectColor(colorHex, element) {
         console.error('Error saving post-game color:', error);
     }
 
-    // Cerrar modal y mostrar métricas del juego
     setTimeout(function() {
-        document.getElementById('post-game-color-modal').classList.add('hidden');
+        var modal = document.getElementById('post-game-color-modal');
+        if (modal) modal.style.display = 'none';
         if (typeof showMetricsModal === 'function') {
             showMetricsModal();
         } else if (typeof displayFinalMetrics === 'function') {
@@ -288,7 +220,7 @@ async function selectColor(colorHex, element) {
 }
 
 // ====================================================================
-// HELPER: Actualizar métricas del juego (llamado por cada juego)
+// HELPER
 // ====================================================================
 
 function updateGameMetrics(metrics) {
@@ -296,12 +228,47 @@ function updateGameMetrics(metrics) {
 }
 
 // ====================================================================
-// INIT
+// INIT - Works whether loaded statically or dynamically
 // ====================================================================
 
-window.addEventListener('DOMContentLoaded', function() {
+function initMoodModals() {
     var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('demo') !== 'true') {
-        initPreGameChat();
+    var isDemo = urlParams.get('demo') === 'true';
+
+    // Skip pre-game chat if portal already did daily checkin today
+    var today = new Date().toISOString().split('T')[0];
+    var portalCheckinDone = localStorage.getItem('hdd_portal_checkin_date') === today;
+
+    if (isDemo || portalCheckinDone) {
+        // Demo mode or already checked in today: skip chat, show game directly
+        var preModal = document.getElementById('pre-game-chat-modal');
+        if (preModal) preModal.style.display = 'none';
+        var gameContainer = document.getElementById('game-container');
+        if (gameContainer) gameContainer.classList.remove('hidden');
+        // Call game-specific init
+        if (typeof initGameLogic === 'function') {
+            initGameLogic();
+        } else if (typeof startGameTimer === 'function') {
+            startGameTimer();
+        }
+    } else {
+        var modal = document.getElementById('pre-game-chat-modal');
+        if (modal) {
+            initPreGameChat();
+        } else {
+            // HTML might still be loading, retry once
+            setTimeout(function() {
+                if (document.getElementById('pre-game-chat-modal')) {
+                    initPreGameChat();
+                }
+            }, 150);
+        }
     }
-});
+}
+
+// Handle both static and dynamic script loading
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMoodModals);
+} else {
+    initMoodModals();
+}

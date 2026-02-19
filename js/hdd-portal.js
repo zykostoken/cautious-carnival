@@ -23,145 +23,202 @@ async function api(endpoint, options = {}) {
 
 // ==================== 12 COLORES PROYECTIVOS ====================
 // Misma paleta que games/shared/mood-modals.js
-// Fundamento: Lüscher, Heller, Boyatzis & Varghese, Kaya & Epps
-
+// Fundamento: Lüscher (psicología funcional), Heller (psicología del color),
+// Berlin & Kay (universales cromáticos), Teoría procesos oponentes
 const PROJECTIVE_COLORS = [
-  '#D32F2F', '#F57C00', '#FBC02D', '#388E3C',
-  '#00897B', '#1E88E5', '#1A237E', '#7B1FA2',
-  '#D81B60', '#5D4037', '#78909C', '#212121'
+  { hex: '#FF0000', family: 'red' },
+  { hex: '#FF8C00', family: 'orange' },
+  { hex: '#FFD700', family: 'yellow' },
+  { hex: '#008000', family: 'green' },
+  { hex: '#00CED1', family: 'turquoise' },
+  { hex: '#87CEEB', family: 'sky_blue' },
+  { hex: '#00008B', family: 'dark_blue' },
+  { hex: '#800080', family: 'violet' },
+  { hex: '#FF69B4', family: 'pink' },
+  { hex: '#8B4513', family: 'brown' },
+  { hex: '#808080', family: 'grey' },
+  { hex: '#000000', family: 'black' }
 ];
 
-// setColorIntensity ya no aplica - 12 colores fijos
-function setColorIntensity() {}
+// ==================== PORTAL CHAT CHECK-IN ====================
+// Flujo conversacional: saludo → triaje urgencia → color proyectivo
 
-// renderColorPalette ya no aplica - colores hardcoded en HTML
-function renderColorPalette() {}
+let portalChatStep = 0;
+let portalChatData = { responses: [], isUrgent: false, urgencyDetail: '', colorHex: null, colorFamily: null };
 
-function selectColor(color) {
-  selectedColor = color;
+const URGENCY_KEYWORDS = ['medicación', 'medicacion', 'remedio', 'receta', 'pastilla', 'urgente', 'emergencia', 'crisis', 'mal', 'terrible', 'no puedo', 'ayuda', 'turno', 'dolor'];
 
-  document.querySelectorAll('.color-swatch').forEach(s => {
-    s.style.borderColor = s.dataset.color === color ? '#1e293b' : 'transparent';
-    s.style.boxShadow = s.dataset.color === color ? '0 0 0 2px #fff, 0 0 0 4px #1e293b' : 'none';
-  });
-
-  const preview = document.getElementById('selected-color-preview');
-  preview.style.display = 'block';
-  preview.style.background = color;
-  // Determine text color for contrast
-  const r = parseInt(color.slice(1,3), 16);
-  const g = parseInt(color.slice(3,5), 16);
-  const b = parseInt(color.slice(5,7), 16);
-  const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-  preview.style.color = luma > 160 ? '#1e293b' : '#ffffff';
-  preview.textContent = 'Color seleccionado';
-}
-
-// Selección de color sin requerir mood (modo neutral)
-function selectColorOnly(color) {
-  selectedColor = color;
-  selectedMood = null; // No hay mood asociado
-
-  document.querySelectorAll('.color-swatch').forEach(s => {
-    const isSelected = s.dataset.color === color;
-    s.style.borderColor = isSelected ? '#fff' : 'transparent';
-    s.style.boxShadow = isSelected ? '0 0 0 3px #fff, 0 0 0 5px ' + color : 'none';
-    s.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
-  });
-
-  const preview = document.getElementById('selected-color-preview');
-  if (preview) {
-    preview.style.display = 'block';
-    preview.style.background = color;
-    const r = parseInt(color.slice(1,3), 16);
-    const g = parseInt(color.slice(3,5), 16);
-    const b = parseInt(color.slice(5,7), 16);
-    const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-    preview.style.color = luma > 160 ? '#1e293b' : '#ffffff';
-    preview.textContent = 'Color seleccionado';
-  }
-
-  // Habilitar botón de guardar
-  const submitBtn = document.getElementById('submit-mood-btn');
-  if (submitBtn) {
-    submitBtn.disabled = false;
-  }
-}
-
-// ==================== MOOD CHECK-IN ====================
-
-function selectMood(value) {
-  selectedMood = value;
-  document.querySelectorAll('.mood-option').forEach(opt => {
-    opt.classList.remove('selected');
-    if (parseInt(opt.dataset.value) === value) {
-      opt.classList.add('selected');
-    }
-  });
-  document.getElementById('submit-mood-btn').disabled = false;
-}
-
-function shouldShowMoodCheckin() {
-  // Check if already checked in today
+function shouldShowPortalCheckin() {
   const today = new Date().toISOString().split('T')[0];
-  const lastCheckin = localStorage.getItem('hdd_mood_checkin_date');
+  const lastCheckin = localStorage.getItem('hdd_portal_checkin_date');
   return lastCheckin !== today;
 }
 
-function toggleWellnessReference() {
-  const ref = document.getElementById('wellness-reference');
-  if (!ref) return;
-  if (ref.style.display === 'none') {
-    ref.style.display = '';
-  } else {
-    ref.style.display = 'none';
+function showPortalCheckin() {
+  if (!shouldShowPortalCheckin()) return;
+
+  portalChatStep = 0;
+  portalChatData = { responses: [], isUrgent: false, urgencyDetail: '', colorHex: null, colorFamily: null };
+
+  const modal = document.getElementById('portal-checkin-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  // Clear previous
+  const msgs = document.getElementById('portal-chat-messages');
+  if (msgs) msgs.innerHTML = '';
+
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buen día' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const name = currentUser?.fullName?.split(' ')[0] || '';
+
+  setTimeout(() => {
+    portalAddBotMsg(`${greeting}${name ? ', ' + name : ''}! 👋`);
+    setTimeout(() => {
+      portalAddBotMsg('¿Cómo estás hoy?');
+      setTimeout(() => portalShowQuickOptions([
+        { label: '😊 Bien', value: 'bien' },
+        { label: '😐 Más o menos', value: 'regular' },
+        { label: '😔 No muy bien', value: 'mal' },
+        { label: '🆘 Necesito algo urgente', value: 'urgente' }
+      ]), 400);
+    }, 600);
+  }, 300);
+}
+
+function portalAddBotMsg(text) {
+  const container = document.getElementById('portal-chat-messages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'background: #f3f4f6; border-radius: 16px 16px 16px 4px; padding: 10px 16px; max-width: 85%; align-self: flex-start; font-size: 0.95rem; color: #1f2937; animation: slideUp 0.3s ease-out;';
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function portalAddUserMsg(text) {
+  const container = document.getElementById('portal-chat-messages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'background: #2e86c1; color: #fff; border-radius: 16px 16px 4px 16px; padding: 10px 16px; max-width: 85%; align-self: flex-end; margin-left: auto; font-size: 0.95rem; animation: slideUp 0.3s ease-out;';
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function portalShowQuickOptions(options) {
+  const container = document.getElementById('portal-quick-options');
+  if (!container) return;
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 20px; background: #fff; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
+    btn.textContent = opt.label;
+    btn.onmouseover = () => { btn.style.background = '#eff6ff'; btn.style.borderColor = '#2e86c1'; };
+    btn.onmouseout = () => { btn.style.background = '#fff'; btn.style.borderColor = '#d1d5db'; };
+    btn.onclick = () => portalHandleOption(opt.value, opt.label);
+    container.appendChild(btn);
+  });
+}
+
+function portalHideQuickOptions() {
+  const container = document.getElementById('portal-quick-options');
+  if (container) { container.style.display = 'none'; container.innerHTML = ''; }
+}
+
+function portalShowInput() {
+  const area = document.getElementById('portal-chat-input-area');
+  const input = document.getElementById('portal-chat-input');
+  if (area) area.style.display = 'block';
+  if (input) { input.value = ''; input.focus(); }
+}
+
+function portalHideInput() {
+  const area = document.getElementById('portal-chat-input-area');
+  if (area) area.style.display = 'none';
+}
+
+function portalChatSend() {
+  const input = document.getElementById('portal-chat-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  portalAddUserMsg(text);
+  portalHideInput();
+
+  if (portalChatStep === 10) {
+    // Urgency detail
+    portalChatData.urgencyDetail = text;
+    portalChatData.isUrgent = true;
+    portalSaveUrgency(text);
+    return;
+  }
+  if (portalChatStep === 20) {
+    // Free text response to "¿cómo estás?"
+    portalChatData.responses.push({ question: '¿Cómo estás hoy?', answer: text });
+    portalDetectUrgency(text);
+    return;
   }
 }
 
-function showMoodCheckinModal() {
-  if (!shouldShowMoodCheckin()) return;
+function portalHandleOption(value, label) {
+  portalHideQuickOptions();
+  portalAddUserMsg(label);
+  portalChatData.responses.push({ question: '¿Cómo estás hoy?', answer: value });
 
-  selectedMood = null;
-  selectedColor = null;
-
-  const modal = document.getElementById('mood-checkin-modal');
-  if (!modal) return;
-
-  document.querySelectorAll('.mood-option').forEach(opt => opt.classList.remove('selected'));
-  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-
-  const noteEl = document.getElementById('mood-note');
-  if (noteEl) noteEl.value = '';
-
-  const submitBtn = document.getElementById('submit-mood-btn');
-  if (submitBtn) submitBtn.disabled = true;
-
-  const preview = document.getElementById('selected-color-preview');
-  if (preview) preview.style.display = 'none';
-
-  // Show the wellness reference by default
-  const wellnessRef = document.getElementById('wellness-reference');
-  if (wellnessRef) wellnessRef.style.display = '';
-
-  modal.classList.remove('hidden');
-
-  // Reset color swatches
-  setTimeout(() => {
-    document.querySelectorAll('.color-swatch').forEach(s => {
-      s.style.borderColor = 'transparent';
-      s.style.boxShadow = 'none';
-    });
-  }, 50);
+  if (value === 'urgente') {
+    portalChatStep = 10;
+    setTimeout(() => {
+      portalAddBotMsg('Contame, ¿qué necesitás? Así aviso al equipo.');
+      portalShowInput();
+    }, 500);
+  } else if (value === 'notify_yes') {
+    portalSaveUrgency(portalChatData.urgencyDetail || portalChatData.responses.map(r => r.answer).join(' '));
+  } else if (value === 'mal') {
+    portalChatStep = 2;
+    setTimeout(() => {
+      portalAddBotMsg('Lamento escuchar eso. ¿Necesitás hablar con alguien del equipo o preferís continuar?');
+      setTimeout(() => portalShowQuickOptions([
+        { label: '📞 Sí, contactar equipo', value: 'contactar' },
+        { label: '➡️ Continuar', value: 'continuar' }
+      ]), 400);
+    }, 500);
+  } else if (value === 'contactar') {
+    portalChatStep = 10;
+    setTimeout(() => {
+      portalAddBotMsg('¿Qué te gustaría comunicarle al equipo?');
+      portalShowInput();
+    }, 500);
+  } else if (value === 'continuar' || value === 'bien' || value === 'regular') {
+    portalGoToColorPhase();
+  }
 }
 
-function hideMoodCheckinModal() {
-  document.getElementById('mood-checkin-modal').classList.add('hidden');
+function portalDetectUrgency(text) {
+  const lower = text.toLowerCase();
+  const isUrgent = URGENCY_KEYWORDS.some(kw => lower.includes(kw));
+
+  if (isUrgent) {
+    portalChatData.isUrgent = true;
+    portalChatData.urgencyDetail = text;
+    setTimeout(() => {
+      portalAddBotMsg('Parece que necesitás atención. ¿Querés que notifique al equipo?');
+      setTimeout(() => portalShowQuickOptions([
+        { label: '✅ Sí, notificar', value: 'notify_yes' },
+        { label: '➡️ No, seguir', value: 'continuar' }
+      ]), 400);
+    }, 500);
+  } else {
+    portalGoToColorPhase();
+  }
 }
 
-async function submitMoodCheckin() {
-  if (!selectedMood) return;
-
-  const note = document.getElementById('mood-note').value.trim();
+async function portalSaveUrgency(detail) {
+  // Show confirmation
+  document.getElementById('portal-urgency-confirm').style.display = 'block';
+  document.getElementById('portal-checkin-skip').style.display = 'none';
 
   // Save to backend
   try {
@@ -170,33 +227,116 @@ async function submitMoodCheckin() {
       body: JSON.stringify({
         action: 'mood_checkin',
         sessionToken: sessionToken,
-        mood: selectedMood,
-        note: note || null,
-        colorHex: selectedColor || null,
-        context: 'daily_checkin'
+        mood: 1,
+        note: 'URGENTE: ' + detail,
+        colorHex: null,
+        context: 'portal_urgency'
       })
     });
   } catch (e) {
-    console.error('Error saving mood checkin:', e);
+    console.error('Error saving urgency:', e);
   }
 
-  // Mark as checked in today
+  // Mark as checked in
   const today = new Date().toISOString().split('T')[0];
-  localStorage.setItem('hdd_mood_checkin_date', today);
-  localStorage.setItem('hdd_last_mood', selectedMood.toString());
-  if (selectedColor) {
-    localStorage.setItem('hdd_last_color', selectedColor);
+  localStorage.setItem('hdd_portal_checkin_date', today);
+}
+
+function portalGoToColorPhase() {
+  portalHideQuickOptions();
+  portalHideInput();
+
+  setTimeout(() => {
+    portalAddBotMsg('Elegí el color que más te llame la atención en este momento:');
+
+    const colorPhase = document.getElementById('portal-color-phase');
+    if (!colorPhase) return;
+
+    // Build color grid
+    const grid = colorPhase.querySelector('div');
+    grid.innerHTML = '';
+    PROJECTIVE_COLORS.forEach(c => {
+      const tile = document.createElement('div');
+      tile.style.cssText = `width: 60px; height: 60px; border-radius: 50%; background: ${c.hex}; cursor: pointer; transition: all 0.25s; box-shadow: 0 3px 10px rgba(0,0,0,0.2);`;
+      tile.onmouseover = () => { tile.style.transform = 'scale(1.15)'; };
+      tile.onmouseout = () => { if (!tile.classList.contains('sel')) tile.style.transform = 'scale(1)'; };
+      tile.onclick = () => portalSelectColor(c.hex, c.family, tile);
+      grid.appendChild(tile);
+    });
+
+    colorPhase.style.display = 'block';
+
+    // Add "no responder" note
+    const note = document.createElement('p');
+    note.style.cssText = 'text-align: center; color: #9ca3af; font-size: 0.75rem; margin-top: 12px;';
+    note.textContent = 'No hay respuestas correctas ni incorrectas';
+    colorPhase.appendChild(note);
+
+    // Scroll to colors
+    const container = document.getElementById('portal-chat-messages').parentElement;
+    setTimeout(() => container.scrollTop = container.scrollHeight, 100);
+  }, 500);
+}
+
+async function portalSelectColor(hex, family, element) {
+  // Visual feedback
+  document.querySelectorAll('#portal-color-phase div[style*="border-radius: 50%"]').forEach(t => {
+    t.style.transform = 'scale(1)';
+    t.style.boxShadow = '0 3px 10px rgba(0,0,0,0.2)';
+    t.classList.remove('sel');
+  });
+  element.classList.add('sel');
+  element.style.transform = 'scale(1.2)';
+  element.style.boxShadow = `0 0 0 4px #fff, 0 0 0 6px ${hex}`;
+
+  portalChatData.colorHex = hex;
+  portalChatData.colorFamily = family;
+
+  // Save everything
+  try {
+    await api('/games', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'mood_checkin',
+        sessionToken: sessionToken,
+        mood: portalChatData.responses[0]?.answer === 'bien' ? 4 : portalChatData.responses[0]?.answer === 'regular' ? 3 : portalChatData.responses[0]?.answer === 'mal' ? 2 : 3,
+        note: JSON.stringify(portalChatData.responses),
+        colorHex: hex,
+        context: 'portal_daily_checkin'
+      })
+    });
+  } catch (e) {
+    console.error('Error saving portal checkin:', e);
   }
 
-  hideMoodCheckinModal();
+  // Mark as done
+  const today = new Date().toISOString().split('T')[0];
+  localStorage.setItem('hdd_portal_checkin_date', today);
+
+  // Close after brief delay
+  setTimeout(() => portalCheckinFinish(), 800);
 }
 
-function skipMoodCheckin() {
-  // Mark as skipped for today
-  const today = new Date().toISOString().split('T')[0];
-  localStorage.setItem('hdd_mood_checkin_date', today);
-  hideMoodCheckinModal();
+function portalCheckinFinish() {
+  const modal = document.getElementById('portal-checkin-modal');
+  if (modal) modal.classList.add('hidden');
 }
+
+function skipPortalCheckin() {
+  const today = new Date().toISOString().split('T')[0];
+  localStorage.setItem('hdd_portal_checkin_date', today);
+  portalCheckinFinish();
+}
+
+// Legacy compatibility - keep old function names working
+function showMoodCheckinModal() { showPortalCheckin(); }
+function hideMoodCheckinModal() { portalCheckinFinish(); }
+function skipMoodCheckin() { skipPortalCheckin(); }
+function selectColorOnly() {}
+function selectColor() {}
+function renderColorPalette() {}
+function setColorIntensity() {}
+function submitMoodCheckin() {}
 
 // Auth
 async function login(dni, password) {
@@ -270,12 +410,12 @@ function showApp() {
   document.getElementById('app-view').classList.remove('hidden');
   document.getElementById('user-name').textContent = currentUser.fullName;
 
-  // Mood check-in DESACTIVADO - solo en juegos
-  // if (!isPreviewMode) {
-  //   setTimeout(() => {
-  //     showMoodCheckinModal();
-  //   }, 800);
-  // }
+  // Chat-based daily check-in
+  if (!isPreviewMode) {
+    setTimeout(() => {
+      showPortalCheckin();
+    }, 800);
+  }
 }
 
 // Registration - simplified (no code verification)
