@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío Milanesas - Supermercado | CJI HDD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; --gold: #eab308; }
+        body { background: var(--bg); color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; margin: 0; min-height: 100vh; }
+
+        .gondola-section { background: var(--surface); border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 16px; }
+        .gondola-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+        .product {
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 94px; height: 115px; border-radius: 12px; background: var(--card);
+            border: 2px solid rgba(255,255,255,0.08); cursor: pointer; user-select: none;
+            gap: 2px; padding: 6px; transition: all 0.2s; position: relative;
+        }
+        .product:hover { transform: scale(1.06); border-color: rgba(255,255,255,0.2); }
+        .product.selected { border-color: var(--success); background: rgba(34,197,94,0.12); box-shadow: 0 0 12px rgba(34,197,94,0.2); }
+        .product .emoji { font-size: 1.8rem; }
+        .product .label { font-size: 0.6rem; text-align: center; line-height: 1.15; color: rgba(255,255,255,0.75); }
+        .product .price-tag {
+            font-size: 0.7rem; font-weight: 700; color: #22c55e; background: rgba(34,197,94,0.15);
+            padding: 1px 6px; border-radius: 6px; margin-top: 1px;
+        }
+        .product .check-badge {
+            position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+            border-radius: 50%; background: var(--success); color: #fff;
+            font-size: 0.7rem; display: none; align-items: center; justify-content: center; font-weight: 700;
+        }
+        .product.selected .check-badge { display: flex; }
+
+        .cart-area { background: var(--surface); border: 2px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; min-height: 60px; }
+        .cart-item { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border-radius: 10px; padding: 5px 10px; margin: 3px; font-size: 0.75rem; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); transition: all 0.15s; }
+        .cart-item:hover { border-color: var(--danger); background: rgba(239,68,68,0.1); }
+        .cart-item .remove { color: rgba(255,255,255,0.3); font-size: 0.65rem; }
+        .cart-item .cart-price { color: var(--success); font-weight: 600; font-size: 0.65rem; }
+
+        .budget-bar { background: var(--surface); border-radius: 14px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.08); }
+        .budget-meter { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 6px; }
+        .budget-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease, background 0.3s; }
+        .budget-ok { background: linear-gradient(90deg, #22c55e, #16a34a); }
+        .budget-warn { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .budget-over { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+        .score-card { background: var(--card); border-radius: 14px; padding: 18px; text-align: center; }
+        .score-val { font-size: 2.2rem; font-weight: 800; }
+        .score-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+        .tier { padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; }
+        .tier-basic { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); }
+        .tier-advanced { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.25); }
+        .tier-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+        .tier-budget { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); }
+
+        @keyframes pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .pop { animation: pop 0.25s ease; }
+        @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
+        .shake { animation: shake 0.4s ease; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px;">
+    <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <a id="back-link" href="/hdd/portal/" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem;">← Volver al portal</a>
+            <h1 style="margin: 4px 0 0; font-size: 1.4rem; font-weight: 700;">🛒 Desafío Milanesas</h1>
+            <p style="margin: 2px 0 0; font-size: 0.75rem; color: rgba(255,255,255,0.5);">Clínica Psiquiátrica José Ingenieros · HDD</p>
+        </div>
+        <div style="text-align: right;">
+            <div id="timer" style="font-size: 1.6rem; font-family: monospace; font-weight: 700;">00:00</div>
+        </div>
+    </div>
+</header>
+
+<!-- CONSIGNA -->
+<div id="consigna" style="background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.25); margin: 12px auto; max-width: 1100px; border-radius: 12px; padding: 14px 20px;">
+    <p style="margin: 0; font-size: 0.95rem;">🍽️ <strong>Consigna:</strong> Comprá <strong>todo lo necesario para hacer milanesas</strong>. ¡Pero ojo con el presupuesto! Tocá los productos para agregarlos al carrito.</p>
+</div>
+
+<!-- BUDGET BAR (sticky) -->
+<div style="position: sticky; top: 0; z-index: 200; padding: 8px 16px; max-width: 1100px; margin: 0 auto;">
+    <div class="budget-bar" id="budget-bar">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">💰 Presupuesto:</span>
+                <span id="budget-total" style="font-weight: 700; font-size: 1rem; margin-left: 4px;">$0</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">Carrito:</span>
+                <span id="cart-total" style="font-weight: 700; font-size: 1rem; margin-left: 4px;">$0</span>
+                <span style="font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-left: 6px;">Saldo:</span>
+                <span id="budget-remaining" style="font-weight: 700; font-size: 1rem; margin-left: 4px; color: var(--success);">$0</span>
+            </div>
+        </div>
+        <div class="budget-meter">
+            <div class="budget-fill budget-ok" id="budget-fill" style="width: 0%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- GAME AREA -->
+<div style="max-width: 1100px; margin: 0 auto; padding: 0 16px 140px;">
+
+    <!-- GONDOLAS -->
+    <div class="gondola-section" id="sec-carnes">
+        <div class="gondola-title" style="color: #f87171;">🥩 Carnicería</div>
+        <div class="gondola-grid" id="gondola-carnes" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+    <div class="gondola-section" id="sec-almacen">
+        <div class="gondola-title" style="color: #fbbf24;">🏪 Almacén</div>
+        <div class="gondola-grid" id="gondola-almacen" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+    <div class="gondola-section" id="sec-verduras">
+        <div class="gondola-title" style="color: #86efac;">🥬 Verdulería</div>
+        <div class="gondola-grid" id="gondola-verduras" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+    <div class="gondola-section" id="sec-lacteos">
+        <div class="gondola-title" style="color: #93c5fd;">🧊 Lácteos y Refrigerados</div>
+        <div class="gondola-grid" id="gondola-lacteos" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+    <div class="gondola-section" id="sec-bazar">
+        <div class="gondola-title" style="color: #c084fc;">🧹 Limpieza y Bazar</div>
+        <div class="gondola-grid" id="gondola-bazar" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+
+    <!-- CARRITO (sticky bottom) -->
+    <div style="position: sticky; bottom: 0; z-index: 100; background: linear-gradient(0deg, var(--bg) 70%, transparent); padding: 12px 0 6px;">
+        <div class="cart-area" id="cart-area">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 0.85rem;">🛒 Tu carrito <span id="cart-badge" style="color: var(--success);"></span></span>
+                <span id="over-budget-warn" style="display: none; font-size: 0.75rem; font-weight: 700; color: var(--danger);">⚠️ ¡Te pasás del presupuesto!</span>
+            </div>
+            <div id="cart-items" style="min-height: 32px;"></div>
+            <div style="text-align: right; margin-top: 8px;">
+                <button id="btn-pay" onclick="tryFinish()" style="display: none; padding: 11px 28px; border-radius: 12px; border: none; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-size: 0.95rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(34,197,94,0.3);">💳 Ir a pagar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" style="display: none; margin-top: 16px;"></div>
+</div>
+
+<script>
+// ========== CONFIG ==========
+var supabaseUrl = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// ========== PRODUCT DATABASE ==========
+// priceRange: [min, max] — each game randomizes a price within range
+var PRODUCTS = [
+    // CARNICERÍA
+    { id: 'bife', emoji: '🥩', name: 'Bife de nalga', gondola: 'carnes', tier: 'essential', priceRange: [2800, 4500], desc: 'La carne para las milanesas' },
+    { id: 'pollo', emoji: '🍗', name: 'Suprema de pollo', gondola: 'carnes', tier: 'essential', priceRange: [1800, 3200], desc: 'Alternativa clásica' },
+    { id: 'carne_picada', emoji: '🥩', name: 'Carne picada', gondola: 'carnes', tier: 'neutral', priceRange: [2200, 3800] },
+    { id: 'chorizo', emoji: '🌭', name: 'Chorizo', gondola: 'carnes', tier: 'neutral', priceRange: [1500, 2500] },
+    { id: 'pescado', emoji: '🐟', name: 'Filet de merluza', gondola: 'carnes', tier: 'neutral', priceRange: [2500, 4000] },
+
+    // ALMACÉN
+    { id: 'pan_rallado', emoji: '🍞', name: 'Pan rallado', gondola: 'almacen', tier: 'essential', priceRange: [600, 1200], desc: 'Indispensable para el rebozado' },
+    { id: 'rebozador', emoji: '📦', name: 'Rebozador', gondola: 'almacen', tier: 'advanced', priceRange: [700, 1400], desc: 'Alternativa práctica' },
+    { id: 'aceite', emoji: '🫒', name: 'Aceite', gondola: 'almacen', tier: 'advanced', priceRange: [1200, 2500], desc: 'Para freír' },
+    { id: 'sal', emoji: '🧂', name: 'Sal', gondola: 'almacen', tier: 'advanced', priceRange: [300, 600], desc: 'Condimento esencial' },
+    { id: 'pimienta', emoji: '🌶️', name: 'Pimienta', gondola: 'almacen', tier: 'advanced', priceRange: [400, 900], desc: 'Condimento clásico' },
+    { id: 'nuez_moscada', emoji: '🫘', name: 'Nuez moscada', gondola: 'almacen', tier: 'advanced', priceRange: [500, 1100], desc: 'El toque secreto del experto' },
+    { id: 'escarbadientes', emoji: '🪥', name: 'Escarbadientes', gondola: 'almacen', tier: 'advanced', priceRange: [200, 500], desc: 'Para sostener/cerrar milanesas' },
+    { id: 'arroz', emoji: '🍚', name: 'Arroz', gondola: 'almacen', tier: 'neutral', priceRange: [800, 1500] },
+    { id: 'fideos', emoji: '🍝', name: 'Fideos', gondola: 'almacen', tier: 'neutral', priceRange: [600, 1200] },
+    { id: 'azucar', emoji: '🍬', name: 'Azúcar', gondola: 'almacen', tier: 'neutral', priceRange: [500, 1000] },
+    { id: 'cafe', emoji: '☕', name: 'Café', gondola: 'almacen', tier: 'neutral', priceRange: [1500, 3000] },
+    { id: 'galletitas', emoji: '🍪', name: 'Galletitas', gondola: 'almacen', tier: 'neutral', priceRange: [700, 1300] },
+
+    // VERDULERÍA
+    { id: 'limon', emoji: '🍋', name: 'Limón', gondola: 'verduras', tier: 'advanced', priceRange: [200, 500], desc: 'Acompañamiento clásico' },
+    { id: 'lechuga', emoji: '🥬', name: 'Lechuga', gondola: 'verduras', tier: 'neutral', priceRange: [400, 800] },
+    { id: 'tomate', emoji: '🍅', name: 'Tomate', gondola: 'verduras', tier: 'neutral', priceRange: [500, 1000] },
+    { id: 'papa', emoji: '🥔', name: 'Papas', gondola: 'verduras', tier: 'advanced', priceRange: [600, 1200], desc: 'Guarnición estrella: papas fritas' },
+    { id: 'cebolla', emoji: '🧅', name: 'Cebolla', gondola: 'verduras', tier: 'neutral', priceRange: [300, 700] },
+    { id: 'banana', emoji: '🍌', name: 'Banana', gondola: 'verduras', tier: 'neutral', priceRange: [400, 800] },
+    { id: 'perejil', emoji: '🌿', name: 'Perejil', gondola: 'verduras', tier: 'advanced', priceRange: [150, 400], desc: 'Para la mezcla del rebozado' },
+
+    // LÁCTEOS
+    { id: 'huevos', emoji: '🥚', name: 'Huevos (docena)', gondola: 'lacteos', tier: 'essential', priceRange: [1200, 2200], desc: 'Fundamental para el batido' },
+    { id: 'leche', emoji: '🥛', name: 'Leche', gondola: 'lacteos', tier: 'neutral', priceRange: [700, 1300] },
+    { id: 'queso', emoji: '🧀', name: 'Queso', gondola: 'lacteos', tier: 'advanced', priceRange: [1500, 3000], desc: 'Para milanesas rellenas' },
+    { id: 'jamon', emoji: '🥓', name: 'Jamón', gondola: 'lacteos', tier: 'advanced', priceRange: [1200, 2500], desc: 'Para napolitana o rellenas' },
+    { id: 'mayonesa', emoji: '🫙', name: 'Mayonesa', gondola: 'lacteos', tier: 'advanced', priceRange: [800, 1600], desc: 'Acompañamiento clásico argentino' },
+    { id: 'yogur', emoji: '🥛', name: 'Yogur', gondola: 'lacteos', tier: 'neutral', priceRange: [600, 1200] },
+    { id: 'manteca', emoji: '🧈', name: 'Manteca', gondola: 'lacteos', tier: 'neutral', priceRange: [900, 1800] },
+
+    // BAZAR & LIMPIEZA (errores)
+    { id: 'detergente', emoji: '🧴', name: 'Detergente', gondola: 'bazar', tier: 'error', priceRange: [800, 1500] },
+    { id: 'esponja', emoji: '🧽', name: 'Esponja', gondola: 'bazar', tier: 'error', priceRange: [300, 700] },
+    { id: 'cepillo_dientes', emoji: '🪥', name: 'Cepillo dientes', gondola: 'bazar', tier: 'error', priceRange: [500, 1200] },
+    { id: 'shampoo', emoji: '🧴', name: 'Shampoo', gondola: 'bazar', tier: 'error', priceRange: [1200, 2500] },
+    { id: 'velas', emoji: '🕯️', name: 'Velas', gondola: 'bazar', tier: 'error', priceRange: [400, 900] },
+    { id: 'papel_higienico', emoji: '🧻', name: 'Papel higiénico', gondola: 'bazar', tier: 'error', priceRange: [600, 1300] },
+];
+
+// ========== GAME STATE ==========
+var cart = [];
+var startTime = null;
+var actionLog = [];
+var patientId = null;
+var timerInterval = null;
+var productPrices = {};  // id → randomized price this session
+var BUDGET = 0;
+var overBudgetAttempts = 0;
+var priceCheckCount = 0;  // times user removed items to fit budget
+
+// ========== INIT ==========
+function initGame() {
+    startTime = Date.now();
+    var urlParams = new URLSearchParams(window.location.search);
+    patientId = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'DEMO';
+
+    // Randomize budget: $7000 - $14000
+    BUDGET = Math.round((7000 + Math.random() * 7000) / 100) * 100;
+    document.getElementById('budget-total').textContent = '$' + BUDGET.toLocaleString('es-AR');
+    document.getElementById('budget-remaining').textContent = '$' + BUDGET.toLocaleString('es-AR');
+
+    // Randomize prices
+    PRODUCTS.forEach(function(p) {
+        var min = p.priceRange[0], max = p.priceRange[1];
+        productPrices[p.id] = Math.round((min + Math.random() * (max - min)) / 50) * 50;
+    });
+
+    // Render gondolas
+    var gondolas = { carnes: [], almacen: [], verduras: [], lacteos: [], bazar: [] };
+    PRODUCTS.forEach(function(p) { gondolas[p.gondola].push(p); });
+
+    Object.keys(gondolas).forEach(function(key) {
+        gondolas[key].sort(function() { return Math.random() - 0.5; });
+        var container = document.getElementById('gondola-' + key);
+        if (!container) return;
+        gondolas[key].forEach(function(p) {
+            var div = document.createElement('div');
+            div.className = 'product';
+            div.id = 'prod-' + p.id;
+            div.dataset.id = p.id;
+            div.innerHTML = '<span class="emoji">' + p.emoji + '</span>' +
+                '<span class="label">' + p.name + '</span>' +
+                '<span class="price-tag">$' + productPrices[p.id].toLocaleString('es-AR') + '</span>' +
+                '<span class="check-badge">✓</span>';
+            div.addEventListener('click', function() { toggleProduct(p.id); });
+            container.appendChild(div);
+        });
+    });
+
+    // Timer
+    timerInterval = setInterval(function() {
+        var elapsed = Math.floor((Date.now() - startTime) / 1000);
+        var m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        var s = String(elapsed % 60).padStart(2, '0');
+        document.getElementById('timer').textContent = m + ':' + s;
+    }, 1000);
+}
+
+// ========== CART TOTAL ==========
+function getCartTotal() {
+    var total = 0;
+    cart.forEach(function(id) { total += (productPrices[id] || 0); });
+    return total;
+}
+
+// ========== TOGGLE PRODUCT ==========
+function toggleProduct(id) {
+    var idx = cart.indexOf(id);
+    var el = document.getElementById('prod-' + id);
+
+    if (idx >= 0) {
+        // Remove from cart
+        cart.splice(idx, 1);
+        if (el) el.classList.remove('selected');
+        var wasOver = getCartTotal() + (productPrices[id] || 0) > BUDGET;
+        if (wasOver) priceCheckCount++;
+        actionLog.push({ type: 'remove', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+    } else {
+        // Add to cart
+        cart.push(id);
+        if (el) { el.classList.add('selected'); el.classList.add('pop'); setTimeout(function() { el.classList.remove('pop'); }, 300); }
+        actionLog.push({ type: 'add', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+    }
+
+    updateUI();
+}
+
+function updateUI() {
+    var total = getCartTotal();
+    var remaining = BUDGET - total;
+    var pct = Math.min(100, Math.round((total / BUDGET) * 100));
+    var isOver = total > BUDGET;
+
+    // Budget bar
+    document.getElementById('cart-total').textContent = '$' + total.toLocaleString('es-AR');
+    document.getElementById('cart-total').style.color = isOver ? 'var(--danger)' : '#e2e8f0';
+    document.getElementById('budget-remaining').textContent = (isOver ? '-' : '') + '$' + Math.abs(remaining).toLocaleString('es-AR');
+    document.getElementById('budget-remaining').style.color = isOver ? 'var(--danger)' : remaining < BUDGET * 0.15 ? 'var(--warn)' : 'var(--success)';
+
+    var fill = document.getElementById('budget-fill');
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.className = 'budget-fill ' + (isOver ? 'budget-over' : pct > 80 ? 'budget-warn' : 'budget-ok');
+
+    // Over budget warning
+    document.getElementById('over-budget-warn').style.display = isOver ? 'inline' : 'none';
+    if (isOver) {
+        var bar = document.getElementById('budget-bar');
+        bar.classList.add('shake');
+        setTimeout(function() { bar.classList.remove('shake'); }, 500);
+    }
+
+    // Cart items
+    var container = document.getElementById('cart-items');
+    if (cart.length === 0) {
+        container.innerHTML = '<span style="color: rgba(255,255,255,0.25); font-size: 0.78rem;">Carrito vacío — tocá productos para agregar</span>';
+    } else {
+        container.innerHTML = cart.map(function(id) {
+            var p = PRODUCTS.find(function(x) { return x.id === id; });
+            return '<span class="cart-item" onclick="toggleProduct(\'' + id + '\')">' +
+                p.emoji + ' ' + p.name + ' <span class="cart-price">$' + productPrices[id].toLocaleString('es-AR') + '</span> <span class="remove">✕</span></span>';
+        }).join('');
+    }
+
+    document.getElementById('cart-badge').textContent = cart.length > 0 ? '(' + cart.length + ')' : '';
+
+    // Pay button: only show when cart has items
+    document.getElementById('btn-pay').style.display = cart.length >= 1 ? 'inline-block' : 'none';
+    // Visually disable if over budget
+    var btn = document.getElementById('btn-pay');
+    if (isOver) {
+        btn.style.opacity = '0.5';
+        btn.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+    } else {
+        btn.style.opacity = '1';
+        btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+    }
+}
+
+// ========== CHECKOUT ==========
+function tryFinish() {
+    if (getCartTotal() > BUDGET) {
+        overBudgetAttempts++;
+        actionLog.push({ type: 'over_budget_attempt', t: Date.now() - startTime, total: getCartTotal(), budget: BUDGET });
+        // Shake and show message
+        var bar = document.getElementById('budget-bar');
+        bar.classList.add('shake');
+        setTimeout(function() { bar.classList.remove('shake'); }, 500);
+
+        var warn = document.getElementById('over-budget-warn');
+        warn.textContent = '⚠️ Te pasás $' + (getCartTotal() - BUDGET).toLocaleString('es-AR') + ' — sacá algo para poder pagar';
+        warn.style.display = 'inline';
+        return;
+    }
+    finishGame();
+}
+
+// ========== EVALUATION ==========
+function finishGame() {
+    clearInterval(timerInterval);
+    var totalTime = Date.now() - startTime;
+    var cartTotal = getCartTotal();
+    var remaining = BUDGET - cartTotal;
+
+    var essentials = PRODUCTS.filter(function(p) { return p.tier === 'essential'; });
+    var advanced = PRODUCTS.filter(function(p) { return p.tier === 'advanced'; });
+    var errors = PRODUCTS.filter(function(p) { return p.tier === 'error'; });
+
+    var gotEssentials = essentials.filter(function(p) { return cart.indexOf(p.id) >= 0; });
+    var gotAdvanced = advanced.filter(function(p) { return cart.indexOf(p.id) >= 0; });
+    var gotErrors = errors.filter(function(p) { return cart.indexOf(p.id) >= 0; });
+    var gotNeutral = cart.filter(function(id) { var p = PRODUCTS.find(function(x) { return x.id === id; }); return p && p.tier === 'neutral'; });
+    var missedEssentials = essentials.filter(function(p) { return cart.indexOf(p.id) < 0; });
+
+    // Core check
+    var hasMeat = cart.indexOf('bife') >= 0 || cart.indexOf('pollo') >= 0;
+    var hasPan = cart.indexOf('pan_rallado') >= 0 || cart.indexOf('rebozador') >= 0;
+    var hasHuevos = cart.indexOf('huevos') >= 0;
+    var coreComplete = hasMeat && hasPan && hasHuevos;
+
+    // SCORING
+    var essentialPts = gotEssentials.length * 20;
+    var advancedPts = gotAdvanced.length * 4;
+    var errorPenalty = gotErrors.length * 10;
+    var neutralPenalty = gotNeutral.length > 3 ? (gotNeutral.length - 3) * 2 : 0;
+
+    // Budget efficiency bonus
+    var budgetEfficiency = 0;
+    if (cartTotal <= BUDGET && cartTotal > 0) {
+        var usagePct = cartTotal / BUDGET;
+        // Sweet spot: 70-95% budget used = max efficiency
+        if (usagePct >= 0.7 && usagePct <= 0.95) budgetEfficiency = 10;
+        else if (usagePct >= 0.5) budgetEfficiency = 5;
+        else budgetEfficiency = 2;
+    }
+
+    var rawScore = essentialPts + advancedPts + budgetEfficiency - errorPenalty - neutralPenalty;
+    var maxScore = (essentials.length * 20) + (advanced.length * 4) + 10;
+    var score = Math.max(0, Math.min(100, Math.round((rawScore / maxScore) * 100)));
+
+    // TIER LABEL
+    var tierLabel, tierColor;
+    if (gotErrors.length > 2) { tierLabel = 'Error de planificación'; tierColor = '#ef4444'; }
+    else if (!coreComplete) { tierLabel = 'Incompleto'; tierColor = '#f59e0b'; }
+    else if (gotAdvanced.length >= 6 && gotErrors.length === 0) { tierLabel = '⭐ Excelente'; tierColor = '#eab308'; }
+    else if (gotAdvanced.length >= 3) { tierLabel = 'Muy bueno'; tierColor = '#22c55e'; }
+    else if (coreComplete) { tierLabel = 'Aprobado (básico)'; tierColor = '#3b82f6'; }
+    else { tierLabel = 'En desarrollo'; tierColor = '#94a3b8'; }
+
+    // Budget analysis
+    var budgetUsePct = Math.round((cartTotal / BUDGET) * 100);
+    var budgetLabel, budgetColor;
+    if (budgetUsePct >= 70 && budgetUsePct <= 95 && gotErrors.length === 0) {
+        budgetLabel = 'Óptimo — buen uso del dinero'; budgetColor = '#22c55e';
+    } else if (budgetUsePct < 40) {
+        budgetLabel = 'Sub-utilizado — compró muy poco'; budgetColor = '#f59e0b';
+    } else if (gotErrors.length > 0) {
+        budgetLabel = 'Gasto ineficiente — dinero en items irrelevantes'; budgetColor = '#ef4444';
+    } else {
+        budgetLabel = 'Aceptable'; budgetColor = '#60a5fa';
+    }
+
+    // CLINICAL FLAGS
+    var clinicalFlags = [];
+    if (!coreComplete) {
+        clinicalFlags.push({ flag: 'INCOMPLETE_PLANNING', severity: 'high',
+            desc: 'No completó los ingredientes esenciales — déficit en memoria de trabajo / planificación' });
+    }
+    if (gotErrors.length > 0) {
+        clinicalFlags.push({ flag: 'PLANNING_ERRORS', severity: gotErrors.length > 2 ? 'high' : 'moderate',
+            desc: 'Seleccionó ' + gotErrors.length + ' item(s) irrelevantes — posible perseveración o falla ejecutiva' });
+    }
+    if (gotAdvanced.length === 0 && coreComplete) {
+        clinicalFlags.push({ flag: 'BASIC_ONLY', severity: 'low',
+            desc: 'Solo ingredientes básicos — capacidad de detalle y previsión reducida' });
+    }
+    if (gotAdvanced.length >= 8) {
+        clinicalFlags.push({ flag: 'EXECUTIVE_PRESERVED', severity: 'positive',
+            desc: 'Excelente planificación con detalles finos — funciones ejecutivas preservadas' });
+    }
+    if (cart.indexOf('nuez_moscada') >= 0 || cart.indexOf('escarbadientes') >= 0) {
+        var detailItems = [];
+        if (cart.indexOf('nuez_moscada') >= 0) detailItems.push('nuez moscada');
+        if (cart.indexOf('escarbadientes') >= 0) detailItems.push('escarbadientes');
+        clinicalFlags.push({ flag: 'DETAIL_ORIENTATION', severity: 'positive',
+            desc: 'Seleccionó items de detalle fino (' + detailItems.join(', ') + ') — pensamiento abstracto y previsión' });
+    }
+    if (overBudgetAttempts > 2) {
+        clinicalFlags.push({ flag: 'IMPULSE_CONTROL', severity: 'moderate',
+            desc: 'Intentó pagar ' + overBudgetAttempts + ' veces sin presupuesto — posible falla en inhibición de impulsos' });
+    }
+    if (priceCheckCount >= 3) {
+        clinicalFlags.push({ flag: 'COGNITIVE_FLEXIBILITY', severity: 'positive',
+            desc: 'Ajustó carrito ' + priceCheckCount + ' veces para adaptarse al presupuesto — buena flexibilidad cognitiva' });
+    }
+    if (budgetUsePct >= 70 && budgetUsePct <= 95 && gotErrors.length === 0 && gotAdvanced.length >= 4) {
+        clinicalFlags.push({ flag: 'ECONOMIC_REASONING', severity: 'positive',
+            desc: 'Optimizó presupuesto maximizando items relevantes — razonamiento económico preservado' });
+    }
+    if (gotNeutral.length > 5) {
+        clinicalFlags.push({ flag: 'TASK_FOCUS', severity: 'moderate',
+            desc: 'Seleccionó ' + gotNeutral.length + ' items neutros — posible dificultad para mantenerse en la consigna' });
+    }
+
+    // RENDER
+    document.getElementById('consigna').style.display = 'none';
+    document.querySelectorAll('.gondola-section').forEach(function(s) { s.style.display = 'none'; });
+    document.querySelector('#budget-bar').parentElement.style.display = 'none';
+    document.querySelector('.cart-area').style.position = 'relative';
+    document.getElementById('btn-pay').style.display = 'none';
+
+    var resultsDiv = document.getElementById('results');
+    resultsDiv.style.display = 'block';
+
+    resultsDiv.innerHTML =
+        '<div style="background: var(--surface); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.08);">' +
+            '<h2 style="margin: 0 0 4px; font-size: 1.3rem;">🧾 Ticket de compra</h2>' +
+            '<p style="margin: 0 0 20px; font-size: 0.85rem; color: rgba(255,255,255,0.4);">Evaluación de planificación para hacer milanesas</p>' +
+
+            // Score cards row 1
+            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px;">' +
+                '<div class="score-card"><div class="score-val" style="color: ' + tierColor + ';">' + score + '%</div><div class="score-lbl">Puntaje global</div></div>' +
+                '<div class="score-card"><div class="score-val" style="color: ' + tierColor + '; font-size: 1.1rem;">' + tierLabel + '</div><div class="score-lbl">Nivel</div></div>' +
+                '<div class="score-card"><div class="score-val">' + gotEssentials.length + '/' + essentials.length + '</div><div class="score-lbl">Esenciales</div></div>' +
+                '<div class="score-card"><div class="score-val" style="color: var(--gold);">' + gotAdvanced.length + '/' + advanced.length + '</div><div class="score-lbl">Avanzados</div></div>' +
+                '<div class="score-card"><div class="score-val" style="color: ' + (gotErrors.length > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + gotErrors.length + '</div><div class="score-lbl">Errores</div></div>' +
+                '<div class="score-card"><div class="score-val">' + Math.round(totalTime / 1000) + 's</div><div class="score-lbl">Tiempo</div></div>' +
+            '</div>' +
+
+            // Budget card
+            '<div class="tier tier-budget" style="margin-bottom: 14px;">' +
+                '<div style="font-weight: 700; font-size: 0.85rem; color: ' + budgetColor + '; margin-bottom: 8px;">💰 Gestión del presupuesto</div>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">' +
+                    '<div><div style="font-size: 1.1rem; font-weight: 700;">$' + BUDGET.toLocaleString('es-AR') + '</div><div style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">Presupuesto</div></div>' +
+                    '<div><div style="font-size: 1.1rem; font-weight: 700;">$' + cartTotal.toLocaleString('es-AR') + '</div><div style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">Gastado</div></div>' +
+                    '<div><div style="font-size: 1.1rem; font-weight: 700; color: var(--success);">$' + remaining.toLocaleString('es-AR') + '</div><div style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">Vuelto</div></div>' +
+                '</div>' +
+                '<div style="margin-top: 8px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">Uso: ' + budgetUsePct + '% — <span style="color: ' + budgetColor + ';">' + budgetLabel + '</span></div>' +
+                (overBudgetAttempts > 0 ? '<div style="font-size: 0.75rem; color: var(--warn); margin-top: 4px;">Intentó pagar sin saldo: ' + overBudgetAttempts + ' vez/veces</div>' : '') +
+                (priceCheckCount > 0 ? '<div style="font-size: 0.75rem; color: var(--success); margin-top: 4px;">Ajustes de carrito para cuadrar: ' + priceCheckCount + '</div>' : '') +
+            '</div>' +
+
+            // TIERS
+            '<div class="tier tier-basic">' +
+                '<div style="font-weight: 700; font-size: 0.85rem; color: #60a5fa; margin-bottom: 6px;">📋 Esenciales (Aprobado)</div>' +
+                essentials.map(function(p) {
+                    var got = cart.indexOf(p.id) >= 0;
+                    return '<div style="font-size: 0.8rem; padding: 3px 0;">' + (got ? '✅' : '❌') + ' ' + p.emoji + ' ' + p.name +
+                        (got ? ' <span style="color: var(--success); font-size: 0.7rem;">$' + productPrices[p.id].toLocaleString('es-AR') + '</span>' : '') +
+                        (p.desc ? ' <span style="color:rgba(255,255,255,0.3);">— ' + p.desc + '</span>' : '') + '</div>';
+                }).join('') +
+            '</div>' +
+
+            '<div class="tier tier-advanced">' +
+                '<div style="font-weight: 700; font-size: 0.85rem; color: var(--gold); margin-bottom: 6px;">⭐ Avanzados (Excelente)</div>' +
+                advanced.map(function(p) {
+                    var got = cart.indexOf(p.id) >= 0;
+                    return '<div style="font-size: 0.8rem; padding: 3px 0;">' + (got ? '✅' : '⬜') + ' ' + p.emoji + ' ' + p.name +
+                        (got ? ' <span style="color: var(--success); font-size: 0.7rem;">$' + productPrices[p.id].toLocaleString('es-AR') + '</span>' : '') +
+                        (p.desc ? ' <span style="color:rgba(255,255,255,0.3);">— ' + p.desc + '</span>' : '') + '</div>';
+                }).join('') +
+            '</div>' +
+
+            (gotErrors.length > 0 ?
+                '<div class="tier tier-error">' +
+                    '<div style="font-weight: 700; font-size: 0.85rem; color: var(--danger); margin-bottom: 6px;">⚠️ Errores de planificación</div>' +
+                    gotErrors.map(function(id) {
+                        var p = PRODUCTS.find(function(x) { return x.id === id; });
+                        return '<div style="font-size: 0.8rem; padding: 3px 0;">❌ ' + p.emoji + ' ' + p.name + ' $' + productPrices[p.id].toLocaleString('es-AR') + ' — irrelevante para milanesas</div>';
+                    }).join('') +
+                '</div>'
+            : '') +
+
+            // Clinical
+            (clinicalFlags.length > 0 ?
+                '<details style="margin-top: 16px;">' +
+                    '<summary style="cursor: pointer; font-size: 0.8rem; color: rgba(255,255,255,0.4);">🧠 Nota clínica (solo visible para profesionales)</summary>' +
+                    '<div style="margin-top: 8px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">' +
+                        clinicalFlags.map(function(f) {
+                            var c = f.severity === 'positive' ? '#22c55e' : f.severity === 'high' ? '#ef4444' : '#f59e0b';
+                            return '<div style="font-size: 0.78rem; padding: 4px 0; color: rgba(255,255,255,0.6);"><span style="color: ' + c + '; font-weight: 600;">[' + f.flag + ']</span> ' + f.desc + '</div>';
+                        }).join('') +
+                    '</div>' +
+                '</details>'
+            : '') +
+
+            '<div style="text-align: center; margin-top: 20px;">' +
+                '<button onclick="window.location.reload()" style="padding: 10px 24px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; margin-right: 8px;">Jugar de nuevo</button>' +
+                '<button onclick="goToPortal()" style="padding: 10px 24px; border-radius: 10px; border: none; background: var(--accent); color: #fff; cursor: pointer;">Volver al portal</button>' +
+            '</div>' +
+        '</div>';
+
+    // Save
+    saveResults({
+        score: score, tier_label: tierLabel, core_complete: coreComplete,
+        budget: BUDGET, cart_total: cartTotal, remaining: remaining,
+        budget_use_pct: budgetUsePct, budget_label: budgetLabel,
+        over_budget_attempts: overBudgetAttempts, price_adjustments: priceCheckCount,
+        essentials_got: gotEssentials.map(function(p) { return p.id; }),
+        essentials_missed: missedEssentials.map(function(p) { return p.id; }),
+        advanced_got: gotAdvanced.map(function(p) { return p.id; }),
+        errors_got: gotErrors.map(function(p) { return p.id; }),
+        neutrals_got: gotNeutral, total_items: cart.length, total_time_ms: totalTime,
+        has_nuez_moscada: cart.indexOf('nuez_moscada') >= 0,
+        has_escarbadientes: cart.indexOf('escarbadientes') >= 0,
+        product_prices: productPrices,
+        clinical_flags: clinicalFlags, action_log: actionLog
+    });
+
+    if (typeof showPostGameColorModal === 'function') showPostGameColorModal();
+}
+
+function goToPortal() {
+    window.location.href = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+}
+
+// ========== SUPABASE ==========
+async function saveResults(metrics) {
+    try {
+        var gameResult = await supabase.from('hdd_games').select('id').eq('slug', 'super-market').single();
+        var game = gameResult.data;
+        if (!game) {
+            var ins = await supabase.from('hdd_games').insert({
+                slug: 'super-market', name: 'Desafío Milanesas', category: 'avd',
+                description: 'Planificación de compras con presupuesto — pensamiento abstracto, memoria de trabajo, inhibición'
+            }).select('id').single();
+            game = ins.data;
+        }
+        var patientDbId = null;
+        if (patientId && patientId !== 'DEMO') {
+            var pr = await supabase.from('hdd_patients').select('id').eq('dni', patientId).single();
+            patientDbId = pr.data ? pr.data.id : null;
+        }
+        await supabase.from('hdd_game_sessions').insert({
+            patient_id: patientDbId, game_id: game ? game.id : null, level: 1,
+            score: metrics.score, started_at: new Date(startTime).toISOString(), completed_at: new Date().toISOString()
+        });
+        if (patientDbId && game) {
+            await supabase.from('hdd_game_biometrics').insert({
+                patient_id: patientDbId, game_id: game.id,
+                metric_type: 'supermarket_evaluation', metric_data: metrics
+            });
+        }
+    } catch (err) { console.error('Save error:', err); }
+}
+
+// ========== SMART BACK ==========
+(function() {
+    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+    var l = document.getElementById('back-link');
+    if (l) l.href = portalUrl;
+})();
+
+document.addEventListener('DOMContentLoaded', function() { initGame(); updateUI(); });
+</script>
+
+<!-- Mood modals v4 -->
+<script src="/games/shared/mood-modals.js"></script>
+<script>if (typeof initMoodModals === 'function') initMoodModals();</script>
+
+</body>
+</html>
