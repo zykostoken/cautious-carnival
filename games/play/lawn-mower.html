@@ -798,6 +798,9 @@
   <!-- Level Select Overlay -->
   <div class="screen-overlay" id="levelSelectScreen">
     <div class="screen-card" style="max-height: 90vh; overflow-y: auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+        <a id="levelSelectBackBtn" href="/hdd/portal/" style="color:#5b7eff;text-decoration:none;font-size:0.9rem;display:flex;align-items:center;gap:4px;">← Volver al portal</a>
+      </div>
       <h1>Cortadora de Cesped</h1>
       <p class="subtitle">Corta todo el cesped del jardin sin dañar las flores ni caer en la piscina.</p>
       <p class="subtitle" style="font-size:0.8rem; margin-top:0.5rem; opacity:0.8;">Controles: Flechas/WASD, D-Pad tactil, o arrastra con click derecho del mouse.</p>
@@ -1625,14 +1628,11 @@
   }
   // Smart back button: detect if came from partner (/games/) or portal (/hdd/)
   (function() {
+    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
     var backBtn = document.getElementById('backBtn');
-    if (!backBtn) return;
-    // Check localStorage first (reliable), then referrer
-    if (localStorage.getItem('games_session')) {
-      backBtn.href = '/games/portal/';
-    } else {
-      backBtn.href = '/hdd/portal/';
-    }
+    if (backBtn) backBtn.href = portalUrl;
+    var lsBackBtn = document.getElementById('levelSelectBackBtn');
+    if (lsBackBtn) lsBackBtn.href = portalUrl;
   })();
 
   async function apiCall(body) {
