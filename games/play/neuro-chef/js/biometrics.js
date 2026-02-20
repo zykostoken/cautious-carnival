@@ -13,6 +13,7 @@ const Biometrics = {
     resetCount: 0,
     interactionCount: 0,
     undoCount: 0,           // dblclick/deshacer
+    abruptDirectionChanges: 0, // cambios bruscos de trayectoria
 
     // ---------- INIT ----------
     startLevel() {
@@ -25,6 +26,7 @@ const Biometrics = {
         this.lastActionTime = null;
         this.interactionCount = 0;
         this.undoCount = 0;
+        this.abruptDirectionChanges = 0;
         this._setupGlobalListeners();
     },
 
@@ -63,6 +65,20 @@ const Biometrics = {
 
     logDragMove(x, y) {
         this.dragSamples.push({ x, y, t: Date.now() });
+        // Detect abrupt direction changes (>90° turn)
+        const n = this.dragSamples.length;
+        if (n >= 3) {
+            const p1 = this.dragSamples[n-3], p2 = this.dragSamples[n-2], p3 = this.dragSamples[n-1];
+            const dx1 = p2.x - p1.x, dy1 = p2.y - p1.y;
+            const dx2 = p3.x - p2.x, dy2 = p3.y - p2.y;
+            const mag1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+            const mag2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+            if (mag1 > 3 && mag2 > 3) { // ignore micro-movements
+                const dot = dx1*dx2 + dy1*dy2;
+                const cosAngle = dot / (mag1 * mag2);
+                if (cosAngle < 0) this.abruptDirectionChanges++; // >90° turn
+            }
+        }
     },
 
     logDrop(itemId, target, isCorrect) {
@@ -211,6 +227,7 @@ const Biometrics = {
             undo_count: this.undoCount,
             reset_count: this.resetCount,
             total_interactions: this.interactionCount,
+            abrupt_direction_changes: this.abruptDirectionChanges,
 
             // Raw data (for deep analysis)
             action_log: this.actionLog,

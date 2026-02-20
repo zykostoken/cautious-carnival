@@ -3350,12 +3350,11 @@
     }
     backBtn.href = portalUrl;
     backBtn.addEventListener('click', function(e) {
-      if (typeof showPostGameColorModal === 'function' && document.getElementById('post-game-color-modal')) {
+      if (typeof showPostGameColorModal === 'function') {
         e.preventDefault();
-        window._postColorCallback = function() {
+        showPostGameColorModal(function() {
           window.location.href = portalUrl;
-        };
-        showPostGameColorModal();
+        });
       }
     });
   })();
@@ -3368,22 +3367,9 @@
 })();
 </script>
 
-  <!-- Load shared mood modals -->
-  <div id="mood-modals-container"></div>
-  <script>
-    fetch('/games/shared/mood-modals.html')
-      .then(function(r) { return r.text(); })
-      .then(function(html) {
-        document.getElementById('mood-modals-container').innerHTML = html;
-        var s = document.createElement('script');
-        s.src = '/games/shared/mood-modals.js';
-        s.onload = function() {
-          if (typeof initMoodModals === 'function') initMoodModals();
-        };
-        document.body.appendChild(s);
-      })
-      .catch(function(err) { console.error('Failed to load mood modals:', err); });
-  </script>
+  <!-- Mood modals v4: self-contained overlay system -->
+  <script src="/games/shared/mood-modals.js"></script>
+  <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
 </body>
 </html>

@@ -133,6 +133,7 @@
         const totalOmissions = allBio.reduce((a, b) => a + (b.misses || 0), 0);
         const totalCommissions = allBio.reduce((a, b) => a + (b.false_alarms || 0), 0);
         const totalHesitations = allBio.reduce((a, b) => a + (b.hesitation_count || 0), 0);
+        const totalAbruptChanges = allBio.reduce((a, b) => a + (b.abrupt_direction_changes || 0), 0);
 
         content.innerHTML = `
             <div class="summary-row">
@@ -144,6 +145,7 @@
                 <div class="summary-card"><div class="val">${totalOmissions}</div><div class="lbl">Omisiones totales</div></div>
                 <div class="summary-card"><div class="val">${totalCommissions}</div><div class="lbl">Comisiones totales</div></div>
                 <div class="summary-card"><div class="val">${totalHesitations}</div><div class="lbl">Hesitaciones</div></div>
+                <div class="summary-card"><div class="val">${totalAbruptChanges}</div><div class="lbl">Cambios abruptos</div></div>
             </div>
 
             <div class="charts-grid">

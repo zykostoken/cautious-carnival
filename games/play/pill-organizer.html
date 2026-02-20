@@ -95,6 +95,7 @@
     <header class="bg-white/10 backdrop-blur-md text-white p-5 shadow-2xl border-b-2 border-white/20">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
+                <a id="pill-back-link" href="/hdd/portal/" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.85rem;">← Volver al portal</a>
                 <h1 class="text-3xl font-bold tracking-tight">💊 Organizador de Medicación</h1>
                 <p class="text-sm opacity-85 mt-1">Clínica Psiquiátrica José Ingenieros · Hospital de Día (HDD)</p>
             </div>
@@ -281,13 +282,14 @@
         // INICIALIZACIÓN
         // ===========================================
         async function initGame() {
-            // Simular paciente (en producción vendría del auth)
-            sessionState.patientDni = 'HDD-2026-001';
+            // Get patient from portal session or URL
+            var urlParams = new URLSearchParams(window.location.search);
+            sessionState.patientDni = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'HDD-DEMO';
             sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
             
-            document.getElementById('patient-display').textContent = `Paciente: Cargando...`;
+            document.getElementById('patient-display').textContent = 'Paciente: ' + (sessionState.patientDni);
             
-            // Obtener game_id desde Supabase
+            // Get game_id from Supabase
             const { data: game } = await supabase
                 .from('hdd_games')
                 .select('id')
@@ -296,20 +298,10 @@
             
             sessionState.gameId = game?.id || null;
             
-            if (!sessionState.gameId) {
-                console.error('Game ID not found in Supabase. Please run migrations.');
-            }
-            
             setupDragAndDrop();
             
-            // ✅ FIX: En modo demo, iniciar juego INMEDIATAMENTE sin modales
-            const urlParams = new URLSearchParams(window.location.search);
-            const isDemoMode = urlParams.get('demo') === 'true';
-            
-            if (isDemoMode) {
-                // Iniciar juego directo en modo demo
-                startGameSession();
-            }
+            // Always start game - mood modals are non-blocking overlays now
+            startGameSession();
         }
 
         async function getOrCreatePatient(dni) {
@@ -336,36 +328,8 @@
         }
 
         // ===========================================
-        // MOOD CHECK PRE-GAME
+        // MOOD CHECK: Now handled by shared mood-modals.js overlay
         // ===========================================
-        // PRE-GAME: INTENSIDAD (solo círculos, sin paleta)
-        // ===========================================
-        document.querySelectorAll('.mood-circle').forEach(circle => {
-            circle.addEventListener('click', async function() {
-                document.querySelectorAll('.mood-circle').forEach(c => c.classList.remove('ring-4', 'ring-white'));
-                this.classList.add('ring-4', 'ring-white');
-                
-                const intensity = this.dataset.mood; // 'dull', 'pastel', 'vivid'
-                sessionState.moodPre = intensity;
-                
-                await supabase.from('hdd_mood_checkins').insert({
-                    patient_id: sessionState.patientId,
-                    mood_level: null, // No usamos escala numérica
-                    color_intensity: intensity,
-                    context: 'pre_game'
-                });
-                
-                setTimeout(() => {
-                    document.getElementById('mood-modal-pre').classList.add('hidden');
-                    startGameSession();
-                }, 400);
-            });
-        });
-
-        document.getElementById('skip-mood-pre').addEventListener('click', () => {
-            document.getElementById('mood-modal-pre').classList.add('hidden');
-            startGameSession();
-        });
 
         async function startGameSession() {
             sessionState.startTime = Date.now();
@@ -704,23 +668,25 @@ Todos los datos están guardados en:
         initGame();
     </script>
 
-  <!-- Load shared mood modals -->
-  <div id="mood-modals-container"></div>
   <script>
-    fetch('/games/shared/mood-modals.html')
-      .then(function(r) { return r.text(); })
-      .then(function(html) {
-        document.getElementById('mood-modals-container').innerHTML = html;
-        // Load JS separately (innerHTML doesn't execute script tags)
-        var s = document.createElement('script');
-        s.src = '/games/shared/mood-modals.js';
-        s.onload = function() {
-          if (typeof initMoodModals === 'function') initMoodModals();
-        };
-        document.body.appendChild(s);
-      })
-      .catch(function(err) { console.error('Failed to load mood modals:', err); });
+  // Smart back link
+  (function(){
+    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+    var l = document.getElementById('pill-back-link');
+    if (l) {
+      l.href = portalUrl;
+      l.addEventListener('click', function(e) {
+        if (typeof showPostGameColorModal === 'function') {
+          e.preventDefault();
+          showPostGameColorModal(function() { window.location.href = portalUrl; });
+        }
+      });
+    }
+  })();
   </script>
+  <!-- Mood modals v4: self-contained overlay system -->
+  <script src="/games/shared/mood-modals.js"></script>
+  <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
 </body>
 </html>

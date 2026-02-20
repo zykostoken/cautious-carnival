@@ -6,7 +6,7 @@ async function initGame() {
     console.log('[Neuro-Chef] Initializing...');
     const urlParams = new URLSearchParams(window.location.search);
     const isDemoMode = urlParams.get('demo') === 'true';
-    const playerDni = urlParams.get('dni');
+    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id');
     
     if (isDemoMode && !playerDni) {
         gameState.patientDni = 'HDD-DEMO-' + Date.now();
@@ -17,6 +17,7 @@ async function initGame() {
         gameState.patientDni = playerDni;
         gameState.patientId = await getOrCreatePatient(playerDni);
         document.getElementById('player-login-modal').classList.add('hidden');
+        document.getElementById('patient-display').textContent = 'Pac: ' + playerDni;
         await loadPlayerHistory();
         setupPreGameModal();
     } else {

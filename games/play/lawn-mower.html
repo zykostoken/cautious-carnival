@@ -3693,11 +3693,10 @@
 
     // Show post-game color modal if available, then redirect
     var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
-    if (typeof showPostGameColorModal === 'function' && document.getElementById('post-game-color-modal')) {
-      window._postColorCallback = function() {
+    if (typeof showPostGameColorModal === 'function') {
+      showPostGameColorModal(function() {
         window.location.href = portalUrl;
-      };
-      showPostGameColorModal();
+      });
     } else {
       window.location.href = portalUrl;
     }
@@ -4135,23 +4134,9 @@
 })();
 </script>
 
-  <!-- Load shared mood modals -->
-  <div id="mood-modals-container"></div>
-  <script>
-    fetch('/games/shared/mood-modals.html')
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById('mood-modals-container').innerHTML = html;
-        // Load the JS after HTML is injected
-        var s = document.createElement('script');
-        s.src = '/games/shared/mood-modals.js';
-        s.onload = function() {
-          if (typeof initMoodModals === 'function') initMoodModals();
-        };
-        document.body.appendChild(s);
-      })
-      .catch(err => console.error('Failed to load mood modals:', err));
-  </script>
+  <!-- Mood modals v4: self-contained overlay system -->
+  <script src="/games/shared/mood-modals.js"></script>
+  <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
 </body>
 </html>
