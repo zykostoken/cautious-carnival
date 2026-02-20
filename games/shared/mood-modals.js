@@ -211,7 +211,11 @@ async function selectColor(colorHex, element) {
     setTimeout(function() {
         var modal = document.getElementById('post-game-color-modal');
         if (modal) modal.style.display = 'none';
-        if (typeof showMetricsModal === 'function') {
+        // Execute callback if set (e.g., redirect after color selection)
+        if (typeof window._postColorCallback === 'function') {
+            window._postColorCallback();
+            window._postColorCallback = null;
+        } else if (typeof showMetricsModal === 'function') {
             showMetricsModal();
         } else if (typeof displayFinalMetrics === 'function') {
             displayFinalMetrics();

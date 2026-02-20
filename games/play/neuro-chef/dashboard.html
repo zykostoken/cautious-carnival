@@ -67,7 +67,10 @@
     const params = new URLSearchParams(window.location.search);
     const patientId = params.get('patient_id');
 
-    if (!patientId) {
+    // Restrict: only accessible from admin session
+    if (!localStorage.getItem('hdd_admin_session')) {
+        document.getElementById('content').innerHTML = '<div class="no-data">Acceso restringido a profesionales. <a href="/hdd/admin/" style="color:#D4A574;">Iniciar sesión</a></div>';
+    } else if (!patientId) {
         document.getElementById('content').innerHTML = '<div class="no-data">No se especificó paciente. Agregá ?patient_id=UUID a la URL.</div>';
     } else {
         loadDashboard(patientId);

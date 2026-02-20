@@ -3681,10 +3681,25 @@
     initGame(currentLevel);
   });
 
-  // ---- BACK BUTTON (save on quit) ----
+  // ---- BACK BUTTON (save on quit, show post-game color, then redirect) ----
   document.getElementById('backBtn').addEventListener('click', function(e) {
+    e.preventDefault();
     if (gameRunning && grassCut > 0) {
       saveResult(false);
+    }
+    gameRunning = false;
+    clearInterval(timerInterval);
+    clearInterval(blockedCheckInterval);
+
+    // Show post-game color modal if available, then redirect
+    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+    if (typeof showPostGameColorModal === 'function' && document.getElementById('post-game-color-modal')) {
+      window._postColorCallback = function() {
+        window.location.href = portalUrl;
+      };
+      showPostGameColorModal();
+    } else {
+      window.location.href = portalUrl;
     }
   });
 
@@ -4127,6 +4142,13 @@
       .then(r => r.text())
       .then(html => {
         document.getElementById('mood-modals-container').innerHTML = html;
+        // Load the JS after HTML is injected
+        var s = document.createElement('script');
+        s.src = '/games/shared/mood-modals.js';
+        s.onload = function() {
+          if (typeof initMoodModals === 'function') initMoodModals();
+        };
+        document.body.appendChild(s);
       })
       .catch(err => console.error('Failed to load mood modals:', err));
   </script>

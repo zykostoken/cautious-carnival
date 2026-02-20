@@ -714,6 +714,9 @@ Todos los datos están guardados en:
         // Load JS separately (innerHTML doesn't execute script tags)
         var s = document.createElement('script');
         s.src = '/games/shared/mood-modals.js';
+        s.onload = function() {
+          if (typeof initMoodModals === 'function') initMoodModals();
+        };
         document.body.appendChild(s);
       })
       .catch(function(err) { console.error('Failed to load mood modals:', err); });

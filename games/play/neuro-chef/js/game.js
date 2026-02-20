@@ -684,7 +684,7 @@ function showResultsScreen(summary) {
     const ga=document.getElementById('game-area');ga.className='';
     document.getElementById('level-instructions').classList.add('hidden');
     document.getElementById('controls').classList.add('hidden');
-    const bio=summary.biometric_summary;const tt=Math.round(summary.total_time_ms/1000);
+    const tt=Math.round(summary.total_time_ms/1000);
     const mins=Math.floor(tt/60);const secs=tt%60;
     ga.innerHTML=`<div class="results-screen">
         <h2>Sesión Completada</h2>
@@ -694,20 +694,8 @@ function showResultsScreen(summary) {
             <div class="result-card"><div class="result-value">${mins}:${secs.toString().padStart(2,'0')}</div><div class="result-label">Tiempo total</div></div>
             <div class="result-card"><div class="result-value">${summary.levels_completed}/6</div><div class="result-label">Niveles</div></div>
         </div>
-        <h3>Biometría Cognitiva</h3>
-        <div class="results-grid bio-grid">
-            <div class="result-card bio"><div class="result-value">${Math.round(bio.avg_reaction_time)}ms</div><div class="result-label">RT promedio</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.avg_d_prime.toFixed(2)}</div><div class="result-label">d' (sensibilidad)</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.total_omissions}</div><div class="result-label">Omisiones</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.total_commissions}</div><div class="result-label">Comisiones</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.avg_tremor.toFixed(1)}</div><div class="result-label">Tremor idx</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.total_hesitations}</div><div class="result-label">Hesitaciones</div></div>
-            <div class="result-card bio"><div class="result-value">${bio.total_undos}</div><div class="result-label">Correcciones</div></div>
-            <div class="result-card bio"><div class="result-value">${summary.reset_count}</div><div class="result-label">Resets</div></div>
-        </div>
         <div class="results-actions">
             <button onclick="window.location.reload()" class="btn-primary">Jugar de nuevo</button>
-            <button onclick="window.location.href='/games/play/neuro-chef/dashboard.html?patient_id=${gameState.patientId}'" class="btn-secondary">Ver historial</button>
             <button onclick="window.location.href=getPortalUrl()" class="btn-secondary">Volver al portal</button>
         </div>
     </div>`;

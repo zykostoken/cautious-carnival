@@ -1300,7 +1300,7 @@
 
     <div class="levels-grid" id="levelsGrid"></div>
 
-    <button class="progress-btn" id="showProgressBtn">Ver Progreso Terapeutico</button>
+    <button class="progress-btn" id="showProgressBtn" style="display:none;">Ver Progreso Terapeutico</button>
   </div>
 
   <!-- SCREEN: Prescription Phase -->
@@ -3340,13 +3340,24 @@
   (function() {
     var backBtn = $('backBtn');
     if (!backBtn) return;
+    var portalUrl;
     if (localStorage.getItem('games_session')) {
-      backBtn.href = '/games/portal/';
+      portalUrl = '/games/portal/';
     } else if (token) {
-      backBtn.href = '/hdd/portal?token=' + encodeURIComponent(token);
+      portalUrl = '/hdd/portal?token=' + encodeURIComponent(token);
     } else {
-      backBtn.href = '/hdd/portal/';
+      portalUrl = '/hdd/portal/';
     }
+    backBtn.href = portalUrl;
+    backBtn.addEventListener('click', function(e) {
+      if (typeof showPostGameColorModal === 'function' && document.getElementById('post-game-color-modal')) {
+        e.preventDefault();
+        window._postColorCallback = function() {
+          window.location.href = portalUrl;
+        };
+        showPostGameColorModal();
+      }
+    });
   })();
 
   // ==================== INIT ====================
@@ -3366,6 +3377,9 @@
         document.getElementById('mood-modals-container').innerHTML = html;
         var s = document.createElement('script');
         s.src = '/games/shared/mood-modals.js';
+        s.onload = function() {
+          if (typeof initMoodModals === 'function') initMoodModals();
+        };
         document.body.appendChild(s);
       })
       .catch(function(err) { console.error('Failed to load mood modals:', err); });

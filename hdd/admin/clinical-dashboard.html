@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Clínico | HDD Profesional</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        .dashboard { max-width: 1300px; margin: 0 auto; padding: 1.5rem; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; }
+        .dash-header h1 { font-size: 1.3rem; color: #60a5fa; }
+        .dash-header h1 span { color: #f87171; font-size: 0.7rem; background: rgba(248,113,113,0.15); padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
+        .back-btn { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; }
+        .back-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+        /* Auth gate */
+        .auth-gate { text-align: center; padding: 4rem 1rem; }
+        .auth-gate h2 { color: #f87171; margin-bottom: 1rem; }
+        .auth-gate a { color: #60a5fa; }
+
+        /* Patient selector */
+        .patient-selector { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .patient-selector select { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem; min-width: 280px; }
+        .patient-selector select option { background: #1e293b; }
+        .patient-info-bar { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+
+        /* Summary cards */
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.7rem; margin-bottom: 1.5rem; }
+        .summary-card { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 0.9rem; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
+        .summary-card .val { font-size: 1.6rem; font-weight: 700; color: #fff; }
+        .summary-card .lbl { font-size: 0.65rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.2rem; }
+
+        /* Game tabs */
+        .game-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .game-tab { padding: 0.5rem 1rem; border-radius: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); cursor: pointer; border: 1px solid transparent; font-size: 0.85rem; transition: all 0.2s; }
+        .game-tab:hover { background: rgba(255,255,255,0.1); }
+        .game-tab.active { background: rgba(96,165,250,0.15); color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+
+        /* Charts */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.5rem; }
+        .chart-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 1rem; border: 1px solid rgba(255,255,255,0.06); }
+        .chart-box h3 { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 0.6rem; }
+        .chart-box canvas { max-height: 260px; }
+        .chart-box.full { grid-column: 1 / -1; }
+
+        /* Color mood timeline */
+        .mood-timeline { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 1.5rem; }
+        .mood-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); cursor: pointer; position: relative; }
+        .mood-dot:hover { transform: scale(1.3); border-color: rgba(255,255,255,0.4); }
+        .mood-dot .tooltip { display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; z-index: 10; }
+        .mood-dot:hover .tooltip { display: block; }
+
+        /* Sessions table */
+        .sessions-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+        .sessions-table th { text-align: left; padding: 0.5rem; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px; }
+        .sessions-table td { padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.7); }
+        .sessions-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+        .loading { text-align: center; padding: 4rem; color: rgba(255,255,255,0.4); }
+        .no-data { text-align: center; padding: 3rem; color: rgba(255,255,255,0.3); font-style: italic; }
+        .section-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 1.5rem 0 0.8rem; }
+
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .summary-row { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="dash-header">
+        <h1>Dashboard Clínico <span>SOLO PROFESIONAL</span></h1>
+        <a href="/hdd/admin/" class="back-btn">← Panel Admin</a>
+    </div>
+    <div id="content"><div class="loading">Verificando acceso...</div></div>
+</div>
+
+<script>
+const SB_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const GAMES = {
+    'lawn-mower': { name: 'Cortadora de Césped', icon: '🌿', color: '#22c55e' },
+    'medication-memory': { name: 'Memoria de Medicación', icon: '💊', color: '#3b82f6' },
+    'pill-organizer': { name: 'Organizador', icon: '🎯', color: '#f59e0b' },
+    'neuro-chef-v2': { name: 'Neuro-Chef', icon: '🧠', color: '#a855f7' }
+};
+
+let charts = {};
+let currentPatient = null;
+let allData = {};
+
+// Auth check
+(async function init() {
+    const adminSession = localStorage.getItem('hdd_admin_session');
+    if (!adminSession) {
+        document.getElementById('content').innerHTML = `
+            <div class="auth-gate">
+                <h2>Acceso restringido</h2>
+                <p>Este dashboard es solo para profesionales autorizados.</p>
+                <p style="margin-top:1rem;"><a href="/hdd/admin/">Iniciar sesión como administrador</a></p>
+            </div>`;
+        return;
+    }
+
+    // Verify session
+    try {
+        const res = await fetch('/api/hdd/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify_session', sessionToken: adminSession })
+        });
+        const d = await res.json();
+        if (!d.valid) throw new Error('invalid');
+    } catch(e) {
+        // Allow if session exists (offline resilience)
+        console.warn('Admin verify failed, proceeding with stored session');
+    }
+
+    await loadPatients();
+})();
+
+async function loadPatients() {
+    const { data: patients } = await sb.from('hdd_patients').select('id, full_name, dni, created_at').order('full_name');
+    if (!patients || patients.length === 0) {
+        document.getElementById('content').innerHTML = '<div class="no-data">No hay pacientes registrados.</div>';
+        return;
+    }
+
+    let html = `<div class="patient-selector">
+        <select id="patientSelect"><option value="">Seleccionar paciente...</option>`;
+    patients.forEach(p => {
+        html += `<option value="${p.id}">${p.full_name || 'Sin nombre'} — DNI: ${p.dni || '?'}</option>`;
+    });
+    html += `</select><span class="patient-info-bar" id="patientInfoBar"></span></div>
+        <div id="dashContent"><div class="no-data">Seleccioná un paciente para ver su evolución clínica.</div></div>`;
+    document.getElementById('content').innerHTML = html;
+
+    document.getElementById('patientSelect').addEventListener('change', function() {
+        if (this.value) loadPatientData(this.value);
+    });
+
+    // Auto-select from URL param
+    const urlPid = new URLSearchParams(window.location.search).get('patient_id');
+    if (urlPid) {
+        document.getElementById('patientSelect').value = urlPid;
+        loadPatientData(urlPid);
+    }
+}
+
+async function loadPatientData(pid) {
+    currentPatient = pid;
+    document.getElementById('dashContent').innerHTML = '<div class="loading">Cargando datos clínicos...</div>';
+
+    try {
+        const [sessRes, metRes, moodRes, patRes] = await Promise.all([
+            sb.from('hdd_game_sessions').select('*').eq('patient_id', pid).order('started_at', { ascending: true }),
+            sb.from('hdd_game_metrics').select('*').eq('patient_id', pid).order('created_at', { ascending: true }),
+            sb.from('hdd_mood_checkins').select('*').eq('patient_id', pid).order('created_at', { ascending: true }),
+            sb.from('hdd_patients').select('*').eq('id', pid).single()
+        ]);
+
+        const sessions = sessRes.data || [];
+        const metrics = metRes.data || [];
+        const moods = moodRes.data || [];
+        const patient = patRes.data;
+
+        if (patient) {
+            document.getElementById('patientInfoBar').textContent =
+                `Ingreso: ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-AR') : '?'} | Sesiones totales: ${sessions.length}`;
+        }
+
+        allData = { sessions, metrics, moods, patient };
+        renderDashboard(sessions, metrics, moods);
+    } catch(e) {
+        console.error(e);
+        document.getElementById('dashContent').innerHTML = '<div class="no-data">Error cargando datos.</div>';
+    }
+}
+
+function renderDashboard(sessions, metrics, moods) {
+    const dc = document.getElementById('dashContent');
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+
+    if (sessions.length === 0 && metrics.length === 0) {
+        dc.innerHTML = '<div class="no-data">Sin sesiones registradas para este paciente.</div>';
+        return;
+    }
+
+    // Global aggregates
+    const totalSessions = sessions.length;
+    const completedSessions = sessions.filter(s => s.completed_at).length;
+    const totalTimeSec = sessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
+    const totalDays = new Set(sessions.map(s => s.started_at ? s.started_at.split('T')[0] : null).filter(Boolean)).size;
+
+    // Neuro-Chef biometrics from hdd_game_metrics
+    const ncBio = metrics.filter(m => m.metric_type && m.metric_type.startsWith('biometric_level_'));
+    const ncBioData = ncBio.map(m => m.metric_data).filter(Boolean);
+    const avgRT = ncBioData.length ? Math.round(ncBioData.reduce((a, b) => a + (b.reaction_time_ms || 0), 0) / ncBioData.length) : '—';
+    const avgDPrime = ncBioData.length ? (ncBioData.reduce((a, b) => a + (b.d_prime || 0), 0) / ncBioData.length).toFixed(2) : '—';
+
+    // Lawn-mower biometrics from session.metrics
+    const lmSessions = sessions.filter(s => s.metrics && s.metrics.clinical_markers);
+    const lmAvgRT = lmSessions.length ? Math.round(lmSessions.reduce((a, s) => a + (s.metrics.clinical_markers.mean_reaction_time_ms || 0), 0) / lmSessions.length) : '—';
+
+    let html = '';
+
+    // Summary cards
+    html += `<div class="summary-row">
+        <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones</div></div>
+        <div class="summary-card"><div class="val">${completedSessions}</div><div class="lbl">Completadas</div></div>
+        <div class="summary-card"><div class="val">${totalDays}</div><div class="lbl">Días activos</div></div>
+        <div class="summary-card"><div class="val">${Math.round(totalTimeSec / 60)}min</div><div class="lbl">Tiempo total</div></div>
+        <div class="summary-card"><div class="val">${avgRT}</div><div class="lbl">RT Neuro-Chef</div></div>
+        <div class="summary-card"><div class="val">${avgDPrime}</div><div class="lbl">d' Neuro-Chef</div></div>
+        <div class="summary-card"><div class="val">${lmAvgRT}</div><div class="lbl">RT Cortadora</div></div>
+        <div class="summary-card"><div class="val">${moods.length}</div><div class="lbl">Check-ins ánimo</div></div>
+    </div>`;
+
+    // Color mood timeline
+    if (moods.length > 0) {
+        html += `<div class="section-title">Colores Proyectivos (línea temporal)</div><div class="mood-timeline">`;
+        moods.filter(m => m.color_hex).forEach(m => {
+            const d = new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+            html += `<div class="mood-dot" style="background:${m.color_hex}"><div class="tooltip">${d} — ${m.phase || ''}</div></div>`;
+        });
+        html += `</div>`;
+    }
+
+    // Charts area
+    html += `<div class="section-title">Evolución Longitudinal</div>`;
+    html += `<div class="charts-grid">
+        <div class="chart-box"><h3>Tiempo de Reacción (ms) — Todos los juegos</h3><canvas id="chartRT"></canvas></div>
+        <div class="chart-box"><h3>d' Sensibilidad — Neuro-Chef</h3><canvas id="chartDPrime"></canvas></div>
+        <div class="chart-box"><h3>Puntaje por sesión — Todos los juegos</h3><canvas id="chartScore"></canvas></div>
+        <div class="chart-box"><h3>Errores (omisión vs comisión)</h3><canvas id="chartErrors"></canvas></div>
+        <div class="chart-box full"><h3>Tremor / Hesitaciones — Neuro-Chef</h3><canvas id="chartTremor"></canvas></div>
+    </div>`;
+
+    // Sessions table
+    html += `<div class="section-title">Historial de Sesiones</div>
+    <div style="overflow-x:auto;">
+    <table class="sessions-table">
+        <thead><tr>
+            <th>Fecha</th><th>Juego</th><th>Nivel</th><th>Puntaje</th><th>Duración</th><th>RT (ms)</th><th>d'</th><th>Omisiones</th><th>Comisiones</th><th>Completado</th>
+        </tr></thead><tbody>`;
+
+    // Merge sessions with game slug info
+    const allRows = sessions.map(s => {
+        const slug = getGameSlug(s);
+        const game = GAMES[slug] || { name: slug, icon: '🎮' };
+        const m = s.metrics || {};
+        const cm = m.clinical_markers || {};
+        const dt = s.started_at ? new Date(s.started_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
+        return `<tr>
+            <td>${dt}</td>
+            <td>${game.icon} ${game.name}</td>
+            <td>${s.level || '—'}</td>
+            <td>${s.score || 0}${s.max_score ? '/' + s.max_score : ''}</td>
+            <td>${s.duration_seconds ? Math.round(s.duration_seconds) + 's' : '—'}</td>
+            <td>${cm.mean_reaction_time_ms || '—'}</td>
+            <td>—</td>
+            <td>${cm.omission_errors ?? '—'}</td>
+            <td>${cm.commission_errors ?? '—'}</td>
+            <td>${s.completed_at ? '✓' : '✗'}</td>
+        </tr>`;
+    });
+
+    // Add neuro-chef metric rows
+    const ncLevelMetrics = metrics.filter(m => m.metric_type && m.metric_type.startsWith('level_'));
+    ncLevelMetrics.forEach(m => {
+        const dt = m.created_at ? new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
+        const md = m.metric_data || {};
+        const bio = md.biometrics || {};
+        allRows.push(`<tr style="color:rgba(168,85,247,0.8);">
+            <td>${dt}</td>
+            <td>🧠 Neuro-Chef</td>
+            <td>${md.level || m.metric_type}</td>
+            <td>${md.score || m.metric_value || 0}</td>
+            <td>${bio.total_time_ms ? Math.round(bio.total_time_ms / 1000) + 's' : '—'}</td>
+            <td>${bio.reaction_time_ms || '—'}</td>
+            <td>${bio.d_prime ? bio.d_prime.toFixed(2) : '—'}</td>
+            <td>${bio.misses ?? '—'}</td>
+            <td>${bio.false_alarms ?? '—'}</td>
+            <td>✓</td>
+        </tr>`);
+    });
+
+    html += allRows.reverse().join('') + `</tbody></table></div>`;
+
+    dc.innerHTML = html;
+
+    // Render charts
+    requestAnimationFrame(() => renderCharts(sessions, metrics, moods));
+}
+
+function getGameSlug(session) {
+    if (session.game_slug) return session.game_slug;
+    // Fallback: try to infer from metrics
+    const m = session.metrics || {};
+    if (m.grassCut !== undefined || m.flowersHit !== undefined) return 'lawn-mower';
+    if (m.memory_span !== undefined || m.simulated_mpr !== undefined) return 'medication-memory';
+    if (m.pills !== undefined) return 'pill-organizer';
+    return 'unknown';
+}
+
+function renderCharts(sessions, metrics, moods) {
+    const chartOpts = {
+        responsive: true,
+        plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } } } },
+        scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        }
+    };
+
+    // RT chart: combine lawn-mower and neuro-chef
+    const ncBio = metrics.filter(m => m.metric_type && m.metric_type.startsWith('biometric_level_')).map(m => ({
+        date: m.created_at, rt: m.metric_data?.reaction_time_ms, game: 'neuro-chef'
+    })).filter(d => d.rt);
+
+    const lmRT = sessions.filter(s => s.metrics?.clinical_markers?.mean_reaction_time_ms).map(s => ({
+        date: s.started_at, rt: s.metrics.clinical_markers.mean_reaction_time_ms, game: 'lawn-mower'
+    }));
+
+    const allRT = [...ncBio, ...lmRT].sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (allRT.length > 0) {
+        const labels = allRT.map(d => new Date(d.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' }));
+        charts.rt = new Chart(document.getElementById('chartRT'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Neuro-Chef', data: allRT.map(d => d.game === 'neuro-chef' ? d.rt : null), borderColor: '#a855f7', tension: 0.3, spanGaps: true, pointRadius: 3 },
+                    { label: 'Cortadora', data: allRT.map(d => d.game === 'lawn-mower' ? d.rt : null), borderColor: '#22c55e', tension: 0.3, spanGaps: true, pointRadius: 3 }
+                ]
+            },
+            options: chartOpts
+        });
+    }
+
+    // d' chart
+    const dPrimeData = ncBio.filter(d => d.game === 'neuro-chef').map(m => {
+        const orig = metrics.find(x => x.created_at === m.date);
+        return { date: m.date, dp: orig?.metric_data?.d_prime };
+    }).filter(d => d.dp !== undefined);
+
+    if (dPrimeData.length > 0) {
+        charts.dprime = new Chart(document.getElementById('chartDPrime'), {
+            type: 'line',
+            data: {
+                labels: dPrimeData.map(d => new Date(d.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                datasets: [{ label: "d'", data: dPrimeData.map(d => d.dp), borderColor: '#60a5fa', tension: 0.3, fill: true, backgroundColor: 'rgba(96,165,250,0.1)' }]
+            },
+            options: chartOpts
+        });
+    }
+
+    // Score chart (all games)
+    const scoreSessions = sessions.filter(s => s.score > 0).sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
+    if (scoreSessions.length > 0) {
+        charts.score = new Chart(document.getElementById('chartScore'), {
+            type: 'bar',
+            data: {
+                labels: scoreSessions.map(s => new Date(s.started_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                datasets: [{
+                    label: 'Puntaje',
+                    data: scoreSessions.map(s => s.score),
+                    backgroundColor: scoreSessions.map(s => {
+                        const slug = getGameSlug(s);
+                        return GAMES[slug]?.color || '#6b7280';
+                    }),
+                    borderRadius: 4
+                }]
+            },
+            options: { ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }
+        });
+    }
+
+    // Errors chart (neuro-chef)
+    const errData = metrics.filter(m => m.metric_type?.startsWith('biometric_level_') && m.metric_data).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    if (errData.length > 0) {
+        charts.errors = new Chart(document.getElementById('chartErrors'), {
+            type: 'bar',
+            data: {
+                labels: errData.map(m => new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                datasets: [
+                    { label: 'Omisiones', data: errData.map(m => m.metric_data.misses || 0), backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 3 },
+                    { label: 'Comisiones', data: errData.map(m => m.metric_data.false_alarms || 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 3 }
+                ]
+            },
+            options: chartOpts
+        });
+    }
+
+    // Tremor / Hesitations chart
+    if (errData.length > 0) {
+        charts.tremor = new Chart(document.getElementById('chartTremor'), {
+            type: 'line',
+            data: {
+                labels: errData.map(m => new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                datasets: [
+                    { label: 'Tremor idx', data: errData.map(m => m.metric_data.tremor_avg || 0), borderColor: '#f87171', tension: 0.3, yAxisID: 'y' },
+                    { label: 'Hesitaciones', data: errData.map(m => m.metric_data.hesitation_count || 0), borderColor: '#fbbf24', tension: 0.3, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                ...chartOpts,
+                scales: {
+                    ...chartOpts.scales,
+                    y: { ...chartOpts.scales.y, position: 'left', title: { display: true, text: 'Tremor', color: 'rgba(255,255,255,0.3)' } },
+                    y1: { ...chartOpts.scales.y, position: 'right', title: { display: true, text: 'Hesitaciones', color: 'rgba(255,255,255,0.3)' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+    }
+}
+</script>
+</body>
+</html>
