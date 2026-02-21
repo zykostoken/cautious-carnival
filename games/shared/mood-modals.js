@@ -1,7 +1,8 @@
 // ====================================================================
-// MOOD MODALS v5.0 - Clínica José Ingenieros
+// MOOD MODALS v6.0 - Clínica José Ingenieros
 // Self-contained overlays. No external HTML. Supabase persistence.
 // Pre-game: conversational chat. Post-game: Lüscher 12-color picker.
+// v6: sessionStorage fallback for incognito/private browsing
 // ====================================================================
 
 var MOOD_COLORS = [
@@ -14,6 +15,19 @@ var MOOD_COLORS = [
 ];
 
 var _moodState = { step: 0, responses: [], patientId: null, gameSlug: null };
+
+// ====================================================================
+// STORAGE HELPER - localStorage + sessionStorage fallback (incognito)
+// ====================================================================
+function _moodStorageGet(key) {
+    try { var v = localStorage.getItem(key); if (v) return v; } catch(e) {}
+    try { return sessionStorage.getItem(key); } catch(e) {}
+    return null;
+}
+function _moodStorageSet(key, val) {
+    try { localStorage.setItem(key, val); } catch(e) {}
+    try { sessionStorage.setItem(key, val); } catch(e) {}
+}
 
 // ====================================================================
 // SUPABASE SAVE
@@ -40,12 +54,12 @@ function _moodSaveToSupabase(type, data) {
 // PRE-GAME CHAT
 // ====================================================================
 function showPreGameChat() {
-    // Never skip — mood check is clinically required
+    // Check if already done today (localStorage OR sessionStorage for incognito)
     var today = new Date().toISOString().split('T')[0];
-    if (localStorage.getItem('mood_pregame_done_' + today)) return;
+    if (_moodStorageGet('mood_pregame_done_' + today)) return;
 
     var urlParams = new URLSearchParams(window.location.search);
-    _moodState.patientId = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'DEMO';
+    _moodState.patientId = urlParams.get('patient_id') || _moodStorageGet('hdd_patient_id') || 'DEMO';
     _moodState.gameSlug = window.location.pathname.split('/').pop().replace('.html','');
     _moodState.step = 0;
     _moodState.responses = [];
@@ -111,7 +125,7 @@ function showPreGameChat() {
             playBtn.textContent = '¡Dale, a jugar! 🚀';
             playBtn.style.cssText = 'padding:14px 36px;border-radius:14px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;cursor:pointer;font-size:1.05rem;font-weight:700;margin-top:8px';
             playBtn.onclick = function() {
-                localStorage.setItem('mood_pregame_done_' + today, 'true');
+                _moodStorageSet('mood_pregame_done_' + today, 'true');
                 _moodSaveToSupabase('pre_game', { responses: _moodState.responses, questions: questions.map(function(q){return q.q;}) });
                 overlay.style.animation = 'mfadeOut .25s ease forwards';
                 setTimeout(function() { overlay.remove(); }, 300);
@@ -129,7 +143,7 @@ function showPreGameChat() {
     closeBtn.title = 'Saltar chequeo emocional';
     closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:10000';
     closeBtn.onclick = function() {
-        localStorage.setItem('mood_pregame_done_' + today, 'skipped');
+        _moodStorageSet('mood_pregame_done_' + today, 'skipped');
         _moodSaveToSupabase('pre_game', { responses: ['(cerrado con X)'], skipped: true });
         overlay.style.animation = 'mfadeOut .25s ease forwards';
         setTimeout(function() { overlay.remove(); }, 300);

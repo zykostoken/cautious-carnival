@@ -74,6 +74,8 @@
         .toast-warn { background: rgba(245,158,11,0.85); border: 1px solid rgba(245,158,11,0.5); }
         @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
         @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-10px); } }
+        @keyframes mfadeIn { from { opacity:0; } to { opacity:1; } }
+        @keyframes mfadeOut { from { opacity:1; } to { opacity:0; } }
     </style>
 </head>
 <body>
@@ -93,9 +95,19 @@
     </div>
 </header>
 
+<!-- FLASH OVERLAY — recipe memorization phase -->
+<div id="flash-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9998; align-items:center; justify-content:center; flex-direction:column; backdrop-filter:blur(8px); animation:mfadeIn .3s ease">
+    <div style="text-align:center; color:#e2e8f0; font-family:system-ui,sans-serif;">
+        <p style="font-size:1rem; opacity:0.6; margin:0 0 12px;">🧠 Memorizá la receta...</p>
+        <p id="flash-recipe-name" style="font-size:3rem; font-weight:800; margin:0 0 20px; text-shadow:0 0 30px rgba(59,130,246,0.5);"></p>
+        <p style="font-size:0.85rem; opacity:0.4; margin:0 0 8px;">Después tenés que comprar los ingredientes</p>
+        <div id="flash-countdown" style="font-size:2.5rem; font-weight:700; color:#3b82f6; margin-top:12px;"></div>
+    </div>
+</div>
+
 <!-- CONSIGNA -->
 <div id="consigna" style="background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.25); margin: 12px auto; max-width: 1100px; border-radius: 12px; padding: 14px 20px;">
-    <p style="margin: 0; font-size: 0.95rem;">🍽️ <strong>Consigna:</strong> Comprá <strong>todo lo necesario para hacer milanesas</strong>. ¡Pero ojo con el presupuesto! Tocá los productos para agregarlos al carrito.</p>
+    <p id="consigna-text" style="margin: 0; font-size: 0.95rem;">🍽️ <strong>Consigna:</strong> Cargando receta...</p>
 </div>
 
 <!-- BUDGET BAR (sticky) -->
@@ -226,16 +238,106 @@ var PRODUCTS = [
     { id: 'cerveza', emoji: '🍺', name: 'Cerveza', gondola: 'bebidas', tier: 'neutral', priceRange: [800, 2000] },
 
     // BAZAR & LIMPIEZA (errores)
-    { id: 'detergente', emoji: '🧴', name: 'Detergente', gondola: 'bazar', tier: 'error', priceRange: [800, 1500] },
-    { id: 'esponja', emoji: '🧽', name: 'Esponja', gondola: 'bazar', tier: 'error', priceRange: [300, 700] },
-    { id: 'cepillo_dientes', emoji: '🪥', name: 'Cepillo dientes', gondola: 'bazar', tier: 'error', priceRange: [500, 1200] },
-    { id: 'shampoo', emoji: '🧴', name: 'Shampoo', gondola: 'bazar', tier: 'error', priceRange: [1200, 2500] },
-    { id: 'velas', emoji: '🕯️', name: 'Velas', gondola: 'bazar', tier: 'error', priceRange: [400, 900] },
-    { id: 'papel_higienico', emoji: '🧻', name: 'Papel higiénico', gondola: 'bazar', tier: 'error', priceRange: [600, 1300] },
+    { id: 'detergente', emoji: '🧴', name: 'Detergente', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [800, 1500] },
+    { id: 'esponja', emoji: '🧽', name: 'Esponja', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [300, 700] },
+    { id: 'cepillo_dientes', emoji: '🪥', name: 'Cepillo dientes', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [500, 1200] },
+    { id: 'shampoo', emoji: '🧴', name: 'Shampoo', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [1200, 2500] },
+    { id: 'velas', emoji: '🕯️', name: 'Velas', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [400, 900] },
+    { id: 'papel_higienico', emoji: '🧻', name: 'Papel higiénico', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [600, 1300] },
     // SEMI-DISTRACTORES (parecen útiles pero son irrelevantes para milanesas)
-    { id: 'servilletas', emoji: '🧻', name: 'Servilletas', gondola: 'bazar', tier: 'error', priceRange: [300, 700] },
-    { id: 'film', emoji: '📦', name: 'Film transparente', gondola: 'bazar', tier: 'error', priceRange: [500, 1100] },
+    { id: 'servilletas', emoji: '🧻', name: 'Servilletas', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [300, 700] },
+    { id: 'film', emoji: '📦', name: 'Film transparente', gondola: 'bazar', tier: 'error', baseTier: 'error', priceRange: [500, 1100] },
 ];
+
+// ========== RECIPE SYSTEM ==========
+var RECIPES = {
+    milanesas: {
+        name: 'Milanesas', emoji: '🥩',
+        consigna: 'Comprá todo lo necesario para hacer <strong>milanesas</strong>.',
+        flash: '🥩 MILANESAS',
+        essential: {
+            'bife':        { altGroup: 'carne', desc: 'Carne clásica para milanesas' },
+            'pollo':       { altGroup: 'carne', desc: 'Alternativa válida — milanesa de pollo' },
+            'pan_rallado': { altGroup: 'rebozado', desc: 'Indispensable para el rebozado' },
+            'rebozador':   { altGroup: 'rebozado', desc: 'Alternativa práctica al pan rallado' },
+            'huevos':      { desc: 'Fundamental para el batido' },
+            'aceite':      { desc: 'Imprescindible — sin aceite no hay fritura' }
+        },
+        advanced: {
+            'sal': 'Condimento esencial', 'pimienta': 'Condimento clásico',
+            'ajo': 'Sabor argentino — para el batido', 'nuez_moscada': 'El toque secreto del experto',
+            'escarbadientes': 'Para sostener/cerrar milanesas', 'limon': 'Acompañamiento clásico',
+            'papa': 'Guarnición estrella: papas fritas', 'perejil': 'Para la mezcla del rebozado',
+            'queso': 'Para milanesas rellenas', 'jamon': 'Para napolitana o rellenas',
+            'mayonesa': 'Acompañamiento clásico argentino'
+        },
+        recallOptions: ['Milanesas', 'Empanadas', 'Fideos con tuco', 'Tortilla de papas'],
+        recallCorrect: 0
+    },
+    fideos_con_tuco: {
+        name: 'Fideos con tuco', emoji: '🍝',
+        consigna: 'Comprá todo lo necesario para hacer <strong>fideos con tuco</strong>.',
+        flash: '🍝 FIDEOS CON TUCO',
+        essential: {
+            'fideos':  { desc: 'La base del plato' },
+            'tomate':  { desc: 'Base de la salsa' },
+            'aceite':  { desc: 'Para el sofrito' },
+            'cebolla': { desc: 'Fundamental para el tuco' }
+        },
+        advanced: {
+            'ajo': 'Sabor base del tuco', 'sal': 'Condimento esencial',
+            'pimienta': 'Condimento clásico', 'perejil': 'Para decorar y dar sabor',
+            'queso': 'Queso rallado por encima', 'carne_picada': 'Para tuco con carne',
+            'vino': 'Vino para la salsa — toque gourmet'
+        },
+        recallOptions: ['Milanesas', 'Fideos con tuco', 'Tarta de verduras', 'Pollo al horno'],
+        recallCorrect: 1
+    },
+    tortilla_de_papas: {
+        name: 'Tortilla de papas', emoji: '🥔',
+        consigna: 'Comprá todo lo necesario para hacer una <strong>tortilla de papas</strong>.',
+        flash: '🥔 TORTILLA DE PAPAS',
+        essential: {
+            'papa':    { desc: 'Ingrediente estrella' },
+            'huevos':  { desc: 'La base que une todo' },
+            'aceite':  { desc: 'Para freír las papas' },
+            'cebolla': { desc: 'Esencial para la tortilla española' }
+        },
+        advanced: {
+            'sal': 'Condimento básico', 'pimienta': 'Condimento clásico',
+            'ajo': 'Toque de sabor extra', 'perejil': 'Hierba aromática',
+            'queso': 'Para gratinar', 'jamon': 'Tortilla rellena',
+            'mayonesa': 'Acompañamiento'
+        },
+        recallOptions: ['Fideos con tuco', 'Ensalada', 'Tortilla de papas', 'Milanesas'],
+        recallCorrect: 2
+    }
+};
+
+var activeRecipeKey = null;
+var activeRecipe = null;
+var flashPhase = false;
+
+function applyRecipe(recipeKey) {
+    activeRecipeKey = recipeKey;
+    activeRecipe = RECIPES[recipeKey];
+    PRODUCTS.forEach(function(p) {
+        p.tier = p.baseTier || 'neutral';
+        p.altGroup = null;
+        p.desc = '';
+        if (activeRecipe.essential[p.id]) {
+            p.tier = 'essential';
+            var e = activeRecipe.essential[p.id];
+            p.altGroup = e.altGroup || null;
+            p.desc = e.desc || '';
+        } else if (activeRecipe.advanced[p.id]) {
+            p.tier = 'advanced';
+            p.desc = typeof activeRecipe.advanced[p.id] === 'string'
+                ? activeRecipe.advanced[p.id]
+                : activeRecipe.advanced[p.id].desc || '';
+        }
+    });
+}
 
 // ========== GAME STATE ==========
 var cart = [];
@@ -262,6 +364,46 @@ function initGame() {
     startTime = Date.now();
     var urlParams = new URLSearchParams(window.location.search);
     patientId = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'DEMO';
+
+    // === SELECT RANDOM RECIPE ===
+    var recipeKeys = Object.keys(RECIPES);
+    var selectedKey = recipeKeys[Math.floor(Math.random() * recipeKeys.length)];
+    applyRecipe(selectedKey);
+
+    // Update consigna text
+    var consignaEl = document.getElementById('consigna-text');
+    if (consignaEl) {
+        consignaEl.innerHTML = activeRecipe.emoji + ' <strong>Consigna:</strong> ' +
+            activeRecipe.consigna +
+            ' ¡Pero ojo con el presupuesto! Tocá los productos para agregarlos al carrito.';
+    }
+
+    // === FLASH PHASE: show recipe big for memorization ===
+    flashPhase = true;
+    var flashOverlay = document.getElementById('flash-overlay');
+    if (flashOverlay) {
+        var flashText = document.getElementById('flash-recipe-name');
+        flashText.textContent = activeRecipe.flash;
+        flashOverlay.style.display = 'flex';
+
+        var flashCountEl = document.getElementById('flash-countdown');
+        var flashSecs = 5;
+        flashCountEl.textContent = flashSecs;
+        var flashTimer = setInterval(function() {
+            flashSecs--;
+            flashCountEl.textContent = flashSecs;
+            if (flashSecs <= 0) {
+                clearInterval(flashTimer);
+                flashOverlay.style.animation = 'mfadeOut .4s ease forwards';
+                setTimeout(function() {
+                    flashOverlay.style.display = 'none';
+                    flashOverlay.style.animation = '';
+                    flashPhase = false;
+                    startTime = Date.now(); // Shopping timer starts NOW
+                }, 400);
+            }
+        }, 1000);
+    }
 
     // Randomize budget: $7000 - $14000
     BUDGET = Math.round((7000 + Math.random() * 7000) / 100) * 100;
@@ -425,7 +567,6 @@ function tryFinish() {
     if (getCartTotal() > BUDGET) {
         overBudgetAttempts++;
         actionLog.push({ type: 'over_budget_attempt', t: Date.now() - startTime, total: getCartTotal(), budget: BUDGET });
-        // Shake and show message
         var bar = document.getElementById('budget-bar');
         bar.classList.add('shake');
         setTimeout(function() { bar.classList.remove('shake'); }, 500);
@@ -435,7 +576,78 @@ function tryFinish() {
         warn.style.display = 'inline';
         return;
     }
-    finishGame();
+    // === RECIPE RECALL QUIZ ===
+    if (activeRecipe && !recipeRecallDone) {
+        showRecipeRecallQuiz();
+    } else {
+        finishGame();
+    }
+}
+
+function showRecipeRecallQuiz() {
+    var overlay = document.createElement('div');
+    overlay.id = 'recall-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:mfadeIn .3s ease';
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#1e293b;border-radius:20px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
+
+    card.innerHTML = '<p style="font-size:0.85rem;opacity:0.5;margin:0 0 8px;">🧠 Test de memoria</p>' +
+        '<p style="font-size:1.2rem;font-weight:700;margin:0 0 24px;">¿Qué receta tenías que cocinar?</p>';
+
+    var options = activeRecipe.recallOptions;
+    var correct = activeRecipe.recallCorrect;
+    var recallStartTime = Date.now();
+
+    options.forEach(function(opt, i) {
+        var btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.style.cssText = 'display:block;width:100%;padding:14px;margin:8px 0;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#e2e8f0;cursor:pointer;font-size:1rem;font-weight:500;transition:all .2s';
+        btn.onmouseover = function() { btn.style.background = 'rgba(59,130,246,0.2)'; btn.style.borderColor = '#3b82f6'; };
+        btn.onmouseout = function() { btn.style.background = 'rgba(255,255,255,0.06)'; btn.style.borderColor = 'rgba(255,255,255,0.15)'; };
+        btn.onclick = function() {
+            recipeRecallDone = true;
+            recipeRecallScore = (i === correct) ? 1 : 0;
+            var recallLatency = Date.now() - recallStartTime;
+
+            // Show feedback
+            if (i === correct) {
+                btn.style.background = 'rgba(34,197,94,0.3)';
+                btn.style.borderColor = '#22c55e';
+                btn.textContent = '✅ ' + opt + ' — ¡Correcto!';
+            } else {
+                btn.style.background = 'rgba(239,68,68,0.3)';
+                btn.style.borderColor = '#ef4444';
+                btn.textContent = '❌ ' + opt;
+                // Highlight correct
+                var allBtns = card.querySelectorAll('button');
+                allBtns[correct].style.background = 'rgba(34,197,94,0.3)';
+                allBtns[correct].style.borderColor = '#22c55e';
+                allBtns[correct].textContent = '✅ ' + options[correct] + ' — Era esta';
+            }
+
+            actionLog.push({
+                type: 'recipe_recall',
+                correct: recipeRecallScore === 1,
+                chosen: opt,
+                expected: options[correct],
+                latency_ms: recallLatency,
+                t: Date.now() - startTime
+            });
+
+            setTimeout(function() {
+                overlay.style.animation = 'mfadeOut .3s ease forwards';
+                setTimeout(function() {
+                    overlay.remove();
+                    finishGame();
+                }, 300);
+            }, 1200);
+        };
+        card.appendChild(btn);
+    });
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
 }
 
 // ========== EVALUATION ==========
@@ -610,6 +822,16 @@ function finishGame() {
         clinicalFlags.push({ flag: 'HIGH_SELF_CORRECTION', severity: 'low',
             desc: removals + ' items removidos — indecisión o excesiva autocorrección' });
     }
+    // Recipe recall
+    if (recipeRecallDone) {
+        if (recipeRecallScore === 1) {
+            clinicalFlags.push({ flag: 'RECIPE_RECALL_OK', severity: 'positive',
+                desc: 'Recordó correctamente la receta asignada (' + (activeRecipe ? activeRecipe.name : '?') + ')' });
+        } else {
+            clinicalFlags.push({ flag: 'RECIPE_RECALL_FAIL', severity: 'high',
+                desc: 'No recordó la receta asignada — posible déficit de memoria de trabajo' });
+        }
+    }
 
     // ---- RENDER RESULTS ----
     document.getElementById('consigna').style.display = 'none';
@@ -645,7 +867,7 @@ function finishGame() {
     resultsDiv.innerHTML =
         '<div style="background: var(--surface); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.08);">' +
             '<h2 style="margin: 0 0 4px; font-size: 1.3rem;">🧾 Ticket de compra</h2>' +
-            '<p style="margin: 0 0 20px; font-size: 0.85rem; color: rgba(255,255,255,0.4);">Evaluación de planificación para hacer milanesas</p>' +
+            '<p style="margin: 0 0 20px; font-size: 0.85rem; color: rgba(255,255,255,0.4);">Evaluación de planificación para hacer ' + (activeRecipe ? activeRecipe.name : 'milanesas') + '</p>' +
 
             // Score cards row
             '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px;">' +
@@ -692,7 +914,7 @@ function finishGame() {
                 '<div class="tier tier-error">' +
                     '<div style="font-weight: 700; font-size: 0.85rem; color: var(--danger); margin-bottom: 6px;">⚠️ Errores de planificación</div>' +
                     gotErrors.map(function(p) {
-                        return '<div style="font-size: 0.8rem; padding: 3px 0;">❌ ' + p.emoji + ' ' + p.name + ' $' + productPrices[p.id].toLocaleString('es-AR') + ' — irrelevante para milanesas</div>';
+                        return '<div style="font-size: 0.8rem; padding: 3px 0;">❌ ' + p.emoji + ' ' + p.name + ' $' + productPrices[p.id].toLocaleString('es-AR') + ' — irrelevante para ' + (activeRecipe ? activeRecipe.name.toLowerCase() : 'la receta') + '</div>';
                     }).join('') +
                 '</div>'
             : '') +

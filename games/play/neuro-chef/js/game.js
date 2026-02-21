@@ -6,11 +6,16 @@ async function initGame() {
     console.log('[Neuro-Chef] Initializing...');
     const urlParams = new URLSearchParams(window.location.search);
     const isDemoMode = urlParams.get('demo') === 'true';
-    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id');
+    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})();
     
-    if (isDemoMode && !playerDni) {
+    // Auto-demo: if no params at all, skip DNI modal (portal/direct access)
+    const hasAnyParam = urlParams.get('dni') || urlParams.get('patient_id');
+    const effectiveDemo = isDemoMode || !hasAnyParam;
+    
+    if (effectiveDemo && !playerDni) {
         gameState.patientDni = 'HDD-DEMO-' + Date.now();
-        gameState.patientId = await getOrCreatePatient(gameState.patientDni, 'Demo');
+        // Non-blocking Supabase call
+        getOrCreatePatient(gameState.patientDni, 'Demo').then(id => { gameState.patientId = id; }).catch(() => {});
         document.getElementById('player-login-modal').classList.add('hidden');
         setupPreGameModal();
     } else if (playerDni) {
@@ -35,7 +40,7 @@ function setupPlayerLogin() {
     const errorEl = document.getElementById('login-error-msg');
     const historyList = document.getElementById('recent-players');
     
-    const recent = JSON.parse(localStorage.getItem('neurochef_recent_players') || '[]');
+    const recent = JSON.parse((function(){try{return localStorage.getItem('neurochef_recent_players')}catch(e){return null}})() || '[]');
     if (recent.length > 0) {
         document.getElementById('recent-players-section').classList.remove('hidden');
         historyList.innerHTML = recent.slice(0, 5).map(p => `

@@ -245,7 +245,9 @@ function beginGame() {
 function initGame() {
     gameState.startTime = Date.now();
     gameState.patientId = new URLSearchParams(window.location.search).get('patient_id') 
-        || localStorage.getItem('hdd_patient_id') || 'DEMO';
+        || (function(){ try{return localStorage.getItem('hdd_patient_id')}catch(e){return null} })()
+        || (function(){ try{return sessionStorage.getItem('hdd_patient_id')}catch(e){return null} })()
+        || 'DEMO';
     
     // Shuffle items
     const shuffled = [...ITEMS].sort(() => Math.random() - 0.5);

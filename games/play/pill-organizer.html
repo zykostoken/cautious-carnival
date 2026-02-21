@@ -320,7 +320,7 @@
             try {
                 // Get patient from portal session or URL
                 var urlParams = new URLSearchParams(window.location.search);
-                sessionState.patientDni = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'HDD-DEMO';
+                sessionState.patientDni = urlParams.get('patient_id') || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})() || 'HDD-DEMO';
                 document.getElementById('patient-display').textContent = 'Paciente: ' + sessionState.patientDni;
                 
                 // Supabase calls in background - don't block start screen
