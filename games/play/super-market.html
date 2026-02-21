@@ -61,9 +61,23 @@
         .pop { animation: pop 0.25s ease; }
         @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
         .shake { animation: shake 0.4s ease; }
+        /* Toast notifications */
+        .toast-container { position: fixed; top: 80px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast {
+            padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+            color: #fff; backdrop-filter: blur(12px); pointer-events: auto;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 280px;
+        }
+        .toast-add { background: rgba(34,197,94,0.85); border: 1px solid rgba(34,197,94,0.5); }
+        .toast-remove { background: rgba(239,68,68,0.75); border: 1px solid rgba(239,68,68,0.4); }
+        .toast-warn { background: rgba(245,158,11,0.85); border: 1px solid rgba(245,158,11,0.5); }
+        @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-10px); } }
     </style>
 </head>
 <body>
+<div id="toast-container" class="toast-container"></div>
 
 <!-- HEADER -->
 <header style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px;">
@@ -271,23 +285,44 @@ function getCartTotal() {
     return total;
 }
 
+// ========== TOAST NOTIFICATIONS ==========
+function showToast(msg, type) {
+    var container = document.getElementById('toast-container');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'add');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 2600);
+}
+
 // ========== TOGGLE PRODUCT ==========
 function toggleProduct(id) {
     var idx = cart.indexOf(id);
     var el = document.getElementById('prod-' + id);
+    var prod = PRODUCTS.find(function(x) { return x.id === id; });
+    var price = productPrices[id] || 0;
 
     if (idx >= 0) {
         // Remove from cart
         cart.splice(idx, 1);
         if (el) el.classList.remove('selected');
-        var wasOver = getCartTotal() + (productPrices[id] || 0) > BUDGET;
+        var wasOver = getCartTotal() + price > BUDGET;
         if (wasOver) priceCheckCount++;
         actionLog.push({ type: 'remove', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+        if (prod) showToast('− ' + prod.emoji + ' ' + prod.name + ' sacado  −$' + price.toLocaleString('es-AR'), 'remove');
     } else {
         // Add to cart
         cart.push(id);
         if (el) { el.classList.add('selected'); el.classList.add('pop'); setTimeout(function() { el.classList.remove('pop'); }, 300); }
         actionLog.push({ type: 'add', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+        if (prod) {
+            var newTotal = getCartTotal();
+            if (newTotal > BUDGET) {
+                showToast('⚠️ ' + prod.emoji + ' ' + prod.name + '  ¡Pasaste el presupuesto!', 'warn');
+            } else {
+                showToast('+ ' + prod.emoji + ' ' + prod.name + '  $' + price.toLocaleString('es-AR'), 'add');
+            }
+        }
     }
 
     updateUI();

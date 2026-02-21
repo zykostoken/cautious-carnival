@@ -78,7 +78,7 @@ function saveRecentPlayer(dni, name) {
 }
 
 async function loadPlayerHistory() {
-    if (!gameState.patientId) return;
+    if (!gameState.patientId || !supabase) return;
     try {
         const { data } = await supabase.from('hdd_game_sessions').select('id, started_at, completed_at, final_score')
             .eq('patient_id', gameState.patientId).order('started_at', { ascending: false }).limit(10);
@@ -88,12 +88,13 @@ async function loadPlayerHistory() {
 }
 
 async function getOrCreatePatient(dni, name) {
+    if (!supabase) { console.warn('[neuro-chef] Offline, usando ID local'); return 'offline-' + dni; }
     try {
         const { data: existing } = await supabase.from('hdd_patients').select('id, full_name').eq('dni', dni).single();
         if (existing) { document.getElementById('patient-display').textContent = existing.full_name || `Pac: ${dni}`; return existing.id; }
         const { data: np } = await supabase.from('hdd_patients').insert({ dni, full_name: name || `Paciente ${dni}`, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
-        return np?.id;
-    } catch(e) { console.error('[Neuro-Chef] Patient error:', e); return null; }
+        return np?.id || 'offline-' + dni;
+    } catch(e) { console.error('[Neuro-Chef] Patient error:', e); return 'offline-' + dni; }
 }
 
 // ========== PRE-GAME MODAL ==========

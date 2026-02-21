@@ -1,7 +1,12 @@
 // ========== CONFIGURACIÓN DE SUPABASE ==========
 const supabaseUrl = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+let supabase = null;
+try {
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    } else { console.warn('[neuro-chef] Supabase SDK no cargó, modo offline'); }
+} catch(e) { console.warn('[neuro-chef] Supabase init failed:', e.message); }
 
 // ========== DATOS DE ALIMENTOS ==========
 const ALIMENTOS = {

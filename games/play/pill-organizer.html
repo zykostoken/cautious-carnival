@@ -79,19 +79,7 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <!-- ========================================= -->
-    <!-- MODAL: PRE-GAME INTENSITY CHECK -->
-    <!-- ========================================= -->
-    <!-- Using shared modals (loaded at bottom) -->
-
-    <!-- ========================================= -->
-    <!-- MODAL: PROJECTIVE COLOR SYSTEM -->
-    <!-- ========================================= -->
-    <!-- Using shared modals (loaded at bottom) -->
-
-    <!-- ========================================= -->
-    <!-- HEADER -->
-    <!-- ========================================= -->
+    <!-- HEADER (siempre visible) -->
     <header class="bg-white/10 backdrop-blur-md text-white p-5 shadow-2xl border-b-2 border-white/20">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
@@ -100,7 +88,7 @@
                 <p class="text-sm opacity-85 mt-1">Clínica Psiquiátrica José Ingenieros · Hospital de Día (HDD)</p>
             </div>
             <div class="text-right">
-                <div id="patient-display" class="text-sm opacity-90 mb-1">Paciente: Cargando...</div>
+                <div id="patient-display" class="text-sm opacity-90 mb-1">Paciente: --</div>
                 <div id="timer-display" class="text-3xl font-mono font-bold">00:00</div>
                 <div id="tremor-badge" class="text-xs opacity-75 mt-1">Precisión: --</div>
             </div>
@@ -108,9 +96,51 @@
     </header>
 
     <!-- ========================================= -->
+    <!-- PANTALLA DE INICIO -->
+    <!-- ========================================= -->
+    <div id="start-screen" class="flex-grow flex items-center justify-center p-6">
+        <div class="bg-white/95 backdrop-blur-sm p-10 rounded-3xl shadow-2xl max-w-lg w-full text-center">
+            <div class="text-7xl mb-4">💊</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Organizador de Medicación</h2>
+            <p class="text-gray-500 text-sm mb-6">Evaluación de Motricidad Fina · Planificación · Precisión</p>
+            
+            <div class="bg-teal-50 border-2 border-teal-200 rounded-2xl p-5 mb-6 text-left">
+                <h3 class="font-bold text-teal-800 mb-3 text-sm">📋 CONSIGNA</h3>
+                <p class="text-gray-700 text-sm mb-3">El paciente tiene recetados <strong>dos medicamentos</strong>:</p>
+                <div class="space-y-2 mb-3">
+                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-red-200">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex-shrink-0"></div>
+                        <div>
+                            <span class="font-bold text-gray-800 text-sm">Risperidona</span>
+                            <span class="text-xs text-gray-500 block">1 comp. Mañana (08:00) + 1 comp. Noche (20:00)</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-200">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+                        <div>
+                            <span class="font-bold text-gray-800 text-sm">Clonazepam</span>
+                            <span class="text-xs text-gray-500 block">1 comp. solo Noche (20:00)</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-gray-600 text-sm"><strong>Tarea:</strong> Arrastrá cada pastilla al casillero correcto del organizador semanal (Lunes a Domingo, Mañana/Noche).</p>
+            </div>
+
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-6 text-xs text-purple-700">
+                <strong>🔬 Se evaluará:</strong> Precisión motora (temblor), hesitaciones, errores de ubicación y tiempo total.
+            </div>
+
+            <button id="btn-start" onclick="startGame()" 
+                    class="w-full py-4 bg-gradient-to-r from-teal-500 to-cyan-600 text-white text-xl font-bold rounded-2xl hover:shadow-2xl hover:scale-105 transition-all">
+                ▶ COMENZAR
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
     <!-- MAIN GAME INTERFACE -->
     <!-- ========================================= -->
-    <main id="game-container" class="flex-grow p-6 max-w-7xl mx-auto w-full hidden">
+    <main id="game-container" class="flex-grow p-6 max-w-7xl mx-auto w-full" style="display:none;">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- DISPENSADOR DE MEDICACIÓN -->
@@ -232,9 +262,14 @@
         // ===========================================
         // CONFIGURACIÓN SUPABASE
         // ===========================================
-        const SUPABASE_URL = 'https://buzblnkpfydehejngzgn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlamluZ3pnbiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM2NDQ5NzUxLCJleHAiOjIwNTIwMjU3NTF9.vA1aNN48ypx55l-HSPBPS_tOsxJPgKK2YT_1iQJgR_I';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+        let supabase = null;
+        try {
+            if (window.supabase && window.supabase.createClient) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else { console.warn('[pill-organizer] Supabase SDK no cargó, modo offline'); }
+        } catch(e) { console.warn('[pill-organizer] Supabase init failed:', e.message); }
 
         // ===========================================
         // PALETAS PROYECTIVAS POR INTENSIDAD
@@ -282,29 +317,49 @@
         // INICIALIZACIÓN
         // ===========================================
         async function initGame() {
-            // Get patient from portal session or URL
-            var urlParams = new URLSearchParams(window.location.search);
-            sessionState.patientDni = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'HDD-DEMO';
-            sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
-            
-            document.getElementById('patient-display').textContent = 'Paciente: ' + (sessionState.patientDni);
-            
-            // Get game_id from Supabase
-            const { data: game } = await supabase
-                .from('hdd_games')
-                .select('id')
-                .eq('slug', 'pill-organizer')
-                .single();
-            
-            sessionState.gameId = game?.id || null;
-            
+            try {
+                // Get patient from portal session or URL
+                var urlParams = new URLSearchParams(window.location.search);
+                sessionState.patientDni = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'HDD-DEMO';
+                
+                try {
+                    sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
+                } catch(e) {
+                    console.warn('[pill-organizer] Supabase patient lookup failed:', e.message);
+                    sessionState.patientId = null;
+                }
+                
+                document.getElementById('patient-display').textContent = 'Paciente: ' + (sessionState.patientDni);
+                
+                // Get game_id from Supabase (background, non-blocking)
+                if (supabase) {
+                    try {
+                        const { data: game } = await supabase
+                            .from('hdd_games')
+                            .select('id')
+                            .eq('slug', 'pill-organizer')
+                            .single();
+                        sessionState.gameId = game?.id || null;
+                    } catch(e) {
+                        console.warn('[pill-organizer] Game lookup failed:', e.message);
+                        sessionState.gameId = null;
+                    }
+                }
+            } catch(err) {
+                console.error('[pill-organizer] Init failed:', err);
+            }
+        }
+
+        // Called by COMENZAR button
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
             setupDragAndDrop();
-            
-            // Always start game - mood modals are non-blocking overlays now
             startGameSession();
         }
 
         async function getOrCreatePatient(dni) {
+            if (!supabase) return null;
             const { data: existing } = await supabase
                 .from('hdd_patients')
                 .select('id')
@@ -333,21 +388,26 @@
 
         async function startGameSession() {
             sessionState.startTime = Date.now();
-            document.getElementById('game-container').classList.remove('hidden');
             
-            // Crear sesión en Supabase
-            const { data: session } = await supabase
-                .from('hdd_game_sessions')
-                .insert({
-                    patient_id: sessionState.patientId,
-                    game_id: sessionState.gameId,
-                    level: sessionState.level,
-                    started_at: new Date().toISOString()
-                })
-                .select('id')
-                .single();
-            
-            sessionState.sessionId = session?.id;
+            // Crear sesión en Supabase (non-blocking)
+            if (supabase) {
+                try {
+                    const { data: session } = await supabase
+                        .from('hdd_game_sessions')
+                        .insert({
+                            patient_id: sessionState.patientId,
+                            game_id: sessionState.gameId,
+                            level: sessionState.level,
+                            started_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .single();
+                    sessionState.sessionId = session?.id;
+                } catch(e) {
+                    console.warn('[pill-organizer] Session create failed:', e.message);
+                    sessionState.sessionId = null;
+                }
+            }
             startTimer();
         }
 
@@ -482,14 +542,16 @@
                     sessionState.movements.push(movement);
                     
                     // Guardar métrica granular en Supabase
-                    await supabase.from('hdd_game_metrics').insert({
-                        patient_id: sessionState.patientId,
-                        game_session_id: sessionState.sessionId,
-                        game_slug: 'pill-organizer',
-                        metric_type: 'pill_placement',
-                        metric_value: tremorIndex,
-                        metric_data: movement
-                    });
+                    if (supabase) {
+                        await supabase.from('hdd_game_metrics').insert({
+                            patient_id: sessionState.patientId,
+                            game_session_id: sessionState.sessionId,
+                            game_slug: 'pill-organizer',
+                            metric_type: 'pill_placement',
+                            metric_value: tremorIndex,
+                            metric_data: movement
+                        }).catch(e => console.warn('Metric save:', e.message));
+                    }
                     
                     // Actualizar UI
                     renderPillInSlot(slot, medType, isCorrect);
@@ -617,17 +679,20 @@
             const finalScore = Math.max(0, baseScore + tremorBonus + timeBonus - errorPenalty);
             
             // Actualizar sesión en Supabase
-            await supabase
-                .from('hdd_game_sessions')
-                .update({
-                    completed_at: new Date().toISOString(),
-                    completed: true,
-                    score: finalScore,
-                    max_score: 1500,
-                    duration_seconds: duration,
-                    metrics: finalMetrics
-                })
-                .eq('id', sessionState.sessionId);
+            if (supabase && sessionState.sessionId) {
+                await supabase
+                    .from('hdd_game_sessions')
+                    .update({
+                        completed_at: new Date().toISOString(),
+                        completed: true,
+                        score: finalScore,
+                        max_score: 1500,
+                        duration_seconds: duration,
+                        metrics: finalMetrics
+                    })
+                    .eq('id', sessionState.sessionId)
+                    .catch(e => console.warn('Session update:', e.message));
+            }
             
             // Mostrar resultados
             alert(`

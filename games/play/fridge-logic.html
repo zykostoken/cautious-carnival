@@ -50,9 +50,38 @@
             position: fixed; z-index: 99999; pointer-events: none;
             opacity: 0.85; transform: scale(1.1);
         }
+        
+        /* Toast notifications */
+        .toast-container { position: fixed; top: 80px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast {
+            padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+            color: #fff; backdrop-filter: blur(12px); pointer-events: auto;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-width: 280px;
+        }
+        .toast-ok { background: rgba(34,197,94,0.85); }
+        .toast-bad { background: rgba(239,68,68,0.75); }
+        .toast-warn { background: rgba(245,158,11,0.85); }
+        @keyframes toastIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+        @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-10px); } }
+        
+        /* Placement flash feedback */
+        .placed-ok { animation: flashOk 0.5s ease; }
+        .placed-bad { animation: flashBad 0.5s ease; }
+        @keyframes flashOk { 0% { box-shadow: 0 0 0 4px rgba(34,197,94,0.8); } 100% { box-shadow: none; } }
+        @keyframes flashBad { 0% { box-shadow: 0 0 0 4px rgba(239,68,68,0.8); } 100% { box-shadow: none; } }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .item-card { width: 72px; height: 88px; }
+            .item-card .emoji { font-size: 1.6rem; }
+            .item-card .name { font-size: 0.6rem; }
+            #zones-grid { grid-template-columns: 1fr !important; }
+        }
     </style>
 </head>
 <body>
+<div id="toast-container" class="toast-container"></div>
 
 <!-- HEADER -->
 <header style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px;">
@@ -69,13 +98,44 @@
     </div>
 </header>
 
-<!-- CONSIGNA -->
-<div id="consigna" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); margin: 16px auto; max-width: 1200px; border-radius: 12px; padding: 16px 24px;">
+<!-- PANTALLA DE INICIO -->
+<div id="start-screen" style="display:flex; align-items:center; justify-content:center; min-height: calc(100vh - 80px); padding: 24px;">
+    <div style="background: var(--surface); border-radius: 20px; padding: 40px; max-width: 520px; width: 100%; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 4rem; margin-bottom: 12px;">🧊</div>
+        <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0 0 8px;">Heladera Inteligente</h2>
+        <p style="color: rgba(255,255,255,0.5); margin: 0 0 24px; font-size: 0.85rem;">Evaluación de Categorización · Memoria Semántica · Juicio</p>
+        
+        <div style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 14px; padding: 20px; text-align: left; margin-bottom: 20px;">
+            <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; color: #60a5fa;">📋 CONSIGNA</div>
+            <p style="font-size: 0.9rem; margin: 0 0 12px; color: rgba(255,255,255,0.8);">Acabás de volver del supermercado con <strong>20 artículos</strong>. Tenés que guardar cada uno en su lugar correcto:</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem;">
+                <div style="background: var(--card); padding: 10px; border-radius: 10px;">❄️ <strong>Freezer</strong><br><span style="color:rgba(255,255,255,0.5)">Congelados (-18°C)</span></div>
+                <div style="background: var(--card); padding: 10px; border-radius: 10px;">🥶 <strong>Estante frío</strong><br><span style="color:rgba(255,255,255,0.5)">Lácteos, carnes (2-4°C)</span></div>
+                <div style="background: var(--card); padding: 10px; border-radius: 10px;">🥬 <strong>Cajón verduras</strong><br><span style="color:rgba(255,255,255,0.5)">Frutas y verduras (6-8°C)</span></div>
+                <div style="background: var(--card); padding: 10px; border-radius: 10px;">🗄️ <strong>Alacena</strong><br><span style="color:rgba(255,255,255,0.5)">Secos y condimentos</span></div>
+            </div>
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #f87171;">
+                ⚠️ <strong>Ojo:</strong> Los productos de limpieza van SEPARADOS de los alimentos. ¡Es un ítem de salubridad!
+            </div>
+        </div>
+
+        <div style="background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 24px; font-size: 0.75rem; color: #c084fc;">
+            <strong>🔬 Se evaluará:</strong> Ubicación correcta, categorización, salubridad, tiempo de respuesta y hesitaciones.
+        </div>
+
+        <button onclick="beginGame()" style="width: 100%; padding: 16px; border-radius: 14px; border: none; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(59,130,246,0.3); transition: all 0.2s;">
+            ▶ COMENZAR
+        </button>
+    </div>
+</div>
+
+<!-- CONSIGNA (in-game reminder) -->
+<div id="consigna" style="display:none; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); margin: 16px auto; max-width: 1200px; border-radius: 12px; padding: 16px 24px;">
     <p style="margin: 0; font-size: 0.95rem;">📋 <strong>Consigna:</strong> Arrastrá cada artículo al lugar correcto. Las cosas de la heladera van a la heladera (freezer, estante frío o verduras). Lo demás va a la alacena o al estante.</p>
 </div>
 
 <!-- GAME AREA -->
-<div style="max-width: 1200px; margin: 0 auto; padding: 0 16px 100px;">
+<div id="game-area" style="display:none; max-width: 1200px; margin: 0 auto; padding: 0 16px 100px;">
 
     <!-- CANASTA (source items) -->
     <div id="canasta" style="background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08);">
@@ -84,7 +144,7 @@
     </div>
 
     <!-- DROP ZONES -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div id="zones-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         
         <!-- HELADERA -->
         <div style="background: var(--surface); border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.08);">
@@ -127,7 +187,12 @@
 // ========== CONFIG ==========
 const supabaseUrl = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+let supabase = null;
+try {
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    } else { console.warn('[fridge-logic] Supabase SDK no cargó, modo offline'); }
+} catch(e) { console.warn('[fridge-logic] Supabase init failed:', e.message); }
 
 // ========== ITEMS DATABASE ==========
 const ITEMS = [
@@ -167,6 +232,14 @@ let gameState = {
     hesitations: [],
     lastActionTime: null
 };
+
+// ========== BEGIN GAME (from COMENZAR button) ==========
+function beginGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('consigna').style.display = 'block';
+    document.getElementById('game-area').style.display = 'block';
+    initGame();
+}
 
 // ========== INIT ==========
 function initGame() {
@@ -304,6 +377,16 @@ function positionGhost(touch) {
 }
 
 // ========== PLACEMENT LOGIC ==========
+// ========== TOAST NOTIFICATIONS ==========
+function showToast(msg, type) {
+    var container = document.getElementById('toast-container');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + (type || 'ok');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 2400);
+}
+
 function placeItem(itemId, zoneName) {
     const card = document.getElementById('item-' + itemId);
     if (!card) return;
@@ -311,9 +394,26 @@ function placeItem(itemId, zoneName) {
     const zone = document.getElementById('zone-' + zoneName);
     if (!zone) return;
     
+    const item = ITEMS.find(i => i.id === itemId);
     zone.appendChild(card);
     gameState.placements[itemId] = zoneName;
     logAction('place', { item: itemId, zone: zoneName });
+    
+    // Visual + toast feedback
+    if (item) {
+        const correct = item.zone === zoneName;
+        card.classList.add(correct ? 'placed-ok' : 'placed-bad');
+        setTimeout(() => card.classList.remove('placed-ok', 'placed-bad'), 600);
+        
+        if (item.safety === 'toxic' && (zoneName === 'frio' || zoneName === 'freezer' || zoneName === 'verduras')) {
+            showToast('⚠️ ' + item.emoji + ' ¡Cuidado! Productos tóxicos NUNCA en la heladera', 'warn');
+        } else if (!correct) {
+            const zoneNames = { freezer: 'Freezer', frio: 'Estante frío', verduras: 'Cajón verduras', alacena: 'Alacena', limpieza: 'Limpieza' };
+            showToast(item.emoji + ' ' + item.name + ' → mejor iba en ' + (zoneNames[item.zone] || item.zone), 'bad');
+        } else {
+            showToast(item.emoji + ' ' + item.name + ' ¡Bien ubicado!', 'ok');
+        }
+    }
     
     updateCounter();
 }
@@ -321,9 +421,11 @@ function placeItem(itemId, zoneName) {
 function returnItemToCanasta(itemId) {
     const card = document.getElementById('item-' + itemId);
     if (!card) return;
+    const item = ITEMS.find(i => i.id === itemId);
     document.getElementById('items-grid').appendChild(card);
     delete gameState.placements[itemId];
     logAction('return', { item: itemId });
+    if (item) showToast(item.emoji + ' ' + item.name + ' devuelto a canasta', 'warn');
     updateCounter();
 }
 
@@ -518,6 +620,7 @@ function goToPortal() {
 
 // ========== SUPABASE SAVE ==========
 async function saveResults(metrics) {
+    if (!supabase) { console.warn('[fridge-logic] Supabase offline, resultados no guardados'); return; }
     try {
         // Get or create game entry
         let { data: game } = await supabase.from('hdd_games').select('id').eq('slug', 'fridge-logic').single();
@@ -569,7 +672,8 @@ async function saveResults(metrics) {
 })();
 
 // ========== START ==========
-document.addEventListener('DOMContentLoaded', initGame);
+// initGame() se llama desde beginGame() al presionar COMENZAR
+// No auto-init: el usuario debe ver la pantalla de inicio primero
 </script>
 
 <!-- Mood modals v4 -->
