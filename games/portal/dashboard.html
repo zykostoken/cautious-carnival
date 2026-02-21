@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Biométrico HDD - Clínica José Ingenieros</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; --text: #e2e8f0; --muted: #94a3b8; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+        
+        header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px; }
+        .header-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .header-title h1 { font-size: 1.5rem; font-weight: 700; }
+        .header-title p { font-size: 0.8rem; color: var(--muted); }
+        .header-title a { color: var(--muted); text-decoration: none; font-size: 0.82rem; }
+        .header-title a:hover { color: var(--accent); }
+        
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters select, .filters input { padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: var(--surface); color: var(--text); font-size: 0.85rem; }
+        .filters button { padding: 8px 18px; border-radius: 8px; border: none; background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .filters button:hover { background: #2563eb; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+        
+        /* Stats row */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface); border-radius: 14px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); }
+        .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: 700; }
+        .stat-card .sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+        
+        /* Charts grid */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+        .chart-card { background: var(--surface); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); }
+        .chart-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; color: var(--muted); }
+        .chart-card canvas { max-height: 260px; }
+        
+        /* Sessions table */
+        .table-card { background: var(--surface); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); overflow-x: auto; }
+        .table-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+        td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover td { background: rgba(59,130,246,0.05); }
+        .badge { padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+        .badge-ok { background: rgba(34,197,94,0.15); color: var(--success); }
+        .badge-warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+        .badge-bad { background: rgba(239,68,68,0.15); color: var(--danger); }
+        
+        .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+        .loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Mood colors row */
+        .mood-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .mood-dot { width: 20px; height: 20px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.15); }
+        
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="header-title">
+            <a href="/games/portal/">← Volver al portal</a>
+            <h1>📊 Dashboard Biométrico HDD</h1>
+            <p>Clínica Psiquiátrica José Ingenieros · Hospital de Día</p>
+        </div>
+        <div class="filters">
+            <select id="filter-patient"><option value="">Todos los pacientes</option></select>
+            <select id="filter-game">
+                <option value="">Todos los juegos</option>
+                <option value="super-market">🛒 Supermercado</option>
+                <option value="pill-organizer">💊 Pastillero</option>
+                <option value="fridge-logic">🧊 Heladera</option>
+                <option value="lawn-mower">🌿 Cortadora</option>
+                <option value="neuro-chef">👨‍🍳 NeuroCHEF</option>
+                <option value="medication-memory">💊 Medicación</option>
+            </select>
+            <input type="date" id="filter-from" title="Desde">
+            <input type="date" id="filter-to" title="Hasta">
+            <button onclick="loadDashboard()">Filtrar</button>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Cargando datos biométricos...</p>
+    </div>
+    
+    <div id="dashboard" style="display:none;">
+        <!-- STATS ROW -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="label">Total sesiones</div>
+                <div class="value" id="stat-sessions">0</div>
+                <div class="sub" id="stat-sessions-sub">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Pacientes activos</div>
+                <div class="value" id="stat-patients">0</div>
+                <div class="sub" id="stat-patients-sub">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Tiempo promedio</div>
+                <div class="value" id="stat-time">—</div>
+                <div class="sub" id="stat-time-sub">por sesión</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Flags clínicos</div>
+                <div class="value" id="stat-flags">0</div>
+                <div class="sub" id="stat-flags-sub">pendientes revisión</div>
+            </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📈 Sesiones por día</h3>
+                <canvas id="chart-sessions"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🎮 Distribución por juego</h3>
+                <canvas id="chart-games"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>⏱️ Tiempo de completado (seg)</h3>
+                <canvas id="chart-times"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🎨 Colores post-juego (Lüscher)</h3>
+                <div id="mood-colors-container" style="padding:20px 0;"></div>
+            </div>
+        </div>
+
+        <!-- SESSIONS TABLE -->
+        <div class="table-card">
+            <h3>📋 Últimas sesiones</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Paciente</th>
+                        <th>Juego</th>
+                        <th>Nivel</th>
+                        <th>Tiempo</th>
+                        <th>Score</th>
+                        <th>Flags</th>
+                    </tr>
+                </thead>
+                <tbody id="sessions-tbody"></tbody>
+            </table>
+        </div>
+        
+        <!-- BIOMETRICS TABLE -->
+        <div class="table-card" style="margin-top:18px;">
+            <h3>🔬 Biométricos recientes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Paciente</th>
+                        <th>Juego</th>
+                        <th>Métrica</th>
+                        <th>Valor</th>
+                        <th>Flag</th>
+                    </tr>
+                </thead>
+                <tbody id="biometrics-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== SUPABASE ==========
+const SUPA_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let chartSessions = null;
+let chartGames = null;
+let chartTimes = null;
+
+// ========== LOAD DASHBOARD ==========
+async function loadDashboard() {
+    try {
+        const patientFilter = document.getElementById('filter-patient').value;
+        const gameFilter = document.getElementById('filter-game').value;
+        const fromDate = document.getElementById('filter-from').value;
+        const toDate = document.getElementById('filter-to').value;
+
+        // Fetch sessions
+        let sessionsQuery = sb.from('hdd_game_sessions').select('*').order('started_at', { ascending: false }).limit(200);
+        if (patientFilter) sessionsQuery = sessionsQuery.eq('patient_id', patientFilter);
+        if (fromDate) sessionsQuery = sessionsQuery.gte('started_at', fromDate + 'T00:00:00');
+        if (toDate) sessionsQuery = sessionsQuery.lte('started_at', toDate + 'T23:59:59');
+        const { data: sessions } = await sessionsQuery;
+
+        // Fetch biometrics
+        let bioQuery = sb.from('hdd_game_biometrics').select('*').order('created_at', { ascending: false }).limit(200);
+        if (patientFilter) bioQuery = bioQuery.eq('patient_id', patientFilter);
+        const { data: biometrics } = await bioQuery;
+
+        // Fetch patients for dropdown
+        const { data: patients } = await sb.from('hdd_patients').select('id, dni, full_name').limit(100);
+        
+        // Fetch games for name mapping
+        const { data: games } = await sb.from('hdd_games').select('id, slug, name').limit(20);
+        const gameMap = {};
+        (games || []).forEach(g => { gameMap[g.id] = g; });
+
+        // Fetch mood entries
+        let moodQuery = sb.from('hdd_mood_entries').select('*').order('created_at', { ascending: false }).limit(100);
+        if (patientFilter) moodQuery = moodQuery.eq('patient_id', patientFilter);
+        const { data: moods } = await moodQuery;
+
+        // Populate patient dropdown
+        const patientSelect = document.getElementById('filter-patient');
+        const currentVal = patientSelect.value;
+        patientSelect.innerHTML = '<option value="">Todos los pacientes</option>';
+        (patients || []).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = (p.full_name || p.dni || p.id).substring(0, 30);
+            patientSelect.appendChild(opt);
+        });
+        patientSelect.value = currentVal;
+
+        // Process data
+        renderStats(sessions || [], biometrics || [], patients || []);
+        renderCharts(sessions || [], gameMap);
+        renderMoodColors(moods || []);
+        renderSessionsTable(sessions || [], patients || [], gameMap);
+        renderBiometricsTable(biometrics || [], patients || [], gameMap);
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    } catch(err) {
+        console.error('[dashboard] Load failed:', err);
+        document.getElementById('loading').innerHTML = '<p style="color:var(--danger);">Error cargando datos: ' + err.message + '</p>';
+    }
+}
+
+// ========== STATS ==========
+function renderStats(sessions, biometrics, patients) {
+    document.getElementById('stat-sessions').textContent = sessions.length;
+    
+    // Unique patients in sessions
+    const uniquePatients = new Set(sessions.map(s => s.patient_id));
+    document.getElementById('stat-patients').textContent = uniquePatients.size;
+    document.getElementById('stat-patients-sub').textContent = 'de ' + patients.length + ' registrados';
+    
+    // Average completion time
+    const withTime = sessions.filter(s => s.completed_at && s.started_at);
+    if (withTime.length > 0) {
+        const avgMs = withTime.reduce((sum, s) => sum + (new Date(s.completed_at) - new Date(s.started_at)), 0) / withTime.length;
+        const avgSec = Math.round(avgMs / 1000);
+        const m = Math.floor(avgSec / 60);
+        const sec = avgSec % 60;
+        document.getElementById('stat-time').textContent = m + ':' + String(sec).padStart(2, '0');
+    } else {
+        document.getElementById('stat-time').textContent = '—';
+    }
+    
+    // Clinical flags
+    const flagged = biometrics.filter(b => b.clinical_flag || b.flag);
+    document.getElementById('stat-flags').textContent = flagged.length;
+    document.getElementById('stat-flags').style.color = flagged.length > 0 ? 'var(--danger)' : 'var(--success)';
+    
+    // Sessions time range
+    if (sessions.length > 0) {
+        const newest = new Date(sessions[0].started_at).toLocaleDateString('es-AR');
+        const oldest = new Date(sessions[sessions.length - 1].started_at).toLocaleDateString('es-AR');
+        document.getElementById('stat-sessions-sub').textContent = oldest + ' → ' + newest;
+    }
+}
+
+// ========== CHARTS ==========
+function renderCharts(sessions, gameMap) {
+    // Sessions per day
+    const dayMap = {};
+    sessions.forEach(s => {
+        const day = (s.started_at || '').substring(0, 10);
+        if (day) dayMap[day] = (dayMap[day] || 0) + 1;
+    });
+    const days = Object.keys(dayMap).sort();
+    const dayCounts = days.map(d => dayMap[d]);
+
+    if (chartSessions) chartSessions.destroy();
+    chartSessions = new Chart(document.getElementById('chart-sessions'), {
+        type: 'line',
+        data: {
+            labels: days.map(d => d.substring(5)),
+            datasets: [{ label: 'Sesiones', data: dayCounts, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8', maxRotation: 45 } } } }
+    });
+
+    // Games distribution
+    const gameCount = {};
+    sessions.forEach(s => {
+        const gm = gameMap[s.game_id];
+        const name = gm ? (gm.name || gm.slug) : (s.game_id || 'Desconocido');
+        gameCount[name] = (gameCount[name] || 0) + 1;
+    });
+    const gameNames = Object.keys(gameCount);
+    const gameCounts = gameNames.map(n => gameCount[n]);
+    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+    if (chartGames) chartGames.destroy();
+    chartGames = new Chart(document.getElementById('chart-games'), {
+        type: 'doughnut',
+        data: { labels: gameNames, datasets: [{ data: gameCounts, backgroundColor: colors.slice(0, gameNames.length) }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 12 } } } }
+    });
+
+    // Completion times bar
+    const timeByGame = {};
+    sessions.forEach(s => {
+        if (!s.completed_at || !s.started_at) return;
+        const gm = gameMap[s.game_id];
+        const name = gm ? (gm.name || gm.slug) : 'Otro';
+        if (!timeByGame[name]) timeByGame[name] = [];
+        timeByGame[name].push((new Date(s.completed_at) - new Date(s.started_at)) / 1000);
+    });
+    const timeLabels = Object.keys(timeByGame);
+    const timeAvgs = timeLabels.map(n => Math.round(timeByGame[n].reduce((a, b) => a + b, 0) / timeByGame[n].length));
+
+    if (chartTimes) chartTimes.destroy();
+    chartTimes = new Chart(document.getElementById('chart-times'), {
+        type: 'bar',
+        data: { labels: timeLabels, datasets: [{ label: 'Promedio (seg)', data: timeAvgs, backgroundColor: colors.slice(0, timeLabels.length), borderRadius: 6 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
+    });
+}
+
+// ========== MOOD COLORS ==========
+function renderMoodColors(moods) {
+    const container = document.getElementById('mood-colors-container');
+    const colorMoods = moods.filter(m => m.entry_type === 'post_game_color' && m.data && m.data.color);
+    
+    if (colorMoods.length === 0) {
+        container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;text-align:center;">Sin datos de color aún</p>';
+        return;
+    }
+
+    // Count frequency
+    const freq = {};
+    colorMoods.forEach(m => {
+        const c = m.data.color;
+        freq[c] = (freq[c] || 0) + 1;
+    });
+    
+    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:center;">';
+    sorted.forEach(([color, count]) => {
+        const h = Math.max(20, Math.min(60, count * 15));
+        html += '<div style="text-align:center;">' +
+            '<div style="width:36px;height:' + h + 'px;border-radius:8px;background:' + color + ';border:2px solid rgba(255,255,255,0.15);margin:0 auto 4px;"></div>' +
+            '<span style="font-size:0.65rem;color:var(--muted);">' + count + '</span></div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// ========== SESSIONS TABLE ==========
+function renderSessionsTable(sessions, patients, gameMap) {
+    const patientMap = {};
+    patients.forEach(p => { patientMap[p.id] = p; });
+    
+    const tbody = document.getElementById('sessions-tbody');
+    tbody.innerHTML = '';
+    
+    sessions.slice(0, 50).forEach(s => {
+        const patient = patientMap[s.patient_id];
+        const game = gameMap[s.game_id];
+        const date = s.started_at ? new Date(s.started_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+        
+        let timeStr = '—';
+        if (s.completed_at && s.started_at) {
+            const sec = Math.round((new Date(s.completed_at) - new Date(s.started_at)) / 1000);
+            timeStr = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+        }
+        
+        const score = s.score != null ? s.score : (s.total_score != null ? s.total_score : '—');
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + date + '</td>' +
+            '<td>' + (patient ? (patient.full_name || patient.dni) : (s.patient_id || '—')).substring(0, 25) + '</td>' +
+            '<td>' + (game ? (game.name || game.slug) : '—') + '</td>' +
+            '<td>' + (s.level || '—') + '</td>' +
+            '<td>' + timeStr + '</td>' +
+            '<td>' + score + '</td>' +
+            '<td>' + (s.clinical_flags ? '<span class="badge badge-bad">' + s.clinical_flags + '</span>' : '<span class="badge badge-ok">OK</span>') + '</td>';
+        tbody.appendChild(tr);
+    });
+    
+    if (sessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">Sin sesiones registradas</td></tr>';
+    }
+}
+
+// ========== BIOMETRICS TABLE ==========
+function renderBiometricsTable(biometrics, patients, gameMap) {
+    const patientMap = {};
+    patients.forEach(p => { patientMap[p.id] = p; });
+    
+    const tbody = document.getElementById('biometrics-tbody');
+    tbody.innerHTML = '';
+    
+    biometrics.slice(0, 50).forEach(b => {
+        const patient = patientMap[b.patient_id];
+        const game = gameMap[b.game_id];
+        const date = b.created_at ? new Date(b.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+        
+        const flagBadge = b.clinical_flag || b.flag 
+            ? '<span class="badge badge-bad">' + (b.clinical_flag || b.flag) + '</span>'
+            : '<span class="badge badge-ok">—</span>';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + date + '</td>' +
+            '<td>' + (patient ? (patient.full_name || patient.dni) : (b.patient_id || '—')).substring(0, 25) + '</td>' +
+            '<td>' + (game ? (game.name || game.slug) : '—') + '</td>' +
+            '<td>' + (b.metric_type || b.metric || '—') + '</td>' +
+            '<td>' + (b.value != null ? b.value : (b.data ? JSON.stringify(b.data).substring(0, 40) : '—')) + '</td>' +
+            '<td>' + flagBadge + '</td>';
+        tbody.appendChild(tr);
+    });
+    
+    if (biometrics.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;">Sin biométricos registrados</td></tr>';
+    }
+}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date range (last 30 days)
+    const now = new Date();
+    const thirtyAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('filter-to').value = now.toISOString().split('T')[0];
+    document.getElementById('filter-from').value = thirtyAgo.toISOString().split('T')[0];
+    
+    loadDashboard();
+});
+</script>
+</body>
+</html>
