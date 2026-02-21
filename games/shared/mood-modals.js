@@ -122,6 +122,20 @@ function showPreGameChat() {
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
+
+    // Add close button (top-right corner) — safety escape
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '✕';
+    closeBtn.title = 'Saltar chequeo emocional';
+    closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:10000';
+    closeBtn.onclick = function() {
+        localStorage.setItem('mood_pregame_done_' + today, 'skipped');
+        _moodSaveToSupabase('pre_game', { responses: ['(cerrado con X)'], skipped: true });
+        overlay.style.animation = 'mfadeOut .25s ease forwards';
+        setTimeout(function() { overlay.remove(); }, 300);
+    };
+    overlay.appendChild(closeBtn);
+
     renderStep();
 
     // CSS animations
