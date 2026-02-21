@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Rutina Diaria - Evaluación de Planificación | CJI HDD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #0c1222; --surface: #1a2332; --card: #243447; --accent: #6366f1; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; }
+        body { background: linear-gradient(160deg, #0c1222 0%, #1a1a3e 50%, #0c1222 100%); color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; }
+        
+        .habit-card {
+            background: var(--card); border: 2px solid rgba(255,255,255,0.08); border-radius: 16px;
+            padding: 16px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            user-select: none; position: relative; overflow: hidden;
+        }
+        .habit-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+        .habit-card.selected { border-color: var(--accent); background: rgba(99,102,241,0.15); box-shadow: 0 0 25px rgba(99,102,241,0.2); }
+        .habit-card.selected::after { content: '✓'; position: absolute; top: 8px; right: 10px; font-size: 1.2rem; color: var(--accent); font-weight: 900; }
+        .habit-card.healthy-pick { border-color: var(--success); }
+        .habit-card.unhealthy-pick { border-color: var(--danger); animation: shake 0.4s; }
+        .habit-card .emoji { font-size: 2.2rem; }
+        .habit-card .label { font-size: 0.85rem; font-weight: 600; margin-top: 6px; }
+        .habit-card .desc { font-size: 0.7rem; opacity: 0.6; margin-top: 2px; }
+        
+        .timeline-slot {
+            background: rgba(255,255,255,0.04); border: 2px dashed rgba(255,255,255,0.15);
+            border-radius: 12px; min-height: 64px; padding: 10px 14px; transition: all 0.2s;
+            display: flex; align-items: center; gap: 12px; cursor: pointer;
+        }
+        .timeline-slot.filled { border-style: solid; border-color: var(--accent); background: rgba(99,102,241,0.08); }
+        .timeline-slot.drag-over { border-color: var(--success); background: rgba(34,197,94,0.1); }
+        .timeline-slot .time-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); min-width: 50px; font-weight: 700; }
+        
+        .phase-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .phase-morning { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .phase-afternoon { background: rgba(251,146,60,0.2); color: #fb923c; }
+        .phase-evening { background: rgba(139,92,246,0.2); color: #8b5cf6; }
+        
+        .score-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; }
+        
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #818cf8); border: none; color: #fff; padding: 14px 36px; border-radius: 14px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .btn-primary:hover { transform: scale(1.04); box-shadow: 0 8px 25px rgba(99,102,241,0.4); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        
+        .toast-container { position: fixed; top: 80px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { padding: 12px 20px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; animation: slideIn 0.3s ease; pointer-events: auto; }
+        
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .animate-in { animation: fadeIn 0.4s ease; }
+        
+        .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: linear-gradient(90deg, var(--accent), #818cf8); }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header style="background: linear-gradient(135deg, #1e1a5f 0%, #0c1222 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px;">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <a id="back-link" href="/hdd/portal/" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem;">← Volver al portal</a>
+            <h1 style="margin: 4px 0 0; font-size: 1.5rem; font-weight: 800;">🌅 Mi Rutina Diaria</h1>
+            <p style="font-size: 0.75rem; opacity: 0.6; margin: 2px 0 0;">Clínica José Ingenieros · Hospital de Día</p>
+        </div>
+        <div style="text-align: right;">
+            <div id="patient-display" style="font-size: 0.8rem; opacity: 0.7;">Paciente: --</div>
+            <div id="timer-display" style="font-size: 1.8rem; font-family: monospace; font-weight: 800;">00:00</div>
+            <div id="phase-display" style="font-size: 0.75rem; opacity: 0.6;">Fase 1/2</div>
+        </div>
+    </div>
+</header>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ===================== -->
+<!-- PANTALLA DE INICIO -->
+<!-- ===================== -->
+<div id="start-screen" style="display:flex; align-items:center; justify-content:center; min-height: calc(100vh - 80px); padding: 24px;">
+    <div style="background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; max-width: 520px; width: 100%; text-align: center;">
+        <div style="font-size: 4rem; margin-bottom: 12px;">🌅</div>
+        <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0 0 8px;">Mi Rutina Diaria</h2>
+        <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 24px;">Evaluación de Planificación · Toma de Decisiones · AVD</p>
+        
+        <div style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 20px;">
+            <h3 style="font-size: 0.85rem; font-weight: 700; color: #818cf8; margin: 0 0 10px;">📋 CONSIGNA</h3>
+            <p style="font-size: 0.85rem; margin: 0 0 12px; line-height: 1.5;">Armá tu rutina diaria ideal en <strong>2 fases</strong>:</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
+                    <span style="font-size: 1.2rem;">🎯</span>
+                    <div>
+                        <strong style="font-size: 0.8rem;">Fase 1 — Elegí tus hábitos</strong>
+                        <p style="font-size: 0.7rem; opacity: 0.6; margin: 2px 0 0;">Seleccioná las actividades saludables que incluirías en tu día.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
+                    <span style="font-size: 1.2rem;">🕐</span>
+                    <div>
+                        <strong style="font-size: 0.8rem;">Fase 2 — Ordenalos en tu día</strong>
+                        <p style="font-size: 0.7rem; opacity: 0.6; margin: 2px 0 0;">Ubicá cada hábito en el horario correcto: mañana, tarde o noche.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15); border-radius: 12px; padding: 12px; margin-bottom: 24px; font-size: 0.75rem; color: rgba(255,255,255,0.6);">
+            <strong style="color: #a78bfa;">🔬 Se evaluará:</strong> Selección de hábitos saludables, secuenciación temporal, planificación y juicio.
+        </div>
+        
+        <button onclick="beginGame()" class="btn-primary" style="width: 100%; font-size: 1.2rem; padding: 16px;">
+            ▶ COMENZAR
+        </button>
+    </div>
+</div>
+
+<!-- ===================== -->
+<!-- FASE 1: SELECCIÓN -->
+<!-- ===================== -->
+<div id="phase1" style="display:none; max-width: 1100px; margin: 0 auto; padding: 24px 16px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0;">🎯 Fase 1: Elegí tus hábitos</h2>
+        <p style="font-size: 0.8rem; opacity: 0.5; margin: 6px 0;">Tocá las actividades <strong>saludables</strong> que incluirías en tu día ideal. Evitá las que no son saludables.</p>
+        <div style="margin: 12px auto; max-width: 400px;">
+            <div class="progress-bar"><div id="selection-progress" class="progress-fill" style="width: 0%;"></div></div>
+            <div style="font-size: 0.7rem; opacity: 0.4; margin-top: 4px;"><span id="selected-count">0</span> seleccionados · mínimo 8 para continuar</div>
+        </div>
+    </div>
+    
+    <div id="habits-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px;"></div>
+    
+    <div style="text-align: center; padding: 20px 0;">
+        <button id="btn-to-phase2" onclick="goToPhase2()" class="btn-primary" disabled>
+            Continuar a Fase 2 →
+        </button>
+    </div>
+</div>
+
+<!-- ===================== -->
+<!-- FASE 2: ORDENAR -->
+<!-- ===================== -->
+<div id="phase2" style="display:none; max-width: 900px; margin: 0 auto; padding: 24px 16px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0;">🕐 Fase 2: Armá tu horario</h2>
+        <p style="font-size: 0.8rem; opacity: 0.5; margin: 6px 0;">Arrastrá cada hábito al momento del día que corresponde.</p>
+        <div style="margin: 12px auto; max-width: 400px;">
+            <div class="progress-bar"><div id="timeline-progress" class="progress-fill" style="width: 0%;"></div></div>
+            <div style="font-size: 0.7rem; opacity: 0.4; margin-top: 4px;"><span id="placed-count">0</span>/<span id="total-to-place">0</span> ubicados</div>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <!-- LEFT: habits to place -->
+        <div>
+            <h3 style="font-size: 0.85rem; font-weight: 700; opacity: 0.5; margin: 0 0 12px;">📦 Hábitos por ubicar</h3>
+            <div id="habits-bank" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+        
+        <!-- RIGHT: timeline -->
+        <div>
+            <div style="margin-bottom: 16px;">
+                <span class="phase-badge phase-morning">☀️ Mañana (6-12hs)</span>
+            </div>
+            <div id="timeline-morning" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
+            
+            <div style="margin-bottom: 16px;">
+                <span class="phase-badge phase-afternoon">🌤️ Tarde (12-18hs)</span>
+            </div>
+            <div id="timeline-afternoon" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
+            
+            <div style="margin-bottom: 16px;">
+                <span class="phase-badge phase-evening">🌙 Noche (18-23hs)</span>
+            </div>
+            <div id="timeline-evening" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; padding: 24px 0;">
+        <button id="btn-finish" onclick="finishGame()" class="btn-primary" style="display:none;">
+            ✅ Finalizar y ver resultados
+        </button>
+    </div>
+</div>
+
+<!-- ===================== -->
+<!-- RESULTADOS -->
+<!-- ===================== -->
+<div id="results-screen" style="display:none; max-width: 700px; margin: 0 auto; padding: 40px 16px; text-align: center;">
+    <div id="results-content"></div>
+</div>
+
+<script>
+// ========== CONFIG ==========
+const SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
+let supabase = null;
+try {
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else { console.warn('[daily-routine] Supabase SDK offline'); }
+} catch(e) { console.warn('[daily-routine] Supabase init failed:', e.message); }
+
+// ========== HABITS DATABASE ==========
+const HABITS = [
+    // HEALTHY - MORNING
+    { id: 'despertarse_horario', emoji: '⏰', label: 'Despertarse a horario', desc: 'Levantarse a la misma hora', healthy: true, phase: 'morning', order: 1 },
+    { id: 'higiene_matutina', emoji: '🪥', label: 'Higiene personal', desc: 'Lavarse dientes, cara, ducha', healthy: true, phase: 'morning', order: 2 },
+    { id: 'desayuno', emoji: '🥐', label: 'Desayunar', desc: 'Desayuno nutritivo completo', healthy: true, phase: 'morning', order: 3 },
+    { id: 'medicacion_am', emoji: '💊', label: 'Tomar medicación', desc: 'Medicación de la mañana', healthy: true, phase: 'morning', order: 4 },
+    { id: 'tender_cama', emoji: '🛏️', label: 'Tender la cama', desc: 'Ordenar la cama al levantarse', healthy: true, phase: 'morning', order: 5 },
+    { id: 'ejercicio', emoji: '🏃', label: 'Actividad física', desc: 'Caminar, ejercicio, elongar', healthy: true, phase: 'morning', order: 6 },
+    
+    // HEALTHY - AFTERNOON
+    { id: 'almuerzo', emoji: '🍽️', label: 'Almorzar', desc: 'Almuerzo balanceado', healthy: true, phase: 'afternoon', order: 1 },
+    { id: 'taller_hdd', emoji: '🏥', label: 'Taller del HDD', desc: 'Asistir al taller terapéutico', healthy: true, phase: 'afternoon', order: 2 },
+    { id: 'hobby', emoji: '🎨', label: 'Hobby/actividad', desc: 'Pintar, leer, música, etc.', healthy: true, phase: 'afternoon', order: 3 },
+    { id: 'merienda', emoji: '☕', label: 'Merienda', desc: 'Merienda saludable', healthy: true, phase: 'afternoon', order: 4 },
+    { id: 'social', emoji: '👥', label: 'Contacto social', desc: 'Hablar con amigos o familia', healthy: true, phase: 'afternoon', order: 5 },
+    
+    // HEALTHY - EVENING
+    { id: 'cena', emoji: '🥗', label: 'Cenar', desc: 'Cena liviana y nutritiva', healthy: true, phase: 'evening', order: 1 },
+    { id: 'medicacion_pm', emoji: '💊', label: 'Medicación noche', desc: 'Medicación de la noche', healthy: true, phase: 'evening', order: 2 },
+    { id: 'relajacion', emoji: '🧘', label: 'Relajación', desc: 'Meditación, respiración, calma', healthy: true, phase: 'evening', order: 3 },
+    { id: 'higiene_noche', emoji: '🚿', label: 'Higiene nocturna', desc: 'Lavarse dientes, prepararse', healthy: true, phase: 'evening', order: 4 },
+    { id: 'dormir_horario', emoji: '😴', label: 'Dormir a horario', desc: 'Acostarse a hora regular', healthy: true, phase: 'evening', order: 5 },
+    
+    // UNHEALTHY (distractors)
+    { id: 'saltear_comida', emoji: '🚫', label: 'Saltear comidas', desc: 'No comer en horarios', healthy: false, phase: null, order: 0 },
+    { id: 'pantalla_exceso', emoji: '📱', label: 'Pantallas toda la noche', desc: 'Celular o TV hasta muy tarde', healthy: false, phase: null, order: 0 },
+    { id: 'aislarse', emoji: '🚪', label: 'Aislarse todo el día', desc: 'No salir ni hablar con nadie', healthy: false, phase: null, order: 0 },
+    { id: 'dormir_dia', emoji: '😪', label: 'Dormir todo el día', desc: 'Quedarse en cama sin levantarse', healthy: false, phase: null, order: 0 },
+    { id: 'no_medicacion', emoji: '❌', label: 'Saltear medicación', desc: 'No tomar la medicación', healthy: false, phase: null, order: 0 },
+    { id: 'comida_chatarra', emoji: '🍔', label: 'Solo comida chatarra', desc: 'Comer solo comida no saludable', healthy: false, phase: null, order: 0 },
+];
+
+// ========== GAME STATE ==========
+let state = {
+    patientId: null,
+    patientDni: 'DEMO',
+    startTime: null,
+    phase: 0, // 0=start, 1=selection, 2=timeline, 3=results
+    selectedHabits: new Set(),
+    unhealthyPicks: 0,
+    healthyCorrect: 0,
+    timeline: { morning: [], afternoon: [], evening: [] },
+    sequenceErrors: 0,
+    actionLog: [],
+    timerInterval: null,
+    hesitations: [],
+    lastActionTime: null,
+};
+
+// ========== TIMER ==========
+function startTimer() {
+    state.startTime = Date.now();
+    state.timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        document.getElementById('timer-display').textContent = m + ':' + s;
+    }, 1000);
+}
+
+function stopTimer() {
+    if (state.timerInterval) clearInterval(state.timerInterval);
+}
+
+// ========== TOAST ==========
+function showToast(msg, type) {
+    const colors = { success: 'rgba(34,197,94,0.9)', error: 'rgba(239,68,68,0.9)', info: 'rgba(99,102,241,0.9)', warn: 'rgba(245,158,11,0.9)' };
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.style.background = colors[type] || colors.info;
+    t.style.color = '#fff';
+    t.textContent = msg;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+
+// ========== BEGIN GAME ==========
+function beginGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('phase1').style.display = 'block';
+    document.getElementById('phase-display').textContent = 'Fase 1/2';
+    
+    // Patient
+    const params = new URLSearchParams(window.location.search);
+    state.patientDni = params.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'DEMO';
+    document.getElementById('patient-display').textContent = 'Paciente: ' + state.patientDni;
+    
+    startTimer();
+    renderPhase1();
+}
+
+// ========== PHASE 1: HABIT SELECTION ==========
+function renderPhase1() {
+    const grid = document.getElementById('habits-grid');
+    const shuffled = [...HABITS].sort(() => Math.random() - 0.5);
+    
+    grid.innerHTML = shuffled.map(h => `
+        <div class="habit-card animate-in" data-id="${h.id}" onclick="toggleHabit('${h.id}')">
+            <div class="emoji">${h.emoji}</div>
+            <div class="label">${h.label}</div>
+            <div class="desc">${h.desc}</div>
+        </div>
+    `).join('');
+}
+
+function toggleHabit(id) {
+    const habit = HABITS.find(h => h.id === id);
+    const card = document.querySelector(`[data-id="${id}"]`);
+    const now = Date.now();
+    
+    // Track hesitation
+    if (state.lastActionTime) {
+        const gap = now - state.lastActionTime;
+        if (gap > 3000) state.hesitations.push({ id, gap, phase: 1 });
+    }
+    state.lastActionTime = now;
+    
+    if (state.selectedHabits.has(id)) {
+        // Deselect
+        state.selectedHabits.delete(id);
+        card.classList.remove('selected', 'healthy-pick', 'unhealthy-pick');
+        state.actionLog.push({ action: 'deselect', id, time: now - state.startTime });
+    } else {
+        // Select
+        state.selectedHabits.add(id);
+        card.classList.add('selected');
+        state.actionLog.push({ action: 'select', id, healthy: habit.healthy, time: now - state.startTime });
+        
+        if (!habit.healthy) {
+            state.unhealthyPicks++;
+            card.classList.add('unhealthy-pick');
+            showToast('⚠️ "' + habit.label + '" no es un hábito saludable', 'warn');
+            // Auto-deselect after visual feedback
+            setTimeout(() => {
+                state.selectedHabits.delete(id);
+                card.classList.remove('selected', 'unhealthy-pick');
+                updateSelectionUI();
+            }, 1200);
+        } else {
+            state.healthyCorrect++;
+            card.classList.add('healthy-pick');
+            showToast('✓ Buen hábito!', 'success');
+        }
+    }
+    
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const healthySelected = [...state.selectedHabits].filter(id => HABITS.find(h => h.id === id)?.healthy).length;
+    document.getElementById('selected-count').textContent = healthySelected;
+    const pct = Math.min(100, Math.round((healthySelected / 8) * 100));
+    document.getElementById('selection-progress').style.width = pct + '%';
+    document.getElementById('btn-to-phase2').disabled = healthySelected < 8;
+}
+
+// ========== PHASE 2: TIMELINE ==========
+function goToPhase2() {
+    document.getElementById('phase1').style.display = 'none';
+    document.getElementById('phase2').style.display = 'block';
+    document.getElementById('phase-display').textContent = 'Fase 2/2';
+    state.phase = 2;
+    
+    // Get selected healthy habits
+    const selected = [...state.selectedHabits]
+        .map(id => HABITS.find(h => h.id === id))
+        .filter(h => h && h.healthy);
+    
+    document.getElementById('total-to-place').textContent = selected.length;
+    
+    // Render bank (shuffled)
+    const bank = document.getElementById('habits-bank');
+    const shuffled = [...selected].sort(() => Math.random() - 0.5);
+    bank.innerHTML = shuffled.map(h => `
+        <div class="habit-card animate-in" id="bank-${h.id}" data-id="${h.id}" draggable="true"
+             style="padding: 10px 14px; flex-direction: row; gap: 10px; cursor: grab;"
+             ondragstart="handleDragStart(event)" ontouchstart="handleTouchStart(event)">
+            <span style="font-size: 1.4rem;">${h.emoji}</span>
+            <div>
+                <div style="font-size: 0.8rem; font-weight: 700;">${h.label}</div>
+                <div style="font-size: 0.65rem; opacity: 0.5;">${h.desc}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Render timeline slots
+    renderTimelineSlots('morning', 4);
+    renderTimelineSlots('afternoon', 4);
+    renderTimelineSlots('evening', 4);
+}
+
+function renderTimelineSlots(phase, count) {
+    const container = document.getElementById('timeline-' + phase);
+    const times = {
+        morning: ['06:30', '07:00', '08:00', '09:00'],
+        afternoon: ['12:00', '13:00', '15:00', '17:00'],
+        evening: ['19:00', '20:00', '21:00', '22:00']
+    };
+    container.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'timeline-slot';
+        slot.dataset.phase = phase;
+        slot.dataset.index = i;
+        slot.innerHTML = `<span class="time-label">${times[phase][i]}</span><span style="opacity:0.3; font-size: 0.75rem;">Arrastrá un hábito acá</span>`;
+        
+        slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+        slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+        slot.addEventListener('drop', e => handleDrop(e, slot));
+        
+        // Touch drop target
+        slot.addEventListener('touchend', e => handleTouchDrop(e, slot));
+        
+        container.appendChild(slot);
+    }
+}
+
+// ========== DRAG & DROP ==========
+let draggedId = null;
+
+function handleDragStart(e) {
+    draggedId = e.target.closest('[data-id]').dataset.id;
+    e.dataTransfer.setData('text/plain', draggedId);
+    e.target.closest('[data-id]').style.opacity = '0.4';
+}
+
+function handleDrop(e, slot) {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    if (!draggedId) return;
+    placeHabit(draggedId, slot);
+    const bankCard = document.getElementById('bank-' + draggedId);
+    if (bankCard) bankCard.style.opacity = '1';
+    draggedId = null;
+}
+
+// Touch support
+let touchDragId = null;
+let touchGhost = null;
+
+function handleTouchStart(e) {
+    const card = e.target.closest('[data-id]');
+    if (!card) return;
+    touchDragId = card.dataset.id;
+    
+    // Create ghost
+    touchGhost = card.cloneNode(true);
+    touchGhost.style.position = 'fixed';
+    touchGhost.style.zIndex = '99999';
+    touchGhost.style.pointerEvents = 'none';
+    touchGhost.style.opacity = '0.8';
+    touchGhost.style.width = card.offsetWidth + 'px';
+    document.body.appendChild(touchGhost);
+    
+    card.style.opacity = '0.3';
+    e.preventDefault();
+}
+
+document.addEventListener('touchmove', e => {
+    if (!touchGhost) return;
+    const touch = e.touches[0];
+    touchGhost.style.left = (touch.clientX - 40) + 'px';
+    touchGhost.style.top = (touch.clientY - 30) + 'px';
+    
+    // Highlight slot under finger
+    document.querySelectorAll('.timeline-slot').forEach(s => s.classList.remove('drag-over'));
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slot = el?.closest('.timeline-slot');
+    if (slot) slot.classList.add('drag-over');
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+    if (!touchGhost || !touchDragId) return;
+    if (touchGhost.parentNode) touchGhost.parentNode.removeChild(touchGhost);
+    touchGhost = null;
+    
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const slot = el?.closest('.timeline-slot');
+    
+    if (slot && !slot.classList.contains('filled')) {
+        placeHabit(touchDragId, slot);
+    }
+    
+    const bankCard = document.getElementById('bank-' + touchDragId);
+    if (bankCard) bankCard.style.opacity = '1';
+    
+    document.querySelectorAll('.timeline-slot').forEach(s => s.classList.remove('drag-over'));
+    touchDragId = null;
+});
+
+function placeHabit(habitId, slot) {
+    const habit = HABITS.find(h => h.id === habitId);
+    if (!habit || slot.classList.contains('filled')) return;
+    
+    const phase = slot.dataset.phase;
+    const now = Date.now();
+    
+    // Track hesitation
+    if (state.lastActionTime) {
+        const gap = now - state.lastActionTime;
+        if (gap > 4000) state.hesitations.push({ id: habitId, gap, phase: 2 });
+    }
+    state.lastActionTime = now;
+    
+    // Check correctness
+    const isCorrectPhase = habit.phase === phase;
+    if (!isCorrectPhase) state.sequenceErrors++;
+    
+    // Place in slot
+    slot.classList.add('filled');
+    slot.innerHTML = `
+        <span class="time-label">${slot.querySelector('.time-label')?.textContent || ''}</span>
+        <span style="font-size: 1.3rem;">${habit.emoji}</span>
+        <div>
+            <div style="font-size: 0.8rem; font-weight: 700;">${habit.label}</div>
+            ${!isCorrectPhase ? '<div style="font-size: 0.65rem; color: #f59e0b;">⚠ Horario inusual</div>' : '<div style="font-size: 0.65rem; color: #22c55e;">✓ Buen horario</div>'}
+        </div>
+    `;
+    
+    // Remove from bank
+    const bankCard = document.getElementById('bank-' + habitId);
+    if (bankCard) bankCard.remove();
+    
+    // Log
+    state.timeline[phase].push(habitId);
+    state.actionLog.push({ action: 'place', id: habitId, phase, correct: isCorrectPhase, time: now - state.startTime });
+    
+    if (isCorrectPhase) {
+        showToast('✓ Bien ubicado!', 'success');
+    } else {
+        showToast('⚠ ' + habit.label + ' usualmente va en otro horario', 'warn');
+    }
+    
+    // Update progress
+    const placed = state.timeline.morning.length + state.timeline.afternoon.length + state.timeline.evening.length;
+    const total = parseInt(document.getElementById('total-to-place').textContent);
+    document.getElementById('placed-count').textContent = placed;
+    document.getElementById('timeline-progress').style.width = Math.round((placed / total) * 100) + '%';
+    
+    // Show finish button when enough placed
+    if (placed >= Math.min(total, 8)) {
+        document.getElementById('btn-finish').style.display = 'inline-block';
+    }
+}
+
+// ========== FINISH & RESULTS ==========
+function finishGame() {
+    stopTimer();
+    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    
+    document.getElementById('phase2').style.display = 'none';
+    document.getElementById('results-screen').style.display = 'block';
+    document.getElementById('phase-display').textContent = 'Completado';
+    
+    // Calculate scores
+    const totalHealthy = HABITS.filter(h => h.healthy).length;
+    const healthySelected = [...state.selectedHabits].filter(id => HABITS.find(h => h.id === id)?.healthy).length;
+    const selectionScore = Math.round((healthySelected / totalHealthy) * 100);
+    
+    const placed = state.timeline.morning.length + state.timeline.afternoon.length + state.timeline.evening.length;
+    const correctPlacements = state.actionLog.filter(a => a.action === 'place' && a.correct).length;
+    const sequenceScore = placed > 0 ? Math.round((correctPlacements / placed) * 100) : 0;
+    
+    const judgmentScore = Math.max(0, 100 - (state.unhealthyPicks * 15));
+    
+    const overallScore = Math.round((selectionScore * 0.3) + (sequenceScore * 0.4) + (judgmentScore * 0.3));
+    
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    // Determine level
+    let level, levelColor, levelEmoji;
+    if (overallScore >= 85) { level = 'Excelente'; levelColor = '#22c55e'; levelEmoji = '🌟'; }
+    else if (overallScore >= 70) { level = 'Muy Bien'; levelColor = '#3b82f6'; levelEmoji = '👍'; }
+    else if (overallScore >= 50) { level = 'Adecuado'; levelColor = '#f59e0b'; levelEmoji = '📈'; }
+    else { level = 'En desarrollo'; levelColor = '#ef4444'; levelEmoji = '💪'; }
+    
+    document.getElementById('results-content').innerHTML = `
+        <div class="animate-in" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 36px;">
+            <div style="font-size: 3rem; margin-bottom: 8px;">${levelEmoji}</div>
+            <h2 style="font-size: 1.6rem; font-weight: 900; margin: 0 0 4px;">${level}</h2>
+            <div class="score-ring" style="margin: 16px auto; border: 4px solid ${levelColor}; color: ${levelColor};">${overallScore}%</div>
+            <p style="font-size: 0.85rem; opacity: 0.5;">Puntuación global · Tiempo: ${minutes}:${String(seconds).padStart(2,'0')}</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 24px 0;">
+                <div style="background: rgba(34,197,94,0.1); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 1.8rem; font-weight: 900; color: #22c55e;">${selectionScore}%</div>
+                    <div style="font-size: 0.7rem; opacity: 0.6;">Selección de hábitos</div>
+                    <div style="font-size: 0.65rem; opacity: 0.4;">${healthySelected}/${totalHealthy} saludables</div>
+                </div>
+                <div style="background: rgba(99,102,241,0.1); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 1.8rem; font-weight: 900; color: #818cf8;">${sequenceScore}%</div>
+                    <div style="font-size: 0.7rem; opacity: 0.6;">Secuenciación</div>
+                    <div style="font-size: 0.65rem; opacity: 0.4;">${correctPlacements}/${placed} bien ubicados</div>
+                </div>
+                <div style="background: rgba(245,158,11,0.1); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 1.8rem; font-weight: 900; color: #f59e0b;">${judgmentScore}%</div>
+                    <div style="font-size: 0.7rem; opacity: 0.6;">Juicio / Criterio</div>
+                    <div style="font-size: 0.65rem; opacity: 0.4;">${state.unhealthyPicks} hábitos no saludables tocados</div>
+                </div>
+            </div>
+            
+            ${state.hesitations.length > 2 ? `
+            <div style="background: rgba(139,92,246,0.1); border-radius: 12px; padding: 12px; margin: 16px 0; font-size: 0.75rem;">
+                <strong style="color: #a78bfa;">🔬 Nota clínica:</strong> Se detectaron ${state.hesitations.length} hesitaciones significativas (pausas >3s), lo que puede indicar dificultad en la toma de decisiones o inseguridad en la planificación.
+            </div>` : ''}
+            
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
+                <button onclick="location.reload()" class="btn-primary" style="padding: 12px 24px; font-size: 0.9rem;">🔄 Jugar de nuevo</button>
+                <a href="/games/portal/" class="btn-primary" style="padding: 12px 24px; font-size: 0.9rem; text-decoration: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">← Volver al portal</a>
+            </div>
+        </div>
+    `;
+    
+    // Save to Supabase
+    saveResults(overallScore, selectionScore, sequenceScore, judgmentScore, elapsed);
+}
+
+async function saveResults(overall, selection, sequence, judgment, elapsed) {
+    if (!supabase) return;
+    try {
+        // Get or create patient
+        let patientId = null;
+        const { data: existing } = await supabase.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
+        patientId = existing?.id;
+        if (!patientId) {
+            const { data: np } = await supabase.from('hdd_patients').insert({ dni: state.patientDni, full_name: 'Paciente ' + state.patientDni, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
+            patientId = np?.id;
+        }
+        
+        // Get game id
+        const { data: game } = await supabase.from('hdd_games').select('id').eq('slug', 'daily-routine').single();
+        
+        // Save session
+        await supabase.from('hdd_game_sessions').insert({
+            patient_id: patientId,
+            game_id: game?.id,
+            level: 1,
+            score: overall,
+            accuracy: sequence,
+            time_seconds: elapsed,
+            metrics: {
+                selection_score: selection,
+                sequence_score: sequence,
+                judgment_score: judgment,
+                unhealthy_picks: state.unhealthyPicks,
+                hesitations: state.hesitations.length,
+                habits_selected: [...state.selectedHabits],
+                timeline: state.timeline,
+                action_log: state.actionLog
+            },
+            started_at: new Date(state.startTime).toISOString(),
+            completed_at: new Date().toISOString()
+        });
+        console.log('[daily-routine] Session saved');
+    } catch(e) {
+        console.warn('[daily-routine] Save failed:', e.message);
+    }
+}
+</script>
+
+<script>
+// Smart back link
+(function(){
+    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+    var l = document.getElementById('back-link');
+    if (l) l.href = portalUrl;
+})();
+</script>
+<script src="/games/shared/mood-modals.js"></script>
+<script>if (typeof initMoodModals === 'function') initMoodModals();</script>
+
+</body>
+</html>
