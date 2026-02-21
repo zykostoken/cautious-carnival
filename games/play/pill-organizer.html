@@ -263,7 +263,7 @@
         // CONFIGURACIÓN SUPABASE
         // ===========================================
         const SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
         let supabase = null;
         try {
             if (window.supabase && window.supabase.createClient) {
@@ -321,29 +321,17 @@
                 // Get patient from portal session or URL
                 var urlParams = new URLSearchParams(window.location.search);
                 sessionState.patientDni = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'HDD-DEMO';
+                document.getElementById('patient-display').textContent = 'Paciente: ' + sessionState.patientDni;
                 
-                try {
-                    sessionState.patientId = await getOrCreatePatient(sessionState.patientDni);
-                } catch(e) {
-                    console.warn('[pill-organizer] Supabase patient lookup failed:', e.message);
-                    sessionState.patientId = null;
-                }
-                
-                document.getElementById('patient-display').textContent = 'Paciente: ' + (sessionState.patientDni);
-                
-                // Get game_id from Supabase (background, non-blocking)
+                // Supabase calls in background - don't block start screen
                 if (supabase) {
-                    try {
-                        const { data: game } = await supabase
-                            .from('hdd_games')
-                            .select('id')
-                            .eq('slug', 'pill-organizer')
-                            .single();
-                        sessionState.gameId = game?.id || null;
-                    } catch(e) {
-                        console.warn('[pill-organizer] Game lookup failed:', e.message);
-                        sessionState.gameId = null;
-                    }
+                    getOrCreatePatient(sessionState.patientDni)
+                        .then(id => { sessionState.patientId = id; })
+                        .catch(e => { console.warn('[pill-organizer] Patient lookup failed:', e.message); });
+                    
+                    supabase.from('hdd_games').select('id').eq('slug', 'pill-organizer').single()
+                        .then(({ data }) => { sessionState.gameId = data?.id || null; })
+                        .catch(e => { console.warn('[pill-organizer] Game lookup failed:', e.message); });
                 }
             } catch(err) {
                 console.error('[pill-organizer] Init failed:', err);

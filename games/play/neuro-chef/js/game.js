@@ -15,11 +15,12 @@ async function initGame() {
         setupPreGameModal();
     } else if (playerDni) {
         gameState.patientDni = playerDni;
-        gameState.patientId = await getOrCreatePatient(playerDni);
         document.getElementById('player-login-modal').classList.add('hidden');
         document.getElementById('patient-display').textContent = 'Pac: ' + playerDni;
-        await loadPlayerHistory();
         setupPreGameModal();
+        // Supabase calls in background - don't block game start
+        getOrCreatePatient(playerDni).then(id => { gameState.patientId = id; }).catch(() => {});
+        loadPlayerHistory().catch(() => {});
     } else {
         setupPlayerLogin();
     }
