@@ -139,6 +139,10 @@
         <div class="gondola-title" style="color: #93c5fd;">🧊 Lácteos y Refrigerados</div>
         <div class="gondola-grid" id="gondola-lacteos" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
     </div>
+    <div class="gondola-section" id="sec-bebidas">
+        <div class="gondola-title" style="color: #67e8f9;">🥤 Bebidas</div>
+        <div class="gondola-grid" id="gondola-bebidas" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
     <div class="gondola-section" id="sec-bazar">
         <div class="gondola-title" style="color: #c084fc;">🧹 Limpieza y Bazar</div>
         <div class="gondola-grid" id="gondola-bazar" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
@@ -170,20 +174,24 @@ var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // ========== PRODUCT DATABASE ==========
 // priceRange: [min, max] — each game randomizes a price within range
+// tier: essential = must-have, alternative = valid swap for essential,
+//       advanced = shows expertise, neutral = off-task, error = irrelevant
+// altGroup: items with same altGroup are interchangeable (pick any one = ok)
 var PRODUCTS = [
     // CARNICERÍA
-    { id: 'bife', emoji: '🥩', name: 'Bife de nalga', gondola: 'carnes', tier: 'essential', priceRange: [2800, 4500], desc: 'La carne para las milanesas' },
-    { id: 'pollo', emoji: '🍗', name: 'Suprema de pollo', gondola: 'carnes', tier: 'essential', priceRange: [1800, 3200], desc: 'Alternativa clásica' },
+    { id: 'bife', emoji: '🥩', name: 'Bife de nalga', gondola: 'carnes', tier: 'essential', altGroup: 'carne', priceRange: [2800, 4500], desc: 'Carne clásica para milanesas' },
+    { id: 'pollo', emoji: '🍗', name: 'Suprema de pollo', gondola: 'carnes', tier: 'essential', altGroup: 'carne', priceRange: [1800, 3200], desc: 'Alternativa válida — milanesa de pollo' },
     { id: 'carne_picada', emoji: '🥩', name: 'Carne picada', gondola: 'carnes', tier: 'neutral', priceRange: [2200, 3800] },
     { id: 'chorizo', emoji: '🌭', name: 'Chorizo', gondola: 'carnes', tier: 'neutral', priceRange: [1500, 2500] },
     { id: 'pescado', emoji: '🐟', name: 'Filet de merluza', gondola: 'carnes', tier: 'neutral', priceRange: [2500, 4000] },
 
     // ALMACÉN
-    { id: 'pan_rallado', emoji: '🍞', name: 'Pan rallado', gondola: 'almacen', tier: 'essential', priceRange: [600, 1200], desc: 'Indispensable para el rebozado' },
-    { id: 'rebozador', emoji: '📦', name: 'Rebozador', gondola: 'almacen', tier: 'advanced', priceRange: [700, 1400], desc: 'Alternativa práctica' },
-    { id: 'aceite', emoji: '🫒', name: 'Aceite', gondola: 'almacen', tier: 'advanced', priceRange: [1200, 2500], desc: 'Para freír' },
+    { id: 'pan_rallado', emoji: '🍞', name: 'Pan rallado', gondola: 'almacen', tier: 'essential', altGroup: 'rebozado', priceRange: [600, 1200], desc: 'Indispensable para el rebozado' },
+    { id: 'rebozador', emoji: '📦', name: 'Rebozador', gondola: 'almacen', tier: 'essential', altGroup: 'rebozado', priceRange: [700, 1400], desc: 'Alternativa práctica al pan rallado' },
+    { id: 'aceite', emoji: '🫒', name: 'Aceite', gondola: 'almacen', tier: 'essential', priceRange: [1200, 2500], desc: 'Imprescindible — sin aceite no hay fritura' },
     { id: 'sal', emoji: '🧂', name: 'Sal', gondola: 'almacen', tier: 'advanced', priceRange: [300, 600], desc: 'Condimento esencial' },
     { id: 'pimienta', emoji: '🌶️', name: 'Pimienta', gondola: 'almacen', tier: 'advanced', priceRange: [400, 900], desc: 'Condimento clásico' },
+    { id: 'ajo', emoji: '🧄', name: 'Ajo', gondola: 'almacen', tier: 'advanced', priceRange: [200, 500], desc: 'Sabor argentino — para el batido o la guarnición' },
     { id: 'nuez_moscada', emoji: '🫘', name: 'Nuez moscada', gondola: 'almacen', tier: 'advanced', priceRange: [500, 1100], desc: 'El toque secreto del experto' },
     { id: 'escarbadientes', emoji: '🪥', name: 'Escarbadientes', gondola: 'almacen', tier: 'advanced', priceRange: [200, 500], desc: 'Para sostener/cerrar milanesas' },
     { id: 'arroz', emoji: '🍚', name: 'Arroz', gondola: 'almacen', tier: 'neutral', priceRange: [800, 1500] },
@@ -210,6 +218,13 @@ var PRODUCTS = [
     { id: 'yogur', emoji: '🥛', name: 'Yogur', gondola: 'lacteos', tier: 'neutral', priceRange: [600, 1200] },
     { id: 'manteca', emoji: '🧈', name: 'Manteca', gondola: 'lacteos', tier: 'neutral', priceRange: [900, 1800] },
 
+    // BEBIDAS (distractores semánticos — parecen ir con comida pero no con milanesas)
+    { id: 'gaseosa', emoji: '🥤', name: 'Gaseosa', gondola: 'bebidas', tier: 'neutral', priceRange: [800, 1800] },
+    { id: 'agua', emoji: '💧', name: 'Agua mineral', gondola: 'bebidas', tier: 'neutral', priceRange: [400, 800] },
+    { id: 'jugo', emoji: '🧃', name: 'Jugo', gondola: 'bebidas', tier: 'neutral', priceRange: [600, 1200] },
+    { id: 'vino', emoji: '🍷', name: 'Vino', gondola: 'bebidas', tier: 'neutral', priceRange: [1500, 4000] },
+    { id: 'cerveza', emoji: '🍺', name: 'Cerveza', gondola: 'bebidas', tier: 'neutral', priceRange: [800, 2000] },
+
     // BAZAR & LIMPIEZA (errores)
     { id: 'detergente', emoji: '🧴', name: 'Detergente', gondola: 'bazar', tier: 'error', priceRange: [800, 1500] },
     { id: 'esponja', emoji: '🧽', name: 'Esponja', gondola: 'bazar', tier: 'error', priceRange: [300, 700] },
@@ -217,6 +232,9 @@ var PRODUCTS = [
     { id: 'shampoo', emoji: '🧴', name: 'Shampoo', gondola: 'bazar', tier: 'error', priceRange: [1200, 2500] },
     { id: 'velas', emoji: '🕯️', name: 'Velas', gondola: 'bazar', tier: 'error', priceRange: [400, 900] },
     { id: 'papel_higienico', emoji: '🧻', name: 'Papel higiénico', gondola: 'bazar', tier: 'error', priceRange: [600, 1300] },
+    // SEMI-DISTRACTORES (parecen útiles pero son irrelevantes para milanesas)
+    { id: 'servilletas', emoji: '🧻', name: 'Servilletas', gondola: 'bazar', tier: 'error', priceRange: [300, 700] },
+    { id: 'film', emoji: '📦', name: 'Film transparente', gondola: 'bazar', tier: 'error', priceRange: [500, 1100] },
 ];
 
 // ========== GAME STATE ==========
@@ -228,6 +246,15 @@ var timerInterval = null;
 var productPrices = {};  // id → randomized price this session
 var BUDGET = 0;
 var overBudgetAttempts = 0;
+// ========== COGNITIVE METRICS ==========
+var gondolaVisitOrder = [];   // tracks which gondolas were browsed first
+var firstClickTime = null;    // latency to first action (initiative)
+var removals = 0;             // cart removals (self-correction / flexibility)
+var hesitationGaps = [];      // time gaps between clicks (decisiveness)
+var lastClickTime = null;
+var distractorClicks = 0;     // clicked neutral items then removed
+var recipeRecallScore = 0;    // how well they remembered the recipe after brief exposure
+var recipeRecallDone = false;
 var priceCheckCount = 0;  // times user removed items to fit budget
 
 // ========== INIT ==========
@@ -248,7 +275,7 @@ function initGame() {
     });
 
     // Render gondolas
-    var gondolas = { carnes: [], almacen: [], verduras: [], lacteos: [], bazar: [] };
+    var gondolas = { carnes: [], almacen: [], verduras: [], lacteos: [], bebidas: [], bazar: [] };
     PRODUCTS.forEach(function(p) { gondolas[p.gondola].push(p); });
 
     Object.keys(gondolas).forEach(function(key) {
@@ -301,20 +328,34 @@ function toggleProduct(id) {
     var el = document.getElementById('prod-' + id);
     var prod = PRODUCTS.find(function(x) { return x.id === id; });
     var price = productPrices[id] || 0;
+    var now = Date.now();
+
+    // Track first click latency (initiative)
+    if (!firstClickTime) firstClickTime = now - startTime;
+
+    // Track hesitation between clicks (decisiveness)
+    if (lastClickTime) hesitationGaps.push(now - lastClickTime);
+    lastClickTime = now;
+
+    // Track gondola visit order
+    if (prod && gondolaVisitOrder.indexOf(prod.gondola) < 0) {
+        gondolaVisitOrder.push(prod.gondola);
+    }
 
     if (idx >= 0) {
         // Remove from cart
         cart.splice(idx, 1);
         if (el) el.classList.remove('selected');
+        removals++;
         var wasOver = getCartTotal() + price > BUDGET;
         if (wasOver) priceCheckCount++;
-        actionLog.push({ type: 'remove', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+        actionLog.push({ type: 'remove', item: id, tier: prod ? prod.tier : '', t: now - startTime, cartTotal: getCartTotal() });
         if (prod) showToast('− ' + prod.emoji + ' ' + prod.name + ' sacado  −$' + price.toLocaleString('es-AR'), 'remove');
     } else {
         // Add to cart
         cart.push(id);
         if (el) { el.classList.add('selected'); el.classList.add('pop'); setTimeout(function() { el.classList.remove('pop'); }, 300); }
-        actionLog.push({ type: 'add', item: id, t: Date.now() - startTime, cartTotal: getCartTotal() });
+        actionLog.push({ type: 'add', item: id, tier: prod ? prod.tier : '', t: now - startTime, cartTotal: getCartTotal() });
         if (prod) {
             var newTotal = getCartTotal();
             if (newTotal > BUDGET) {
@@ -404,43 +445,65 @@ function finishGame() {
     var cartTotal = getCartTotal();
     var remaining = BUDGET - cartTotal;
 
-    var essentials = PRODUCTS.filter(function(p) { return p.tier === 'essential'; });
+    // ---- ALTERNATIVE GROUP LOGIC ----
+    // For items with altGroup, picking ANY one from that group counts as "got it"
+    var altGroups = {};
+    PRODUCTS.filter(function(p) { return p.altGroup; }).forEach(function(p) {
+        if (!altGroups[p.altGroup]) altGroups[p.altGroup] = [];
+        altGroups[p.altGroup].push(p);
+    });
+
+    // Unique essentials: standalone essentials + one per altGroup
+    var essentialGroups = [];
+    var seenAltGroups = {};
+    PRODUCTS.filter(function(p) { return p.tier === 'essential'; }).forEach(function(p) {
+        if (p.altGroup) {
+            if (!seenAltGroups[p.altGroup]) {
+                seenAltGroups[p.altGroup] = true;
+                essentialGroups.push({ altGroup: p.altGroup, items: altGroups[p.altGroup], label: altGroups[p.altGroup].map(function(x) { return x.name; }).join(' ó ') });
+            }
+        } else {
+            essentialGroups.push({ altGroup: null, items: [p], label: p.name });
+        }
+    });
+
+    // Check each essential group
+    var essentialResults = essentialGroups.map(function(g) {
+        var got = g.items.filter(function(p) { return cart.indexOf(p.id) >= 0; });
+        return { group: g, got: got, complete: got.length > 0 };
+    });
+    var essentialCompleteCount = essentialResults.filter(function(r) { return r.complete; }).length;
+    var essentialTotal = essentialResults.length;
+
     var advanced = PRODUCTS.filter(function(p) { return p.tier === 'advanced'; });
     var errors = PRODUCTS.filter(function(p) { return p.tier === 'error'; });
 
-    var gotEssentials = essentials.filter(function(p) { return cart.indexOf(p.id) >= 0; });
     var gotAdvanced = advanced.filter(function(p) { return cart.indexOf(p.id) >= 0; });
     var gotErrors = errors.filter(function(p) { return cart.indexOf(p.id) >= 0; });
     var gotNeutral = cart.filter(function(id) { var p = PRODUCTS.find(function(x) { return x.id === id; }); return p && p.tier === 'neutral'; });
-    var missedEssentials = essentials.filter(function(p) { return cart.indexOf(p.id) < 0; });
 
-    // Core check
-    var hasMeat = cart.indexOf('bife') >= 0 || cart.indexOf('pollo') >= 0;
-    var hasPan = cart.indexOf('pan_rallado') >= 0 || cart.indexOf('rebozador') >= 0;
-    var hasHuevos = cart.indexOf('huevos') >= 0;
-    var coreComplete = hasMeat && hasPan && hasHuevos;
+    var coreComplete = essentialCompleteCount === essentialTotal;
 
-    // SCORING
-    var essentialPts = gotEssentials.length * 20;
+    // ---- SCORING ----
+    var essentialPts = essentialCompleteCount * 20;
     var advancedPts = gotAdvanced.length * 4;
     var errorPenalty = gotErrors.length * 10;
     var neutralPenalty = gotNeutral.length > 3 ? (gotNeutral.length - 3) * 2 : 0;
 
-    // Budget efficiency bonus
+    // Budget efficiency
     var budgetEfficiency = 0;
     if (cartTotal <= BUDGET && cartTotal > 0) {
         var usagePct = cartTotal / BUDGET;
-        // Sweet spot: 70-95% budget used = max efficiency
         if (usagePct >= 0.7 && usagePct <= 0.95) budgetEfficiency = 10;
         else if (usagePct >= 0.5) budgetEfficiency = 5;
         else budgetEfficiency = 2;
     }
 
     var rawScore = essentialPts + advancedPts + budgetEfficiency - errorPenalty - neutralPenalty;
-    var maxScore = (essentials.length * 20) + (advanced.length * 4) + 10;
+    var maxScore = (essentialTotal * 20) + (advanced.length * 4) + 10;
     var score = Math.max(0, Math.min(100, Math.round((rawScore / maxScore) * 100)));
 
-    // TIER LABEL
+    // ---- TIER LABEL ----
     var tierLabel, tierColor;
     if (gotErrors.length > 2) { tierLabel = 'Error de planificación'; tierColor = '#ef4444'; }
     else if (!coreComplete) { tierLabel = 'Incompleto'; tierColor = '#f59e0b'; }
@@ -449,7 +512,7 @@ function finishGame() {
     else if (coreComplete) { tierLabel = 'Aprobado (básico)'; tierColor = '#3b82f6'; }
     else { tierLabel = 'En desarrollo'; tierColor = '#94a3b8'; }
 
-    // Budget analysis
+    // ---- BUDGET ANALYSIS ----
     var budgetUsePct = Math.round((cartTotal / BUDGET) * 100);
     var budgetLabel, budgetColor;
     if (budgetUsePct >= 70 && budgetUsePct <= 95 && gotErrors.length === 0) {
@@ -462,38 +525,60 @@ function finishGame() {
         budgetLabel = 'Aceptable'; budgetColor = '#60a5fa';
     }
 
-    // CLINICAL FLAGS
+    // ---- COGNITIVE METRICS ----
+    var avgHesitation = hesitationGaps.length > 0 ? Math.round(hesitationGaps.reduce(function(a,b){return a+b;},0) / hesitationGaps.length / 1000 * 10) / 10 : 0;
+    var maxHesitation = hesitationGaps.length > 0 ? Math.round(Math.max.apply(null, hesitationGaps) / 1000 * 10) / 10 : 0;
+    var firstClickSec = firstClickTime ? Math.round(firstClickTime / 100) / 10 : 0;
+
+    // Scanning pattern: did they go systematically or jump around?
+    var gondolaNames = ['carnes', 'almacen', 'verduras', 'lacteos', 'bebidas', 'bazar'];
+    var scanScore = 0;
+    if (gondolaVisitOrder.length >= 3) {
+        // Sequential scanning = higher score
+        for (var i = 1; i < gondolaVisitOrder.length; i++) {
+            var prev = gondolaNames.indexOf(gondolaVisitOrder[i-1]);
+            var curr = gondolaNames.indexOf(gondolaVisitOrder[i]);
+            if (curr === prev + 1 || curr === prev - 1) scanScore++;
+        }
+        scanScore = Math.round(scanScore / (gondolaVisitOrder.length - 1) * 100);
+    }
+
+    // Self-correction ratio
+    var selfCorrectionRatio = actionLog.length > 0 ? Math.round(removals / actionLog.length * 100) : 0;
+
+    // ---- CLINICAL FLAGS ----
     var clinicalFlags = [];
     if (!coreComplete) {
         clinicalFlags.push({ flag: 'INCOMPLETE_PLANNING', severity: 'high',
-            desc: 'No completó los ingredientes esenciales — déficit en memoria de trabajo / planificación' });
+            desc: 'No completó ingredientes esenciales — déficit en memoria de trabajo / planificación' });
     }
     if (gotErrors.length > 0) {
         clinicalFlags.push({ flag: 'PLANNING_ERRORS', severity: gotErrors.length > 2 ? 'high' : 'moderate',
             desc: 'Seleccionó ' + gotErrors.length + ' item(s) irrelevantes — posible perseveración o falla ejecutiva' });
     }
     if (gotAdvanced.length === 0 && coreComplete) {
-        clinicalFlags.push({ flag: 'BASIC_ONLY', severity: 'low',
-            desc: 'Solo ingredientes básicos — capacidad de detalle y previsión reducida' });
+        clinicalFlags.push({ flag: 'CONCRETE_ONLY', severity: 'low',
+            desc: 'Solo ingredientes literales — pensamiento concreto, baja abstracción' });
     }
     if (gotAdvanced.length >= 8) {
         clinicalFlags.push({ flag: 'EXECUTIVE_PRESERVED', severity: 'positive',
             desc: 'Excelente planificación con detalles finos — funciones ejecutivas preservadas' });
     }
-    if (cart.indexOf('nuez_moscada') >= 0 || cart.indexOf('escarbadientes') >= 0) {
+    if (cart.indexOf('nuez_moscada') >= 0 || cart.indexOf('escarbadientes') >= 0 || cart.indexOf('ajo') >= 0) {
         var detailItems = [];
         if (cart.indexOf('nuez_moscada') >= 0) detailItems.push('nuez moscada');
         if (cart.indexOf('escarbadientes') >= 0) detailItems.push('escarbadientes');
+        if (cart.indexOf('ajo') >= 0) detailItems.push('ajo');
         clinicalFlags.push({ flag: 'DETAIL_ORIENTATION', severity: 'positive',
-            desc: 'Seleccionó items de detalle fino (' + detailItems.join(', ') + ') — pensamiento abstracto y previsión' });
+            desc: 'Items de detalle fino (' + detailItems.join(', ') + ') — pensamiento abstracto y previsión' });
     }
     if (overBudgetAttempts > 2) {
         clinicalFlags.push({ flag: 'IMPULSE_CONTROL', severity: 'moderate',
-            desc: 'Intentó pagar ' + overBudgetAttempts + ' veces sin presupuesto — posible falla en inhibición de impulsos' });
+            desc: 'Intentó pagar ' + overBudgetAttempts + ' veces sin saldo — posible falla en inhibición' });
     }
     if (priceCheckCount >= 3) {
         clinicalFlags.push({ flag: 'COGNITIVE_FLEXIBILITY', severity: 'positive',
-            desc: 'Ajustó carrito ' + priceCheckCount + ' veces para adaptarse al presupuesto — buena flexibilidad cognitiva' });
+            desc: 'Ajustó carrito ' + priceCheckCount + ' veces — buena flexibilidad cognitiva' });
     }
     if (budgetUsePct >= 70 && budgetUsePct <= 95 && gotErrors.length === 0 && gotAdvanced.length >= 4) {
         clinicalFlags.push({ flag: 'ECONOMIC_REASONING', severity: 'positive',
@@ -501,10 +586,32 @@ function finishGame() {
     }
     if (gotNeutral.length > 5) {
         clinicalFlags.push({ flag: 'TASK_FOCUS', severity: 'moderate',
-            desc: 'Seleccionó ' + gotNeutral.length + ' items neutros — posible dificultad para mantenerse en la consigna' });
+            desc: 'Seleccionó ' + gotNeutral.length + ' items neutros — dificultad para mantenerse en la consigna' });
+    }
+    if (firstClickSec > 15) {
+        clinicalFlags.push({ flag: 'INITIATIVE_DELAY', severity: 'moderate',
+            desc: 'Latencia de inicio: ' + firstClickSec + 's — posible dificultad de iniciativa o exploración lenta' });
+    } else if (firstClickSec <= 5 && firstClickSec > 0) {
+        clinicalFlags.push({ flag: 'QUICK_START', severity: 'positive',
+            desc: 'Inicio rápido (' + firstClickSec + 's) — buena iniciativa y orientación a la tarea' });
+    }
+    if (avgHesitation > 8) {
+        clinicalFlags.push({ flag: 'SLOW_PROCESSING', severity: 'low',
+            desc: 'Hesitación promedio alta (' + avgHesitation + 's) — velocidad de procesamiento reducida' });
+    }
+    if (scanScore >= 70) {
+        clinicalFlags.push({ flag: 'SYSTEMATIC_SCANNING', severity: 'positive',
+            desc: 'Recorrido organizado por góndolas (' + scanScore + '%) — escaneo visual sistemático' });
+    } else if (scanScore <= 20 && gondolaVisitOrder.length >= 3) {
+        clinicalFlags.push({ flag: 'DISORGANIZED_SCANNING', severity: 'low',
+            desc: 'Recorrido desorganizado (' + scanScore + '%) — escaneo visual errático' });
+    }
+    if (removals >= 4) {
+        clinicalFlags.push({ flag: 'HIGH_SELF_CORRECTION', severity: 'low',
+            desc: removals + ' items removidos — indecisión o excesiva autocorrección' });
     }
 
-    // RENDER
+    // ---- RENDER RESULTS ----
     document.getElementById('consigna').style.display = 'none';
     document.querySelectorAll('.gondola-section').forEach(function(s) { s.style.display = 'none'; });
     document.querySelector('#budget-bar').parentElement.style.display = 'none';
@@ -514,16 +621,37 @@ function finishGame() {
     var resultsDiv = document.getElementById('results');
     resultsDiv.style.display = 'block';
 
+    // Build essentials display (with alternative groups)
+    var essentialHTML = essentialResults.map(function(r) {
+        if (r.got.length > 0) {
+            // Got at least one from group
+            return r.got.map(function(p) {
+                return '<div style="font-size: 0.8rem; padding: 3px 0;">✅ ' + p.emoji + ' ' + p.name +
+                    ' <span style="color: var(--success); font-size: 0.7rem;">$' + productPrices[p.id].toLocaleString('es-AR') + '</span>' +
+                    (p.desc ? ' <span style="color:rgba(255,255,255,0.3);">— ' + p.desc + '</span>' : '') + '</div>';
+            }).join('') +
+            // Show unchosen alternatives as grey (NOT as errors)
+            r.group.items.filter(function(p) { return cart.indexOf(p.id) < 0; }).map(function(p) {
+                return '<div style="font-size: 0.75rem; padding: 2px 0; color: rgba(255,255,255,0.25);">↳ ' + p.emoji + ' ' + p.name + ' <span style="font-style: italic;">alternativa no elegida</span></div>';
+            }).join('');
+        } else {
+            // Missed entire group
+            return '<div style="font-size: 0.8rem; padding: 3px 0;">❌ <span style="color: #f59e0b;">' +
+                r.group.items.map(function(p) { return p.emoji + ' ' + p.name; }).join(' ó ') +
+                '</span> <span style="color:rgba(255,255,255,0.3);">— falta</span></div>';
+        }
+    }).join('');
+
     resultsDiv.innerHTML =
         '<div style="background: var(--surface); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.08);">' +
             '<h2 style="margin: 0 0 4px; font-size: 1.3rem;">🧾 Ticket de compra</h2>' +
             '<p style="margin: 0 0 20px; font-size: 0.85rem; color: rgba(255,255,255,0.4);">Evaluación de planificación para hacer milanesas</p>' +
 
-            // Score cards row 1
-            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px;">' +
+            // Score cards row
+            '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px;">' +
                 '<div class="score-card"><div class="score-val" style="color: ' + tierColor + ';">' + score + '%</div><div class="score-lbl">Puntaje global</div></div>' +
                 '<div class="score-card"><div class="score-val" style="color: ' + tierColor + '; font-size: 1.1rem;">' + tierLabel + '</div><div class="score-lbl">Nivel</div></div>' +
-                '<div class="score-card"><div class="score-val">' + gotEssentials.length + '/' + essentials.length + '</div><div class="score-lbl">Esenciales</div></div>' +
+                '<div class="score-card"><div class="score-val">' + essentialCompleteCount + '/' + essentialTotal + '</div><div class="score-lbl">Esenciales</div></div>' +
                 '<div class="score-card"><div class="score-val" style="color: var(--gold);">' + gotAdvanced.length + '/' + advanced.length + '</div><div class="score-lbl">Avanzados</div></div>' +
                 '<div class="score-card"><div class="score-val" style="color: ' + (gotErrors.length > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + gotErrors.length + '</div><div class="score-lbl">Errores</div></div>' +
                 '<div class="score-card"><div class="score-val">' + Math.round(totalTime / 1000) + 's</div><div class="score-lbl">Tiempo</div></div>' +
@@ -542,17 +670,13 @@ function finishGame() {
                 (priceCheckCount > 0 ? '<div style="font-size: 0.75rem; color: var(--success); margin-top: 4px;">Ajustes de carrito para cuadrar: ' + priceCheckCount + '</div>' : '') +
             '</div>' +
 
-            // TIERS
+            // Essentials
             '<div class="tier tier-basic">' +
                 '<div style="font-weight: 700; font-size: 0.85rem; color: #60a5fa; margin-bottom: 6px;">📋 Esenciales (Aprobado)</div>' +
-                essentials.map(function(p) {
-                    var got = cart.indexOf(p.id) >= 0;
-                    return '<div style="font-size: 0.8rem; padding: 3px 0;">' + (got ? '✅' : '❌') + ' ' + p.emoji + ' ' + p.name +
-                        (got ? ' <span style="color: var(--success); font-size: 0.7rem;">$' + productPrices[p.id].toLocaleString('es-AR') + '</span>' : '') +
-                        (p.desc ? ' <span style="color:rgba(255,255,255,0.3);">— ' + p.desc + '</span>' : '') + '</div>';
-                }).join('') +
+                essentialHTML +
             '</div>' +
 
+            // Advanced
             '<div class="tier tier-advanced">' +
                 '<div style="font-weight: 700; font-size: 0.85rem; color: var(--gold); margin-bottom: 6px;">⭐ Avanzados (Excelente)</div>' +
                 advanced.map(function(p) {
@@ -563,55 +687,80 @@ function finishGame() {
                 }).join('') +
             '</div>' +
 
+            // Errors
             (gotErrors.length > 0 ?
                 '<div class="tier tier-error">' +
                     '<div style="font-weight: 700; font-size: 0.85rem; color: var(--danger); margin-bottom: 6px;">⚠️ Errores de planificación</div>' +
-                    gotErrors.map(function(id) {
-                        var p = PRODUCTS.find(function(x) { return x.id === id; });
+                    gotErrors.map(function(p) {
                         return '<div style="font-size: 0.8rem; padding: 3px 0;">❌ ' + p.emoji + ' ' + p.name + ' $' + productPrices[p.id].toLocaleString('es-AR') + ' — irrelevante para milanesas</div>';
                     }).join('') +
                 '</div>'
             : '') +
 
-            // Clinical
+            // NEW: Cognitive Metrics Panel
+            '<div style="margin-top: 14px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 14px; padding: 16px;">' +
+                '<div style="font-weight: 700; font-size: 0.85rem; color: #818cf8; margin-bottom: 10px;">🧠 Métricas Cognitivas</div>' +
+                '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + firstClickSec + 's</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Latencia de inicio</div></div>' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + avgHesitation + 's</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Hesitación promedio</div></div>' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + removals + '</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Autocorrecciones</div></div>' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + scanScore + '%</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Escaneo sistemático</div></div>' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + gondolaVisitOrder.length + '/6</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Góndolas visitadas</div></div>' +
+                    '<div class="score-card" style="padding:12px;"><div style="font-size:1rem;font-weight:700;color:#a5b4fc;">' + gotNeutral.length + '</div><div style="font-size:0.6rem;color:rgba(255,255,255,0.4);">Items neutros</div></div>' +
+                '</div>' +
+                '<div style="font-size:0.7rem; color:rgba(255,255,255,0.3); margin-top:8px;">Recorrido: ' + gondolaVisitOrder.join(' → ') + '</div>' +
+            '</div>' +
+
+            // Clinical flags
             (clinicalFlags.length > 0 ?
-                '<details style="margin-top: 16px;">' +
-                    '<summary style="cursor: pointer; font-size: 0.8rem; color: rgba(255,255,255,0.4);">🧠 Nota clínica (solo visible para profesionales)</summary>' +
-                    '<div style="margin-top: 8px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px;">' +
-                        clinicalFlags.map(function(f) {
-                            var c = f.severity === 'positive' ? '#22c55e' : f.severity === 'high' ? '#ef4444' : '#f59e0b';
-                            return '<div style="font-size: 0.78rem; padding: 4px 0; color: rgba(255,255,255,0.6);"><span style="color: ' + c + '; font-weight: 600;">[' + f.flag + ']</span> ' + f.desc + '</div>';
-                        }).join('') +
-                    '</div>' +
-                '</details>'
+                '<div style="margin-top: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px;">' +
+                    '<div style="font-weight: 700; font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-bottom: 8px;">📊 Indicadores clínicos</div>' +
+                    clinicalFlags.map(function(f) {
+                        var icon = f.severity === 'positive' ? '🟢' : f.severity === 'high' ? '🔴' : f.severity === 'moderate' ? '🟡' : '🔵';
+                        return '<div style="font-size: 0.75rem; padding: 3px 0; color: rgba(255,255,255,0.5);">' + icon + ' <strong>' + f.flag + '</strong> — ' + f.desc + '</div>';
+                    }).join('') +
+                '</div>'
             : '') +
 
-            '<div style="text-align: center; margin-top: 20px;">' +
-                '<button onclick="window.location.reload()" style="padding: 10px 24px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; margin-right: 8px;">Jugar de nuevo</button>' +
-                '<button onclick="goToPortal()" style="padding: 10px 24px; border-radius: 10px; border: none; background: var(--accent); color: #fff; cursor: pointer;">Volver al portal</button>' +
+            // Buttons
+            '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">' +
+                '<button onclick="location.reload()" style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.85rem;">🔄 Jugar de nuevo</button>' +
+                '<button onclick="goToPortal()" style="padding: 12px 24px; border-radius: 12px; border: none; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600;">🏠 Volver al portal</button>' +
             '</div>' +
         '</div>';
 
-    // Save
-    saveResults({
-        score: score, tier_label: tierLabel, core_complete: coreComplete,
-        budget: BUDGET, cart_total: cartTotal, remaining: remaining,
-        budget_use_pct: budgetUsePct, budget_label: budgetLabel,
-        over_budget_attempts: overBudgetAttempts, price_adjustments: priceCheckCount,
-        essentials_got: gotEssentials.map(function(p) { return p.id; }),
-        essentials_missed: missedEssentials.map(function(p) { return p.id; }),
+    // ---- SUPABASE SAVE ----
+    saveSupermarketResult({
+        patient_id: patientId,
+        score: score,
+        tier: tierLabel,
+        total_time_ms: totalTime,
+        budget: BUDGET,
+        spent: cartTotal,
+        remaining: remaining,
+        budget_use_pct: budgetUsePct,
+        essentials_got: essentialCompleteCount + '/' + essentialTotal,
         advanced_got: gotAdvanced.map(function(p) { return p.id; }),
         errors_got: gotErrors.map(function(p) { return p.id; }),
-        neutrals_got: gotNeutral, total_items: cart.length, total_time_ms: totalTime,
-        has_nuez_moscada: cart.indexOf('nuez_moscada') >= 0,
-        has_escarbadientes: cart.indexOf('escarbadientes') >= 0,
-        product_prices: productPrices,
-        clinical_flags: clinicalFlags, action_log: actionLog
+        neutral_got: gotNeutral,
+        cart_items: cart,
+        over_budget_attempts: overBudgetAttempts,
+        price_adjustments: priceCheckCount,
+        // NEW cognitive metrics
+        first_click_latency_ms: firstClickTime,
+        avg_hesitation_ms: hesitationGaps.length > 0 ? Math.round(hesitationGaps.reduce(function(a,b){return a+b;},0) / hesitationGaps.length) : 0,
+        max_hesitation_ms: hesitationGaps.length > 0 ? Math.max.apply(null, hesitationGaps) : 0,
+        removals: removals,
+        self_correction_ratio: selfCorrectionRatio,
+        scan_score: scanScore,
+        gondola_visit_order: gondolaVisitOrder,
+        total_actions: actionLog.length,
+        clinical_flags: clinicalFlags,
+        action_log: actionLog
     });
 
     if (typeof showPostGameColorModal === 'function') showPostGameColorModal();
 }
-
 function goToPortal() {
     window.location.href = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
 }
