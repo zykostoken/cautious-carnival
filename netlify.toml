@@ -61,11 +61,13 @@
   from = "/hdd/portal"
   to = "/hdd/portal/index.html"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/hdd/portal/"
   to = "/hdd/portal/index.html"
   status = 200
+  force = true
 
 # HDD Games
 [[redirects]]
