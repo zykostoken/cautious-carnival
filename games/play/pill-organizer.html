@@ -344,6 +344,8 @@
             document.getElementById('game-container').style.display = 'block';
             setupDragAndDrop();
             startGameSession();
+            // Mood check: ahora aparece DESPUÉS de que el juego se ve (no bloquea inicio)
+            if (typeof showPreGameChat === 'function') showPreGameChat();
         }
 
         async function getOrCreatePatient(dni) {

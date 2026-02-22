@@ -1,8 +1,8 @@
 // ====================================================================
-// MOOD MODALS v6.0 - Clínica José Ingenieros
-// Self-contained overlays. No external HTML. Supabase persistence.
-// Pre-game: conversational chat. Post-game: Lüscher 12-color picker.
-// v6: sessionStorage fallback for incognito/private browsing
+// MOOD MODALS v7.0 - Clínica José Ingenieros
+// v7: NO auto-trigger - cada juego llama showPreGameChat() manualmente
+//     despues de que el usuario hace click en COMENZAR.
+//     Así el modal nunca bloquea la pantalla de inicio.
 // ====================================================================
 
 var MOOD_COLORS = [
@@ -51,12 +51,12 @@ function _moodSaveToSupabase(type, data) {
 }
 
 // ====================================================================
-// PRE-GAME CHAT
+// PRE-GAME CHAT — llamar manualmente desde startGame()/beginGame()
 // ====================================================================
 function showPreGameChat() {
-    // Check if already done today (localStorage OR sessionStorage for incognito)
     var today = new Date().toISOString().split('T')[0];
     if (_moodStorageGet('mood_pregame_done_' + today)) return;
+    if (document.getElementById('mood-pre-overlay')) return;
 
     var urlParams = new URLSearchParams(window.location.search);
     _moodState.patientId = urlParams.get('patient_id') || _moodStorageGet('hdd_patient_id') || 'DEMO';
@@ -64,27 +64,42 @@ function showPreGameChat() {
     _moodState.step = 0;
     _moodState.responses = [];
 
-    if (document.getElementById('mood-pre-overlay')) return;
-
     var overlay = document.createElement('div');
     overlay.id = 'mood-pre-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:mfadeIn .3s ease';
 
     var card = document.createElement('div');
-    card.style.cssText = 'background:#1e293b;border-radius:20px;padding:28px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
+    card.style.cssText = 'position:relative;background:#1e293b;border-radius:20px;padding:28px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
 
     var questions = [
-        { q: '¡Hola! ¿Cómo estás hoy? 😊', placeholder: 'Bien, más o menos, cansado/a...', input: true },
-        { q: '¿Descansaste bien anoche? 😴', placeholder: 'Sí, no mucho, regular...', input: true },
-        { q: '¡Genial! ¿Listo/a para jugar? 🎮', placeholder: null, input: false }
+        { q: '¡Hola! ¿Cómo estás hoy?', placeholder: 'Bien, más o menos, cansado/a...', input: true },
+        { q: '¿Descansaste bien anoche?', placeholder: 'Sí, no mucho, regular...', input: true },
+        { q: '¡Genial! ¿Listo/a para empezar?', placeholder: null, input: false }
     ];
+
+    function dismiss() {
+        _moodStorageSet('mood_pregame_done_' + today, 'done');
+        overlay.style.animation = 'mfadeOut .25s ease forwards';
+        setTimeout(function() { overlay.remove(); }, 300);
+    }
 
     function renderStep() {
         var s = questions[_moodState.step];
         card.innerHTML = '';
 
+        // X button siempre presente
+        var xBtn = document.createElement('button');
+        xBtn.innerHTML = '✕';
+        xBtn.title = 'Saltar';
+        xBtn.style.cssText = 'position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.9rem;line-height:1;display:flex;align-items:center;justify-content:center;';
+        xBtn.onclick = function() {
+            _moodSaveToSupabase('pre_game', { responses: _moodState.responses, skipped: true });
+            dismiss();
+        };
+        card.appendChild(xBtn);
+
         var qEl = document.createElement('p');
-        qEl.style.cssText = 'font-size:1.15rem;font-weight:600;margin:0 0 16px;line-height:1.4';
+        qEl.style.cssText = 'font-size:1.1rem;font-weight:600;margin:0 0 16px;line-height:1.4;padding-top:8px';
         qEl.textContent = s.q;
         card.appendChild(qEl);
 
@@ -117,18 +132,14 @@ function showPreGameChat() {
             row.appendChild(skipBtn);
             row.appendChild(nextBtn);
             card.appendChild(row);
-
             setTimeout(function() { inp.focus(); }, 100);
         } else {
-            // Final step — play button
             var playBtn = document.createElement('button');
-            playBtn.textContent = '¡Dale, a jugar! 🚀';
+            playBtn.textContent = '¡Empezar!';
             playBtn.style.cssText = 'padding:14px 36px;border-radius:14px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;cursor:pointer;font-size:1.05rem;font-weight:700;margin-top:8px';
             playBtn.onclick = function() {
-                _moodStorageSet('mood_pregame_done_' + today, 'true');
-                _moodSaveToSupabase('pre_game', { responses: _moodState.responses, questions: questions.map(function(q){return q.q;}) });
-                overlay.style.animation = 'mfadeOut .25s ease forwards';
-                setTimeout(function() { overlay.remove(); }, 300);
+                _moodSaveToSupabase('pre_game', { responses: _moodState.responses });
+                dismiss();
             };
             card.appendChild(playBtn);
         }
@@ -136,23 +147,8 @@ function showPreGameChat() {
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
-
-    // Add close button (top-right corner) — safety escape
-    var closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
-    closeBtn.title = 'Saltar chequeo emocional';
-    closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:10000';
-    closeBtn.onclick = function() {
-        _moodStorageSet('mood_pregame_done_' + today, 'skipped');
-        _moodSaveToSupabase('pre_game', { responses: ['(cerrado con X)'], skipped: true });
-        overlay.style.animation = 'mfadeOut .25s ease forwards';
-        setTimeout(function() { overlay.remove(); }, 300);
-    };
-    overlay.appendChild(closeBtn);
-
     renderStep();
 
-    // CSS animations
     if (!document.getElementById('mood-css')) {
         var css = document.createElement('style');
         css.id = 'mood-css';
@@ -174,7 +170,7 @@ function showPostGameColorModal() {
     var card = document.createElement('div');
     card.style.cssText = 'background:#1e293b;border-radius:20px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
 
-    card.innerHTML = '<p style="font-size:1.1rem;font-weight:600;margin:0 0 18px;">¿Querés elegir un color? 🎨</p>' +
+    card.innerHTML = '<p style="font-size:1.1rem;font-weight:600;margin:0 0 18px;">¿Querés elegir un color?</p>' +
         '<div id="mood-color-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;"></div>' +
         '<button id="mood-color-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.82rem;">No, gracias</button>';
 
@@ -207,13 +203,9 @@ function showPostGameColorModal() {
 }
 
 // ====================================================================
-// AUTO-INIT
+// initMoodModals — ya no hace nada automatico. 
+// Compatible con llamadas existentes pero no dispara el modal.
 // ====================================================================
 function initMoodModals() {
-    setTimeout(function() { showPreGameChat(); }, 400);
-}
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMoodModals);
-} else {
-    initMoodModals();
+    // v7: no-op. Los juegos llaman showPreGameChat() manualmente.
 }

@@ -3,678 +3,921 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Rutina Diaria - Evaluación de Planificación | CJI HDD</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Rutina Diaria | CJI HDD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #0c1222; --surface: #1a2332; --card: #243447; --accent: #6366f1; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; }
-        body { background: linear-gradient(160deg, #0c1222 0%, #1a1a3e 50%, #0c1222 100%); color: #e2e8f0; font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0f1e;
+            color: #e2e8f0;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-left a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 0.8rem; display: block; }
+        .header-left h1 { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+        .header-right { text-align: right; }
+        #timer-display { font-size: 1.6rem; font-family: monospace; font-weight: 700; color: #7c3aed; }
+        #patient-display { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+        /* ── PROGRESS BAR ── */
+        #progress-bar-wrap {
+            background: rgba(255,255,255,0.05);
+            padding: 10px 20px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        #progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        #progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa); border-radius: 3px; transition: width .4s ease; width: 0%; }
+        #progress-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); white-space: nowrap; }
+
+        /* ── START SCREEN ── */
+        #start-screen {
+            display: flex; align-items: center; justify-content: center;
+            min-height: calc(100vh - 55px); padding: 24px;
+        }
+        .start-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px; padding: 40px; max-width: 480px; width: 100%; text-align: center;
+        }
+        .start-card h2 { font-size: 1.8rem; margin-bottom: 8px; }
+        .start-card p { color: rgba(255,255,255,0.6); margin-bottom: 24px; line-height: 1.6; }
+        .btn-start {
+            display: inline-block; padding: 16px 48px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none; border-radius: 14px; color: #fff;
+            font-size: 1.15rem; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+            transition: all .2s;
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.5); }
+
+        /* ── PHASE 1: PHOTO GRID ── */
+        #phase1 { display: none; padding: 16px; }
+
+        .phase-title {
+            font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em;
+            text-transform: uppercase; color: rgba(255,255,255,0.35);
+            text-align: center; margin-bottom: 12px;
+        }
+
+        #habits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            max-width: 1000px; margin: 0 auto;
+        }
+
         .habit-card {
-            background: var(--card); border: 2px solid rgba(255,255,255,0.08); border-radius: 16px;
-            padding: 16px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-            user-select: none; position: relative; overflow: hidden;
+            position: relative;
+            width: 100%; padding-top: 80%;
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all .2s;
+            background: #1e293b;
         }
-        .habit-card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
-        .habit-card.selected { border-color: var(--accent); background: rgba(99,102,241,0.15); box-shadow: 0 0 25px rgba(99,102,241,0.2); }
-        .habit-card.selected::after { content: '✓'; position: absolute; top: 8px; right: 10px; font-size: 1.2rem; color: var(--accent); font-weight: 900; }
-        .habit-card.healthy-pick { border-color: var(--success); }
-        .habit-card.unhealthy-pick { border-color: var(--danger); animation: shake 0.4s; }
-        .habit-card .emoji { font-size: 2.2rem; }
-        .habit-card .label { font-size: 0.85rem; font-weight: 600; margin-top: 6px; }
-        .habit-card .desc { font-size: 0.7rem; opacity: 0.6; margin-top: 2px; }
-        
+        .habit-card:hover { transform: scale(1.04); }
+        .habit-card.selected {
+            border-color: #a78bfa;
+            box-shadow: 0 0 0 3px rgba(167,139,250,0.3), 0 8px 30px rgba(124,58,237,0.3);
+        }
+        .habit-card.unhealthy.selected {
+            border-color: #f87171;
+            box-shadow: 0 0 0 3px rgba(248,113,113,0.3);
+        }
+        .habit-photo {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .habit-photo-fallback {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--fb-from, #1e293b), var(--fb-to, #334155));
+        }
+        /* Overlay siempre visible pero sutil - se intensifica al seleccionar */
+        .habit-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+            transition: all .2s;
+        }
+        .habit-card.selected .habit-overlay {
+            background: linear-gradient(to top, rgba(109,40,217,0.85) 0%, rgba(109,40,217,0.15) 100%);
+        }
+        .habit-card.unhealthy.selected .habit-overlay {
+            background: linear-gradient(to top, rgba(239,68,68,0.85) 0%, rgba(239,68,68,0.15) 100%);
+        }
+        .habit-check {
+            position: absolute; top: 8px; right: 8px;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; opacity: 0; transition: all .2s;
+        }
+        .habit-card.selected .habit-check { opacity: 1; background: #7c3aed; border-color: #a78bfa; }
+        .habit-card.unhealthy.selected .habit-check { background: #dc2626; border-color: #f87171; }
+
+        /* tiny label bottom — visible but subtle */
+        .habit-label {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 6px 8px 8px;
+            font-size: 0.65rem; font-weight: 600;
+            color: rgba(255,255,255,0.85);
+            letter-spacing: 0.02em;
+            z-index: 2;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Button to advance */
+        .btn-next-phase {
+            display: block; margin: 20px auto 0;
+            padding: 14px 40px; max-width: 320px; width: 100%;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            border: none; border-radius: 14px; color: #fff;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            opacity: 0.35; transition: all .3s;
+        }
+        .btn-next-phase.ready { opacity: 1; box-shadow: 0 4px 20px rgba(124,58,237,0.4); }
+        .btn-next-phase.ready:hover { transform: translateY(-2px); }
+
+        /* ── PHASE 2: TIMELINE ── */
+        #phase2 { display: none; padding: 16px; }
+
+        #selected-pool {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center; margin-bottom: 16px;
+            min-height: 80px;
+        }
+        .pool-card {
+            position: relative; width: 72px; height: 72px;
+            border-radius: 12px; overflow: hidden; cursor: grab;
+            border: 2px solid rgba(255,255,255,0.15);
+            background: #1e293b; flex-shrink: 0;
+            transition: all .2s;
+        }
+        .pool-card:hover { transform: scale(1.08); border-color: rgba(167,139,250,0.5); }
+        .pool-card.placed { opacity: 0.25; cursor: default; pointer-events: none; }
+        .pool-card img { width: 100%; height: 100%; object-fit: cover; }
+        .pool-card .pool-emoji { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+
+        #timeline {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 700px; margin: 0 auto;
+        }
+        .timeline-group { }
+        .timeline-group-title {
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em;
+            text-transform: uppercase; padding: 6px 4px;
+            color: rgba(255,255,255,0.4); text-align: center;
+        }
         .timeline-slot {
-            background: rgba(255,255,255,0.04); border: 2px dashed rgba(255,255,255,0.15);
-            border-radius: 12px; min-height: 64px; padding: 10px 14px; transition: all 0.2s;
-            display: flex; align-items: center; gap: 12px; cursor: pointer;
+            position: relative;
+            width: 100%; padding-top: 80%;
+            border-radius: 12px; overflow: hidden;
+            border: 2px dashed rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.03);
+            cursor: pointer; transition: all .25s;
         }
-        .timeline-slot.filled { border-style: solid; border-color: var(--accent); background: rgba(99,102,241,0.08); }
-        .timeline-slot.drag-over { border-color: var(--success); background: rgba(34,197,94,0.1); }
-        .timeline-slot .time-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); min-width: 50px; font-weight: 700; }
-        
-        .phase-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .phase-morning { background: rgba(251,191,36,0.2); color: #fbbf24; }
-        .phase-afternoon { background: rgba(251,146,60,0.2); color: #fb923c; }
-        .phase-evening { background: rgba(139,92,246,0.2); color: #8b5cf6; }
-        
-        .score-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; }
-        
-        .btn-primary { background: linear-gradient(135deg, var(--accent), #818cf8); border: none; color: #fff; padding: 14px 36px; border-radius: 14px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-        .btn-primary:hover { transform: scale(1.04); box-shadow: 0 8px 25px rgba(99,102,241,0.4); }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-        
-        .toast-container { position: fixed; top: 80px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-        .toast { padding: 12px 20px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; animation: slideIn 0.3s ease; pointer-events: auto; }
-        
-        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
-        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        .animate-in { animation: fadeIn 0.4s ease; }
-        
-        .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: linear-gradient(90deg, var(--accent), #818cf8); }
+        .timeline-slot.drop-over { border-color: #a78bfa; background: rgba(124,58,237,0.1); transform: scale(1.03); }
+        .timeline-slot.filled { border-style: solid; border-color: #7c3aed; }
+        .timeline-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .timeline-slot .slot-emoji { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+        .timeline-slot .slot-label {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 4px 6px 6px;
+            font-size: 0.6rem; font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+        .timeline-slot .slot-order {
+            position: absolute; top: 6px; left: 6px;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(0,0,0,0.6); color: #fff;
+            font-size: 0.65rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 3;
+        }
+        .slot-remove {
+            position: absolute; top: 6px; right: 6px;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.7); cursor: pointer;
+            font-size: 0.7rem; display: none; align-items: center; justify-content: center;
+            z-index: 4;
+        }
+        .timeline-slot.filled:hover .slot-remove { display: flex; }
+
+        .btn-finish-phase {
+            display: block; margin: 20px auto 0;
+            padding: 14px 40px; max-width: 320px; width: 100%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none; border-radius: 14px; color: #fff;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            opacity: 0.35; transition: all .3s;
+        }
+        .btn-finish-phase.ready { opacity: 1; box-shadow: 0 4px 20px rgba(34,197,94,0.4); }
+
+        /* ── RESULTS ── */
+        #results { display: none; padding: 24px; }
+        .results-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px; padding: 32px; max-width: 600px; margin: 0 auto; text-align: center;
+        }
+        .score-circle {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2.5rem; font-weight: 800;
+        }
+        .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; }
+        .result-row:last-child { border: none; }
+        .btn-replay { display: inline-block; margin-top: 20px; padding: 12px 32px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.9rem; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeUp .25s ease forwards; }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<header style="background: linear-gradient(135deg, #1e1a5f 0%, #0c1222 100%); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 16px 24px;">
-    <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <a id="back-link" href="/hdd/portal/" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem;">← Volver al portal</a>
-            <h1 style="margin: 4px 0 0; font-size: 1.5rem; font-weight: 800;">🌅 Mi Rutina Diaria</h1>
-            <p style="font-size: 0.75rem; opacity: 0.6; margin: 2px 0 0;">Clínica José Ingenieros · Hospital de Día</p>
-        </div>
-        <div style="text-align: right;">
-            <div id="patient-display" style="font-size: 0.8rem; opacity: 0.7;">Paciente: --</div>
-            <div id="timer-display" style="font-size: 1.8rem; font-family: monospace; font-weight: 800;">00:00</div>
-            <div id="phase-display" style="font-size: 0.75rem; opacity: 0.6;">Fase 1/2</div>
-        </div>
+<header>
+    <div class="header-left">
+        <a id="back-link" href="/hdd/portal/">← Portal</a>
+        <h1>Rutina Diaria</h1>
+    </div>
+    <div class="header-right">
+        <div id="timer-display">00:00</div>
+        <div id="patient-display">—</div>
     </div>
 </header>
 
-<div class="toast-container" id="toast-container"></div>
+<div id="progress-bar-wrap" style="display:none">
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="progress-label">0 seleccionadas</div>
+</div>
 
-<!-- ===================== -->
-<!-- PANTALLA DE INICIO -->
-<!-- ===================== -->
-<div id="start-screen" style="display:flex; align-items:center; justify-content:center; min-height: calc(100vh - 80px); padding: 24px;">
-    <div style="background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; max-width: 520px; width: 100%; text-align: center;">
-        <div style="font-size: 4rem; margin-bottom: 12px;">🌅</div>
-        <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0 0 8px;">Mi Rutina Diaria</h2>
-        <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 24px;">Evaluación de Planificación · Toma de Decisiones · AVD</p>
-        
-        <div style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 20px;">
-            <h3 style="font-size: 0.85rem; font-weight: 700; color: #818cf8; margin: 0 0 10px;">📋 CONSIGNA</h3>
-            <p style="font-size: 0.85rem; margin: 0 0 12px; line-height: 1.5;">Armá tu rutina diaria ideal en <strong>2 fases</strong>:</p>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
-                    <span style="font-size: 1.2rem;">🎯</span>
-                    <div>
-                        <strong style="font-size: 0.8rem;">Fase 1 — Elegí tus hábitos</strong>
-                        <p style="font-size: 0.7rem; opacity: 0.6; margin: 2px 0 0;">Seleccioná las actividades saludables que incluirías en tu día.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 10px;">
-                    <span style="font-size: 1.2rem;">🕐</span>
-                    <div>
-                        <strong style="font-size: 0.8rem;">Fase 2 — Ordenalos en tu día</strong>
-                        <p style="font-size: 0.7rem; opacity: 0.6; margin: 2px 0 0;">Ubicá cada hábito en el horario correcto: mañana, tarde o noche.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15); border-radius: 12px; padding: 12px; margin-bottom: 24px; font-size: 0.75rem; color: rgba(255,255,255,0.6);">
-            <strong style="color: #a78bfa;">🔬 Se evaluará:</strong> Selección de hábitos saludables, secuenciación temporal, planificación y juicio.
-        </div>
-        
-        <button onclick="beginGame()" class="btn-primary" style="width: 100%; font-size: 1.2rem; padding: 16px;">
-            ▶ COMENZAR
-        </button>
+<!-- START SCREEN -->
+<div id="start-screen">
+    <div class="start-card">
+        <h2>Mi Rutina Diaria</h2>
+        <p>Seleccioná las actividades que forman parte de una rutina saludable, y luego ordenálas en el día.</p>
+        <button class="btn-start" onclick="beginGame()">Comenzar</button>
     </div>
 </div>
 
-<!-- ===================== -->
-<!-- FASE 1: SELECCIÓN -->
-<!-- ===================== -->
-<div id="phase1" style="display:none; max-width: 1100px; margin: 0 auto; padding: 24px 16px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0;">🎯 Fase 1: Elegí tus hábitos</h2>
-        <p style="font-size: 0.8rem; opacity: 0.5; margin: 6px 0;">Tocá las actividades <strong>saludables</strong> que incluirías en tu día ideal. Evitá las que no son saludables.</p>
-        <div style="margin: 12px auto; max-width: 400px;">
-            <div class="progress-bar"><div id="selection-progress" class="progress-fill" style="width: 0%;"></div></div>
-            <div style="font-size: 0.7rem; opacity: 0.4; margin-top: 4px;"><span id="selected-count">0</span> seleccionados · mínimo 8 para continuar</div>
-        </div>
-    </div>
-    
-    <div id="habits-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px;"></div>
-    
-    <div style="text-align: center; padding: 20px 0;">
-        <button id="btn-to-phase2" onclick="goToPhase2()" class="btn-primary" disabled>
-            Continuar a Fase 2 →
-        </button>
-    </div>
+<!-- PHASE 1 -->
+<div id="phase1">
+    <p class="phase-title">¿Qué hacés en tu día? Seleccioná lo que corresponde</p>
+    <div id="habits-grid"></div>
+    <button id="btn-to-phase2" class="btn-next-phase" disabled onclick="goToPhase2()">
+        Continuar →
+    </button>
 </div>
 
-<!-- ===================== -->
-<!-- FASE 2: ORDENAR -->
-<!-- ===================== -->
-<div id="phase2" style="display:none; max-width: 900px; margin: 0 auto; padding: 24px 16px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="font-size: 1.3rem; font-weight: 800; margin: 0;">🕐 Fase 2: Armá tu horario</h2>
-        <p style="font-size: 0.8rem; opacity: 0.5; margin: 6px 0;">Arrastrá cada hábito al momento del día que corresponde.</p>
-        <div style="margin: 12px auto; max-width: 400px;">
-            <div class="progress-bar"><div id="timeline-progress" class="progress-fill" style="width: 0%;"></div></div>
-            <div style="font-size: 0.7rem; opacity: 0.4; margin-top: 4px;"><span id="placed-count">0</span>/<span id="total-to-place">0</span> ubicados</div>
+<!-- PHASE 2 -->
+<div id="phase2">
+    <p class="phase-title">Organizá tu día: colocá cada actividad en su momento</p>
+    <div id="selected-pool"></div>
+    <div id="timeline">
+        <div class="timeline-group">
+            <div class="timeline-group-title">Mañana</div>
+            <div id="slots-morning"></div>
+        </div>
+        <div class="timeline-group">
+            <div class="timeline-group-title">Tarde</div>
+            <div id="slots-afternoon"></div>
+        </div>
+        <div class="timeline-group">
+            <div class="timeline-group-title">Noche</div>
+            <div id="slots-evening"></div>
         </div>
     </div>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <!-- LEFT: habits to place -->
-        <div>
-            <h3 style="font-size: 0.85rem; font-weight: 700; opacity: 0.5; margin: 0 0 12px;">📦 Hábitos por ubicar</h3>
-            <div id="habits-bank" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-        
-        <!-- RIGHT: timeline -->
-        <div>
-            <div style="margin-bottom: 16px;">
-                <span class="phase-badge phase-morning">☀️ Mañana (6-12hs)</span>
-            </div>
-            <div id="timeline-morning" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
-            
-            <div style="margin-bottom: 16px;">
-                <span class="phase-badge phase-afternoon">🌤️ Tarde (12-18hs)</span>
-            </div>
-            <div id="timeline-afternoon" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
-            
-            <div style="margin-bottom: 16px;">
-                <span class="phase-badge phase-evening">🌙 Noche (18-23hs)</span>
-            </div>
-            <div id="timeline-evening" class="timeline-section" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
-        </div>
-    </div>
-    
-    <div style="text-align: center; padding: 24px 0;">
-        <button id="btn-finish" onclick="finishGame()" class="btn-primary" style="display:none;">
-            ✅ Finalizar y ver resultados
-        </button>
-    </div>
+    <button id="btn-finish" class="btn-finish-phase" disabled onclick="finishGame()">
+        Ver resultados
+    </button>
 </div>
 
-<!-- ===================== -->
-<!-- RESULTADOS -->
-<!-- ===================== -->
-<div id="results-screen" style="display:none; max-width: 700px; margin: 0 auto; padding: 40px 16px; text-align: center;">
-    <div id="results-content"></div>
+<!-- RESULTS -->
+<div id="results">
+    <div class="results-card animate-in" id="results-content"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ========== CONFIG ==========
+// ================================================================
+// SUPABASE
+// ================================================================
 const SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
 let supabase = null;
-try {
-    if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } else { console.warn('[daily-routine] Supabase SDK offline'); }
-} catch(e) { console.warn('[daily-routine] Supabase init failed:', e.message); }
+try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
 
-// ========== HABITS DATABASE ==========
+// ================================================================
+// HABITS DATA — con fotos de Unsplash (IDs confiables) + emoji fallback
+// ================================================================
 const HABITS = [
-    // HEALTHY - MORNING
-    { id: 'despertarse_horario', emoji: '⏰', label: 'Despertarse a horario', desc: 'Levantarse a la misma hora', healthy: true, phase: 'morning', order: 1 },
-    { id: 'higiene_matutina', emoji: '🪥', label: 'Higiene personal', desc: 'Lavarse dientes, cara, ducha', healthy: true, phase: 'morning', order: 2 },
-    { id: 'desayuno', emoji: '🥐', label: 'Desayunar', desc: 'Desayuno nutritivo completo', healthy: true, phase: 'morning', order: 3 },
-    { id: 'medicacion_am', emoji: '💊', label: 'Tomar medicación', desc: 'Medicación de la mañana', healthy: true, phase: 'morning', order: 4 },
-    { id: 'tender_cama', emoji: '🛏️', label: 'Tender la cama', desc: 'Ordenar la cama al levantarse', healthy: true, phase: 'morning', order: 5 },
-    { id: 'ejercicio', emoji: '🏃', label: 'Actividad física', desc: 'Caminar, ejercicio, elongar', healthy: true, phase: 'morning', order: 6 },
-    
-    // HEALTHY - AFTERNOON
-    { id: 'almuerzo', emoji: '🍽️', label: 'Almorzar', desc: 'Almuerzo balanceado', healthy: true, phase: 'afternoon', order: 1 },
-    { id: 'taller_hdd', emoji: '🏥', label: 'Taller del HDD', desc: 'Asistir al taller terapéutico', healthy: true, phase: 'afternoon', order: 2 },
-    { id: 'hobby', emoji: '🎨', label: 'Hobby/actividad', desc: 'Pintar, leer, música, etc.', healthy: true, phase: 'afternoon', order: 3 },
-    { id: 'merienda', emoji: '☕', label: 'Merienda', desc: 'Merienda saludable', healthy: true, phase: 'afternoon', order: 4 },
-    { id: 'social', emoji: '👥', label: 'Contacto social', desc: 'Hablar con amigos o familia', healthy: true, phase: 'afternoon', order: 5 },
-    
-    // HEALTHY - EVENING
-    { id: 'cena', emoji: '🥗', label: 'Cenar', desc: 'Cena liviana y nutritiva', healthy: true, phase: 'evening', order: 1 },
-    { id: 'medicacion_pm', emoji: '💊', label: 'Medicación noche', desc: 'Medicación de la noche', healthy: true, phase: 'evening', order: 2 },
-    { id: 'relajacion', emoji: '🧘', label: 'Relajación', desc: 'Meditación, respiración, calma', healthy: true, phase: 'evening', order: 3 },
-    { id: 'higiene_noche', emoji: '🚿', label: 'Higiene nocturna', desc: 'Lavarse dientes, prepararse', healthy: true, phase: 'evening', order: 4 },
-    { id: 'dormir_horario', emoji: '😴', label: 'Dormir a horario', desc: 'Acostarse a hora regular', healthy: true, phase: 'evening', order: 5 },
-    
-    // UNHEALTHY (distractors)
-    { id: 'saltear_comida', emoji: '🚫', label: 'Saltear comidas', desc: 'No comer en horarios', healthy: false, phase: null, order: 0 },
-    { id: 'pantalla_exceso', emoji: '📱', label: 'Pantallas toda la noche', desc: 'Celular o TV hasta muy tarde', healthy: false, phase: null, order: 0 },
-    { id: 'aislarse', emoji: '🚪', label: 'Aislarse todo el día', desc: 'No salir ni hablar con nadie', healthy: false, phase: null, order: 0 },
-    { id: 'dormir_dia', emoji: '😪', label: 'Dormir todo el día', desc: 'Quedarse en cama sin levantarse', healthy: false, phase: null, order: 0 },
-    { id: 'no_medicacion', emoji: '❌', label: 'Saltear medicación', desc: 'No tomar la medicación', healthy: false, phase: null, order: 0 },
-    { id: 'comida_chatarra', emoji: '🍔', label: 'Solo comida chatarra', desc: 'Comer solo comida no saludable', healthy: false, phase: null, order: 0 },
+    // MORNING
+    {
+        id: 'despertarse',
+        label: 'Levantarse a horario',
+        emoji: '⏰',
+        photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#1a2744', fbTo: '#2d3f6e',
+        healthy: true, phase: 'morning', order: 1
+    },
+    {
+        id: 'higiene_am',
+        label: 'Higiene personal',
+        emoji: '🪥',
+        photo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0f3544', fbTo: '#1a5c6e',
+        healthy: true, phase: 'morning', order: 2
+    },
+    {
+        id: 'desayuno',
+        label: 'Desayuno',
+        emoji: '🥐',
+        photo: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#3d2000', fbTo: '#7a4800',
+        healthy: true, phase: 'morning', order: 3
+    },
+    {
+        id: 'medicacion_am',
+        label: 'Medicación mañana',
+        emoji: '💊',
+        photo: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0f3320', fbTo: '#1a5c3a',
+        healthy: true, phase: 'morning', order: 4
+    },
+    {
+        id: 'tender_cama',
+        label: 'Tender la cama',
+        emoji: '🛏️',
+        photo: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#2a1a0f', fbTo: '#4a3020',
+        healthy: true, phase: 'morning', order: 5
+    },
+    {
+        id: 'ejercicio',
+        label: 'Actividad física',
+        emoji: '🏃',
+        photo: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#1a2e0f', fbTo: '#2e5020',
+        healthy: true, phase: 'morning', order: 6
+    },
+    // AFTERNOON
+    {
+        id: 'almuerzo',
+        label: 'Almuerzo',
+        emoji: '🍽️',
+        photo: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#3d1500', fbTo: '#7a3500',
+        healthy: true, phase: 'afternoon', order: 1
+    },
+    {
+        id: 'taller',
+        label: 'Taller del HDD',
+        emoji: '🏥',
+        photo: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0a1a3d', fbTo: '#1a3070',
+        healthy: true, phase: 'afternoon', order: 2
+    },
+    {
+        id: 'hobby',
+        label: 'Hobby / actividad',
+        emoji: '🎨',
+        photo: 'https://images.unsplash.com/photo-1452802447250-470a88ac82bc?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#2a0a3d', fbTo: '#4a1a70',
+        healthy: true, phase: 'afternoon', order: 3
+    },
+    {
+        id: 'merienda',
+        label: 'Merienda',
+        emoji: '☕',
+        photo: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#2d1500', fbTo: '#5a3000',
+        healthy: true, phase: 'afternoon', order: 4
+    },
+    {
+        id: 'social',
+        label: 'Contacto social',
+        emoji: '👥',
+        photo: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0f2a3d', fbTo: '#1a4a6e',
+        healthy: true, phase: 'afternoon', order: 5
+    },
+    // EVENING
+    {
+        id: 'cena',
+        label: 'Cena',
+        emoji: '🥗',
+        photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#1a0a2d', fbTo: '#2d1a50',
+        healthy: true, phase: 'evening', order: 1
+    },
+    {
+        id: 'medicacion_pm',
+        label: 'Medicación noche',
+        emoji: '💊',
+        photo: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0a1a2d', fbTo: '#1a2d4a',
+        healthy: true, phase: 'evening', order: 2
+    },
+    {
+        id: 'relajacion',
+        label: 'Relajación',
+        emoji: '🧘',
+        photo: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0a2030', fbTo: '#103a50',
+        healthy: true, phase: 'evening', order: 3
+    },
+    {
+        id: 'higiene_pm',
+        label: 'Higiene nocturna',
+        emoji: '🚿',
+        photo: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0f2535', fbTo: '#1a3d52',
+        healthy: true, phase: 'evening', order: 4
+    },
+    {
+        id: 'dormir',
+        label: 'Dormir a horario',
+        emoji: '😴',
+        photo: 'https://images.unsplash.com/photo-1541480601022-2308c0f02487?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#05050f', fbTo: '#0f0f28',
+        healthy: true, phase: 'evening', order: 5
+    },
+    // UNHEALTHY
+    {
+        id: 'saltear_comida',
+        label: 'No comer',
+        emoji: '🚫',
+        photo: 'https://images.unsplash.com/photo-1517093157656-b9eccef91cb1?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#2d0505', fbTo: '#4a0a0a',
+        healthy: false, phase: null, order: 0
+    },
+    {
+        id: 'pantallas',
+        label: 'Pantallas toda la noche',
+        emoji: '📱',
+        photo: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0a0a2d', fbTo: '#15154a',
+        healthy: false, phase: null, order: 0
+    },
+    {
+        id: 'aislarse',
+        label: 'Aislarse todo el día',
+        emoji: '🚪',
+        photo: 'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#1a1a1a', fbTo: '#2d2d2d',
+        healthy: false, phase: null, order: 0
+    },
+    {
+        id: 'dormir_dia',
+        label: 'Dormir todo el día',
+        emoji: '😪',
+        photo: 'https://images.unsplash.com/photo-1493894473891-10fc1e5dbd22?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#1a0a2d', fbTo: '#2d1a4a',
+        healthy: false, phase: null, order: 0
+    },
+    {
+        id: 'no_medicacion',
+        label: 'No tomar medicación',
+        emoji: '❌',
+        photo: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#2d0a0a', fbTo: '#4a1515',
+        healthy: false, phase: null, order: 0
+    },
+    {
+        id: 'comida_chatarra',
+        label: 'Solo comida chatarra',
+        emoji: '🍔',
+        photo: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#3d1500', fbTo: '#6e2d00',
+        healthy: false, phase: null, order: 0
+    },
 ];
 
-// ========== GAME STATE ==========
-let state = {
-    patientId: null,
+// ================================================================
+// STATE
+// ================================================================
+const HEALTHY_REQUIRED = 8;
+const state = {
     patientDni: 'DEMO',
     startTime: null,
-    phase: 0, // 0=start, 1=selection, 2=timeline, 3=results
-    selectedHabits: new Set(),
-    unhealthyPicks: 0,
-    healthyCorrect: 0,
-    timeline: { morning: [], afternoon: [], evening: [] },
-    sequenceErrors: 0,
-    actionLog: [],
     timerInterval: null,
-    hesitations: [],
+    selected: new Set(),   // habit ids
+    placements: {},        // slot_id → habit_id
+    draggingId: null,
+    totalActions: 0,
+    hesitations: 0,
     lastActionTime: null,
 };
 
-// ========== TIMER ==========
-function startTimer() {
-    state.startTime = Date.now();
-    state.timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-        const s = String(elapsed % 60).padStart(2, '0');
-        document.getElementById('timer-display').textContent = m + ':' + s;
-    }, 1000);
-}
-
-function stopTimer() {
-    if (state.timerInterval) clearInterval(state.timerInterval);
-}
-
-// ========== TOAST ==========
-function showToast(msg, type) {
-    const colors = { success: 'rgba(34,197,94,0.9)', error: 'rgba(239,68,68,0.9)', info: 'rgba(99,102,241,0.9)', warn: 'rgba(245,158,11,0.9)' };
-    const t = document.createElement('div');
-    t.className = 'toast';
-    t.style.background = colors[type] || colors.info;
-    t.style.color = '#fff';
-    t.textContent = msg;
-    document.getElementById('toast-container').appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-}
-
-// ========== BEGIN GAME ==========
+// ================================================================
+// GAME START
+// ================================================================
 function beginGame() {
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('phase1').style.display = 'block';
-    document.getElementById('phase-display').textContent = 'Fase 1/2';
-    
-    // Patient
+    document.getElementById('progress-bar-wrap').style.display = 'flex';
+
     const params = new URLSearchParams(window.location.search);
-    state.patientDni = params.get('patient_id') || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})() || 'DEMO';
-    document.getElementById('patient-display').textContent = 'Paciente: ' + state.patientDni;
-    
-    startTimer();
+    state.patientDni = params.get('patient_id')
+        || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
+        || 'DEMO';
+    document.getElementById('patient-display').textContent = state.patientDni;
+
+    state.startTime = Date.now();
+    state.timerInterval = setInterval(updateTimer, 1000);
     renderPhase1();
+
+    // Mood check DESPUÉS de que el juego es visible
+    if (typeof showPreGameChat === 'function') showPreGameChat();
 }
 
-// ========== PHASE 1: HABIT SELECTION ==========
+function updateTimer() {
+    const el = document.getElementById('timer-display');
+    if (!el || !state.startTime) return;
+    const s = Math.floor((Date.now() - state.startTime) / 1000);
+    el.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+// ================================================================
+// PHASE 1: PHOTO GRID
+// ================================================================
 function renderPhase1() {
     const grid = document.getElementById('habits-grid');
     const shuffled = [...HABITS].sort(() => Math.random() - 0.5);
-    
-    grid.innerHTML = shuffled.map(h => `
-        <div class="habit-card animate-in" data-id="${h.id}" onclick="toggleHabit('${h.id}')">
-            <div class="emoji">${h.emoji}</div>
-            <div class="label">${h.label}</div>
-            <div class="desc">${h.desc}</div>
-        </div>
-    `).join('');
+    grid.innerHTML = '';
+
+    shuffled.forEach((h, i) => {
+        const card = document.createElement('div');
+        card.className = 'habit-card animate-in' + (h.healthy ? '' : ' unhealthy');
+        card.dataset.id = h.id;
+        card.style.animationDelay = (i * 0.03) + 's';
+        card.onclick = () => toggleHabit(h.id);
+
+        // Photo
+        const img = document.createElement('img');
+        img.className = 'habit-photo';
+        img.alt = h.label;
+        img.loading = 'lazy';
+        img.src = h.photo;
+        img.onerror = function() {
+            this.style.display = 'none';
+            const fb = card.querySelector('.habit-photo-fallback');
+            if (fb) fb.style.display = 'flex';
+        };
+        card.appendChild(img);
+
+        // Fallback
+        const fb = document.createElement('div');
+        fb.className = 'habit-photo-fallback';
+        fb.style.setProperty('--fb-from', h.fbFrom);
+        fb.style.setProperty('--fb-to', h.fbTo);
+        fb.style.display = 'none';
+        fb.textContent = h.emoji;
+        card.appendChild(fb);
+
+        // Overlay
+        const ov = document.createElement('div');
+        ov.className = 'habit-overlay';
+        card.appendChild(ov);
+
+        // Check
+        const chk = document.createElement('div');
+        chk.className = 'habit-check';
+        chk.textContent = '✓';
+        card.appendChild(chk);
+
+        // Label (tiny, bottom)
+        const lbl = document.createElement('div');
+        lbl.className = 'habit-label';
+        lbl.textContent = h.label;
+        card.appendChild(lbl);
+
+        grid.appendChild(card);
+    });
 }
 
 function toggleHabit(id) {
-    const habit = HABITS.find(h => h.id === id);
-    const card = document.querySelector(`[data-id="${id}"]`);
+    const card = document.querySelector(`.habit-card[data-id="${id}"]`);
+    const h = HABITS.find(x => x.id === id);
+    if (!card || !h) return;
+
+    state.totalActions++;
     const now = Date.now();
-    
-    // Track hesitation
-    if (state.lastActionTime) {
-        const gap = now - state.lastActionTime;
-        if (gap > 3000) state.hesitations.push({ id, gap, phase: 1 });
-    }
+    if (state.lastActionTime && now - state.lastActionTime > 5000) state.hesitations++;
     state.lastActionTime = now;
-    
-    if (state.selectedHabits.has(id)) {
-        // Deselect
-        state.selectedHabits.delete(id);
-        card.classList.remove('selected', 'healthy-pick', 'unhealthy-pick');
-        state.actionLog.push({ action: 'deselect', id, time: now - state.startTime });
+
+    if (state.selected.has(id)) {
+        state.selected.delete(id);
+        card.classList.remove('selected');
     } else {
-        // Select
-        state.selectedHabits.add(id);
+        state.selected.add(id);
         card.classList.add('selected');
-        state.actionLog.push({ action: 'select', id, healthy: habit.healthy, time: now - state.startTime });
-        
-        if (!habit.healthy) {
-            state.unhealthyPicks++;
-            card.classList.add('unhealthy-pick');
-            showToast('⚠️ "' + habit.label + '" no es un hábito saludable', 'warn');
-            // Auto-deselect after visual feedback
-            setTimeout(() => {
-                state.selectedHabits.delete(id);
-                card.classList.remove('selected', 'unhealthy-pick');
-                updateSelectionUI();
-            }, 1200);
-        } else {
-            state.healthyCorrect++;
-            card.classList.add('healthy-pick');
-            showToast('✓ Buen hábito!', 'success');
-        }
     }
-    
-    updateSelectionUI();
+    updatePhase1UI();
 }
 
-function updateSelectionUI() {
-    const healthySelected = [...state.selectedHabits].filter(id => HABITS.find(h => h.id === id)?.healthy).length;
-    document.getElementById('selected-count').textContent = healthySelected;
-    const pct = Math.min(100, Math.round((healthySelected / 8) * 100));
-    document.getElementById('selection-progress').style.width = pct + '%';
-    document.getElementById('btn-to-phase2').disabled = healthySelected < 8;
+function updatePhase1UI() {
+    const healthyCount = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
+    const total = state.selected.size;
+
+    const label = document.getElementById('progress-label');
+    const fill = document.getElementById('progress-fill');
+    const btn = document.getElementById('btn-to-phase2');
+
+    label.textContent = `${healthyCount} saludables seleccionadas`;
+    const pct = Math.min(100, (healthyCount / HEALTHY_REQUIRED) * 100);
+    fill.style.width = pct + '%';
+
+    if (healthyCount >= HEALTHY_REQUIRED) {
+        btn.disabled = false;
+        btn.classList.add('ready');
+        btn.textContent = `Organizar el día →`;
+    } else {
+        btn.disabled = true;
+        btn.classList.remove('ready');
+        btn.textContent = `Seleccioná al menos ${HEALTHY_REQUIRED} hábitos saludables`;
+    }
 }
 
-// ========== PHASE 2: TIMELINE ==========
+// ================================================================
+// PHASE 2: TIMELINE
+// ================================================================
+const SLOT_CONFIG = {
+    morning: [
+        {id:'m1', label:'1°'}, {id:'m2', label:'2°'},
+        {id:'m3', label:'3°'}, {id:'m4', label:'4°'},
+        {id:'m5', label:'5°'}
+    ],
+    afternoon: [
+        {id:'a1', label:'1°'}, {id:'a2', label:'2°'},
+        {id:'a3', label:'3°'}, {id:'a4', label:'4°'},
+    ],
+    evening: [
+        {id:'e1', label:'1°'}, {id:'e2', label:'2°'},
+        {id:'e3', label:'3°'}, {id:'e4', label:'4°'},
+    ]
+};
+
 function goToPhase2() {
     document.getElementById('phase1').style.display = 'none';
     document.getElementById('phase2').style.display = 'block';
-    document.getElementById('phase-display').textContent = 'Fase 2/2';
-    state.phase = 2;
-    
-    // Get selected healthy habits
-    const selected = [...state.selectedHabits]
-        .map(id => HABITS.find(h => h.id === id))
+    renderPhase2();
+}
+
+function renderPhase2() {
+    // Pool: selected healthy habits
+    const pool = document.getElementById('selected-pool');
+    pool.innerHTML = '';
+    const selectedHealthy = [...state.selected]
+        .map(id => HABITS.find(h=>h.id===id))
         .filter(h => h && h.healthy);
-    
-    document.getElementById('total-to-place').textContent = selected.length;
-    
-    // Render bank (shuffled)
-    const bank = document.getElementById('habits-bank');
-    const shuffled = [...selected].sort(() => Math.random() - 0.5);
-    bank.innerHTML = shuffled.map(h => `
-        <div class="habit-card animate-in" id="bank-${h.id}" data-id="${h.id}" draggable="true"
-             style="padding: 10px 14px; flex-direction: row; gap: 10px; cursor: grab;"
-             ondragstart="handleDragStart(event)" ontouchstart="handleTouchStart(event)">
-            <span style="font-size: 1.4rem;">${h.emoji}</span>
-            <div>
-                <div style="font-size: 0.8rem; font-weight: 700;">${h.label}</div>
-                <div style="font-size: 0.65rem; opacity: 0.5;">${h.desc}</div>
-            </div>
-        </div>
-    `).join('');
-    
-    // Render timeline slots
-    renderTimelineSlots('morning', 4);
-    renderTimelineSlots('afternoon', 4);
-    renderTimelineSlots('evening', 4);
+
+    selectedHealthy.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'pool-card animate-in';
+        card.id = 'pool-' + h.id;
+        card.draggable = true;
+        card.dataset.habitId = h.id;
+        card.onclick = () => placeNextAvailable(h.id);
+        card.ondragstart = e => { state.draggingId = h.id; e.dataTransfer.effectAllowed = 'move'; };
+
+        const img = document.createElement('img');
+        img.src = h.photo;
+        img.alt = h.label;
+        img.onerror = function() {
+            this.style.display = 'none';
+            const fb = document.createElement('div');
+            fb.className = 'pool-emoji';
+            fb.textContent = h.emoji;
+            card.appendChild(fb);
+        };
+        card.appendChild(img);
+        pool.appendChild(card);
+    });
+
+    // Slots
+    ['morning','afternoon','evening'].forEach(phase => {
+        const container = document.getElementById('slots-' + phase);
+        container.innerHTML = '';
+        SLOT_CONFIG[phase].forEach(s => {
+            const slot = document.createElement('div');
+            slot.className = 'timeline-slot';
+            slot.id = 'slot-' + s.id;
+            slot.dataset.slotId = s.id;
+            slot.dataset.phase = phase;
+
+            const order = document.createElement('div');
+            order.className = 'slot-order';
+            order.textContent = s.label;
+            slot.appendChild(order);
+
+            slot.ondragover = e => { e.preventDefault(); slot.classList.add('drop-over'); };
+            slot.ondragleave = () => slot.classList.remove('drop-over');
+            slot.ondrop = e => { e.preventDefault(); slot.classList.remove('drop-over'); if (state.draggingId) placeHabitInSlot(state.draggingId, s.id); state.draggingId = null; };
+            slot.onclick = () => { if (!slot.classList.contains('filled')) placeNextDragging(s.id); };
+
+            container.appendChild(slot);
+        });
+    });
 }
 
-function renderTimelineSlots(phase, count) {
-    const container = document.getElementById('timeline-' + phase);
-    const times = {
-        morning: ['06:30', '07:00', '08:00', '09:00'],
-        afternoon: ['12:00', '13:00', '15:00', '17:00'],
-        evening: ['19:00', '20:00', '21:00', '22:00']
-    };
-    container.innerHTML = '';
-    for (let i = 0; i < count; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'timeline-slot';
-        slot.dataset.phase = phase;
-        slot.dataset.index = i;
-        slot.innerHTML = `<span class="time-label">${times[phase][i]}</span><span style="opacity:0.3; font-size: 0.75rem;">Arrastrá un hábito acá</span>`;
-        
-        slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
-        slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-        slot.addEventListener('drop', e => handleDrop(e, slot));
-        
-        // Touch drop target
-        slot.addEventListener('touchend', e => handleTouchDrop(e, slot));
-        
-        container.appendChild(slot);
-    }
+function placeNextAvailable(habitId) {
+    // Find first empty slot
+    const allSlots = [...document.querySelectorAll('.timeline-slot:not(.filled)')];
+    if (allSlots.length === 0) return;
+    placeHabitInSlot(habitId, allSlots[0].dataset.slotId);
 }
 
-// ========== DRAG & DROP ==========
-let draggedId = null;
+function placeHabitInSlot(habitId, slotId) {
+    // If habit already placed somewhere, remove from that slot
+    const existing = Object.keys(state.placements).find(k => state.placements[k] === habitId);
+    if (existing) removeFromSlot(existing);
 
-function handleDragStart(e) {
-    draggedId = e.target.closest('[data-id]').dataset.id;
-    e.dataTransfer.setData('text/plain', draggedId);
-    e.target.closest('[data-id]').style.opacity = '0.4';
-}
+    // Fill slot
+    const slot = document.getElementById('slot-' + slotId);
+    if (!slot || slot.classList.contains('filled')) return;
 
-function handleDrop(e, slot) {
-    e.preventDefault();
-    slot.classList.remove('drag-over');
-    if (!draggedId) return;
-    placeHabit(draggedId, slot);
-    const bankCard = document.getElementById('bank-' + draggedId);
-    if (bankCard) bankCard.style.opacity = '1';
-    draggedId = null;
-}
+    state.placements[slotId] = habitId;
+    const h = HABITS.find(x => x.id === habitId);
+    if (!h) return;
 
-// Touch support
-let touchDragId = null;
-let touchGhost = null;
-
-function handleTouchStart(e) {
-    const card = e.target.closest('[data-id]');
-    if (!card) return;
-    touchDragId = card.dataset.id;
-    
-    // Create ghost
-    touchGhost = card.cloneNode(true);
-    touchGhost.style.position = 'fixed';
-    touchGhost.style.zIndex = '99999';
-    touchGhost.style.pointerEvents = 'none';
-    touchGhost.style.opacity = '0.8';
-    touchGhost.style.width = card.offsetWidth + 'px';
-    document.body.appendChild(touchGhost);
-    
-    card.style.opacity = '0.3';
-    e.preventDefault();
-}
-
-document.addEventListener('touchmove', e => {
-    if (!touchGhost) return;
-    const touch = e.touches[0];
-    touchGhost.style.left = (touch.clientX - 40) + 'px';
-    touchGhost.style.top = (touch.clientY - 30) + 'px';
-    
-    // Highlight slot under finger
-    document.querySelectorAll('.timeline-slot').forEach(s => s.classList.remove('drag-over'));
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const slot = el?.closest('.timeline-slot');
-    if (slot) slot.classList.add('drag-over');
-}, { passive: false });
-
-document.addEventListener('touchend', e => {
-    if (!touchGhost || !touchDragId) return;
-    if (touchGhost.parentNode) touchGhost.parentNode.removeChild(touchGhost);
-    touchGhost = null;
-    
-    const touch = e.changedTouches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    const slot = el?.closest('.timeline-slot');
-    
-    if (slot && !slot.classList.contains('filled')) {
-        placeHabit(touchDragId, slot);
-    }
-    
-    const bankCard = document.getElementById('bank-' + touchDragId);
-    if (bankCard) bankCard.style.opacity = '1';
-    
-    document.querySelectorAll('.timeline-slot').forEach(s => s.classList.remove('drag-over'));
-    touchDragId = null;
-});
-
-function placeHabit(habitId, slot) {
-    const habit = HABITS.find(h => h.id === habitId);
-    if (!habit || slot.classList.contains('filled')) return;
-    
-    const phase = slot.dataset.phase;
-    const now = Date.now();
-    
-    // Track hesitation
-    if (state.lastActionTime) {
-        const gap = now - state.lastActionTime;
-        if (gap > 4000) state.hesitations.push({ id: habitId, gap, phase: 2 });
-    }
-    state.lastActionTime = now;
-    
-    // Check correctness
-    const isCorrectPhase = habit.phase === phase;
-    if (!isCorrectPhase) state.sequenceErrors++;
-    
-    // Place in slot
     slot.classList.add('filled');
-    slot.innerHTML = `
-        <span class="time-label">${slot.querySelector('.time-label')?.textContent || ''}</span>
-        <span style="font-size: 1.3rem;">${habit.emoji}</span>
-        <div>
-            <div style="font-size: 0.8rem; font-weight: 700;">${habit.label}</div>
-            ${!isCorrectPhase ? '<div style="font-size: 0.65rem; color: #f59e0b;">⚠ Horario inusual</div>' : '<div style="font-size: 0.65rem; color: #22c55e;">✓ Buen horario</div>'}
-        </div>
-    `;
-    
-    // Remove from bank
-    const bankCard = document.getElementById('bank-' + habitId);
-    if (bankCard) bankCard.remove();
-    
-    // Log
-    state.timeline[phase].push(habitId);
-    state.actionLog.push({ action: 'place', id: habitId, phase, correct: isCorrectPhase, time: now - state.startTime });
-    
-    if (isCorrectPhase) {
-        showToast('✓ Bien ubicado!', 'success');
+
+    const img = document.createElement('img');
+    img.src = h.photo;
+    img.alt = h.label;
+    img.onerror = function() {
+        this.style.display = 'none';
+        const fe = document.createElement('div');
+        fe.className = 'slot-emoji';
+        fe.textContent = h.emoji;
+        slot.appendChild(fe);
+    };
+    slot.appendChild(img);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'slot-label';
+    lbl.textContent = h.label;
+    slot.appendChild(lbl);
+
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'slot-remove';
+    rmBtn.textContent = '✕';
+    rmBtn.onclick = e => { e.stopPropagation(); removeFromSlot(slotId); };
+    slot.appendChild(rmBtn);
+
+    // Mark pool card as placed
+    const poolCard = document.getElementById('pool-' + habitId);
+    if (poolCard) poolCard.classList.add('placed');
+
+    updatePhase2UI();
+}
+
+function removeFromSlot(slotId) {
+    const slot = document.getElementById('slot-' + slotId);
+    if (!slot) return;
+    const habitId = state.placements[slotId];
+    delete state.placements[slotId];
+    slot.classList.remove('filled');
+    // Remove everything except slot-order
+    [...slot.children].forEach(c => { if (!c.classList.contains('slot-order')) c.remove(); });
+
+    if (habitId) {
+        const poolCard = document.getElementById('pool-' + habitId);
+        if (poolCard) poolCard.classList.remove('placed');
+    }
+    updatePhase2UI();
+}
+
+function updatePhase2UI() {
+    const placed = Object.keys(state.placements).length;
+    const btn = document.getElementById('btn-finish');
+    if (placed >= 6) {
+        btn.disabled = false;
+        btn.classList.add('ready');
     } else {
-        showToast('⚠ ' + habit.label + ' usualmente va en otro horario', 'warn');
-    }
-    
-    // Update progress
-    const placed = state.timeline.morning.length + state.timeline.afternoon.length + state.timeline.evening.length;
-    const total = parseInt(document.getElementById('total-to-place').textContent);
-    document.getElementById('placed-count').textContent = placed;
-    document.getElementById('timeline-progress').style.width = Math.round((placed / total) * 100) + '%';
-    
-    // Show finish button when enough placed
-    if (placed >= Math.min(total, 8)) {
-        document.getElementById('btn-finish').style.display = 'inline-block';
+        btn.disabled = true;
+        btn.classList.remove('ready');
     }
 }
 
-// ========== FINISH & RESULTS ==========
+// ================================================================
+// FINISH & SCORE
+// ================================================================
 function finishGame() {
-    stopTimer();
-    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-    
+    clearInterval(state.timerInterval);
     document.getElementById('phase2').style.display = 'none';
-    document.getElementById('results-screen').style.display = 'block';
-    document.getElementById('phase-display').textContent = 'Completado';
-    
-    // Calculate scores
-    const totalHealthy = HABITS.filter(h => h.healthy).length;
-    const healthySelected = [...state.selectedHabits].filter(id => HABITS.find(h => h.id === id)?.healthy).length;
-    const selectionScore = Math.round((healthySelected / totalHealthy) * 100);
-    
-    const placed = state.timeline.morning.length + state.timeline.afternoon.length + state.timeline.evening.length;
-    const correctPlacements = state.actionLog.filter(a => a.action === 'place' && a.correct).length;
-    const sequenceScore = placed > 0 ? Math.round((correctPlacements / placed) * 100) : 0;
-    
-    const judgmentScore = Math.max(0, 100 - (state.unhealthyPicks * 15));
-    
-    const overallScore = Math.round((selectionScore * 0.3) + (sequenceScore * 0.4) + (judgmentScore * 0.3));
-    
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    
-    // Determine level
-    let level, levelColor, levelEmoji;
-    if (overallScore >= 85) { level = 'Excelente'; levelColor = '#22c55e'; levelEmoji = '🌟'; }
-    else if (overallScore >= 70) { level = 'Muy Bien'; levelColor = '#3b82f6'; levelEmoji = '👍'; }
-    else if (overallScore >= 50) { level = 'Adecuado'; levelColor = '#f59e0b'; levelEmoji = '📈'; }
-    else { level = 'En desarrollo'; levelColor = '#ef4444'; levelEmoji = '💪'; }
-    
+    document.getElementById('results').style.display = 'block';
+
+    const totalTime = Math.floor((Date.now() - state.startTime) / 1000);
+    const healthySelected = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
+    const unhealthySelected = [...state.selected].filter(id => !HABITS.find(h=>h.id===id)?.healthy).length;
+    const placedCount = Object.keys(state.placements).length;
+
+    // Score
+    const selScore = Math.min(100, (healthySelected / 15) * 40);
+    const placedScore = Math.min(100, (placedCount / 8) * 35);
+    const penaltyScore = Math.max(0, 25 - (unhealthySelected * 5));
+    const total = Math.round(selScore + placedScore + penaltyScore);
+
+    // Clinical vectors
+    const sequenceScore = calcSequenceCoherence();
+
+    const metrics = {
+        healthy_selected: healthySelected,
+        unhealthy_selected: unhealthySelected,
+        placed_count: placedCount,
+        total_actions: state.totalActions,
+        hesitations: state.hesitations,
+        duration_seconds: totalTime,
+        sequence_coherence: sequenceScore,
+        final_score: total
+    };
+
+    saveResults(metrics);
+
     document.getElementById('results-content').innerHTML = `
-        <div class="animate-in" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 36px;">
-            <div style="font-size: 3rem; margin-bottom: 8px;">${levelEmoji}</div>
-            <h2 style="font-size: 1.6rem; font-weight: 900; margin: 0 0 4px;">${level}</h2>
-            <div class="score-ring" style="margin: 16px auto; border: 4px solid ${levelColor}; color: ${levelColor};">${overallScore}%</div>
-            <p style="font-size: 0.85rem; opacity: 0.5;">Puntuación global · Tiempo: ${minutes}:${String(seconds).padStart(2,'0')}</p>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 24px 0;">
-                <div style="background: rgba(34,197,94,0.1); border-radius: 16px; padding: 16px;">
-                    <div style="font-size: 1.8rem; font-weight: 900; color: #22c55e;">${selectionScore}%</div>
-                    <div style="font-size: 0.7rem; opacity: 0.6;">Selección de hábitos</div>
-                    <div style="font-size: 0.65rem; opacity: 0.4;">${healthySelected}/${totalHealthy} saludables</div>
-                </div>
-                <div style="background: rgba(99,102,241,0.1); border-radius: 16px; padding: 16px;">
-                    <div style="font-size: 1.8rem; font-weight: 900; color: #818cf8;">${sequenceScore}%</div>
-                    <div style="font-size: 0.7rem; opacity: 0.6;">Secuenciación</div>
-                    <div style="font-size: 0.65rem; opacity: 0.4;">${correctPlacements}/${placed} bien ubicados</div>
-                </div>
-                <div style="background: rgba(245,158,11,0.1); border-radius: 16px; padding: 16px;">
-                    <div style="font-size: 1.8rem; font-weight: 900; color: #f59e0b;">${judgmentScore}%</div>
-                    <div style="font-size: 0.7rem; opacity: 0.6;">Juicio / Criterio</div>
-                    <div style="font-size: 0.65rem; opacity: 0.4;">${state.unhealthyPicks} hábitos no saludables tocados</div>
-                </div>
-            </div>
-            
-            ${state.hesitations.length > 2 ? `
-            <div style="background: rgba(139,92,246,0.1); border-radius: 12px; padding: 12px; margin: 16px 0; font-size: 0.75rem;">
-                <strong style="color: #a78bfa;">🔬 Nota clínica:</strong> Se detectaron ${state.hesitations.length} hesitaciones significativas (pausas >3s), lo que puede indicar dificultad en la toma de decisiones o inseguridad en la planificación.
-            </div>` : ''}
-            
-            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
-                <button onclick="location.reload()" class="btn-primary" style="padding: 12px 24px; font-size: 0.9rem;">🔄 Jugar de nuevo</button>
-                <a href="/games/portal/" class="btn-primary" style="padding: 12px 24px; font-size: 0.9rem; text-decoration: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">← Volver al portal</a>
-            </div>
+        <div class="score-circle">${total}</div>
+        <h2 style="margin-bottom:20px;">Rutina completada</h2>
+        <div class="result-row">
+            <span>Hábitos saludables identificados</span>
+            <span style="color:#a78bfa;font-weight:700">${healthySelected} / ${HABITS.filter(h=>h.healthy).length}</span>
         </div>
+        <div class="result-row">
+            <span>Actividades organizadas en el día</span>
+            <span style="color:#a78bfa;font-weight:700">${placedCount}</span>
+        </div>
+        <div class="result-row">
+            <span>Tiempo total</span>
+            <span style="color:#94a3b8">${Math.floor(totalTime/60)}m ${totalTime%60}s</span>
+        </div>
+        <div class="result-row">
+            <span>Coherencia de secuencia</span>
+            <span style="color:#a78bfa;font-weight:700">${sequenceScore}%</span>
+        </div>
+        <button class="btn-replay" onclick="location.reload()">Jugar de nuevo</button>
     `;
-    
-    // Save to Supabase
-    saveResults(overallScore, selectionScore, sequenceScore, judgmentScore, elapsed);
+
+    if (typeof showPostGameColorModal === 'function') showPostGameColorModal();
 }
 
-async function saveResults(overall, selection, sequence, judgment, elapsed) {
+function calcSequenceCoherence() {
+    let correct = 0; let total = 0;
+    Object.entries(state.placements).forEach(([slotId, habitId]) => {
+        const h = HABITS.find(x => x.id === habitId);
+        if (!h || !h.phase) return;
+        total++;
+        const phase = slotId.startsWith('m') ? 'morning' : slotId.startsWith('a') ? 'afternoon' : 'evening';
+        if (h.phase === phase) correct++;
+    });
+    return total === 0 ? 0 : Math.round((correct / total) * 100);
+}
+
+async function saveResults(metrics) {
     if (!supabase) return;
     try {
-        // Get or create patient
-        let patientId = null;
-        const { data: existing } = await supabase.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
-        patientId = existing?.id;
-        if (!patientId) {
-            const { data: np } = await supabase.from('hdd_patients').insert({ dni: state.patientDni, full_name: 'Paciente ' + state.patientDni, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
-            patientId = np?.id;
-        }
-        
-        // Get game id
-        const { data: game } = await supabase.from('hdd_games').select('id').eq('slug', 'daily-routine').single();
-        
-        // Save session
-        await supabase.from('hdd_game_sessions').insert({
-            patient_id: patientId,
-            game_id: game?.id,
-            level: 1,
-            score: overall,
-            accuracy: sequence,
-            time_seconds: elapsed,
-            metrics: {
-                selection_score: selection,
-                sequence_score: sequence,
-                judgment_score: judgment,
-                unhealthy_picks: state.unhealthyPicks,
-                hesitations: state.hesitations.length,
-                habits_selected: [...state.selectedHabits],
-                timeline: state.timeline,
-                action_log: state.actionLog
-            },
-            started_at: new Date(state.startTime).toISOString(),
-            completed_at: new Date().toISOString()
-        });
-        console.log('[daily-routine] Session saved');
-    } catch(e) {
-        console.warn('[daily-routine] Save failed:', e.message);
-    }
+        supabase.from('hdd_game_metrics').insert({
+            patient_id: state.patientDni,
+            game_slug: 'daily-routine-v2',
+            metric_type: 'session',
+            metric_value: metrics.final_score,
+            metric_data: metrics,
+            created_at: new Date().toISOString()
+        }).then(()=>{}).catch(()=>{});
+    } catch(e) {}
 }
-</script>
 
-<script>
-// Smart back link
+// Back link
 (function(){
-    var portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+    var p = (function(){try{return localStorage.getItem('games_session')}catch(e){return null}})();
     var l = document.getElementById('back-link');
-    if (l) l.href = portalUrl;
+    if (l) l.href = p ? '/games/portal/' : '/hdd/portal/';
 })();
 </script>
+
 <script src="/games/shared/mood-modals.js"></script>
 <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
-
 </body>
 </html>

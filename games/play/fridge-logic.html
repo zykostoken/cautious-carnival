@@ -238,6 +238,8 @@ function beginGame() {
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('consigna').style.display = 'block';
     document.getElementById('game-area').style.display = 'block';
+    // Mood check después de que el juego es visible
+    if (typeof showPreGameChat === 'function') showPreGameChat();
     initGame();
 }
 
