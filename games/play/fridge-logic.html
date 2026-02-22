@@ -654,13 +654,17 @@ async function saveResults(metrics) {
             completed_at: new Date().toISOString()
         });
         
-        // Save biometrics
-        if (patientId && game?.id) {
-            await supabase.from('hdd_game_biometrics').insert({
+        // Save to unified hdd_game_metrics table
+        if (patientId) {
+            await supabase.from('hdd_game_metrics').insert({
                 patient_id: patientId,
-                game_id: game.id,
-                metric_type: 'fridge_evaluation',
-                metric_data: metrics
+                game_slug: 'fridge-logic',
+                metric_type: 'session_complete',
+                metric_value: metrics.overall_score,
+                metric_data: {
+                    ...metrics,
+                    game_name: 'Heladera Inteligente'
+                }
             });
         }
     } catch (err) {

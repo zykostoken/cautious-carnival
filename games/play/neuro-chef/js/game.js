@@ -3,32 +3,18 @@
 
 // ========== INITIALIZATION ==========
 async function initGame() {
-    console.log('[Neuro-Chef] Initializing...');
+    console.log('[Neuro-Chef] Initializing - sin DNI...');
     const urlParams = new URLSearchParams(window.location.search);
-    const isDemoMode = urlParams.get('demo') === 'true';
-    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})();
-    
-    // Auto-demo: if no params at all, skip DNI modal (portal/direct access)
-    const hasAnyParam = urlParams.get('dni') || urlParams.get('patient_id');
-    const effectiveDemo = isDemoMode || !hasAnyParam;
-    
-    if (effectiveDemo && !playerDni) {
-        gameState.patientDni = 'HDD-DEMO-' + Date.now();
-        // Non-blocking Supabase call
-        getOrCreatePatient(gameState.patientDni, 'Demo').then(id => { gameState.patientId = id; }).catch(() => {});
-        document.getElementById('player-login-modal').classList.add('hidden');
-        setupPreGameModal();
-    } else if (playerDni) {
-        gameState.patientDni = playerDni;
-        document.getElementById('player-login-modal').classList.add('hidden');
-        document.getElementById('patient-display').textContent = 'Pac: ' + playerDni;
-        setupPreGameModal();
-        // Supabase calls in background - don't block game start
-        getOrCreatePatient(playerDni).then(id => { gameState.patientId = id; }).catch(() => {});
-        loadPlayerHistory().catch(() => {});
-    } else {
-        setupPlayerLogin();
-    }
+    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') ||
+        (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
+        || ('DEMO-' + Date.now());
+    gameState.patientDni = playerDni;
+    // Ocultar modal de login — no se usa mas
+    const loginModal = document.getElementById('player-login-modal');
+    if (loginModal) loginModal.style.display = 'none';
+    // Supabase en background, no bloquea el juego
+    getOrCreatePatient(playerDni, 'Demo').then(id => { gameState.patientId = id; }).catch(() => {});
+    setupPreGameModal();
 }
 
 // ========== PLAYER LOGIN ==========
