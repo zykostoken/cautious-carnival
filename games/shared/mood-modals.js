@@ -97,8 +97,7 @@ function _moodSaveToSupabase(type, data, context) {
 // PRE-GAME CHAT — llamar manualmente desde startGame()/beginGame()
 // ====================================================================
 function showPreGameChat() {
-    var today = new Date().toISOString().split('T')[0];
-    if (_moodStorageGet('mood_pregame_done_' + today)) return;
+    // Muestra en cada sesión de juego — no bloquear por día
     if (document.getElementById('mood-pre-overlay')) return;
 
     var urlParams = new URLSearchParams(window.location.search);
