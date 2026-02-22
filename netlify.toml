@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  command = "echo 'static site - no build needed'"
+  command = "npm install && npm run setup-db"
   environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "false" }
 
 [functions]

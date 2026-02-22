@@ -610,6 +610,93 @@ VALUES
     ('PARTNER001', 'Partner Externo - Codigo 1', 'partner', 'Codigo generico para partners', 'system'),
     ('RESEARCH001', 'Investigador - Codigo 1', 'researcher', 'Codigo para investigadores academicos', 'system')
 ON CONFLICT (code) DO NOTHING;
+
+-- =============================================
+-- HDD BIOMETRIC GAME METRICS (longitudinal)
+-- =============================================
+
+-- Unified game metrics table - all games save here
+-- metric_type: 'session_summary' | 'session_biomet' | 'color_eleccion' | etc.
+CREATE TABLE IF NOT EXISTS hdd_game_metrics (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES hdd_patients(id),
+    patient_dni VARCHAR(20),
+    game_slug VARCHAR(64) NOT NULL,
+    session_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    metric_type VARCHAR(64) NOT NULL DEFAULT 'session_summary',
+    metric_value DECIMAL(10,4),
+    metric_data JSONB DEFAULT '{}',
+    duration_seconds INTEGER,
+    score INTEGER,
+    completed BOOLEAN DEFAULT FALSE,
+    level_reached INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for fast longitudinal queries
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_patient_id ON hdd_game_metrics(patient_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_patient_dni ON hdd_game_metrics(patient_dni);
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_game_slug ON hdd_game_metrics(game_slug);
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_metric_type ON hdd_game_metrics(metric_type);
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_session_date ON hdd_game_metrics(session_date);
+CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_patient_game ON hdd_game_metrics(patient_dni, game_slug);
+
+-- =============================================
+-- HDD MOOD / COLOR ENTRIES (post-activity)
+-- =============================================
+
+-- Records color selections post any activity (game, terapia, telemedicina, etc.)
+-- NO clinical interpretation stored here - raw data only
+CREATE TABLE IF NOT EXISTS hdd_mood_entries (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES hdd_patients(id),
+    patient_dni VARCHAR(20),
+    color_hex VARCHAR(7) NOT NULL,
+    color_id VARCHAR(32) NOT NULL,
+    context_type VARCHAR(64) DEFAULT 'game',
+    source_activity VARCHAR(64),
+    session_ordinal INTEGER,
+    recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_dni ON hdd_mood_entries(patient_dni);
+CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_id ON hdd_mood_entries(patient_id);
+CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_context ON hdd_mood_entries(context_type);
+CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_recorded_at ON hdd_mood_entries(recorded_at);
+
+-- =============================================
+-- LONGITUDINAL VIEWS FOR PROFESSIONAL PANEL
+-- =============================================
+
+CREATE OR REPLACE VIEW v_patient_game_summary AS
+SELECT
+    patient_dni,
+    game_slug,
+    COUNT(*) AS total_sessions,
+    MIN(session_date) AS first_session,
+    MAX(session_date) AS last_session,
+    AVG(score) AS avg_score,
+    MAX(score) AS best_score,
+    MIN(score) AS baseline_score,
+    AVG(metric_value) AS avg_metric_value,
+    COUNT(CASE WHEN completed THEN 1 END) AS completed_sessions,
+    MAX(level_reached) AS max_level_reached
+FROM hdd_game_metrics
+WHERE metric_type = 'session_summary'
+GROUP BY patient_dni, game_slug;
+
+CREATE OR REPLACE VIEW v_patient_color_timeline AS
+SELECT
+    patient_dni,
+    color_hex,
+    color_id,
+    context_type,
+    source_activity,
+    recorded_at,
+    ROW_NUMBER() OVER (PARTITION BY patient_dni ORDER BY recorded_at) AS global_ordinal
+FROM hdd_mood_entries
+ORDER BY patient_dni, recorded_at;
 `;
 
 async function runMigration() {
