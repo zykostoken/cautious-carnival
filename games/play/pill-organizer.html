@@ -551,42 +551,27 @@
                     updateRealTimeMetrics();
             }
 
-            // ---- Listeners MOUSE (desktop) ----
+            // ---- Listeners MOUSE/DESKTOP: HTML5 drag nativo ----
             draggables.forEach(pill => {
-                pill.addEventListener('mousedown', (e) => {
-                    onDragBegin(pill, e.clientX, e.clientY);
-                });
-                // HTML5 drag también funciona en desktop - mantener compatibilidad
                 pill.addEventListener('dragstart', (e) => {
                     e.dataTransfer.setData('med', pill.dataset.med);
                     e.dataTransfer.effectAllowed = 'copy';
-                    onDragBegin(pill, e.clientX, e.clientY);
+                    // Sin ghost en desktop — el browser lo maneja
+                    const cd = sessionState.currentDrag;
+                    cd.active = true;
+                    cd.medType = pill.dataset.med;
+                    cd.startX = e.clientX; cd.startY = e.clientY;
+                    cd.startTime = Date.now();
+                    cd.lastMoveTime = cd.startTime;
+                    cd.pathPoints = [{ x: e.clientX, y: e.clientY, t: cd.startTime }];
+                    pill.style.opacity = '0.4';
                 });
                 pill.addEventListener('dragend', () => {
                     sessionState.currentDrag.active = false;
-                    removeGhost();
                     pill.style.opacity = '1';
                 });
             });
 
-            document.addEventListener('mousemove', (e) => {
-                if (!sessionState.currentDrag.active) return;
-                const now = Date.now();
-                sessionState.currentDrag.pathPoints.push({ x: e.clientX, y: e.clientY, t: now });
-                moveGhost(e.clientX, e.clientY);
-                // Highlight slot under cursor
-                slots.forEach(s => s.classList.remove('drag-over'));
-                const s = getSlotAtPoint(e.clientX, e.clientY);
-                if (s) s.classList.add('drag-over');
-            });
-
-            document.addEventListener('mouseup', async (e) => {
-                if (!sessionState.currentDrag.active) return;
-                draggables.forEach(p => p.style.opacity = '1');
-                await onDrop(e.clientX, e.clientY);
-            });
-
-            // HTML5 drop fallback for desktop
             slots.forEach(slot => {
                 slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); });
                 slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
