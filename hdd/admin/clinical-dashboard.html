@@ -80,14 +80,18 @@
 
 <script>
 const SB_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MDc4NDAsImV4cCI6MjA1MjE4Mzg0MH0.cK4Wa_IEKGOeeBxkNWKDu4kfQq3SAeD-g2n-tHe9j3k';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 const GAMES = {
     'lawn-mower': { name: 'Cortadora de Césped', icon: '🌿', color: '#22c55e' },
     'medication-memory': { name: 'Memoria de Medicación', icon: '💊', color: '#3b82f6' },
-    'pill-organizer': { name: 'Organizador', icon: '🎯', color: '#f59e0b' },
-    'neuro-chef-v2': { name: 'Neuro-Chef', icon: '🧠', color: '#a855f7' }
+    'pill-organizer': { name: 'Organizador de Pastillas', icon: '🎯', color: '#f59e0b' },
+    'daily-routine': { name: 'Rutina Diaria', icon: '📅', color: '#06b6d4' },
+    'fridge-logic': { name: 'Lógica de Heladera', icon: '🧊', color: '#8b5cf6' },
+    'super-market': { name: 'Supermercado', icon: '🛒', color: '#ec4899' },
+    'neuro-chef': { name: 'Neuro-Chef', icon: '👨‍🍳', color: '#a855f7' },
+    'neuro-chef-v2': { name: 'Neuro-Chef v2', icon: '🧠', color: '#a855f7' }
 };
 
 let charts = {};
@@ -125,7 +129,7 @@ let allData = {};
 })();
 
 async function loadPatients() {
-    const { data: patients } = await sb.from('hdd_patients').select('id, full_name, dni, created_at').order('full_name');
+    const { data: patients } = await sb.from('hdd_patients').select('id, full_name, patient_dni, dni, created_at').order('full_name');
     if (!patients || patients.length === 0) {
         document.getElementById('content').innerHTML = '<div class="no-data">No hay pacientes registrados.</div>';
         return;
@@ -134,7 +138,7 @@ async function loadPatients() {
     let html = `<div class="patient-selector">
         <select id="patientSelect"><option value="">Seleccionar paciente...</option>`;
     patients.forEach(p => {
-        html += `<option value="${p.id}">${p.full_name || 'Sin nombre'} — DNI: ${p.dni || '?'}</option>`;
+        html += `<option value="${p.id}">${p.full_name || 'Sin nombre'} — DNI: ${p.patient_dni || p.dni || '?'}</option>`;
     });
     html += `</select><span class="patient-info-bar" id="patientInfoBar"></span></div>
         <div id="dashContent"><div class="no-data">Seleccioná un paciente para ver su evolución clínica.</div></div>`;
@@ -157,28 +161,40 @@ async function loadPatientData(pid) {
     document.getElementById('dashContent').innerHTML = '<div class="loading">Cargando datos clínicos...</div>';
 
     try {
-        const [sessRes, metRes, moodRes, patRes] = await Promise.all([
-            sb.from('hdd_game_sessions').select('*').eq('patient_id', pid).order('started_at', { ascending: true }),
-            sb.from('hdd_game_metrics').select('*').eq('patient_id', pid).order('created_at', { ascending: true }),
-            sb.from('hdd_mood_checkins').select('*').eq('patient_id', pid).order('created_at', { ascending: true }),
-            sb.from('hdd_patients').select('*').eq('id', pid).single()
+        // 1. Obtener paciente por ID para conseguir su DNI
+        const patRes = await sb.from('hdd_patients').select('*').eq('id', pid).single();
+        const patient = patRes.data;
+        if (!patient) throw new Error('Paciente no encontrado');
+
+        const dni = patient.patient_dni || patient.dni;
+        if (!dni) throw new Error('Paciente sin DNI registrado');
+
+        // 2. Consultar por DNI — así guardan todos los juegos
+        const [metRes, moodRes] = await Promise.all([
+            sb.from('hdd_game_metrics')
+                .select('*')
+                .eq('patient_dni', dni)
+                .order('session_date', { ascending: true }),
+            sb.from('hdd_mood_entries')
+                .select('*')
+                .eq('patient_dni', dni)
+                .order('recorded_at', { ascending: true })
         ]);
 
-        const sessions = sessRes.data || [];
         const metrics = metRes.data || [];
         const moods = moodRes.data || [];
-        const patient = patRes.data;
 
-        if (patient) {
-            document.getElementById('patientInfoBar').textContent =
-                `Ingreso: ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-AR') : '?'} | Sesiones totales: ${sessions.length}`;
-        }
+        // Sessions = registros de tipo session_summary (uno por partida)
+        const sessions = metrics.filter(m => m.metric_type === 'session_summary' || (!m.metric_type || m.metric_type === 'session'));
 
-        allData = { sessions, metrics, moods, patient };
+        document.getElementById('patientInfoBar').textContent =
+            `DNI: ${dni} | Ingreso: ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-AR') : '?'} | Registros: ${metrics.length}`;
+
+        allData = { sessions, metrics, moods, patient, dni };
         renderDashboard(sessions, metrics, moods);
     } catch(e) {
         console.error(e);
-        document.getElementById('dashContent').innerHTML = '<div class="no-data">Error cargando datos.</div>';
+        document.getElementById('dashContent').innerHTML = `<div class="no-data">Error cargando datos: ${e.message}</div>`;
     }
 }
 
@@ -187,129 +203,104 @@ function renderDashboard(sessions, metrics, moods) {
     Object.values(charts).forEach(c => c.destroy());
     charts = {};
 
-    if (sessions.length === 0 && metrics.length === 0) {
-        dc.innerHTML = '<div class="no-data">Sin sesiones registradas para este paciente.</div>';
+    if (metrics.length === 0 && moods.length === 0) {
+        dc.innerHTML = '<div class="no-data">Sin datos registrados para este paciente aún.<br><small style="color:rgba(255,255,255,0.3)">Los datos aparecen a medida que el paciente juega y selecciona colores.</small></div>';
         return;
     }
 
-    // Global aggregates
-    const totalSessions = sessions.length;
-    const completedSessions = sessions.filter(s => s.completed_at).length;
-    const totalTimeSec = sessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
-    const totalDays = new Set(sessions.map(s => s.started_at ? s.started_at.split('T')[0] : null).filter(Boolean)).size;
+    // Agregados globales desde hdd_game_metrics
+    const gameSessions = metrics.filter(m => m.metric_type === 'session_summary');
+    const biometSessions = metrics.filter(m => m.metric_type === 'session_biomet');
+    const colorEntries = metrics.filter(m => m.metric_type === 'color_eleccion');
 
-    // Neuro-Chef biometrics from hdd_game_metrics
-    const ncBio = metrics.filter(m => m.metric_type && m.metric_type.startsWith('biometric_level_'));
-    const ncBioData = ncBio.map(m => m.metric_data).filter(Boolean);
-    const avgRT = ncBioData.length ? Math.round(ncBioData.reduce((a, b) => a + (b.reaction_time_ms || 0), 0) / ncBioData.length) : '—';
-    const avgDPrime = ncBioData.length ? (ncBioData.reduce((a, b) => a + (b.d_prime || 0), 0) / ncBioData.length).toFixed(2) : '—';
+    const totalSessions = gameSessions.length;
+    const completedSessions = gameSessions.filter(s => s.completed).length;
+    const totalTimeSec = gameSessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
+    const totalDays = new Set(gameSessions.map(s => (s.session_date || s.created_at || '').split('T')[0]).filter(Boolean)).size;
 
-    // Lawn-mower biometrics from session.metrics
-    const lmSessions = sessions.filter(s => s.metrics && s.metrics.clinical_markers);
-    const lmAvgRT = lmSessions.length ? Math.round(lmSessions.reduce((a, s) => a + (s.metrics.clinical_markers.mean_reaction_time_ms || 0), 0) / lmSessions.length) : '—';
+    // RT promedio desde biomet
+    const rtValues = biometSessions.map(m => m.metric_data?.rt_mean_ms).filter(v => v > 0);
+    const avgRT = rtValues.length ? Math.round(rtValues.reduce((a, b) => a + b, 0) / rtValues.length) : '—';
 
-    let html = '';
+    // Juegos únicos
+    const gamesSlugs = [...new Set(gameSessions.map(s => s.game_slug).filter(Boolean))];
 
     // Summary cards
-    html += `<div class="summary-row">
-        <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones</div></div>
+    let html = `<div class="summary-row">
+        <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones juego</div></div>
         <div class="summary-card"><div class="val">${completedSessions}</div><div class="lbl">Completadas</div></div>
         <div class="summary-card"><div class="val">${totalDays}</div><div class="lbl">Días activos</div></div>
         <div class="summary-card"><div class="val">${Math.round(totalTimeSec / 60)}min</div><div class="lbl">Tiempo total</div></div>
-        <div class="summary-card"><div class="val">${avgRT}</div><div class="lbl">RT Neuro-Chef</div></div>
-        <div class="summary-card"><div class="val">${avgDPrime}</div><div class="lbl">d' Neuro-Chef</div></div>
-        <div class="summary-card"><div class="val">${lmAvgRT}</div><div class="lbl">RT Cortadora</div></div>
-        <div class="summary-card"><div class="val">${moods.length}</div><div class="lbl">Check-ins ánimo</div></div>
+        <div class="summary-card"><div class="val">${avgRT}</div><div class="lbl">RT promedio (ms)</div></div>
+        <div class="summary-card"><div class="val">${gamesSlugs.length}</div><div class="lbl">Juegos distintos</div></div>
+        <div class="summary-card"><div class="val">${moods.length + colorEntries.length}</div><div class="lbl">Registros color</div></div>
     </div>`;
 
-    // Color mood timeline
-    if (moods.length > 0) {
-        html += `<div class="section-title">Colores Proyectivos (línea temporal)</div><div class="mood-timeline">`;
-        moods.filter(m => m.color_hex).forEach(m => {
-            const d = new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
-            html += `<div class="mood-dot" style="background:${m.color_hex}"><div class="tooltip">${d} — ${m.phase || ''}</div></div>`;
+    // Timeline de colores — combina hdd_mood_entries + color_eleccion en hdd_game_metrics
+    const allColors = [
+        ...moods.map(m => ({ hex: m.color_hex, id: m.color_id, date: m.recorded_at || m.created_at, ctx: m.context_type || 'game' })),
+        ...colorEntries.map(m => ({ hex: m.metric_data?.color_hex, id: m.metric_data?.color_id, date: m.session_date || m.created_at, ctx: m.metric_data?.context_type || m.game_slug }))
+    ].filter(c => c.hex).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (allColors.length > 0) {
+        html += `<div class="section-title">Colores seleccionados (línea temporal — ${allColors.length} registros)</div><div class="mood-timeline">`;
+        allColors.forEach(c => {
+            const d = new Date(c.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+            html += `<div class="mood-dot" style="background:${c.hex}"><div class="tooltip">${d} — ${c.ctx}</div></div>`;
         });
         html += `</div>`;
+    } else {
+        html += `<div class="section-title">Colores seleccionados</div><div class="no-data" style="padding:1rem;">Sin registros de color aún.</div>`;
     }
 
     // Charts area
     html += `<div class="section-title">Evolución Longitudinal</div>`;
     html += `<div class="charts-grid">
-        <div class="chart-box"><h3>Tiempo de Reacción (ms) — Todos los juegos</h3><canvas id="chartRT"></canvas></div>
-        <div class="chart-box"><h3>d' Sensibilidad — Neuro-Chef</h3><canvas id="chartDPrime"></canvas></div>
-        <div class="chart-box"><h3>Puntaje por sesión — Todos los juegos</h3><canvas id="chartScore"></canvas></div>
+        <div class="chart-box"><h3>Tiempo de Reacción (ms)</h3><canvas id="chartRT"></canvas></div>
+        <div class="chart-box"><h3>Puntaje por sesión</h3><canvas id="chartScore"></canvas></div>
         <div class="chart-box"><h3>Errores (omisión vs comisión)</h3><canvas id="chartErrors"></canvas></div>
-        <div class="chart-box full"><h3>Tremor / Hesitaciones — Neuro-Chef</h3><canvas id="chartTremor"></canvas></div>
+        <div class="chart-box full"><h3>Tremor / Hesitaciones</h3><canvas id="chartTremor"></canvas></div>
     </div>`;
 
-    // Sessions table
-    html += `<div class="section-title">Historial de Sesiones</div>
+    // Tabla de sesiones
+    html += `<div class="section-title">Historial de Sesiones (${totalSessions} registros)</div>
     <div style="overflow-x:auto;">
     <table class="sessions-table">
         <thead><tr>
-            <th>Fecha</th><th>Juego</th><th>Nivel</th><th>Puntaje</th><th>Duración</th><th>RT (ms)</th><th>d'</th><th>Omisiones</th><th>Comisiones</th><th>Completado</th>
+            <th>Fecha</th><th>Juego</th><th>Nivel</th><th>Puntaje</th><th>Duración</th><th>RT (ms)</th><th>Omisiones</th><th>Comisiones</th><th>Completado</th>
         </tr></thead><tbody>`;
 
-    // Merge sessions with game slug info
-    const allRows = sessions.map(s => {
-        const slug = getGameSlug(s);
-        const game = GAMES[slug] || { name: slug, icon: '🎮' };
-        const m = s.metrics || {};
-        const cm = m.clinical_markers || {};
-        const dt = s.started_at ? new Date(s.started_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
+    const rows = gameSessions.slice().reverse().map(s => {
+        const game = GAMES[s.game_slug] || { name: s.game_slug || 'juego', icon: '🎮' };
+        const dt = (s.session_date || s.created_at) ? new Date(s.session_date || s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
+        // Buscar biomet correspondiente a esta sesión
+        const bio = biometSessions.find(b => b.game_slug === s.game_slug && Math.abs(new Date(b.session_date||b.created_at) - new Date(s.session_date||s.created_at)) < 60000);
+        const bd = bio?.metric_data || {};
         return `<tr>
             <td>${dt}</td>
             <td>${game.icon} ${game.name}</td>
-            <td>${s.level || '—'}</td>
-            <td>${s.score || 0}${s.max_score ? '/' + s.max_score : ''}</td>
+            <td>${s.level_reached ?? '—'}</td>
+            <td>${s.score ?? s.metric_value ?? 0}</td>
             <td>${s.duration_seconds ? Math.round(s.duration_seconds) + 's' : '—'}</td>
-            <td>${cm.mean_reaction_time_ms || '—'}</td>
-            <td>—</td>
-            <td>${cm.omission_errors ?? '—'}</td>
-            <td>${cm.commission_errors ?? '—'}</td>
-            <td>${s.completed_at ? '✓' : '✗'}</td>
+            <td>${bd.rt_mean_ms ? Math.round(bd.rt_mean_ms) : '—'}</td>
+            <td>${bd.errores_omision ?? '—'}</td>
+            <td>${bd.errores_comision ?? '—'}</td>
+            <td>${s.completed ? '✓' : '✗'}</td>
         </tr>`;
     });
 
-    // Add neuro-chef metric rows
-    const ncLevelMetrics = metrics.filter(m => m.metric_type && m.metric_type.startsWith('level_'));
-    ncLevelMetrics.forEach(m => {
-        const dt = m.created_at ? new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
-        const md = m.metric_data || {};
-        const bio = md.biometrics || {};
-        allRows.push(`<tr style="color:rgba(168,85,247,0.8);">
-            <td>${dt}</td>
-            <td>🧠 Neuro-Chef</td>
-            <td>${md.level || m.metric_type}</td>
-            <td>${md.score || m.metric_value || 0}</td>
-            <td>${bio.total_time_ms ? Math.round(bio.total_time_ms / 1000) + 's' : '—'}</td>
-            <td>${bio.reaction_time_ms || '—'}</td>
-            <td>${bio.d_prime ? bio.d_prime.toFixed(2) : '—'}</td>
-            <td>${bio.misses ?? '—'}</td>
-            <td>${bio.false_alarms ?? '—'}</td>
-            <td>✓</td>
-        </tr>`);
-    });
-
-    html += allRows.reverse().join('') + `</tbody></table></div>`;
+    html += rows.join('') || '<tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.3);padding:2rem;">Sin sesiones registradas</td></tr>';
+    html += `</tbody></table></div>`;
 
     dc.innerHTML = html;
-
-    // Render charts
-    requestAnimationFrame(() => renderCharts(sessions, metrics, moods));
+    requestAnimationFrame(() => renderCharts(gameSessions, biometSessions, allColors));
 }
 
 function getGameSlug(session) {
-    if (session.game_slug) return session.game_slug;
-    // Fallback: try to infer from metrics
-    const m = session.metrics || {};
-    if (m.grassCut !== undefined || m.flowersHit !== undefined) return 'lawn-mower';
-    if (m.memory_span !== undefined || m.simulated_mpr !== undefined) return 'medication-memory';
-    if (m.pills !== undefined) return 'pill-organizer';
-    return 'unknown';
+    return session.game_slug || 'unknown';
 }
 
-function renderCharts(sessions, metrics, moods) {
+function renderCharts(gameSessions, biometSessions, allColors) {
     const chartOpts = {
         responsive: true,
         plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } } } },
@@ -319,102 +310,79 @@ function renderCharts(sessions, metrics, moods) {
         }
     };
 
-    // RT chart: combine lawn-mower and neuro-chef
-    const ncBio = metrics.filter(m => m.metric_type && m.metric_type.startsWith('biometric_level_')).map(m => ({
-        date: m.created_at, rt: m.metric_data?.reaction_time_ms, game: 'neuro-chef'
-    })).filter(d => d.rt);
-
-    const lmRT = sessions.filter(s => s.metrics?.clinical_markers?.mean_reaction_time_ms).map(s => ({
-        date: s.started_at, rt: s.metrics.clinical_markers.mean_reaction_time_ms, game: 'lawn-mower'
-    }));
-
-    const allRT = [...ncBio, ...lmRT].sort((a, b) => new Date(a.date) - new Date(b.date));
-    if (allRT.length > 0) {
-        const labels = allRT.map(d => new Date(d.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' }));
+    // RT chart: de biomet sessions
+    const rtData = biometSessions.filter(m => m.metric_data?.rt_mean_ms > 0).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
+    if (rtData.length > 0) {
+        const byGame = {};
+        rtData.forEach(m => {
+            const slug = m.game_slug || 'unknown';
+            if (!byGame[slug]) byGame[slug] = [];
+            byGame[slug].push({ date: m.session_date || m.created_at, rt: m.metric_data.rt_mean_ms });
+        });
+        const allDates = [...new Set(rtData.map(m => (m.session_date||m.created_at).split('T')[0]))].sort();
+        const datasets = Object.entries(byGame).map(([slug, pts]) => {
+            const game = GAMES[slug] || { name: slug, color: '#6b7280' };
+            return {
+                label: game.name || slug,
+                data: allDates.map(d => { const p = pts.find(x => (x.date||'').startsWith(d)); return p ? p.rt : null; }),
+                borderColor: game.color || '#60a5fa', tension: 0.3, spanGaps: true, pointRadius: 4
+            };
+        });
         charts.rt = new Chart(document.getElementById('chartRT'), {
             type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    { label: 'Neuro-Chef', data: allRT.map(d => d.game === 'neuro-chef' ? d.rt : null), borderColor: '#a855f7', tension: 0.3, spanGaps: true, pointRadius: 3 },
-                    { label: 'Cortadora', data: allRT.map(d => d.game === 'lawn-mower' ? d.rt : null), borderColor: '#22c55e', tension: 0.3, spanGaps: true, pointRadius: 3 }
-                ]
-            },
+            data: { labels: allDates, datasets },
             options: chartOpts
         });
     }
 
-    // d' chart
-    const dPrimeData = ncBio.filter(d => d.game === 'neuro-chef').map(m => {
-        const orig = metrics.find(x => x.created_at === m.date);
-        return { date: m.date, dp: orig?.metric_data?.d_prime };
-    }).filter(d => d.dp !== undefined);
-
-    if (dPrimeData.length > 0) {
-        charts.dprime = new Chart(document.getElementById('chartDPrime'), {
-            type: 'line',
-            data: {
-                labels: dPrimeData.map(d => new Date(d.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
-                datasets: [{ label: "d'", data: dPrimeData.map(d => d.dp), borderColor: '#60a5fa', tension: 0.3, fill: true, backgroundColor: 'rgba(96,165,250,0.1)' }]
-            },
-            options: chartOpts
-        });
-    }
-
-    // Score chart (all games)
-    const scoreSessions = sessions.filter(s => s.score > 0).sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
+    // Score chart
+    const scoreSessions = gameSessions.filter(s => (s.score ?? s.metric_value) > 0).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
     if (scoreSessions.length > 0) {
         charts.score = new Chart(document.getElementById('chartScore'), {
             type: 'bar',
             data: {
-                labels: scoreSessions.map(s => new Date(s.started_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
-                datasets: [{
-                    label: 'Puntaje',
-                    data: scoreSessions.map(s => s.score),
-                    backgroundColor: scoreSessions.map(s => {
-                        const slug = getGameSlug(s);
-                        return GAMES[slug]?.color || '#6b7280';
-                    }),
-                    borderRadius: 4
-                }]
+                labels: scoreSessions.map(s => new Date(s.session_date||s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                datasets: [{ label: 'Puntaje', data: scoreSessions.map(s => s.score ?? s.metric_value ?? 0),
+                    backgroundColor: scoreSessions.map(s => GAMES[s.game_slug]?.color || '#6b7280'), borderRadius: 4 }]
             },
             options: { ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }
         });
     }
 
-    // Errors chart (neuro-chef)
-    const errData = metrics.filter(m => m.metric_type?.startsWith('biometric_level_') && m.metric_data).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    // Errors chart: omisiones y comisiones desde biomet
+    const errData = biometSessions.filter(m => m.metric_data?.errores_omision != null || m.metric_data?.errores_comision != null).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
     if (errData.length > 0) {
         charts.errors = new Chart(document.getElementById('chartErrors'), {
             type: 'bar',
             data: {
-                labels: errData.map(m => new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                labels: errData.map(m => new Date(m.session_date||m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
                 datasets: [
-                    { label: 'Omisiones', data: errData.map(m => m.metric_data.misses || 0), backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 3 },
-                    { label: 'Comisiones', data: errData.map(m => m.metric_data.false_alarms || 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 3 }
+                    { label: 'Omisiones', data: errData.map(m => m.metric_data.errores_omision || 0), backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 3 },
+                    { label: 'Comisiones', data: errData.map(m => m.metric_data.errores_comision || 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 3 }
                 ]
             },
             options: chartOpts
         });
     }
 
-    // Tremor / Hesitations chart
-    if (errData.length > 0) {
+    // Tremor / Hesitaciones chart desde biomet
+    const tremorData = biometSessions.filter(m => m.metric_data?.tremor_reposo_px != null).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
+    if (tremorData.length > 0) {
         charts.tremor = new Chart(document.getElementById('chartTremor'), {
             type: 'line',
             data: {
-                labels: errData.map(m => new Date(m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
+                labels: tremorData.map(m => new Date(m.session_date||m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
                 datasets: [
-                    { label: 'Tremor idx', data: errData.map(m => m.metric_data.tremor_avg || 0), borderColor: '#f87171', tension: 0.3, yAxisID: 'y' },
-                    { label: 'Hesitaciones', data: errData.map(m => m.metric_data.hesitation_count || 0), borderColor: '#fbbf24', tension: 0.3, yAxisID: 'y1' }
+                    { label: 'Tremor reposo (px)', data: tremorData.map(m => m.metric_data.tremor_reposo_px || 0), borderColor: '#f87171', tension: 0.3, yAxisID: 'y' },
+                    { label: 'Hesitaciones', data: tremorData.map(m => m.metric_data.hesitaciones_count || 0), borderColor: '#fbbf24', tension: 0.3, yAxisID: 'y1' }
                 ]
             },
             options: {
                 ...chartOpts,
                 scales: {
                     ...chartOpts.scales,
-                    y: { ...chartOpts.scales.y, position: 'left', title: { display: true, text: 'Tremor', color: 'rgba(255,255,255,0.3)' } },
-                    y1: { ...chartOpts.scales.y, position: 'right', title: { display: true, text: 'Hesitaciones', color: 'rgba(255,255,255,0.3)' }, grid: { drawOnChartArea: false } }
+                    y: { ...chartOpts.scales.y, position: 'left', title: { display: true, text: 'Tremor px', color: 'rgba(255,255,255,0.3)' } },
+                    y1: { ticks: { color: 'rgba(255,255,255,0.3)' }, grid: { drawOnChartArea: false }, position: 'right', title: { display: true, text: 'Hesitaciones', color: 'rgba(255,255,255,0.3)' } }
                 }
             }
         });
