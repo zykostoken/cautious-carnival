@@ -32,7 +32,7 @@ function _moodStorageSet(key, val) {
 // ====================================================================
 // SUPABASE SAVE
 // ====================================================================
-function _moodSaveToSupabase(type, data) {
+function _moodSaveToSupabase(type, data, context) {
     try {
         var sb = window.supabase;
         if (!sb) return;
@@ -40,13 +40,56 @@ function _moodSaveToSupabase(type, data) {
             'https://yqpqfzvgcmvxvqzvtajx.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk'
         );
+        var ctx = context || 'game';
+        var gameSlug = _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html','');
+        var now = new Date().toISOString();
+
+        // Guardar en hdd_mood_entries (tabla original de estados)
         client.from('hdd_mood_entries').insert({
             patient_id: _moodState.patientId || 'DEMO',
-            game_slug: _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html',''),
+            game_slug: gameSlug,
+            context_type: ctx,
             entry_type: type,
             data: data,
-            created_at: new Date().toISOString()
+            created_at: now
         }).then(function(){}).catch(function(){});
+
+        // También guardar en hdd_game_metrics como eje longitudinal de satisfacción
+        // (solo cuando hay color elegido — no en skips)
+        if (data && data.color && !data.skipped) {
+            // Mapeamos color a valor numérico de valencia afectiva (valence 1-10)
+            // Para poder graficar tendencia en el tiempo
+            var colorValence = {
+                '#FF0000': 3,  // Rojo — alta activación negativa
+                '#FF8C00': 5,  // Naranja — activación media
+                '#FFD700': 7,  // Amarillo — positivo/energético
+                '#008000': 8,  // Verde — calma positiva
+                '#00CED1': 7,  // Turquesa — calma activa
+                '#87CEEB': 7,  // Celeste — tranquilidad
+                '#00008B': 5,  // Azul oscuro — neutro
+                '#800080': 4,  // Violeta — introspectivo
+                '#FF69B4': 7,  // Rosa — afecto positivo
+                '#8B4513': 4,  // Marrón — neutro-bajo
+                '#808080': 4,  // Gris — aplanamiento
+                '#000000': 2   // Negro — alta valencia negativa
+            };
+            var valence = colorValence[data.color] || 5;
+
+            client.from('hdd_game_metrics').insert({
+                patient_id: _moodState.patientId || 'DEMO',
+                game_slug: ctx === 'game' ? (gameSlug + '_mood') : (ctx + '_mood'),
+                metric_type: 'satisfaction_color',
+                metric_value: valence,
+                metric_data: {
+                    color: data.color,
+                    color_name: data.color_name,
+                    context_type: ctx,
+                    valence: valence,
+                    source_activity: gameSlug
+                },
+                created_at: now
+            }).then(function(){}).catch(function(){});
+        }
     } catch(e) {}
 }
 
@@ -158,21 +201,50 @@ function showPreGameChat() {
 }
 
 // ====================================================================
-// POST-GAME COLOR PICKER
+// POST-ACTIVIDAD COLOR PICKER — medida de satisfacción universal
+// Funciona para: juego, chat clínico, telemedicina, taller grupal, etc.
+//
+// Uso desde juego:
+//   showPostGameColorModal()                             // contexto auto-detectado
+//
+// Uso desde telemedicina / chat / taller:
+//   showSatisfactionColor({ context: 'telemedicina', session_id: '...' })
+//   showSatisfactionColor({ context: 'taller_grupal', room: 'Sala B' })
+//   showSatisfactionColor({ context: 'chat_clinico' })
 // ====================================================================
-function showPostGameColorModal() {
+
+/**
+ * Muestra el selector de color post-actividad.
+ * @param {object} opts  - context: string ('game'|'telemedicina'|'taller_grupal'|'chat_clinico'|otro)
+ *                       - cualquier campo extra se guarda en metric_data
+ * @param {function} onDone - callback opcional cuando el paciente elige
+ */
+function showSatisfactionColor(opts, onDone) {
+    opts = opts || {};
     if (document.getElementById('mood-color-overlay')) return;
+
+    var context = opts.context || 'game';
+    var contextLabels = {
+        'game':          'la actividad',
+        'telemedicina':  'la teleconsulta',
+        'taller_grupal': 'el taller',
+        'chat_clinico':  'la conversación',
+        'consulta':      'la consulta'
+    };
+    var actLabel = contextLabels[context] || 'la actividad';
 
     var overlay = document.createElement('div');
     overlay.id = 'mood-color-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:mfadeIn .3s ease';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:mfadeIn .3s ease';
 
     var card = document.createElement('div');
-    card.style.cssText = 'background:#1e293b;border-radius:20px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
+    card.style.cssText = 'background:#1e293b;border-radius:20px;padding:28px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
 
-    card.innerHTML = '<p style="font-size:1.1rem;font-weight:600;margin:0 0 18px;">¿Querés elegir un color?</p>' +
-        '<div id="mood-color-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;"></div>' +
-        '<button id="mood-color-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.82rem;">No, gracias</button>';
+    card.innerHTML =
+        '<p style="font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.35);margin:0 0 6px;">¿Cómo te sentiste en ' + actLabel + '?</p>' +
+        '<p style="font-size:1.05rem;font-weight:600;margin:0 0 18px;">Elegí un color que lo represente</p>' +
+        '<div id="mood-color-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;"></div>' +
+        '<button id="mood-color-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:rgba(255,255,255,0.38);cursor:pointer;font-size:0.8rem;">Omitir</button>';
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
@@ -180,20 +252,24 @@ function showPostGameColorModal() {
     var grid = document.getElementById('mood-color-grid');
     MOOD_COLORS.forEach(function(c) {
         var swatch = document.createElement('div');
-        swatch.style.cssText = 'width:52px;height:52px;border-radius:14px;cursor:pointer;border:3px solid transparent;transition:all .2s;margin:0 auto;background:' + c.hex;
+        swatch.style.cssText = 'width:52px;height:52px;border-radius:14px;cursor:pointer;border:3px solid transparent;transition:all .18s;margin:0 auto;background:' + c.hex;
         swatch.title = c.name;
-        swatch.onmouseover = function() { swatch.style.transform = 'scale(1.15)'; };
-        swatch.onmouseout = function() { swatch.style.transform = 'scale(1)'; };
+        swatch.onmouseover = function() { swatch.style.transform = 'scale(1.18)'; swatch.style.borderColor = 'rgba(255,255,255,0.4)'; };
+        swatch.onmouseout  = function() { swatch.style.transform = 'scale(1)';    swatch.style.borderColor = 'transparent'; };
         swatch.onclick = function() {
-            _moodSaveToSupabase('post_game_color', { color: c.hex, color_name: c.name });
+            var payload = Object.assign({}, opts, { color: c.hex, color_name: c.name, skipped: false });
+            _moodSaveToSupabase('satisfaction_color', payload, context);
             closeColorModal();
+            if (typeof onDone === 'function') onDone({ color: c.hex, color_name: c.name, context: context });
         };
         grid.appendChild(swatch);
     });
 
     document.getElementById('mood-color-skip').onclick = function() {
-        _moodSaveToSupabase('post_game_color', { color: null, skipped: true });
+        var payload = Object.assign({}, opts, { color: null, skipped: true });
+        _moodSaveToSupabase('satisfaction_color', payload, context);
         closeColorModal();
+        if (typeof onDone === 'function') onDone({ skipped: true, context: context });
     };
 
     function closeColorModal() {
@@ -201,6 +277,9 @@ function showPostGameColorModal() {
         setTimeout(function() { overlay.remove(); }, 300);
     }
 }
+
+// Alias para compatibilidad con llamadas existentes desde los juegos
+function showPostGameColorModal() { showSatisfactionColor({ context: 'game' }); }
 
 // ====================================================================
 // initMoodModals — ya no hace nada automatico. 
