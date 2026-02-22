@@ -5,13 +5,30 @@
 //     Así el modal nunca bloquea la pantalla de inicio.
 // ====================================================================
 
+// ====================================================================
+// MOOD MODALS v8.0 - Clínica José Ingenieros
+// v8: color como registro clínico puro — sin valencia, sin sugerencia.
+//     Solo se registra el color elegido, el contexto y el momento.
+//     La interpretación es exclusivamente del profesional.
+// ====================================================================
+
+// Colores ordenados espectralmente — sin etiquetas visibles para el paciente
+// Los nombres son solo para identificación en base de datos
 var MOOD_COLORS = [
-    { hex: '#FF0000', name: 'Rojo' }, { hex: '#FF8C00', name: 'Naranja' },
-    { hex: '#FFD700', name: 'Amarillo' }, { hex: '#008000', name: 'Verde' },
-    { hex: '#00CED1', name: 'Turquesa' }, { hex: '#87CEEB', name: 'Celeste' },
-    { hex: '#00008B', name: 'Azul' }, { hex: '#800080', name: 'Violeta' },
-    { hex: '#FF69B4', name: 'Rosa' }, { hex: '#8B4513', name: 'Marrón' },
-    { hex: '#808080', name: 'Gris' }, { hex: '#000000', name: 'Negro' }
+    { hex: '#FF0000', name: 'rojo' },
+    { hex: '#FF8C00', name: 'naranja' },
+    { hex: '#FFD700', name: 'amarillo' },
+    { hex: '#ADFF2F', name: 'verde_claro' },
+    { hex: '#008000', name: 'verde' },
+    { hex: '#00CED1', name: 'turquesa' },
+    { hex: '#87CEEB', name: 'celeste' },
+    { hex: '#00008B', name: 'azul' },
+    { hex: '#800080', name: 'violeta' },
+    { hex: '#FF69B4', name: 'rosa' },
+    { hex: '#8B4513', name: 'marron' },
+    { hex: '#808080', name: 'gris' },
+    { hex: '#1a1a1a', name: 'negro' },
+    { hex: '#FFFFFF', name: 'blanco' },
 ];
 
 var _moodState = { step: 0, responses: [], patientId: null, gameSlug: null };
@@ -44,7 +61,7 @@ function _moodSaveToSupabase(type, data, context) {
         var gameSlug = _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html','');
         var now = new Date().toISOString();
 
-        // Guardar en hdd_mood_entries (tabla original de estados)
+        // Guardar en hdd_mood_entries — registro clínico puro
         client.from('hdd_mood_entries').insert({
             patient_id: _moodState.patientId || 'DEMO',
             game_slug: gameSlug,
@@ -54,38 +71,21 @@ function _moodSaveToSupabase(type, data, context) {
             created_at: now
         }).then(function(){}).catch(function(){});
 
-        // También guardar en hdd_game_metrics como eje longitudinal de satisfacción
-        // (solo cuando hay color elegido — no en skips)
+        // Guardar en hdd_game_metrics para serie longitudinal
+        // Se guarda el color tal cual — sin ningún mapeo numérico a priori.
+        // La secuencia de colores en el tiempo es el dato; la interpretación es clínica.
         if (data && data.color && !data.skipped) {
-            // Mapeamos color a valor numérico de valencia afectiva (valence 1-10)
-            // Para poder graficar tendencia en el tiempo
-            var colorValence = {
-                '#FF0000': 3,  // Rojo — alta activación negativa
-                '#FF8C00': 5,  // Naranja — activación media
-                '#FFD700': 7,  // Amarillo — positivo/energético
-                '#008000': 8,  // Verde — calma positiva
-                '#00CED1': 7,  // Turquesa — calma activa
-                '#87CEEB': 7,  // Celeste — tranquilidad
-                '#00008B': 5,  // Azul oscuro — neutro
-                '#800080': 4,  // Violeta — introspectivo
-                '#FF69B4': 7,  // Rosa — afecto positivo
-                '#8B4513': 4,  // Marrón — neutro-bajo
-                '#808080': 4,  // Gris — aplanamiento
-                '#000000': 2   // Negro — alta valencia negativa
-            };
-            var valence = colorValence[data.color] || 5;
-
             client.from('hdd_game_metrics').insert({
                 patient_id: _moodState.patientId || 'DEMO',
-                game_slug: ctx === 'game' ? (gameSlug + '_mood') : (ctx + '_mood'),
-                metric_type: 'satisfaction_color',
-                metric_value: valence,
+                game_slug: ctx === 'game' ? (gameSlug + '_color') : (ctx + '_color'),
+                metric_type: 'color_eleccion',
+                metric_value: null,   // sin valor numérico — no interpretamos
                 metric_data: {
-                    color: data.color,
-                    color_name: data.color_name,
+                    color_hex: data.color,
+                    color_id: data.color_name,   // identificador interno (no mostrar al paciente)
                     context_type: ctx,
-                    valence: valence,
-                    source_activity: gameSlug
+                    source_activity: gameSlug,
+                    session_ordinal: data.session_ordinal || null
                 },
                 created_at: now
             }).then(function(){}).catch(function(){});
@@ -224,14 +224,6 @@ function showSatisfactionColor(opts, onDone) {
     if (document.getElementById('mood-color-overlay')) return;
 
     var context = opts.context || 'game';
-    var contextLabels = {
-        'game':          'la actividad',
-        'telemedicina':  'la teleconsulta',
-        'taller_grupal': 'el taller',
-        'chat_clinico':  'la conversación',
-        'consulta':      'la consulta'
-    };
-    var actLabel = contextLabels[context] || 'la actividad';
 
     var overlay = document.createElement('div');
     overlay.id = 'mood-color-overlay';
@@ -240,11 +232,12 @@ function showSatisfactionColor(opts, onDone) {
     var card = document.createElement('div');
     card.style.cssText = 'background:#1e293b;border-radius:20px;padding:28px 24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);text-align:center;color:#e2e8f0;font-family:system-ui,sans-serif';
 
+    // Sin texto, sin título, sin tooltip. Solo colores.
     card.innerHTML =
-        '<p style="font-size:0.78rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.35);margin:0 0 6px;">¿Cómo te sentiste en ' + actLabel + '?</p>' +
-        '<p style="font-size:1.05rem;font-weight:600;margin:0 0 18px;">Elegí un color que lo represente</p>' +
-        '<div id="mood-color-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;"></div>' +
-        '<button id="mood-color-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:rgba(255,255,255,0.38);cursor:pointer;font-size:0.8rem;">Omitir</button>';
+        '<div id="mood-color-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:8px;"></div>' +
+        '<div style="text-align:right;margin-top:10px;">' +
+        '<span id="mood-color-skip" style="color:rgba(255,255,255,0.18);cursor:pointer;font-size:0.78rem;user-select:none;">—</span>' +
+        '</div>';
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
@@ -252,9 +245,19 @@ function showSatisfactionColor(opts, onDone) {
     var grid = document.getElementById('mood-color-grid');
     MOOD_COLORS.forEach(function(c) {
         var swatch = document.createElement('div');
-        swatch.style.cssText = 'width:52px;height:52px;border-radius:14px;cursor:pointer;border:3px solid transparent;transition:all .18s;margin:0 auto;background:' + c.hex;
-        swatch.title = c.name;
-        swatch.onmouseover = function() { swatch.style.transform = 'scale(1.18)'; swatch.style.borderColor = 'rgba(255,255,255,0.4)'; };
+        // Sin title, sin tooltip, sin label visible
+        swatch.setAttribute('data-color-id', c.name);
+        swatch.style.cssText = [
+            'width:60px;height:60px',
+            'border-radius:50%',
+            'cursor:pointer',
+            'border:3px solid transparent',
+            'transition:transform .15s,border-color .15s',
+            'margin:0 auto',
+            'background:' + c.hex,
+            c.hex === '#FFFFFF' ? 'box-shadow:0 0 0 1px rgba(255,255,255,0.25)' : ''
+        ].join(';');
+        swatch.onmouseover = function() { swatch.style.transform = 'scale(1.15)'; swatch.style.borderColor = 'rgba(255,255,255,0.35)'; };
         swatch.onmouseout  = function() { swatch.style.transform = 'scale(1)';    swatch.style.borderColor = 'transparent'; };
         swatch.onclick = function() {
             var payload = Object.assign({}, opts, { color: c.hex, color_name: c.name, skipped: false });
