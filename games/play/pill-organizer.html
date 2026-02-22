@@ -668,6 +668,30 @@
             const errorPenalty = sessionState.totalErrors * 75;
             const finalScore = Math.max(0, baseScore + tremorBonus + timeBonus - errorPenalty);
             
+            // === GUARDAR EN hdd_game_metrics (longitudinal) ===
+            if (supabase && sessionState.patientId) {
+                await supabase.from('hdd_game_metrics').insert({
+                    patient_id: sessionState.patientId,
+                    game_slug: 'pill-organizer',
+                    metric_type: 'session_complete',
+                    metric_value: finalScore,
+                    metric_data: {
+                        game_name: 'Organizador de Medicación',
+                        score: finalScore,
+                        max_score: 1500,
+                        accuracy_pct: accuracy,
+                        errors: sessionState.totalErrors,
+                        correct_placements: sessionState.correctPlacements,
+                        duration_sec: duration,
+                        tremor_index: avgTremor,
+                        hesitation_count: finalMetrics.high_hesitation_count,
+                        mean_rt_ms: finalMetrics.avg_hesitation_ms,
+                        movement_efficiency: finalMetrics.avg_path_efficiency,
+                        completed: true
+                    }
+                }).catch(e => console.warn('Longitudinal metric save:', e.message));
+            }
+
             // Actualizar sesión en Supabase
             if (supabase && sessionState.sessionId) {
                 await supabase

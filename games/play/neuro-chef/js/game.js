@@ -671,6 +671,26 @@ async function finishGame() {
         }
     };
     await supabase.from('hdd_game_sessions').update({ completed_at:new Date().toISOString(), final_score:gameState.totalCorrect-gameState.totalErrors, metadata:summary }).eq('id',gameState.sessionId).catch(()=>{});
+    // Save session_complete to hdd_game_metrics for longitudinal panel
+    await supabase.from('hdd_game_metrics').insert({
+        patient_id: gameState.patientId,
+        game_session_id: gameState.sessionId,
+        game_slug: 'neuro-chef-v2',
+        metric_type: 'session_complete',
+        metric_value: gameState.totalCorrect - gameState.totalErrors,
+        metric_data: {
+            game_name: 'Neuro-Chef',
+            total_correct: gameState.totalCorrect,
+            total_errors: gameState.totalErrors,
+            levels_completed: summary.levels_completed,
+            duration_sec: Math.round(summary.total_time_ms / 1000),
+            total_time_ms: summary.total_time_ms,
+            mean_rt_ms: gameState.biometricData.length ? Math.round(gameState.biometricData.reduce((s,b)=>s+(b.mean_rt||0),0)/gameState.biometricData.length) : null,
+            commission_errors: summary.total_commissions,
+            omission_errors: summary.total_omissions,
+            completed: true
+        }
+    }).catch(()=>{});
     showResultsScreen(summary);
 }
 

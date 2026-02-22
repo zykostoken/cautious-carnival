@@ -1223,6 +1223,65 @@
   // ---- SESSION METRICS HISTORY (persistent across levels for charts) ----
   let metricsHistory = JSON.parse(localStorage.getItem('lawnmower_metrics_history') || '[]');
 
+  // ---- SUPABASE LONGITUDINAL SAVE ----
+  const LM_SUPABASE_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+  const LM_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
+  let lmSupa = null;
+  try { if (window.supabase) lmSupa = window.supabase.createClient(LM_SUPABASE_URL, LM_SUPABASE_KEY); } catch(e) {}
+
+  // Get patient DNI from URL params or localStorage
+  const lmParams = new URLSearchParams(window.location.search);
+  const lmPatientDni = lmParams.get('dni') || lmParams.get('patient_id') || 
+    (function(){ try { return localStorage.getItem('hdd_patient_id') || sessionStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })() || 'HDD-DEMO';
+
+  async function lmGetOrCreatePatient(dni) {
+    if (!lmSupa) return null;
+    try {
+      const { data: existing } = await lmSupa.from('hdd_patients').select('id').eq('dni', dni).single();
+      if (existing) return existing.id;
+      const { data: np } = await lmSupa.from('hdd_patients').insert({ dni, full_name: 'Paciente ' + dni, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
+      return np?.id;
+    } catch(e) { return null; }
+  }
+
+  async function lmSaveToSupabase(completed, finalScore, clinicalStats) {
+    if (!lmSupa) return;
+    try {
+      const patientId = await lmGetOrCreatePatient(lmPatientDni);
+      if (!patientId) return;
+      await lmSupa.from('hdd_game_metrics').insert({
+        patient_id: patientId,
+        game_slug: 'lawn-mower',
+        metric_type: 'session_complete',
+        metric_value: finalScore,
+        metric_data: {
+          game_name: 'Cortadora de Césped',
+          level: currentLevel,
+          completed,
+          score: finalScore,
+          duration_sec: Math.floor((Date.now() - startTime) / 1000),
+          grass_cut: grassCut,
+          total_grass: totalGrass,
+          flowers_hit: flowersHit,
+          pool_hits: poolHits,
+          errors: errors,
+          resets: resetEvents.length,
+          // Clinical biomarkers
+          mean_rt_ms: clinicalStats.clinical_markers?.mean_reaction_time_ms,
+          rt_variability_sd: clinicalStats.clinical_markers?.rt_variability_sd,
+          omission_errors: clinicalStats.clinical_markers?.omission_errors,
+          commission_errors: clinicalStats.clinical_markers?.commission_errors,
+          movement_efficiency: clinicalStats.clinical_markers?.movement_efficiency,
+          path_efficiency: clinicalStats.clinical_markers?.path_efficiency,
+          hesitation_count: clinicalStats.clinical_markers?.long_pauses_count,
+          avg_pause_ms: clinicalStats.clinical_markers?.avg_pause_duration_ms,
+          time_to_first_action_ms: clinicalStats.clinical_markers?.time_to_first_action_ms,
+          impulsivity_ratio: clinicalStats.clinical_markers?.impulsivity_ratio
+        }
+      });
+    } catch(e) { console.warn('[lawn-mower] Supabase save fail:', e.message); }
+  }
+
   // ---- INTRA-SESSION TIME SERIES (second-by-second data for FDA) ----
   let metricsTimeSeries = {
     timestamps: [],
@@ -3417,7 +3476,8 @@
     showResultScreen(true, completionBonus, speedBonus);
     showCelebration();
     saveResult(true);
-  }
+    // Also save to Supabase for longitudinal tracking
+    lmSaveToSupabase(true, score, calculateClinicalStats());
 
   function showResultScreen(won, completionBonus, speedBonus) {
     resultScreen.classList.remove('hidden');
@@ -4135,6 +4195,7 @@
 </script>
 
   <!-- Mood modals v4: self-contained overlay system -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/games/shared/mood-modals.js"></script>
   <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 

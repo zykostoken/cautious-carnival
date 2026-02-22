@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Profesional HDD | Clínica José Ingenieros</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#0a0f1e;--surface:#111827;--surface2:#1a2234;--border:rgba(255,255,255,.08);
+      --text:#e2e8f0;--muted:rgba(255,255,255,.4);--accent:#60a5fa;--green:#34d399;
+      --purple:#a78bfa;--red:#f87171;--yellow:#fbbf24;--orange:#fb923c;
+    }
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+    
+    /* ---- HEADER ---- */
+    .header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+    .header h1{font-size:1.1rem;color:var(--accent);display:flex;align-items:center;gap:.5rem}
+    .header h1 span{font-size:.7rem;background:rgba(248,113,113,.15);color:#f87171;padding:2px 8px;border-radius:4px;font-weight:500}
+    .back-btn{color:var(--muted);text-decoration:none;font-size:.85rem;padding:.5rem 1rem;border:1px solid var(--border);border-radius:6px;transition:all .2s}
+    .back-btn:hover{background:rgba(255,255,255,.06);color:#fff}
+
+    /* ---- LAYOUT ---- */
+    .main{max-width:1400px;margin:0 auto;padding:1.5rem}
+    
+    /* ---- PATIENT SELECTOR ---- */
+    .selector-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+    .selector-bar label{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    select,input{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:.6rem 1rem;border-radius:8px;font-size:.9rem;outline:none;transition:border .2s}
+    select:focus,input:focus{border-color:var(--accent)}
+    select{min-width:280px;cursor:pointer}
+    select option{background:#1e293b}
+    .patient-meta{font-size:.8rem;color:var(--muted);margin-left:auto}
+    .patient-meta strong{color:var(--text)}
+
+    /* ---- SUMMARY CARDS ---- */
+    .summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .scard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;transition:border .2s}
+    .scard:hover{border-color:var(--accent)}
+    .scard .val{font-size:1.8rem;font-weight:700;color:#fff;line-height:1}
+    .scard .lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:.3rem}
+    .scard .sub{font-size:.7rem;color:var(--green);margin-top:.2rem}
+    .scard .sub.neg{color:var(--red)}
+
+    /* ---- GAME TABS ---- */
+    .tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:1rem}
+    .tab{padding:.45rem .9rem;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;border:1px solid transparent;font-size:.82rem;transition:all .2s;display:flex;align-items:center;gap:.4rem}
+    .tab:hover{background:rgba(255,255,255,.06);color:#fff}
+    .tab.active{background:rgba(96,165,250,.12);color:var(--accent);border-color:rgba(96,165,250,.25)}
+    .tab .cnt{font-size:.65rem;background:rgba(96,165,250,.2);padding:1px 6px;border-radius:10px}
+
+    /* ---- GAME SECTION ---- */
+    .game-section{display:none}
+    .game-section.visible{display:block}
+
+    /* ---- BASELINE / PROGRESS STRIP ---- */
+    .progress-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .pcard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem}
+    .pcard .plbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem}
+    .pcard .pval{font-size:1.3rem;font-weight:700;color:#fff}
+    .pcard .psub{font-size:.72rem;color:var(--muted);margin-top:.15rem}
+    .pcard.highlight{border-color:var(--accent)}
+    .pcard.positive{border-color:var(--green)}
+    .pcard.negative{border-color:var(--red)}
+    .arrow-up{color:var(--green)}
+    .arrow-down{color:var(--red)}
+
+    /* ---- CHARTS ---- */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+    @media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+    .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem}
+    .chart-box.full{grid-column:1/-1}
+    .chart-box h3{font-size:.78rem;color:var(--muted);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.5px}
+    .chart-box canvas{max-height:220px}
+
+    /* ---- SESSIONS TABLE ---- */
+    .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:1.5rem}
+    table{width:100%;border-collapse:collapse;font-size:.82rem}
+    th{background:var(--surface2);color:var(--muted);padding:.7rem 1rem;text-align:left;font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+    td{padding:.7rem 1rem;border-top:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.7rem;font-weight:500}
+    .badge.good{background:rgba(52,211,153,.12);color:var(--green)}
+    .badge.bad{background:rgba(248,113,113,.12);color:var(--red)}
+    .badge.mid{background:rgba(251,191,36,.12);color:var(--yellow)}
+    .trend-up::after{content:' ↗';color:var(--green)}
+    .trend-down::after{content:' ↘';color:var(--red)}
+    .trend-flat::after{content:' →';color:var(--muted)}
+
+    /* ---- EMPTY STATE ---- */
+    .empty{text-align:center;padding:3rem;color:var(--muted)}
+    .empty .icon{font-size:3rem;margin-bottom:.5rem}
+    
+    /* ---- LOADING ---- */
+    .loading{text-align:center;padding:3rem;color:var(--muted)}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto .5rem}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ---- SECTION TITLE ---- */
+    .sec-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:.75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+
+    /* ---- ALL PATIENTS VIEW ---- */
+    .patients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .pat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;cursor:pointer;transition:all .2s}
+    .pat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+    .pat-card .pname{font-weight:600;font-size:.95rem;margin-bottom:.2rem}
+    .pat-card .pdni{font-size:.75rem;color:var(--muted);margin-bottom:.5rem}
+    .pat-card .pmeta{display:flex;gap:1rem;font-size:.75rem;color:var(--muted)}
+    .pat-card .pmeta strong{color:var(--text)}
+    .last-act{font-size:.7rem;color:var(--muted);margin-top:.5rem}
+    .activity-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px}
+    .activity-dot.old{background:var(--red)}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏥 Panel Profesional HDD <span>BETA</span></h1>
+  <div style="display:flex;gap:.75rem;align-items:center">
+    <span id="sync-status" style="font-size:.75rem;color:var(--muted)">Conectando...</span>
+    <a href="/hdd/admin/" class="back-btn">← Admin</a>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Loading state -->
+  <div id="loading-state" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando pacientes...</p>
+  </div>
+
+  <!-- Patients grid (overview) -->
+  <div id="patients-view" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:1rem;color:var(--accent)">Todos los pacientes</h2>
+      <input type="text" id="search-patient" placeholder="Buscar por nombre o DNI..." style="width:240px" oninput="filterPatients(this.value)">
+    </div>
+    <div class="patients-grid" id="patients-grid"></div>
+  </div>
+
+  <!-- Individual patient dashboard -->
+  <div id="patient-dashboard" style="display:none">
+    <div class="selector-bar">
+      <div>
+        <label>Paciente</label>
+        <select id="patient-select" onchange="loadPatient(this.value)">
+          <option value="">— Seleccioná un paciente —</option>
+        </select>
+      </div>
+      <div id="patient-meta" class="patient-meta"></div>
+      <button onclick="showAllPatients()" style="margin-left:auto;padding:.5rem 1rem;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);cursor:pointer;font-size:.82rem">← Ver todos</button>
+    </div>
+
+    <!-- Summary totals -->
+    <div class="summary-grid" id="summary-grid"></div>
+
+    <!-- Game tabs -->
+    <div class="tabs" id="game-tabs"></div>
+
+    <!-- Per-game sections (generated dynamically) -->
+    <div id="game-sections"></div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+const GAMES = {
+  'lawn-mower':       { name: 'Cortadora de Césped', icon: '🌿', color: '#34d399', scoreLabel: 'Puntos' },
+  'pill-organizer':   { name: 'Organizador Medicación', icon: '💊', color: '#60a5fa', scoreLabel: 'Precisión %' },
+  'fridge-logic':     { name: 'Heladera Inteligente', icon: '🧊', color: '#818cf8', scoreLabel: 'Puntaje' },
+  'daily-routine-v2': { name: 'Mi Rutina Diaria', icon: '📅', color: '#f472b6', scoreLabel: 'Puntaje' },
+  'neuro-chef-v2':    { name: 'Neuro-Chef', icon: '👨‍🍳', color: '#fb923c', scoreLabel: 'Puntaje' },
+  'super-market':     { name: 'Supermercado', icon: '🛒', color: '#a78bfa', scoreLabel: 'Puntos' },
+  'medication-memory':{ name: 'Memo Medicación', icon: '🧠', color: '#fbbf24', scoreLabel: 'Score' },
+};
+
+let allPatients = [];
+let currentPatientId = null;
+let currentData = {}; // { metrics: [], sessions: [] }
+let charts = {};
+
+// =================== INIT ===================
+async function init() {
+  try {
+    const { data, error } = await supa.from('hdd_patients').select('id, dni, full_name, admission_date').order('full_name');
+    if (error) throw error;
+    allPatients = data || [];
+    document.getElementById('sync-status').textContent = `${allPatients.length} pacientes`;
+    
+    // Fill select
+    const sel = document.getElementById('patient-select');
+    allPatients.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.full_name || 'Sin nombre'} (${p.dni})`;
+      sel.appendChild(opt);
+    });
+
+    document.getElementById('loading-state').style.display = 'none';
+    showAllPatients();
+  } catch(e) {
+    document.getElementById('loading-state').innerHTML = `<p style="color:#f87171">Error conectando con base de datos: ${e.message}</p>`;
+  }
+}
+
+// =================== ALL PATIENTS VIEW ===================
+async function showAllPatients() {
+  currentPatientId = null;
+  document.getElementById('patient-dashboard').style.display = 'none';
+  document.getElementById('patients-view').style.display = 'block';
+
+  // Load summary stats for each patient
+  const { data: summaries } = await supa.from('hdd_game_metrics')
+    .select('patient_id, game_slug, metric_value, created_at')
+    .eq('metric_type', 'session_complete')
+    .order('created_at', { ascending: false });
+
+  const grid = document.getElementById('patients-grid');
+  grid.innerHTML = '';
+
+  allPatients.forEach(p => {
+    const pMetrics = (summaries || []).filter(m => m.patient_id === p.id);
+    const games = [...new Set(pMetrics.map(m => m.game_slug))];
+    const lastActivity = pMetrics[0]?.created_at;
+    const daysSince = lastActivity ? Math.floor((Date.now() - new Date(lastActivity)) / 86400000) : null;
+    const isRecent = daysSince !== null && daysSince <= 7;
+
+    const card = document.createElement('div');
+    card.className = 'pat-card';
+    card.innerHTML = `
+      <div class="pname">${p.full_name || '—'}</div>
+      <div class="pdni">DNI: ${p.dni}</div>
+      <div class="pmeta">
+        <span><strong>${pMetrics.length}</strong> sesiones</span>
+        <span><strong>${games.length}</strong> juegos</span>
+      </div>
+      ${lastActivity ? `<div class="last-act"><span class="activity-dot ${isRecent ? '' : 'old'}"></span>Última actividad: ${daysSince === 0 ? 'hoy' : daysSince + ' días'}</div>` : '<div class="last-act" style="color:var(--muted)">Sin actividad registrada</div>'}
+    `;
+    card.onclick = () => selectPatientFromGrid(p.id);
+    grid.appendChild(card);
+  });
+}
+
+function filterPatients(q) {
+  const cards = document.querySelectorAll('.pat-card');
+  const lq = q.toLowerCase();
+  cards.forEach((c, i) => {
+    const p = allPatients[i];
+    const match = !q || (p.full_name || '').toLowerCase().includes(lq) || p.dni.includes(q);
+    c.style.display = match ? '' : 'none';
+  });
+}
+
+async function selectPatientFromGrid(patientId) {
+  document.getElementById('patients-view').style.display = 'none';
+  document.getElementById('patient-dashboard').style.display = 'block';
+  document.getElementById('patient-select').value = patientId;
+  await loadPatient(patientId);
+}
+
+// =================== LOAD PATIENT DATA ===================
+async function loadPatient(patientId) {
+  if (!patientId) return;
+  currentPatientId = patientId;
+  destroyCharts();
+
+  // Show loading in sections
+  document.getElementById('summary-grid').innerHTML = '<div class="loading" style="padding:1rem;grid-column:1/-1"><div class="spinner"></div></div>';
+  document.getElementById('game-tabs').innerHTML = '';
+  document.getElementById('game-sections').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando datos longitudinales...</p></div>';
+  document.getElementById('patients-view').style.display = 'none';
+  document.getElementById('patient-dashboard').style.display = 'block';
+
+  const p = allPatients.find(x => x.id === patientId);
+  if (p) {
+    const since = p.admission_date ? new Date(p.admission_date).toLocaleDateString('es-AR') : 'N/D';
+    document.getElementById('patient-meta').innerHTML = `
+      <strong>${p.full_name || 'Sin nombre'}</strong> &nbsp;·&nbsp; DNI: ${p.dni} &nbsp;·&nbsp; Ingreso: ${since}
+    `;
+  }
+
+  // Fetch all metrics for patient
+  const { data: metrics } = await supa.from('hdd_game_metrics')
+    .select('*')
+    .eq('patient_id', patientId)
+    .eq('metric_type', 'session_complete')
+    .order('created_at', { ascending: true });
+
+  currentData.metrics = metrics || [];
+  renderDashboard(metrics || []);
+}
+
+// =================== RENDER DASHBOARD ===================
+function renderDashboard(metrics) {
+  // Group by game
+  const byGame = {};
+  metrics.forEach(m => {
+    if (!byGame[m.game_slug]) byGame[m.game_slug] = [];
+    byGame[m.game_slug].push(m);
+  });
+
+  // Summary cards
+  const total = metrics.length;
+  const gameCount = Object.keys(byGame).length;
+  const lastDate = metrics.length ? new Date(metrics[metrics.length - 1].created_at) : null;
+  const avgScore = total ? Math.round(metrics.reduce((s, m) => s + (m.metric_value || 0), 0) / total) : 0;
+  
+  // Days since first session
+  const firstDate = metrics.length ? new Date(metrics[0].created_at) : null;
+  const daysSinceStart = firstDate ? Math.floor((Date.now() - firstDate) / 86400000) : 0;
+
+  document.getElementById('summary-grid').innerHTML = `
+    <div class="scard"><div class="val">${total}</div><div class="lbl">Sesiones totales</div></div>
+    <div class="scard"><div class="val">${gameCount}</div><div class="lbl">Juegos jugados</div></div>
+    <div class="scard"><div class="val">${avgScore}</div><div class="lbl">Puntaje promedio</div></div>
+    <div class="scard"><div class="val">${daysSinceStart}</div><div class="lbl">Días en seguimiento</div></div>
+    <div class="scard"><div class="val">${lastDate ? lastDate.toLocaleDateString('es-AR', {day:'2-digit',month:'short'}) : '—'}</div><div class="lbl">Última sesión</div></div>
+  `;
+
+  // Game tabs
+  const tabs = document.getElementById('game-tabs');
+  tabs.innerHTML = '<div class="tab active" onclick="showGameSection(\'all\', this)" data-game="all">🎮 Todos</div>';
+  Object.keys(byGame).forEach(slug => {
+    const g = GAMES[slug] || { name: slug, icon: '🎮' };
+    tabs.innerHTML += `<div class="tab" onclick="showGameSection('${slug}', this)" data-game="${slug}">${g.icon} ${g.name} <span class="cnt">${byGame[slug].length}</span></div>`;
+  });
+
+  // Game sections
+  const sections = document.getElementById('game-sections');
+  sections.innerHTML = '';
+
+  // All-games overview section
+  sections.innerHTML += buildAllGamesSection(byGame);
+
+  // Per-game sections
+  Object.entries(byGame).forEach(([slug, data]) => {
+    sections.innerHTML += buildGameSection(slug, data);
+  });
+
+  // Render all charts
+  requestAnimationFrame(() => {
+    renderAllOverviewCharts(byGame);
+    Object.entries(byGame).forEach(([slug, data]) => renderGameCharts(slug, data));
+  });
+}
+
+// =================== ALL GAMES OVERVIEW ===================
+function buildAllGamesSection(byGame) {
+  let html = `<div class="game-section visible" id="section-all">`;
+  html += `<div class="sec-title">Evolución general — todos los juegos</div>`;
+  
+  html += `<div class="charts-grid">
+    <div class="chart-box full"><h3>Puntaje por sesión — todos los juegos</h3><canvas id="chart-all-score"></canvas></div>
+    <div class="chart-box"><h3>Puntaje promedio por juego</h3><canvas id="chart-all-avg"></canvas></div>
+    <div class="chart-box"><h3>Sesiones por juego</h3><canvas id="chart-all-count"></canvas></div>
+  </div>`;
+
+  // Per-game summary table
+  html += `<div class="sec-title" style="margin-top:1rem">Resumen por juego</div>`;
+  html += `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Juego</th><th>Sesiones</th><th>Primera sesión</th><th>Última sesión</th>
+      <th>Baseline</th><th>Promedio</th><th>Mejor</th><th>Progreso</th>
+    </tr></thead><tbody>`;
+  
+  Object.entries(byGame).forEach(([slug, data]) => {
+    const g = GAMES[slug] || { name: slug, icon: '🎮', color: '#6b7280' };
+    const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const baseline = sorted[0]?.metric_value || 0;
+    const latest = sorted[sorted.length - 1]?.metric_value || 0;
+    const avg = Math.round(data.reduce((s,m) => s + (m.metric_value || 0), 0) / data.length);
+    const best = Math.max(...data.map(m => m.metric_value || 0));
+    const progress = latest - baseline;
+    const progressClass = progress > 0 ? 'trend-up' : progress < 0 ? 'trend-down' : 'trend-flat';
+    const firstDate = new Date(sorted[0].created_at).toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'2-digit'});
+    const lastDate = new Date(sorted[sorted.length-1].created_at).toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'2-digit'});
+    
+    html += `<tr>
+      <td><span style="color:${g.color}">${g.icon}</span> ${g.name}</td>
+      <td>${data.length}</td>
+      <td>${firstDate}</td>
+      <td>${lastDate}</td>
+      <td>${Math.round(baseline)}</td>
+      <td>${avg}</td>
+      <td>${Math.round(best)}</td>
+      <td class="${progressClass}">${progress > 0 ? '+' : ''}${Math.round(progress)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+// =================== PER GAME SECTION ===================
+function buildGameSection(slug, data) {
+  const g = GAMES[slug] || { name: slug, icon: '🎮', color: '#6b7280', scoreLabel: 'Score' };
+  const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  const baseline = sorted[0]?.metric_value || 0;
+  const latest = sorted[sorted.length-1]?.metric_value || 0;
+  const avg = Math.round(data.reduce((s,m) => s + (m.metric_value || 0), 0) / data.length);
+  const best = Math.max(...data.map(m => m.metric_value || 0));
+  const progress = latest - baseline;
+
+  let html = `<div class="game-section" id="section-${slug}">`;
+  
+  // Progress strip
+  html += `<div class="progress-strip">
+    <div class="pcard"><div class="plbl">Sesiones</div><div class="pval">${data.length}</div><div class="psub">${g.name}</div></div>
+    <div class="pcard"><div class="plbl">Baseline (1ª sesión)</div><div class="pval">${Math.round(baseline)}</div><div class="psub">${new Date(sorted[0].created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'2-digit'})}</div></div>
+    <div class="pcard highlight"><div class="plbl">Promedio</div><div class="pval">${avg}</div><div class="psub">de ${data.length} sesiones</div></div>
+    <div class="pcard"><div class="plbl">Mejor sesión</div><div class="pval">${Math.round(best)}</div><div class="psub">${g.scoreLabel}</div></div>
+    <div class="pcard ${progress >= 0 ? 'positive' : 'negative'}"><div class="plbl">Progreso total</div><div class="pval ${progress >= 0 ? 'arrow-up' : 'arrow-down'}">${progress >= 0 ? '+' : ''}${Math.round(progress)}</div><div class="psub">baseline → última</div></div>
+  </div>`;
+
+  // Charts
+  html += `<div class="charts-grid">
+    <div class="chart-box full"><h3>${g.scoreLabel} por sesión — evolución longitudinal</h3><canvas id="chart-${slug}-score"></canvas></div>`;
+
+  // Show available clinical metrics based on game
+  if (slug === 'lawn-mower' || slug === 'pill-organizer') {
+    html += `
+    <div class="chart-box"><h3>Tiempo de reacción promedio (ms)</h3><canvas id="chart-${slug}-rt"></canvas></div>
+    <div class="chart-box"><h3>Hesitaciones / Pausas largas</h3><canvas id="chart-${slug}-hesit"></canvas></div>
+    <div class="chart-box"><h3>Errores (comisión vs omisión)</h3><canvas id="chart-${slug}-errors"></canvas></div>
+    <div class="chart-box"><h3>Eficiencia de movimiento</h3><canvas id="chart-${slug}-effic"></canvas></div>`;
+  } else if (slug === 'fridge-logic') {
+    html += `
+    <div class="chart-box"><h3>% Ubicación correcta</h3><canvas id="chart-${slug}-placement"></canvas></div>
+    <div class="chart-box"><h3>Hesitaciones</h3><canvas id="chart-${slug}-hesit"></canvas></div>`;
+  } else if (slug === 'daily-routine-v2') {
+    html += `
+    <div class="chart-box"><h3>Score de selección</h3><canvas id="chart-${slug}-selection"></canvas></div>
+    <div class="chart-box"><h3>Score de secuencia</h3><canvas id="chart-${slug}-sequence"></canvas></div>`;
+  } else if (slug === 'neuro-chef-v2') {
+    html += `
+    <div class="chart-box"><h3>Tiempo de reacción (ms)</h3><canvas id="chart-${slug}-rt"></canvas></div>
+    <div class="chart-box"><h3>d' Sensibilidad</h3><canvas id="chart-${slug}-dprime"></canvas></div>`;
+  }
+  html += `</div>`;
+
+  // Sessions table
+  html += `<div class="sec-title">Historial de sesiones</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Fecha</th><th>Puntaje</th><th>Duración</th><th>Hesitaciones</th><th>RT (ms)</th><th>Errores</th><th>Estado</th></tr></thead>
+    <tbody>`;
+  
+  sorted.forEach((m, i) => {
+    const d = m.metric_data || {};
+    const dt = new Date(m.created_at).toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const dur = d.duration_sec ? Math.round(d.duration_sec) + 's' : (d.total_time_ms ? Math.round(d.total_time_ms/1000) + 's' : '—');
+    const hesit = d.hesitation_count ?? d.long_pauses ?? '—';
+    const rt = d.mean_rt_ms ?? '—';
+    const errs = (d.errors ?? '') || ((d.commission_errors ?? 0) + (d.omission_errors ?? 0)) || '—';
+    const score = Math.round(m.metric_value || 0);
+    
+    // Trend vs previous
+    const prev = i > 0 ? sorted[i-1].metric_value : null;
+    const trendClass = prev === null ? '' : score > prev ? 'trend-up' : score < prev ? 'trend-down' : 'trend-flat';
+    
+    const badgeClass = score >= 70 ? 'good' : score >= 40 ? 'mid' : 'bad';
+    html += `<tr>
+      <td>${i+1}</td><td>${dt}</td>
+      <td class="${trendClass}"><span class="badge ${badgeClass}">${score}</span></td>
+      <td>${dur}</td><td>${hesit}</td><td>${rt}</td><td>${errs}</td>
+      <td>${d.completed !== false ? '<span class="badge good">✓</span>' : '<span class="badge bad">Incompleto</span>'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+// =================== TAB SWITCHING ===================
+function showGameSection(gameId, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.game-section').forEach(s => s.classList.remove('visible'));
+  const target = document.getElementById('section-' + gameId);
+  if (target) target.classList.add('visible');
+}
+
+// =================== CHART RENDERING ===================
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  charts = {};
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { labels: { color: 'rgba(255,255,255,.45)', font: { size: 10 } } } },
+  scales: {
+    x: { ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+    y: { ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.06)' } }
+  }
+};
+
+function makeLineChart(id, labels, datasets) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  charts[id] = new Chart(el, {
+    type: 'line',
+    data: { labels, datasets },
+    options: { ...chartDefaults }
+  });
+}
+
+function makeBarChart(id, labels, datasets, stacked = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: { ...chartDefaults, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked }, y: { ...chartDefaults.scales.y, stacked } } }
+  });
+}
+
+function sessionLabels(data) {
+  return data.map((m, i) => {
+    const d = new Date(m.created_at);
+    return `S${i+1} ${d.toLocaleDateString('es-AR', {day:'2-digit',month:'short'})}`;
+  });
+}
+
+function renderAllOverviewCharts(byGame) {
+  // Score over time all games combined
+  const allSorted = Object.values(byGame).flat().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  const allLabels = allSorted.map(m => new Date(m.created_at).toLocaleDateString('es-AR', {day:'2-digit',month:'short'}));
+  
+  // One dataset per game
+  const scoreDatasets = Object.entries(byGame).map(([slug, data]) => {
+    const g = GAMES[slug] || { name: slug, color: '#6b7280' };
+    const sortedData = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    // Map to allSorted labels
+    return {
+      label: g.name,
+      data: allSorted.map(m => {
+        const match = sortedData.find(x => x.id === m.id);
+        return match ? match.metric_value : null;
+      }),
+      borderColor: g.color,
+      backgroundColor: g.color + '20',
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 4
+    };
+  });
+  makeLineChart('chart-all-score', allLabels, scoreDatasets);
+
+  // Avg per game
+  const gameNames = Object.keys(byGame).map(s => GAMES[s]?.name || s);
+  const gameAvgs = Object.values(byGame).map(data => Math.round(data.reduce((s,m) => s + (m.metric_value||0), 0) / data.length));
+  const gameColors = Object.keys(byGame).map(s => GAMES[s]?.color || '#6b7280');
+  makeBarChart('chart-all-avg', gameNames, [{ label: 'Promedio', data: gameAvgs, backgroundColor: gameColors, borderRadius: 6 }]);
+
+  // Sessions count per game
+  const gameCounts = Object.values(byGame).map(d => d.length);
+  makeBarChart('chart-all-count', gameNames, [{ label: 'Sesiones', data: gameCounts, backgroundColor: gameColors, borderRadius: 6 }]);
+}
+
+function renderGameCharts(slug, data) {
+  const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  const labels = sessionLabels(sorted);
+  const g = GAMES[slug] || { color: '#60a5fa' };
+
+  // Score evolution (all games)
+  makeLineChart(`chart-${slug}-score`, labels, [{
+    label: 'Puntaje',
+    data: sorted.map(m => m.metric_value || 0),
+    borderColor: g.color,
+    backgroundColor: g.color + '15',
+    tension: 0.3,
+    fill: true,
+    pointRadius: 5
+  }]);
+
+  // Lawn-mower & pill-organizer: RT + hesitations + errors + efficiency
+  if (slug === 'lawn-mower' || slug === 'pill-organizer') {
+    const rtData = sorted.map(m => m.metric_data?.mean_rt_ms || null);
+    const rtSD = sorted.map(m => m.metric_data?.rt_variability_sd || null);
+    if (rtData.some(v => v)) {
+      makeLineChart(`chart-${slug}-rt`, labels, [
+        { label: 'RT Prom (ms)', data: rtData, borderColor: '#60a5fa', tension: 0.3, pointRadius: 4, spanGaps: true },
+        { label: 'Variabilidad SD', data: rtSD, borderColor: '#f87171', tension: 0.3, pointRadius: 4, spanGaps: true, borderDash: [4,2] }
+      ]);
+    }
+    const hesitData = sorted.map(m => m.metric_data?.hesitation_count ?? m.metric_data?.long_pauses ?? null);
+    makeLineChart(`chart-${slug}-hesit`, labels, [{ label: 'Hesitaciones', data: hesitData, borderColor: '#fbbf24', tension: 0.3, pointRadius: 4, spanGaps: true }]);
+    
+    const commErrors = sorted.map(m => m.metric_data?.commission_errors ?? m.metric_data?.errors ?? null);
+    const ommErrors = sorted.map(m => m.metric_data?.omission_errors ?? null);
+    makeBarChart(`chart-${slug}-errors`, labels, [
+      { label: 'Comisión', data: commErrors, backgroundColor: 'rgba(248,113,113,.7)', borderRadius: 4 },
+      { label: 'Omisión', data: ommErrors, backgroundColor: 'rgba(251,191,36,.7)', borderRadius: 4 }
+    ]);
+
+    const effMovData = sorted.map(m => m.metric_data?.movement_efficiency != null ? m.metric_data.movement_efficiency * 100 : null);
+    const effPathData = sorted.map(m => m.metric_data?.path_efficiency != null ? m.metric_data.path_efficiency * 100 : null);
+    makeLineChart(`chart-${slug}-effic`, labels, [
+      { label: 'Efic. Mov. %', data: effMovData, borderColor: '#34d399', tension: 0.3, pointRadius: 4, spanGaps: true },
+      { label: 'Efic. Tray. %', data: effPathData, borderColor: '#0891b2', tension: 0.3, pointRadius: 4, spanGaps: true }
+    ]);
+  }
+
+  // Fridge-logic
+  if (slug === 'fridge-logic') {
+    const placements = sorted.map(m => m.metric_data?.placement_pct ?? m.metric_data?.overall_score ?? null);
+    makeLineChart(`chart-${slug}-placement`, labels, [{ label: '% Correcto', data: placements, borderColor: '#818cf8', tension: 0.3, pointRadius: 4, fill: true, backgroundColor: '#818cf820', spanGaps: true }]);
+    const hesit = sorted.map(m => m.metric_data?.hesitation_count ?? null);
+    makeLineChart(`chart-${slug}-hesit`, labels, [{ label: 'Hesitaciones', data: hesit, borderColor: '#fbbf24', tension: 0.3, pointRadius: 4, spanGaps: true }]);
+  }
+
+  // Daily routine
+  if (slug === 'daily-routine-v2') {
+    const sel = sorted.map(m => m.metric_data?.selection_score ?? null);
+    const seq = sorted.map(m => m.metric_data?.sequence_score ?? null);
+    makeLineChart(`chart-${slug}-selection`, labels, [{ label: 'Selección', data: sel, borderColor: '#f472b6', tension: 0.3, pointRadius: 4, spanGaps: true }]);
+    makeLineChart(`chart-${slug}-sequence`, labels, [{ label: 'Secuencia', data: seq, borderColor: '#a78bfa', tension: 0.3, pointRadius: 4, spanGaps: true }]);
+  }
+
+  // Neuro-chef
+  if (slug === 'neuro-chef-v2') {
+    const rt = sorted.map(m => m.metric_data?.mean_rt_ms ?? null);
+    makeLineChart(`chart-${slug}-rt`, labels, [{ label: 'RT (ms)', data: rt, borderColor: '#fb923c', tension: 0.3, pointRadius: 4, spanGaps: true }]);
+  }
+}
+
+// =================== START ===================
+init();
+</script>
+</body>
+</html>

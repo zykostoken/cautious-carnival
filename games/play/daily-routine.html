@@ -898,12 +898,23 @@ function calcSequenceCoherence() {
 async function saveResults(metrics) {
     if (!supabase) return;
     try {
+        // Get patient UUID from DNI first
+        let dailyPatientId = null;
+        try {
+            const { data: pdata } = await supabase.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
+            if (pdata) dailyPatientId = pdata.id;
+        } catch(e) {}
+
         supabase.from('hdd_game_metrics').insert({
-            patient_id: state.patientDni,
+            patient_id: dailyPatientId,
             game_slug: 'daily-routine-v2',
-            metric_type: 'session',
+            metric_type: 'session_complete',
             metric_value: metrics.final_score,
-            metric_data: metrics,
+            metric_data: {
+                ...metrics,
+                game_name: 'Mi Rutina Diaria',
+                completed: true
+            },
             created_at: new Date().toISOString()
         }).then(()=>{}).catch(()=>{});
     } catch(e) {}
