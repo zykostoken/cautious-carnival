@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rutina Diaria | CJI HDD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/games/shared/biomet.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -549,6 +550,11 @@ function beginGame() {
     state.timerInterval = setInterval(updateTimer, 1000);
     renderPhase1();
 
+    // Captura biométrica — comienza al iniciar el juego
+    if (typeof biomet !== 'undefined') {
+        biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
+    }
+
     // Mood check DESPUÉS de que el juego es visible
     if (typeof showPreGameChat === 'function') showPreGameChat();
 }
@@ -616,6 +622,16 @@ function renderPhase1() {
 
         grid.appendChild(card);
     });
+
+    // Registrar cards como targets para biomet
+    if (typeof biomet !== 'undefined') {
+        setTimeout(function() {
+            shuffled.forEach(function(h) {
+                var el = document.querySelector('.habit-card[data-id="' + h.id + '"]');
+                if (el) biomet.registerTarget(h.id, el);
+            });
+        }, 100);
+    }
 }
 
 function toggleHabit(id) {
@@ -627,6 +643,19 @@ function toggleHabit(id) {
     const now = Date.now();
     if (state.lastActionTime && now - state.lastActionTime > 5000) state.hesitations++;
     state.lastActionTime = now;
+
+    const selecting = !state.selected.has(id);
+
+    if (typeof biomet !== 'undefined') {
+        biomet.recordAction({
+            type: selecting ? 'select_habit' : 'deselect_habit',
+            target_id: id,
+            correct: h.healthy ? selecting : !selecting,  // seleccionar saludable = correcto
+            is_comision: !h.healthy && selecting,          // seleccionar no-saludable = comisión
+            achieved_objective: null,  // se evalúa al finalizar fase
+            plan_correct: null,        // no hay plan secuencial en fase 1
+        });
+    }
 
     if (state.selected.has(id)) {
         state.selected.delete(id);
@@ -856,7 +885,17 @@ function finishGame() {
         final_score: total
     };
 
-    saveResults(metrics);
+    // Biomet: guardar métricas psicomotoras capturadas durante el juego
+    let biometData = {};
+    if (typeof biomet !== 'undefined') {
+        biometData = biomet.save({
+            final_score: total,
+            selection_score: Math.round(selScore),
+            sequence_score: Math.round(sequenceScore)
+        });
+    }
+
+    saveResults(metrics, biometData);
 
     document.getElementById('results-content').innerHTML = `
         <div class="score-circle">${total}</div>
@@ -895,7 +934,7 @@ function calcSequenceCoherence() {
     return total === 0 ? 0 : Math.round((correct / total) * 100);
 }
 
-async function saveResults(metrics) {
+async function saveResults(metrics, biometData) {
     if (!supabase) return;
     try {
         // Get patient UUID from DNI first
@@ -912,6 +951,7 @@ async function saveResults(metrics) {
             metric_value: metrics.final_score,
             metric_data: {
                 ...metrics,
+                biomet: biometData || {},
                 game_name: 'Mi Rutina Diaria',
                 completed: true
             },
