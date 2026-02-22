@@ -284,19 +284,28 @@ async function loadPatient(patientId) {
     `;
   }
 
-  // Fetch all metrics for patient
+  // Fetch session metrics
   const { data: metrics } = await supa.from('hdd_game_metrics')
     .select('*')
     .eq('patient_id', patientId)
     .eq('metric_type', 'session_complete')
     .order('created_at', { ascending: true });
 
+  // Fetch color elections (post-actividad, registro clínico puro)
+  const { data: colors } = await supa.from('hdd_game_metrics')
+    .select('*')
+    .eq('patient_id', patientId)
+    .eq('metric_type', 'color_eleccion')
+    .order('created_at', { ascending: true });
+
   currentData.metrics = metrics || [];
-  renderDashboard(metrics || []);
+  currentData.colors = colors || [];
+  renderDashboard(metrics || [], colors || []);
 }
 
 // =================== RENDER DASHBOARD ===================
-function renderDashboard(metrics) {
+function renderDashboard(metrics, colors) {
+  colors = colors || [];
   // Group by game
   const byGame = {};
   metrics.forEach(m => {
@@ -339,7 +348,7 @@ function renderDashboard(metrics) {
 
   // Per-game sections
   Object.entries(byGame).forEach(([slug, data]) => {
-    sections.innerHTML += buildGameSection(slug, data);
+    sections.innerHTML += buildGameSection(slug, data, colors);
   });
 
   // Render all charts
@@ -396,8 +405,28 @@ function buildAllGamesSection(byGame) {
 }
 
 // =================== PER GAME SECTION ===================
-function buildGameSection(slug, data) {
+function buildGameSection(slug, data, colors) {
+  colors = colors || [];
   const g = GAMES[slug] || { name: slug, icon: '🎮', color: '#6b7280', scoreLabel: 'Score' };
+  const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+
+  // Pre-index colors by game: solo los que corresponden a este juego
+  // El color se elige DESPUÉS de la sesión → buscamos el color_eleccion más cercano (posterior)
+  // a cada sesión, dentro de una ventana de 30 min, para el mismo slug
+  const gameColors = colors.filter(c => {
+    const cd = c.metric_data || {};
+    return cd.source_activity === slug || c.game_slug === slug + '_color';
+  });
+
+  function findColorForSession(session) {
+    const sessionTime = new Date(session.created_at).getTime();
+    // Color elegido dentro de los 30 minutos posteriores a la sesión
+    const candidates = gameColors
+      .map(c => ({ c, t: new Date(c.created_at).getTime() }))
+      .filter(({ t }) => t >= sessionTime && t <= sessionTime + 30 * 60 * 1000)
+      .sort((a, b) => a.t - b.t);
+    return candidates.length ? candidates[0].c : null;
+  }
   const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
   const baseline = sorted[0]?.metric_value || 0;
   const latest = sorted[sorted.length-1]?.metric_value || 0;
@@ -445,7 +474,7 @@ function buildGameSection(slug, data) {
   // Sessions table
   html += `<div class="sec-title">Historial de sesiones</div>
   <div class="table-wrap"><table>
-    <thead><tr><th>#</th><th>Fecha</th><th>Puntaje</th><th>Duración</th><th>Hesitaciones</th><th>RT (ms)</th><th>Errores</th><th>Estado</th></tr></thead>
+    <thead><tr><th>#</th><th>Fecha</th><th>Puntaje</th><th>Duración</th><th>Hesitaciones</th><th>RT (ms)</th><th>Errores</th><th>Estado</th><th title="Color elegido post-actividad — registro clínico">●</th></tr></thead>
     <tbody>`;
   
   sorted.forEach((m, i) => {
@@ -462,11 +491,19 @@ function buildGameSection(slug, data) {
     const trendClass = prev === null ? '' : score > prev ? 'trend-up' : score < prev ? 'trend-down' : 'trend-flat';
     
     const badgeClass = score >= 70 ? 'good' : score >= 40 ? 'mid' : 'bad';
+
+    // Color post-sesión
+    const colorRec = findColorForSession(m);
+    const colorCell = colorRec
+      ? `<td><div title="" style="width:22px;height:22px;border-radius:5px;background:${colorRec.metric_data?.color_hex || '#888'};display:inline-block;vertical-align:middle;border:1px solid rgba(255,255,255,0.12)"></div></td>`
+      : `<td style="color:var(--muted);font-size:.8rem">—</td>`;
+
     html += `<tr>
       <td>${i+1}</td><td>${dt}</td>
       <td class="${trendClass}"><span class="badge ${badgeClass}">${score}</span></td>
       <td>${dur}</td><td>${hesit}</td><td>${rt}</td><td>${errs}</td>
       <td>${d.completed !== false ? '<span class="badge good">✓</span>' : '<span class="badge bad">Incompleto</span>'}</td>
+      ${colorCell}
     </tr>`;
   });
   html += `</tbody></table></div></div>`;
