@@ -1971,10 +1971,9 @@
       const res = await fetch('/api/hdd/games', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ ...body, sessionToken: token })
       });
       if (res.ok) return await res.json();
     } catch(e) {}

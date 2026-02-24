@@ -14,11 +14,12 @@
 
 // Colores ordenados espectralmente — sin etiquetas visibles para el paciente
 // Los nombres son solo para identificación en base de datos
+// 12 colores proyectivos — paleta unificada con hdd-portal.js
+// Sin etiquetas ni interpretaciones visibles para el paciente
 var MOOD_COLORS = [
     { hex: '#FF0000', name: 'rojo' },
     { hex: '#FF8C00', name: 'naranja' },
     { hex: '#FFD700', name: 'amarillo' },
-    { hex: '#ADFF2F', name: 'verde_claro' },
     { hex: '#008000', name: 'verde' },
     { hex: '#00CED1', name: 'turquesa' },
     { hex: '#87CEEB', name: 'celeste' },
@@ -28,7 +29,6 @@ var MOOD_COLORS = [
     { hex: '#8B4513', name: 'marron' },
     { hex: '#808080', name: 'gris' },
     { hex: '#1a1a1a', name: 'negro' },
-    { hex: '#FFFFFF', name: 'blanco' },
 ];
 
 var _moodState = { step: 0, responses: [], patientId: null, gameSlug: null };

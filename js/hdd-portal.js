@@ -350,6 +350,8 @@ async function login(dni, password) {
     currentUser = result.patient;
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+    // hdd_patient_id es leído por mood-modals.js en los juegos para asociar datos al paciente correcto
+    if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
     showApp();
     loadFeed();
   }
@@ -369,6 +371,7 @@ async function logout() {
   currentUser = null;
   localStorage.removeItem('hdd_session');
   localStorage.removeItem('hdd_user');
+  localStorage.removeItem('hdd_patient_id');
   showLoginForm();
 }
 
@@ -382,12 +385,14 @@ async function verifySession() {
     if (result.valid) {
       sessionToken = stored;
       currentUser = result.patient;
+      if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
       return true;
     }
   }
 
   localStorage.removeItem('hdd_session');
   localStorage.removeItem('hdd_user');
+  localStorage.removeItem('hdd_patient_id');
   return false;
 }
 
@@ -436,6 +441,7 @@ async function register(dni, fullName, email, password) {
     currentUser = result.patient;
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
+    if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
     showApp();
     loadFeed();
   }
