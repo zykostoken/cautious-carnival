@@ -663,7 +663,8 @@ async function saveResults(metrics) {
                 metric_value: metrics.overall_score,
                 metric_data: {
                     ...metrics,
-                    game_name: 'Heladera Inteligente'
+                    game_name: 'Heladera Inteligente',
+                    input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse'
                 }
             });
 

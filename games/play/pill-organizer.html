@@ -126,8 +126,13 @@
                 <p class="text-gray-600 text-sm"><strong>Tarea:</strong> Arrastrá cada pastilla al casillero correcto del organizador semanal (Lunes a Domingo, Mañana/Noche).</p>
             </div>
 
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 text-sm text-blue-800 font-medium">
+                🖱️ <strong>Cómo mover:</strong> Mantené apretado el <strong>botón derecho</strong> del mouse sobre la pastilla y arrastrala hasta el casillero. Soltá el botón para colocarla.
+                <span class="block mt-1 text-xs text-blue-600 font-normal">En tablet: mantené el dedo apoyado y deslizá sin levantar.</span>
+            </div>
+
             <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-6 text-xs text-purple-700">
-                <strong>🔬 Se evaluará:</strong> Precisión motora (temblor), hesitaciones, errores de ubicación y tiempo total.
+                <strong>🔬 Se evaluará:</strong> Precisión motora (temblor durante la presión sostenida), redireccionamientos, hesitaciones, errores de ubicación y tiempo total.
             </div>
 
             <button id="btn-start" onclick="startGame()" 
@@ -310,7 +315,12 @@
             // Métricas de gameplay
             correctPlacements: 0,
             totalErrors: 0,
-            totalMoves: 0
+            totalMoves: 0,
+
+            // Contexto de hardware (mouse | touch | keyboard)
+            // Nota: teclado NO es válido para métricas motoras finas
+            inputDevice: 'unknown',
+            gameActive: false
         };
 
         // ===========================================
@@ -378,6 +388,7 @@
 
         async function startGameSession() {
             sessionState.startTime = Date.now();
+            sessionState.gameActive = true;
             
             // Crear sesión en Supabase (non-blocking)
             if (supabase) {
@@ -413,16 +424,21 @@
 
         // ===========================================
         // DRAG & DROP + TRACKING BIOMÉTRICO
+        // Interacción: mantener BOTÓN DERECHO apretado para sostener
+        // y arrastrar la pastilla. Soltar = colocar.
+        // Esto captura temblor continuo durante la "presión sostenida",
+        // redireccionamientos bruscos, hesitaciones y eficiencia motora real.
         // ===========================================
         function setupDragAndDrop() {
             const draggables = document.querySelectorAll('.pill-source');
             const slots = document.querySelectorAll('.slot');
+            let activePill = null;
 
-            // ---- GHOST PILL para drag visual en touch ----
+            // ---- GHOST PILL (sigue al cursor mientras se arrastra) ----
             let ghostEl = null;
             function createGhost(pill, x, y) {
                 ghostEl = pill.cloneNode(true);
-                ghostEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;opacity:0.75;transform:scale(1.4) rotate(12deg);border-radius:50%;';
+                ghostEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;opacity:0.80;transform:scale(1.4) rotate(12deg);border-radius:50%;transition:none;';
                 ghostEl.style.width = pill.offsetWidth + 'px';
                 ghostEl.style.height = pill.offsetHeight + 'px';
                 ghostEl.style.left = (x - pill.offsetWidth/2) + 'px';
@@ -443,17 +459,8 @@
                 return el ? el.closest('.slot') : null;
             }
 
-            // Tracking global de mouse durante drag
-            document.addEventListener('dragover', (e) => {
-                if (sessionState.currentDrag.active) {
-                    const now = Date.now();
-                    sessionState.currentDrag.pathPoints.push({ x: e.clientX, y: e.clientY, t: now });
-                    sessionState.currentDrag.lastMoveTime = now;
-                }
-            });
-
             // ---- Inicio drag ----
-            function onDragBegin(pill, clientX, clientY) {
+            function onDragBegin(pill, clientX, clientY, device) {
                 const cd = sessionState.currentDrag;
                 cd.active = true;
                 cd.medType = pill.dataset.med;
@@ -461,6 +468,9 @@
                 cd.startTime = Date.now();
                 cd.lastMoveTime = cd.startTime;
                 cd.pathPoints = [{ x: clientX, y: clientY, t: cd.startTime }];
+                if (!sessionState.inputDevice || sessionState.inputDevice === 'unknown') {
+                    sessionState.inputDevice = device || 'mouse';
+                }
                 pill.style.opacity = '0.4';
                 createGhost(pill, clientX, clientY);
             }
@@ -472,122 +482,148 @@
                 cd.active = false;
                 removeGhost();
                 slots.forEach(s => s.classList.remove('drag-over'));
+                if (activePill) { activePill.style.opacity = '1'; activePill = null; }
+
                 const slot = getSlotAtPoint(clientX, clientY);
-                if (!slot) { draggables.forEach(p => p.style.opacity='1'); return; }
+                if (!slot) return;
                 const medType = cd.medType;
-                    
-                    // === CÁLCULOS BIOMÉTRICOS AVANZADOS ===
-                    const endTime = Date.now();
-                    const endX = e.clientX;
-                    const endY = e.clientY;
-                    
-                    // 1. Distancia ideal (línea recta Euclidiana)
-                    const directDist = Math.sqrt(
-                        Math.pow(endX - cd.startX, 2) + 
-                        Math.pow(endY - cd.startY, 2)
+
+                // === CÁLCULOS BIOMÉTRICOS ===
+                const endTime = Date.now();
+
+                // 1. Distancia ideal (línea recta)
+                const directDist = Math.sqrt(
+                    Math.pow(clientX - cd.startX, 2) +
+                    Math.pow(clientY - cd.startY, 2)
+                );
+
+                // 2. Distancia real recorrida (suma de segmentos)
+                let pathLength = 0;
+                for (let i = 1; i < cd.pathPoints.length; i++) {
+                    const p1 = cd.pathPoints[i-1];
+                    const p2 = cd.pathPoints[i];
+                    pathLength += Math.sqrt(
+                        Math.pow(p2.x - p1.x, 2) +
+                        Math.pow(p2.y - p1.y, 2)
                     );
-                    
-                    // 2. Distancia real recorrida (suma de segmentos del path)
-                    let pathLength = 0;
-                    for (let i = 1; i < cd.pathPoints.length; i++) {
-                        const p1 = cd.pathPoints[i-1];
-                        const p2 = cd.pathPoints[i];
-                        pathLength += Math.sqrt(
-                            Math.pow(p2.x - p1.x, 2) + 
-                            Math.pow(p2.y - p1.y, 2)
-                        );
-                    }
-                    
-                    // 3. Índice de temblor/ineficiencia (1.0 = perfecto, >1.5 = temblor)
-                    const tremorIndex = pathLength / (directDist || 1);
-                    
-                    // 4. Calcular hesitation (pausas >200ms sin movimiento)
-                    let hesitationMs = 0;
-                    for (let i = 1; i < cd.pathPoints.length; i++) {
-                        const timeDiff = cd.pathPoints[i].t - cd.pathPoints[i-1].t;
-                        if (timeDiff > 200) {
-                            hesitationMs += timeDiff;
-                        }
-                    }
-                    
-                    // Validar si la colocación es correcta
-                    const isCorrect = validatePlacement(medType, slot.dataset.day, slot.dataset.time);
-                    
-                    if (!isCorrect) sessionState.totalErrors++;
-                    else sessionState.correctPlacements++;
-                    
-                    sessionState.totalMoves++;
-                    
-                    // Guardar movimiento completo
-                    const movement = {
-                        med: medType,
-                        targetSlot: `day${slot.dataset.day}-${slot.dataset.time}`,
-                        durationMs: endTime - cd.startTime,
-                        tremorIndex: parseFloat(tremorIndex.toFixed(3)),
-                        pathLength: Math.round(pathLength),
-                        directDistance: Math.round(directDist),
-                        pathEfficiency: parseFloat((directDist / pathLength).toFixed(3)),
-                        hesitationMs: hesitationMs,
-                        isCorrect: isCorrect,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    sessionState.movements.push(movement);
-                    
-                    // Guardar métrica granular en Supabase
-                    if (supabase) {
-                        await supabase.from('hdd_game_metrics').insert({
-                            patient_id: sessionState.patientId,
-                            game_session_id: sessionState.sessionId,
-                            game_slug: 'pill-organizer',
-                            metric_type: 'pill_placement',
-                            metric_value: tremorIndex,
-                            metric_data: movement
-                        }).catch(e => console.warn('Metric save:', e.message));
-                    }
-                    
-                    // Actualizar UI
-                    renderPillInSlot(slot, medType, isCorrect);
-                    updateRealTimeMetrics();
+                }
+
+                // 3. Índice de temblor (1.0 = perfecto, >1.5 = temblor significativo)
+                const tremorIndex = pathLength / (directDist || 1);
+
+                // 4. Hesitaciones: pausas >300ms sin movimiento durante el arrastre
+                let hesitationMs = 0;
+                let hesitationCount = 0;
+                for (let i = 1; i < cd.pathPoints.length; i++) {
+                    const gap = cd.pathPoints[i].t - cd.pathPoints[i-1].t;
+                    if (gap > 300) { hesitationMs += gap; hesitationCount++; }
+                }
+
+                // 5. Redireccionamientos bruscos: cambio de dirección > 60°
+                //    Relevante clínicamente: temblor intencional, ataxia, impulsividad motora
+                let abruptRedirections = 0;
+                for (let i = 2; i < cd.pathPoints.length; i++) {
+                    const p0 = cd.pathPoints[i-2];
+                    const p1 = cd.pathPoints[i-1];
+                    const p2 = cd.pathPoints[i];
+                    const d1 = { x: p1.x - p0.x, y: p1.y - p0.y };
+                    const d2 = { x: p2.x - p1.x, y: p2.y - p1.y };
+                    const len1 = Math.sqrt(d1.x*d1.x + d1.y*d1.y);
+                    const len2 = Math.sqrt(d2.x*d2.x + d2.y*d2.y);
+                    if (len1 < 3 || len2 < 3) continue;
+                    const cos = (d1.x*d2.x + d1.y*d2.y) / (len1 * len2);
+                    const angle = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+                    if (angle > 60) abruptRedirections++;
+                }
+
+                // 6. Velocidad media (px/ms)
+                const durationMs = endTime - cd.startTime;
+                const avgSpeed = durationMs > 0 ? pathLength / durationMs : 0;
+
+                const isCorrect = validatePlacement(medType, slot.dataset.day, slot.dataset.time);
+                if (!isCorrect) sessionState.totalErrors++;
+                else sessionState.correctPlacements++;
+                sessionState.totalMoves++;
+
+                const movement = {
+                    med: medType,
+                    targetSlot: `day${slot.dataset.day}-${slot.dataset.time}`,
+                    durationMs,
+                    tremorIndex: parseFloat(tremorIndex.toFixed(3)),
+                    pathLength: Math.round(pathLength),
+                    directDistance: Math.round(directDist),
+                    pathEfficiency: pathLength > 0 ? parseFloat((directDist / pathLength).toFixed(3)) : 1,
+                    hesitationMs,
+                    hesitationCount,
+                    abruptRedirections,
+                    avgSpeed: parseFloat(avgSpeed.toFixed(3)),
+                    isCorrect,
+                    input_device: sessionState.inputDevice || 'mouse',
+                    timestamp: new Date().toISOString()
+                };
+
+                sessionState.movements.push(movement);
+
+                // Guardar métrica granular en Supabase
+                if (supabase) {
+                    await supabase.from('hdd_game_metrics').insert({
+                        patient_id: sessionState.patientId,
+                        game_session_id: sessionState.sessionId,
+                        game_slug: 'pill-organizer',
+                        metric_type: 'pill_placement',
+                        metric_value: tremorIndex,
+                        metric_data: movement
+                    }).catch(e => console.warn('Metric save:', e.message));
+                }
+
+                renderPillInSlot(slot, medType, isCorrect);
+                updateRealTimeMetrics();
             }
 
-            // ---- Listeners MOUSE/DESKTOP: HTML5 drag nativo ----
+            // ---- MOUSE: mantener botón DERECHO apretado para arrastrar ----
+            // El esfuerzo de mantener apretado + arrastrar mide:
+            //   - Temblor durante presión sostenida (similar a temblor de acción)
+            //   - Redireccionamientos bruscos (control motor voluntario)
+            //   - Hesitaciones (planificación, inseguridad, bradipsiquia)
             draggables.forEach(pill => {
-                pill.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('med', pill.dataset.med);
-                    e.dataTransfer.effectAllowed = 'copy';
-                    // Sin ghost en desktop — el browser lo maneja
-                    const cd = sessionState.currentDrag;
-                    cd.active = true;
-                    cd.medType = pill.dataset.med;
-                    cd.startX = e.clientX; cd.startY = e.clientY;
-                    cd.startTime = Date.now();
-                    cd.lastMoveTime = cd.startTime;
-                    cd.pathPoints = [{ x: e.clientX, y: e.clientY, t: cd.startTime }];
-                    pill.style.opacity = '0.4';
-                });
-                pill.addEventListener('dragend', () => {
-                    sessionState.currentDrag.active = false;
-                    pill.style.opacity = '1';
-                });
-            });
-
-            slots.forEach(slot => {
-                slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); });
-                slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-                slot.addEventListener('drop', async (e) => {
+                pill.addEventListener('mousedown', (e) => {
+                    if (e.button !== 2) return; // solo botón derecho
                     e.preventDefault();
-                    draggables.forEach(p => p.style.opacity = '1');
-                    await onDrop(e.clientX, e.clientY);
+                    activePill = pill;
+                    onDragBegin(pill, e.clientX, e.clientY, 'mouse');
                 });
             });
 
-            // ---- Listeners TOUCH (tablet/mobile) ----
+            // Seguimiento de path mientras se arrastra
+            document.addEventListener('mousemove', (e) => {
+                if (!sessionState.currentDrag.active) return;
+                const now = Date.now();
+                sessionState.currentDrag.pathPoints.push({ x: e.clientX, y: e.clientY, t: now });
+                sessionState.currentDrag.lastMoveTime = now;
+                moveGhost(e.clientX, e.clientY);
+                slots.forEach(s => s.classList.remove('drag-over'));
+                const s = getSlotAtPoint(e.clientX, e.clientY);
+                if (s) s.classList.add('drag-over');
+            });
+
+            // Soltar botón derecho = colocar pastilla
+            document.addEventListener('mouseup', async (e) => {
+                if (!sessionState.currentDrag.active) return;
+                if (e.button !== 2) return;
+                await onDrop(e.clientX, e.clientY);
+            });
+
+            // Prevenir menú contextual mientras el juego está activo
+            document.addEventListener('contextmenu', (e) => {
+                if (sessionState.currentDrag.active || sessionState.gameActive) e.preventDefault();
+            });
+
+            // ---- TOUCH (tablet): mantener dedo para arrastrar ----
             draggables.forEach(pill => {
                 pill.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     const t = e.touches[0];
-                    onDragBegin(pill, t.clientX, t.clientY);
+                    onDragBegin(pill, t.clientX, t.clientY, 'touch');
                 }, { passive: false });
 
                 pill.addEventListener('touchmove', (e) => {
@@ -604,7 +640,7 @@
 
                 pill.addEventListener('touchend', async (e) => {
                     e.preventDefault();
-                    pill.style.opacity = '1';
+                    if (activePill) { activePill.style.opacity = '1'; activePill = null; }
                     const t = e.changedTouches[0];
                     await onDrop(t.clientX, t.clientY);
                 }, { passive: false });
@@ -748,6 +784,11 @@
                         hesitation_count: finalMetrics.high_hesitation_count,
                         mean_rt_ms: finalMetrics.avg_hesitation_ms,
                         movement_efficiency: finalMetrics.avg_path_efficiency,
+                        // Métricas nuevas de la interacción hold-drag
+                        avg_abrupt_redirections: sessionState.movements.length > 0
+                            ? parseFloat((sessionState.movements.reduce((s, m) => s + (m.abruptRedirections||0), 0) / sessionState.movements.length).toFixed(2))
+                            : 0,
+                        input_device: sessionState.inputDevice || 'unknown',
                         completed: true
                     }
                 }).catch(e => console.warn('Longitudinal metric save:', e.message));

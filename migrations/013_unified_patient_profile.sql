@@ -3,6 +3,76 @@
 -- One flat table (hdd_game_metrics), no compartmentalization.
 -- Views project the cross-game longitudinal patient profile.
 -- ============================================================
+--
+-- DOMINIOS CLÍNICOS POR JUEGO
+-- ─────────────────────────────────────────────────────────────
+-- neuro-chef-v2
+--   Cognitivo: atención selectiva e inhibición (d-prime, false_alarms),
+--              memoria de trabajo (secuencia de pasos multi-nivel)
+--   Motor:     temblor intencional (tremor_avg/speed_var durante drag),
+--              redireccionamientos bruscos (abrupt_direction_changes),
+--              latencia de acción (reaction_time_ms, hesitation_count)
+--
+-- pill-organizer
+--   Motor fino: temblor durante presión sostenida (botón derecho hold-drag),
+--               eficiencia de trayectoria (pathEfficiency),
+--               redireccionamientos bruscos (abruptRedirections),
+--               hesitaciones durante arrastre (hesitationMs, hesitationCount),
+--               velocidad media (avgSpeed px/ms)
+--   Cognitivo: planificación farmacológica, memoria prospectiva
+--
+-- super-market
+--   Cognitivo: planificación y presupuesto (compras dentro de límite),
+--              memoria de trabajo (receta/lista de compras),
+--              atención y comprensión de consignas complejas,
+--              bagaje cultural previo (recetas, listas de lavandería),
+--              ejecución diferida del plan (plan → acción secuenciada)
+--   Motor:     hesitation (avg_hesitation_ms), scan_score (eficiencia visual),
+--              first_click_latency_ms (inicio de ejecución)
+--
+-- fridge-logic
+--   Cognitivo: categorización y seriación práctica,
+--              conocimiento cotidiano previo (seguridad alimentaria),
+--              indemnidad del acervo ideativo (category_pct, safety_pct),
+--              jerarquización ideativa, razonamiento y cálculo (presupuesto),
+--              toma de decisiones bajo incertidumbre (clinical_flags)
+--
+-- lawn-mower
+--   Atención:  dirigida, sostenida, mantenida, redireccionada (RT, RT-SD, CV)
+--              detección de señal (omission_errors = silencio, commission_errors = impulsividad)
+--   Ejecutivo: comprensión de consignas, planificación visuoespacial,
+--              inhibición de impulso (commission_errors, impulsivity_ratio),
+--              tenacidad vs compromise (perseveración en el error vs corrección),
+--              frustración (reset_events, abandono)
+--   Motor:     sistema neuromotor (movement_efficiency, path_efficiency),
+--              temblor de reposo/trabajo (lawn-mower usa teclado → NO válido para temblor),
+--              aleatoriedad y redirección brusca (rt_variability_sd, long_pauses)
+--   NOTA: Si input_method = 'keyboard' → descartar métricas motoras finas.
+--         Si input_method = 'mouse' → válido para RT y eficiencia motor.
+--         Pantallas táctiles: criterios no homologados entre calidades de hardware.
+--
+-- daily-routine-v2
+--   Cognitivo: abstracción y proyección de personalidad/timia,
+--              bagaje cultural previo (higiene, orden, rutinas sociales),
+--              secuenciación instrumental (tender cama, lavarse manos),
+--              inhibición y selección (descartar hábitos no saludables)
+--   Motor:     más fluido y espontáneo que pill-organizer (menor planificación),
+--              usa biomet.js compartido → tremor reposo/inicio/terminal,
+--              eficiencia de trayectoria, hesitaciones
+--   Proyectivo: healthy_selected vs unhealthy_selected revela insight
+--               sobre la propia conducta y la norma social percibida
+--
+-- NOTA GENERAL SOBRE HARDWARE
+-- ─────────────────────────────────────────────────────────────
+-- • Mouse:            mejor hardware para homologar métricas motoras.
+--                     tremorIndex, pathEfficiency, abruptRedirections VÁLIDOS.
+-- • Teclado:          LECTURA ERRÓNEA para temblor y destreza motora.
+--                     Solo válido para RT y métricas cognitivas (tiempo de reacción,
+--                     errores de omisión/comisión en lawn-mower).
+-- • Pantalla táctil:  difícil homologar criterios entre calidades de hardware
+--                     (sampling rate, área de contacto, latencia).
+--                     Usar con cautela para índices motores finos.
+-- ─────────────────────────────────────────────────────────────
 
 -- ----------------------------------------------------------------
 -- 1. Ensure hdd_game_metrics has patient_dni for DNI-based saves
@@ -90,6 +160,19 @@ SELECT
     (m.metric_data->>'duration_seconds')::INT
   ) AS duration_sec,
 
+  -- Redireccionamientos bruscos (motor: ataxia, temblor intencional, impulsividad)
+  COALESCE(
+    (m.metric_data->>'avg_abrupt_redirections')::NUMERIC,
+    (m.metric_data->>'abrupt_direction_changes')::NUMERIC
+  ) AS abrupt_redirections,
+
+  -- Dispositivo de entrada (mouse | touch | keyboard | unknown)
+  -- CRÍTICO: descartar métricas motoras finas si input_device = 'keyboard'
+  COALESCE(
+    m.metric_data->>'input_device',
+    m.metric_data->>'input_method'
+  ) AS input_device,
+
   -- Score
   m.metric_value AS score
 
@@ -137,7 +220,13 @@ SELECT
   ROUND(AVG(n.omission_errors))    AS avg_omission_errors,
   ROUND(AVG(n.hesitation_count))   AS avg_hesitations,
   ROUND(AVG(n.movement_efficiency), 2) AS avg_movement_eff,
-  ROUND(AVG(n.d_prime), 2)         AS avg_d_prime
+  ROUND(AVG(n.d_prime), 2)         AS avg_d_prime,
+  ROUND(AVG(n.abrupt_redirections), 2) AS avg_abrupt_redirections,
+
+  -- Si alguna sesión usó teclado → las métricas motoras de esa sesión son inválidas
+  -- El clínico debe filtrar por input_device = 'mouse' para análisis motor fino
+  BOOL_OR(n.input_device = 'keyboard') AS has_keyboard_sessions,
+  MODE() WITHIN GROUP (ORDER BY n.input_device) AS dominant_input_device
 
 FROM v_game_metrics_normalized n
 GROUP BY n.patient_id, n.game_slug;
@@ -228,6 +317,8 @@ SELECT
   n.movement_efficiency,
   n.d_prime,
   n.duration_sec,
+  n.abrupt_redirections,
+  n.input_device,
   ROW_NUMBER() OVER (
     PARTITION BY n.patient_id, n.game_slug
     ORDER BY n.created_at

@@ -953,6 +953,7 @@ async function saveResults(metrics, biometData) {
                 ...metrics,
                 biomet: biometData || {},
                 game_name: 'Mi Rutina Diaria',
+                input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
                 completed: true
             },
             created_at: new Date().toISOString()
