@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS video_sessions (
     user_id INTEGER NOT NULL REFERENCES telemedicine_users(id),
     session_token VARCHAR(64) UNIQUE NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'pending',
-    call_type VARCHAR(32) DEFAULT 'immediate',
+    call_type VARCHAR(32) DEFAULT 'queue',
     credits_held INTEGER NOT NULL DEFAULT 0,
     credits_charged INTEGER,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -379,16 +379,16 @@ CREATE TABLE IF NOT EXISTS mp_payments (
 
 -- Insert default telemedicine plans if none exist
 INSERT INTO telemedicine_plans (name, description, price, currency, duration_minutes, is_active)
-SELECT 'Consulta Diurna (09-13hs)', 'Videoconsulta de 30 minutos - Horario matutino', 120000, 'ARS', 30, TRUE
-WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Consulta Diurna (09-13hs)');
+SELECT 'Telemedicina con espera (15 min)', 'Videoconsulta con espera en linea (15 min)', 50000, 'ARS', 15, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Telemedicina con espera (15 min)');
 
 INSERT INTO telemedicine_plans (name, description, price, currency, duration_minutes, is_active)
-SELECT 'Consulta Vespertina (13-20hs)', 'Videoconsulta de 30 minutos - Horario vespertino', 150000, 'ARS', 30, TRUE
-WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Consulta Vespertina (13-20hs)');
+SELECT 'Telemedicina sin cola (15 min)', 'Videoconsulta sin cola de espera (15 min)', 70000, 'ARS', 15, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Telemedicina sin cola (15 min)');
 
 INSERT INTO telemedicine_plans (name, description, price, currency, duration_minutes, is_active)
-SELECT 'Consulta Nocturna (20-09hs)', 'Videoconsulta de 30 minutos - Horario nocturno', 200000, 'ARS', 30, TRUE
-WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Consulta Nocturna (20-09hs)');
+SELECT 'Telemedicina sin cola premium (15 min)', 'Videoconsulta con maxima prioridad (15 min)', 120000, 'ARS', 15, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM telemedicine_plans WHERE name = 'Telemedicina sin cola premium (15 min)');
 `;
 
 // Indexes SQL
