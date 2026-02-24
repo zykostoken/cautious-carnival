@@ -957,6 +957,20 @@ async function saveResults(metrics, biometData) {
             },
             created_at: new Date().toISOString()
         }).then(()=>{}).catch(()=>{});
+
+        // Save full biometric data to Supabase Storage bucket 'biometricas'
+        if (dailyPatientId) {
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: dailyPatientId,
+                    session_id: 'dailyroutine-' + Date.now(),
+                    game_slug: 'daily-routine-v2',
+                    biometric_data: { ...metrics, biomet: biometData || {}, game_name: 'Mi Rutina Diaria' }
+                })
+            }).catch(e => console.warn('[daily-routine] Bucket save fail:', e.message));
+        }
     } catch(e) {}
 }
 

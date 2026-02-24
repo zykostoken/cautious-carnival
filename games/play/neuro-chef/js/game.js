@@ -691,6 +691,15 @@ async function finishGame() {
             completed: true
         }
     }).catch(()=>{});
+
+    // Save full session biometric summary to Supabase Storage bucket 'biometricas'
+    saveBiometricsToBucket({
+        level: 'session_summary',
+        summary,
+        all_levels: gameState.biometricData,
+        level_metrics: gameState.levelMetrics
+    }).catch(()=>{});
+
     showResultsScreen(summary);
 }
 
@@ -722,11 +731,30 @@ async function saveLevelMetrics(metric) {
 }
 
 async function saveBiometrics(bio) {
+    // Save summary to DB (without heavy raw data)
     await supabase.from('hdd_game_metrics').insert({
         patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2',
         metric_type:`biometric_level_${bio.level}`, metric_value:bio.d_prime||0,
         metric_data:{ reaction_time_ms:bio.reaction_time_ms, total_time_ms:bio.total_time_ms, hits:bio.hits, misses:bio.misses, false_alarms:bio.false_alarms, correct_rejects:bio.correct_rejects, d_prime:bio.d_prime, tremor_avg:bio.tremor_avg, tremor_speed_var:bio.tremor_speed_var, hesitation_count:bio.hesitation_count, hesitation_total_ms:bio.hesitation_total_ms, undo_count:bio.undo_count, reset_count:bio.reset_count, total_interactions:bio.total_interactions }
     }).catch(e=>console.warn('Bio save fail:',e));
+
+    // Save full biometric data (including raw action_log, tremor_details, hesitation_details) to Supabase Storage bucket 'biometricas'
+    saveBiometricsToBucket(bio).catch(e=>console.warn('Bucket bio save fail:',e));
+}
+
+async function saveBiometricsToBucket(bio) {
+    if (!gameState.patientId || !gameState.sessionId) return;
+    await fetch('/api/biometricas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            patient_id: gameState.patientId,
+            session_id: gameState.sessionId,
+            game_slug: 'neuro-chef-v2',
+            level: bio.level,
+            biometric_data: bio
+        })
+    });
 }
 
 // ========== UTILITIES ==========

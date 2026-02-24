@@ -666,6 +666,18 @@ async function saveResults(metrics) {
                     game_name: 'Heladera Inteligente'
                 }
             });
+
+            // Save full biometric data to Supabase Storage bucket 'biometricas'
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientId,
+                    session_id: 'fridge-' + Date.now(),
+                    game_slug: 'fridge-logic',
+                    biometric_data: { ...metrics, game_name: 'Heladera Inteligente' }
+                })
+            }).catch(e => console.warn('[fridge-logic] Bucket save fail:', e.message));
         }
     } catch (err) {
         console.error('Save error:', err);

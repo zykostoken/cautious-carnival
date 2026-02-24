@@ -768,6 +768,26 @@
                     .eq('id', sessionState.sessionId)
                     .catch(e => console.warn('Session update:', e.message));
             }
+
+            // Save full biometric data (including all movements) to Supabase Storage bucket 'biometricas'
+            if (sessionState.patientId) {
+                fetch('/api/biometricas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: sessionState.patientId,
+                        session_id: sessionState.sessionId || ('pill-' + Date.now()),
+                        game_slug: 'pill-organizer',
+                        biometric_data: {
+                            ...finalMetrics,
+                            score: finalScore,
+                            accuracy_pct: accuracy,
+                            duration_sec: duration,
+                            movements: sessionState.movements
+                        }
+                    })
+                }).catch(e => console.warn('[pill-organizer] Bucket save fail:', e.message));
+            }
             
             // Mostrar resultados
             alert(`

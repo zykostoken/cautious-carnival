@@ -1013,6 +1013,18 @@ async function saveResults(metrics) {
                 patient_id: patientDbId, game_id: game.id,
                 metric_type: 'supermarket_evaluation', metric_data: metrics
             });
+
+            // Save full biometric data to Supabase Storage bucket 'biometricas'
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientDbId,
+                    session_id: 'supermarket-' + Date.now(),
+                    game_slug: 'super-market',
+                    biometric_data: { ...metrics, game_name: 'Supermercado' }
+                })
+            }).catch(e => console.warn('[super-market] Bucket save fail:', e.message));
         }
     } catch (err) { console.error('Save error:', err); }
 }
