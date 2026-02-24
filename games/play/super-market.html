@@ -1009,10 +1009,34 @@ async function saveResults(metrics) {
             score: metrics.score, started_at: new Date(startTime).toISOString(), completed_at: new Date().toISOString()
         });
         if (patientDbId && game) {
-            await supabase.from('hdd_game_biometrics').insert({
-                patient_id: patientDbId, game_id: game.id,
-                metric_type: 'supermarket_evaluation', metric_data: metrics
+            // Save to unified hdd_game_metrics (same table as all other games)
+            await supabase.from('hdd_game_metrics').insert({
+                patient_id: patientDbId,
+                game_slug: 'super-market',
+                metric_type: 'session_complete',
+                metric_value: metrics.score,
+                metric_data: {
+                    ...metrics,
+                    game_name: 'Desafío Milanesas',
+                    mean_rt_ms: metrics.avg_hesitation_ms,
+                    hesitation_count: metrics.hesitations || 0,
+                    commission_errors: metrics.errors || 0,
+                    movement_efficiency: metrics.scan_score || null,
+                    completed: true
+                }
             });
+
+            // Save full biometric data to Supabase Storage bucket 'biometricas'
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientDbId,
+                    session_id: 'supermarket-' + Date.now(),
+                    game_slug: 'super-market',
+                    biometric_data: { ...metrics, game_name: 'Supermercado' }
+                })
+            }).catch(e => console.warn('[super-market] Bucket save fail:', e.message));
         }
     } catch (err) { console.error('Save error:', err); }
 }

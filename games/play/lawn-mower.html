@@ -1279,6 +1279,25 @@
           impulsivity_ratio: clinicalStats.clinical_markers?.impulsivity_ratio
         }
       });
+
+      // Save full biometric data (including time series) to Supabase Storage bucket 'biometricas'
+      fetch('/api/biometricas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          session_id: 'lawnmower-' + Date.now(),
+          game_slug: 'lawn-mower',
+          biometric_data: {
+            completed,
+            score: finalScore,
+            level: currentLevel,
+            duration_sec: Math.floor((Date.now() - startTime) / 1000),
+            clinical_stats: clinicalStats,
+            time_series: metricsTimeSeries
+          }
+        })
+      }).catch(e => console.warn('[lawn-mower] Bucket save fail:', e.message));
     } catch(e) { console.warn('[lawn-mower] Supabase save fail:', e.message); }
   }
 
