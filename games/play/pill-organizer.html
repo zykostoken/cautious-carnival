@@ -127,7 +127,7 @@
             </div>
 
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 text-sm text-blue-800 font-medium">
-                🖱️ <strong>Cómo mover:</strong> Mantené apretado el <strong>botón derecho</strong> del mouse sobre la pastilla y arrastrala hasta el casillero. Soltá el botón para colocarla.
+                🖱️ <strong>Cómo mover:</strong> Hacé click sobre la pastilla, mantenelo apretado y arrastrala hasta el casillero. Soltá para colocarla.
                 <span class="block mt-1 text-xs text-blue-600 font-normal">En tablet: mantené el dedo apoyado y deslizá sin levantar.</span>
             </div>
 
@@ -354,8 +354,6 @@
             document.getElementById('game-container').style.display = 'block';
             setupDragAndDrop();
             startGameSession();
-            // Mood check: ahora aparece DESPUÉS de que el juego se ve (no bloquea inicio)
-            if (typeof showPreGameChat === 'function') showPreGameChat();
         }
 
         async function getOrCreatePatient(dni) {
@@ -580,14 +578,10 @@
                 updateRealTimeMetrics();
             }
 
-            // ---- MOUSE: mantener botón DERECHO apretado para arrastrar ----
-            // El esfuerzo de mantener apretado + arrastrar mide:
-            //   - Temblor durante presión sostenida (similar a temblor de acción)
-            //   - Redireccionamientos bruscos (control motor voluntario)
-            //   - Hesitaciones (planificación, inseguridad, bradipsiquia)
+            // ---- MOUSE: click izquierdo para arrastrar ----
             draggables.forEach(pill => {
                 pill.addEventListener('mousedown', (e) => {
-                    if (e.button !== 2) return; // solo botón derecho
+                    if (e.button !== 0) return; // botón izquierdo
                     e.preventDefault();
                     activePill = pill;
                     onDragBegin(pill, e.clientX, e.clientY, 'mouse');
@@ -606,16 +600,11 @@
                 if (s) s.classList.add('drag-over');
             });
 
-            // Soltar botón derecho = colocar pastilla
+            // Soltar = colocar pastilla
             document.addEventListener('mouseup', async (e) => {
                 if (!sessionState.currentDrag.active) return;
-                if (e.button !== 2) return;
+                if (e.button !== 0) return;
                 await onDrop(e.clientX, e.clientY);
-            });
-
-            // Prevenir menú contextual mientras el juego está activo
-            document.addEventListener('contextmenu', (e) => {
-                if (sessionState.currentDrag.active || sessionState.gameActive) e.preventDefault();
             });
 
             // ---- TOUCH (tablet): mantener dedo para arrastrar ----

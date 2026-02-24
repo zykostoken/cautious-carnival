@@ -555,8 +555,6 @@ function beginGame() {
         biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
     }
 
-    // Mood check DESPUÉS de que el juego es visible
-    if (typeof showPreGameChat === 'function') showPreGameChat();
 }
 
 function updateTimer() {
