@@ -72,6 +72,21 @@
         .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.5rem; }
         @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
 
+        /* Neurocognitive domain cards */
+        .domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.8rem; margin-bottom: 1.5rem; }
+        .domain-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; }
+        .domain-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
+        .domain-icon { font-size: 1.2rem; }
+        .domain-name { font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.05em; }
+        .domain-metric-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; padding: 0.2rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .domain-metric-row:last-child { border-bottom: none; }
+        .domain-metric-lbl { color: rgba(255,255,255,0.4); }
+        .domain-metric-val { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .domain-metric-val.good  { color: #34d399; }
+        .domain-metric-val.warn  { color: #fbbf24; }
+        .domain-metric-val.bad   { color: #f87171; }
+        .domain-no-data { font-size: 0.72rem; color: rgba(255,255,255,0.2); font-style: italic; }
+
         /* Clinical annotation panel */
         .annotation-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.1rem; margin-bottom: 1.5rem; }
         .annotation-panel h3 { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 0.8rem; }
@@ -343,6 +358,35 @@ function renderDashboard(sessions, metrics, moods) {
         <div class="chart-box"><h3>Dinámica de Teclado en Login (CV inter-tecla — variabilidad motora)</h3><canvas id="chartLoginBiomet"></canvas></div>
     </div>`;
 
+    // ── Neurocognitive domain panel ────────────────────────────────────────────
+    html += `<div class="section-title">Dominios Neurocognitivos <small style="color:rgba(255,255,255,0.3);font-size:0.75rem;">— últimas sesiones disponibles</small></div>
+    <div class="domain-grid" id="domainGrid">
+        <div class="domain-card" id="dom-atencion">
+            <div class="domain-card-header"><span class="domain-icon">🎯</span><span class="domain-name">Atención</span></div>
+            <div class="domain-metrics" id="dm-atencion"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+        <div class="domain-card" id="dom-memoria">
+            <div class="domain-card-header"><span class="domain-icon">🧠</span><span class="domain-name">Memoria</span></div>
+            <div class="domain-metrics" id="dm-memoria"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+        <div class="domain-card" id="dom-ejecutivo">
+            <div class="domain-card-header"><span class="domain-icon">⚙️</span><span class="domain-name">Funciones Ejecutivas</span></div>
+            <div class="domain-metrics" id="dm-ejecutivo"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+        <div class="domain-card" id="dom-psicomotor">
+            <div class="domain-card-header"><span class="domain-icon">✋</span><span class="domain-name">Psicomotricidad</span></div>
+            <div class="domain-metrics" id="dm-psicomotor"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+        <div class="domain-card" id="dom-visuoespacial">
+            <div class="domain-card-header"><span class="domain-icon">👁️</span><span class="domain-name">Visuoespacial</span></div>
+            <div class="domain-metrics" id="dm-visuoespacial"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+        <div class="domain-card" id="dom-subjetividad">
+            <div class="domain-card-header"><span class="domain-icon">🪞</span><span class="domain-name">Subjetividad</span></div>
+            <div class="domain-metrics" id="dm-subjetividad"><span class="domain-no-data">Sin datos</span></div>
+        </div>
+    </div>`;
+
     // ── Timeline de colores — combina hdd_mood_entries + color_eleccion en hdd_game_metrics
     const allColors = [
         ...moods.map(m => ({ hex: m.color_hex, id: m.color_id, date: m.recorded_at || m.created_at, ctx: m.context_type || 'game' })),
@@ -608,6 +652,117 @@ function renderCharts(gameSessions, biometSessions, allColors) {
                 }
             }
         });
+    }
+
+    // ── Populate neurocognitive domain cards ─────────────────────────────────
+    function domMetric(lbl, val, unit, thresholds) {
+        // thresholds: { good: fn, bad: fn } — evaluated against val
+        let cls = '';
+        if (val !== null && val !== undefined && !isNaN(val)) {
+            if (thresholds?.good && thresholds.good(val)) cls = 'good';
+            else if (thresholds?.bad && thresholds.bad(val)) cls = 'bad';
+            else cls = 'warn';
+        }
+        const display = (val !== null && val !== undefined && !isNaN(val))
+            ? String(typeof val === 'number' ? (Number.isInteger(val) ? val : val.toFixed(2)) : val) + (unit || '')
+            : '—';
+        return `<div class="domain-metric-row">
+            <span class="domain-metric-lbl">${lbl}</span>
+            <span class="domain-metric-val ${cls}">${display}</span></div>`;
+    }
+
+    function avg(arr, key) {
+        const vals = arr.map(m => Number(m?.metric_data?.[key])).filter(v => !isNaN(v) && v !== 0);
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+
+    const recent5 = biometSessions.slice(-5);
+
+    // Atención
+    const rtA = avg(recent5, 'rt_mean_ms');
+    const cvA = avg(recent5, 'rt_cv');
+    const decA = avg(recent5, 'decaimiento_vigilancia');
+    const hesA = avg(recent5, 'hesitaciones_count');
+    if (rtA !== null || cvA !== null) {
+        document.getElementById('dm-atencion').innerHTML =
+            domMetric('RT promedio', rtA, ' ms', { good: v => v < 600, bad: v => v > 1500 }) +
+            domMetric('CV atención', cvA, '', { good: v => v < 0.3, bad: v => v > 0.6 }) +
+            domMetric('Decaimiento vigilancia', decA, '', { good: v => v < 1.2, bad: v => v > 1.8 }) +
+            domMetric('Hesitaciones (n)', hesA, '', { good: v => v <= 1, bad: v => v > 5 });
+    }
+
+    // Memoria — from medication-memory game sessions
+    const memSessions = gameSessions.filter(s => (s.game_slug || '').includes('medication'));
+    const routineSessions = gameSessions.filter(s => (s.game_slug || '').includes('daily-routine'));
+    const memSpanVals = memSessions.map(s => s.metric_data?.clinical_markers?.memory_span || s.metric_data?.memory_span).filter(v => v != null && !isNaN(v));
+    const primacyVals = memSessions.map(s => s.metric_data?.clinical_markers?.efecto_primacia).filter(v => v != null && !isNaN(v));
+    const recenciaVals = memSessions.map(s => s.metric_data?.clinical_markers?.efecto_recencia).filter(v => v != null && !isNaN(v));
+    const divHabVals  = routineSessions.map(s => s.metric_data?.diversidad_habitos).filter(v => v != null && !isNaN(v));
+    const msMean = memSpanVals.length ? memSpanVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, memSpanVals.length) : null;
+    const primMean = primacyVals.length ? primacyVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, primacyVals.length) : null;
+    const recMean = recenciaVals.length ? recenciaVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, recenciaVals.length) : null;
+    const divHabMean = divHabVals.length ? divHabVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, divHabVals.length) : null;
+    if (msMean !== null || divHabMean !== null) {
+        document.getElementById('dm-memoria').innerHTML =
+            domMetric('Memory span (items)', msMean, '', { good: v => v >= 3, bad: v => v < 2 }) +
+            domMetric('Efecto primacía', primMean, '', { good: v => v >= 0.7, bad: v => v < 0.4 }) +
+            domMetric('Efecto recencia', recMean, '', { good: v => v >= 0.7, bad: v => v < 0.4 }) +
+            domMetric('Diversidad hábitos', divHabMean, '/3', { good: v => v >= 3, bad: v => v < 2 });
+    }
+
+    // Funciones Ejecutivas
+    const ecoA  = avg(recent5, 'economia_cognitiva');
+    const impA  = avg(recent5, 'impulsividad_ratio');
+    const inhA  = avg(recent5, 'inhibicion_motor');
+    const persA = avg(recent5, 'perseveracion_count');
+    if (ecoA !== null || impA !== null) {
+        document.getElementById('dm-ejecutivo').innerHTML =
+            domMetric('Economía cognitiva', ecoA, '', { good: v => v >= 0.8, bad: v => v < 0.5 }) +
+            domMetric('Impulsividad', impA, '', { good: v => v < 0.1, bad: v => v > 0.3 }) +
+            domMetric('Inhibición motora', inhA, '', { good: v => v < 0.1, bad: v => v > 0.25 }) +
+            domMetric('Perseveraciones', persA, '', { good: v => v === 0, bad: v => v > 3 });
+    }
+
+    // Psicomotricidad
+    const trRep = avg(recent5, 'tremor_reposo_px');
+    const trAcc = avg(recent5, 'tremor_accion_px');
+    const trDis = avg(recent5, 'tremor_distal_px');
+    const efTr  = avg(recent5, 'eficiencia_trayectoria');
+    if (trRep !== null || trAcc !== null) {
+        document.getElementById('dm-psicomotor').innerHTML =
+            domMetric('Tremor reposo (px)', trRep, '', { good: v => v < 1, bad: v => v > 3 }) +
+            domMetric('Tremor acción (px)', trAcc, '', { good: v => v < 1.5, bad: v => v > 4 }) +
+            domMetric('Tremor distal (px)', trDis, '', { good: v => v < 2, bad: v => v > 5 }) +
+            domMetric('Eficiencia trayectoria', efTr, '', { good: v => v >= 0.85, bad: v => v < 0.6 });
+    }
+
+    // Visuoespacial
+    const seqA  = avg(recent5, 'secuencia_correcta_pct');
+    const recA  = avg(recent5, 'rectificaciones_count');
+    const disA  = avg(recent5, 'dismetria_mean_px');
+    if (seqA !== null || recA !== null) {
+        document.getElementById('dm-visuoespacial').innerHTML =
+            domMetric('Secuencia correcta', seqA, '', { good: v => v >= 0.85, bad: v => v < 0.5 }) +
+            domMetric('Rectificaciones (n)', recA, '', { good: v => v <= 2, bad: v => v > 8 }) +
+            domMetric('Dismetría (px)', disA, '', { good: v => v < 30, bad: v => v > 80 }) +
+            domMetric('Eficiencia tray.', efTr, '', { good: v => v >= 0.85, bad: v => v < 0.6 });
+    }
+
+    // Subjetividad — daily-routine specific
+    const animoVals = routineSessions.map(s => s.metric_data?.estado_animo_proxy).filter(v => v != null && !isNaN(v));
+    const saludVals = routineSessions.map(s => s.metric_data?.habitos_salud_ratio).filter(v => v != null && !isNaN(v));
+    const socVals   = routineSessions.map(s => s.metric_data?.habitos_sociales_count).filter(v => v != null && !isNaN(v));
+    const autoVals  = routineSessions.map(s => s.metric_data?.autoexigencia_score).filter(v => v != null && !isNaN(v));
+    const animoMean = animoVals.length ? animoVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, animoVals.length) : null;
+    const saludMean = saludVals.length ? saludVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, saludVals.length) : null;
+    const socMean   = socVals.length ? socVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, socVals.length) : null;
+    const autoMean  = autoVals.length ? autoVals.slice(-3).reduce((a,b)=>a+b,0)/Math.min(3, autoVals.length) : null;
+    if (animoMean !== null || saludMean !== null) {
+        document.getElementById('dm-subjetividad').innerHTML =
+            domMetric('Estado ánimo (proxy)', animoMean, '/5', { good: v => v >= 4, bad: v => v <= 2 }) +
+            domMetric('Hábitos salud', saludMean, '', { good: v => v >= 0.8, bad: v => v < 0.5 }) +
+            domMetric('Hábitos sociales (n)', socMean, '', { good: v => v >= 1, bad: v => v === 0 }) +
+            domMetric('Autoexigencia', autoMean, '', { good: v => v >= 0.7, bad: v => v < 0.3 });
     }
 
     // Render annotation list after charts are built

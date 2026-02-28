@@ -62,8 +62,8 @@ var BM = {
     metrics: {
         // Tremor
         tremor_reposo_samples: [],
-        tremor_inicio_samples: [],
-        tremor_terminal_samples: [],
+        tremor_accion_samples: [],
+        tremor_distal_samples: [],
 
         // Praxis
         rectificaciones: 0,
@@ -267,7 +267,7 @@ function _onMouseMove(e) {
             BM.currentMove = { t_start: t, path: [], intended_target: null };
             BM.metrics.moves_started++;
 
-            // Tremor de inicio: capturar primeras muestras
+            // Tremor de acción: capturar primeras muestras
             BM.currentMove._onset_start = t;
         }
         BM.lastMoveTime = t;
@@ -277,7 +277,7 @@ function _onMouseMove(e) {
         if (BM.currentMove) {
             BM.currentMove.path.push({ x, y, t });
 
-            // Tremor de inicio: primeros CFG.INICIO_VENTANA_MS ms
+            // Tremor de acción: primeros CFG.INICIO_VENTANA_MS ms
             if (t - BM.currentMove.t_start <= CFG.INICIO_VENTANA_MS) {
                 BM.currentMove._onset_pts = BM.currentMove._onset_pts || [];
                 BM.currentMove._onset_pts.push({ x, y });
@@ -335,11 +335,11 @@ function _finalizeMove(move, t_end) {
         if (ang > 45) BM.metrics.rectificaciones++;
     }
 
-    // Tremor de inicio (SD de primeros puntos)
+    // Tremor de acción (SD de primeros puntos)
     if (move._onset_pts && move._onset_pts.length >= 3) {
         var oxs = move._onset_pts.map(function(p){ return p.x; });
         var oys = move._onset_pts.map(function(p){ return p.y; });
-        BM.metrics.tremor_inicio_samples.push((sd(oxs) + sd(oys)) / 2);
+        BM.metrics.tremor_accion_samples.push((sd(oxs) + sd(oys)) / 2);
     }
 
     // Distancia recta (para eficiencia)
@@ -356,7 +356,7 @@ function _onMouseDown(e) {
     var intended = BM.currentMove ? BM.currentMove.intended_target : null;
     var near = nearestTarget(x, y);
 
-    // Tremor terminal: SD de los últimos puntos antes del click
+    // Tremor distal: SD de los últimos puntos antes del click
     if (BM.currentMove && BM.currentMove.path.length >= 4) {
         var path = BM.currentMove.path;
         var endPts = [];
@@ -368,7 +368,7 @@ function _onMouseDown(e) {
         if (endPts.length >= 3) {
             var txs = endPts.map(function(p){ return p.x; });
             var tys = endPts.map(function(p){ return p.y; });
-            BM.metrics.tremor_terminal_samples.push((sd(txs) + sd(tys)) / 2);
+            BM.metrics.tremor_distal_samples.push((sd(txs) + sd(tys)) / 2);
         }
     }
 
@@ -430,7 +430,7 @@ function start(opts) {
     BM.posSamples = []; BM.stationaryBuffer = [];
     BM.currentMove = null; BM.lastPos = null;
     Object.assign(BM.metrics, {
-        tremor_reposo_samples: [], tremor_inicio_samples: [], tremor_terminal_samples: [],
+        tremor_reposo_samples: [], tremor_accion_samples: [], tremor_distal_samples: [],
         rectificaciones: 0, falsos_clicks: 0, errores_omision: 0, errores_comision: 0,
         perseveraciones: 0, last_action_target: null, same_target_streak: 0,
         total_path_px: 0, total_straight_px: 0, actions_util: 0, actions_total: 0,
@@ -466,8 +466,8 @@ function compute() {
 
     // ---- TREMOR ----
     var tremor_reposo      = mean(m.tremor_reposo_samples);
-    var tremor_inicio      = mean(m.tremor_inicio_samples);
-    var tremor_terminal    = mean(m.tremor_terminal_samples);
+    var tremor_accion      = mean(m.tremor_accion_samples);
+    var tremor_distal      = mean(m.tremor_distal_samples);
     var dismetria_mean_px  = n_clicks > 0
         ? mean(clicks.filter(function(c){ return c.dismettia_px != null; }).map(function(c){ return c.dismettia_px; }))
         : 0;
@@ -536,8 +536,8 @@ function compute() {
 
         // Tremor
         tremor_reposo_px:     +tremor_reposo.toFixed(2),
-        tremor_inicio_px:     +tremor_inicio.toFixed(2),
-        tremor_terminal_px:   +tremor_terminal.toFixed(2),
+        tremor_accion_px:     +tremor_accion.toFixed(2),
+        tremor_distal_px:     +tremor_distal.toFixed(2),
         dismetria_mean_px:    +dismetria_mean_px.toFixed(2),
 
         // Trayectoria / Praxis

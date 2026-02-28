@@ -1821,6 +1821,17 @@
     clinicalMetrics.viewingDuration = viewPhaseMs;
     clinicalMetrics.decisionDuration = deskPhaseMs;
 
+    // ── Serial position curve (primacy / recency effects) ──
+    const spc = results.per_med_correct || [];
+    const spcN = spc.length;
+    const spcThird = Math.max(1, Math.floor(spcN / 3));
+    const efecto_primacia = spcN >= 2
+      ? +(spc.slice(0, spcThird).reduce((a, b) => a + b, 0) / spcThird).toFixed(3)
+      : null;
+    const efecto_recencia = spcN >= 2
+      ? +(spc.slice(-spcThird).reduce((a, b) => a + b, 0) / spcThird).toFixed(3)
+      : null;
+
     return {
       session_summary: {
         total_duration_sec: Math.round((Date.now() - state.startTime) / 1000),
@@ -1852,13 +1863,20 @@
         // Decision Quality (hesitation/uncertainty markers)
         selection_changes: clinicalMetrics.selectionChanges,
         configuration_changes: clinicalMetrics.configurationChanges,
+        autocorrecciones_count: clinicalMetrics.selectionChanges,  // alias clínico
         decisiveness_score: clinicalMetrics.selectionChanges + clinicalMetrics.configurationChanges === 0 ? 1.0 :
           1.0 / (1 + (clinicalMetrics.selectionChanges + clinicalMetrics.configurationChanges) * 0.1),
 
         // Cognitive Load indicators
         viewing_time_ms: clinicalMetrics.viewingDuration,
+        tiempo_lectura_receta_ms: clinicalMetrics.viewingDuration,  // alias clínico
         decision_time_ms: clinicalMetrics.decisionDuration,
-        time_pressure_factor: state.currentLevel?.viewTime || 0
+        time_pressure_factor: state.currentLevel?.viewTime || 0,
+
+        // Curva de posición serial — efectos de primacía y recencia
+        serial_position_curve: spc,
+        efecto_primacia,   // accuracy on first 1/3 items (0–1)
+        efecto_recencia    // accuracy on last 1/3 items (0–1)
       },
       device_context: {
         input_method: clinicalMetrics.inputMethod,
@@ -2581,9 +2599,11 @@
     let wrongMeds = 0;
     let missedMeds = 0;
     const totalMeds = prescription.length;
+    const per_med_correct = [];  // 1=correct name recalled, 0=missed/wrong — serial position tracking
 
     // Check each prescribed medication
     prescription.forEach(rx => {
+      let rxCorrect = 0;
       if (mechanic === 'name-only') {
         // Only check name match
         const sel = selectedByName.get(rx.name);
@@ -2592,6 +2612,7 @@
           correctMeds++;
           totalScore += 200;
           breakdown.push({ type: 'correct', text: `${rx.name} - medicamento correcto`, points: '+200' });
+          rxCorrect = 1;
         } else {
           missedMeds++;
           totalScore -= 50;
@@ -2605,6 +2626,7 @@
           correctMeds++;
           totalScore += 100;
           breakdown.push({ type: 'correct', text: `${rx.name} ${rx.dosage} - medicamento correcto`, points: '+100' });
+          rxCorrect = 1;
 
           if (mechanic === 'name-and-dose') {
             // Extra points for correct dosage identification
@@ -2633,6 +2655,7 @@
             correctMeds++;
             totalScore += 50;
             breakdown.push({ type: 'wrong', text: `${rx.name} - dosis incorrecta (elegiste ${byNameOnly.dosage}, era ${rx.dosage})`, points: '+50' });
+            rxCorrect = 1;
           } else {
             missedMeds++;
             totalScore -= 50;
@@ -2640,6 +2663,7 @@
           }
         }
       }
+      per_med_correct.push(rxCorrect);  // serial position tracking
     });
 
     // Check wrong selections
@@ -2690,7 +2714,7 @@
                      mechanic === 'name-and-dose' ? totalMeds * 250 + 400 + 200 :
                      totalMeds * 250 + 500 + 200;
 
-    return { score: totalScore, maxScore, breakdown, correctMeds, wrongMeds, missedMeds, totalMeds, allPerfect };
+    return { score: totalScore, maxScore, breakdown, correctMeds, wrongMeds, missedMeds, totalMeds, allPerfect, per_med_correct };
   }
 
   function showResults(results) {

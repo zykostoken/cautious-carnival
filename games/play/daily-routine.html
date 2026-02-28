@@ -874,6 +874,27 @@ function finishGame() {
     // Clinical vectors
     const sequenceScore = calcSequenceCoherence();
 
+    // ── Neurocognitive domain metrics ──
+    const totalHealthy = HABITS.filter(h => h.healthy).length;
+    const habitos_salud_ratio = totalHealthy > 0 ? +(healthySelected / totalHealthy).toFixed(3) : 0;
+    const habitos_sociales_count = [...state.selected].filter(id => id === 'social').length;
+    const habitos_culturales_count = [...state.selected].filter(id => id === 'hobby').length;
+    const autoexigencia_score = +(Math.min(1, placedCount / 8)).toFixed(3);  // 8 slots = full day
+    const phasesUsed = new Set(Object.keys(state.placements).map(slotId =>
+        slotId.startsWith('m') ? 'morning' : slotId.startsWith('a') ? 'afternoon' : 'evening'));
+    const diversidad_habitos = phasesUsed.size;  // 0–3 phases covered
+    const selectedArr = [...state.selected];
+    let estado_animo_proxy = 3;
+    if (habitos_salud_ratio >= 0.8) estado_animo_proxy++;
+    if (habitos_sociales_count > 0) estado_animo_proxy++;
+    if (selectedArr.includes('aislarse')) estado_animo_proxy--;
+    if (selectedArr.includes('dormir_dia')) estado_animo_proxy--;
+    estado_animo_proxy = Math.max(1, Math.min(5, estado_animo_proxy));
+    const firstSlot = Object.keys(state.placements)[0] || null;
+    const orden_primera_categoria = firstSlot
+        ? (firstSlot.startsWith('m') ? 'morning' : firstSlot.startsWith('a') ? 'afternoon' : 'evening')
+        : null;
+
     const metrics = {
         healthy_selected: healthySelected,
         unhealthy_selected: unhealthySelected,
@@ -882,7 +903,15 @@ function finishGame() {
         hesitations: state.hesitations,
         duration_seconds: totalTime,
         sequence_coherence: sequenceScore,
-        final_score: total
+        final_score: total,
+        // Neurocognitive domain — Subjetividad / proyección
+        habitos_salud_ratio,
+        habitos_sociales_count,
+        habitos_culturales_count,
+        autoexigencia_score,
+        diversidad_habitos,
+        estado_animo_proxy,
+        orden_primera_categoria
     };
 
     // Biomet: guardar métricas psicomotoras capturadas durante el juego
