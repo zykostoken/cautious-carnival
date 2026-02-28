@@ -438,6 +438,53 @@
     </div>
   </div>
 
+  <!-- Captura biométrica en login: timing de teclado (keyboard dynamics).
+       Mide intervalos inter-tecla (ik_mean_ms, ik_sd_ms, ik_cv) y tiempo total.
+       Expone window._loginBiomet para que hdd-portal.js lo incluya en el POST /auth. -->
+  <script>
+  (function () {
+    var _intervals = [], _lastTs = null, _firstTs = null, _keyCount = 0;
+
+    function _recordKey() {
+      var now = performance.now();
+      if (_firstTs === null) _firstTs = now;
+      if (_lastTs !== null) _intervals.push(Math.round(now - _lastTs));
+      _lastTs = now;
+      _keyCount++;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var dniEl = document.getElementById('dni');
+      var pwEl  = document.getElementById('password');
+      var form  = document.getElementById('login-form');
+
+      if (dniEl) dniEl.addEventListener('keydown', _recordKey);
+      if (pwEl)  pwEl.addEventListener('keydown',  _recordKey);
+
+      if (form) {
+        // capture phase: fires before the defer hdd-portal.js submit handler
+        form.addEventListener('submit', function () {
+          var submitTs = performance.now();
+          var n    = _intervals.length;
+          var mean = n > 0 ? _intervals.reduce(function(a,b){return a+b;}, 0) / n : null;
+          var sd   = (n > 1 && mean !== null)
+            ? Math.sqrt(_intervals.reduce(function(a,b){return a+Math.pow(b-mean,2);}, 0) / n)
+            : null;
+
+          window._loginBiomet = {
+            context:        'login_form',
+            ik_mean_ms:     mean !== null ? Math.round(mean) : null,
+            ik_sd_ms:       sd   !== null ? Math.round(sd)   : null,
+            ik_cv:          (mean && sd)  ? parseFloat((sd / mean).toFixed(3)) : null,
+            total_ms:       _firstTs !== null ? Math.round(submitTs - _firstTs) : null,
+            keypress_count: _keyCount
+          };
+        }, true);
+      }
+    });
+  })();
+  </script>
+
   <script src="/js/hdd-portal.js" defer></script>
 </body>
 </html>

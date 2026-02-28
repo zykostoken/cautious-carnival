@@ -556,6 +556,80 @@ curl https://clinicajoseingenieros.ar/.netlify/functions/mercadopago
 
 ---
 
+## Sistema de Biometría Longitudinal (Lifetime)
+
+### Principio central
+
+Las biometrías se capturan **desde el primer login** y se guardan **para siempre**, ancladas al `patient_dni`. El alta hospitalaria NO interrumpe el registro. Permite ver la evolución psicomotora a lo largo de toda la historia clínica, incluyendo tratamientos posteriores al alta.
+
+### Tabla `hdd_biometric_timeline`
+
+Tabla permanente, anclada por `patient_dni` (no por `patient_id`, que puede cambiar entre internaciones):
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `patient_dni` | VARCHAR(20) NOT NULL | Identificador permanente (DNI) |
+| `patient_id` | INTEGER | FK a internación actual (nullable) |
+| `capture_context` | VARCHAR(64) | `'login'` \| `'game'` \| `'navigation'` |
+| `source_activity` | VARCHAR(64) | Slug del juego o `'login_form'` |
+| `biomet_data` | JSONB | Payload biométrico completo |
+| `captured_at` | TIMESTAMP WITH TIME ZONE | Momento de captura |
+
+### Puntos de captura
+
+| Contexto | Qué se captura | Flujo |
+|----------|---------------|-------|
+| `login` | Intervalos inter-tecla (`ik_mean_ms`, `ik_sd_ms`, `ik_cv`), tiempo total, nº teclas | `hdd/portal/index.html` (inline script) → `js/hdd-portal.js:login()` → `hdd-auth.mts` |
+| `game` | Tremor, RT, praxis, funciones ejecutivas (todos los campos de `biomet.js`) | `games/shared/biomet.js` → `hdd-games.mts:save_game_metrics` → mirror a timeline |
+
+### Login biométrico (keyboard dynamics)
+
+El script inline en `hdd/portal/index.html` registra keydown timestamps en los campos DNI y contraseña. Al submit computa:
+- `ik_mean_ms` — promedio inter-tecla (velocidad de escritura)
+- `ik_sd_ms` — desvío estándar inter-tecla
+- `ik_cv` — coeficiente de variación (variabilidad motora fina, proxy de temblor/rigidez)
+
+Esto se envía como `login_biomet` en el POST a `/api/hdd/auth` y se guarda con `capture_context: 'login'`.
+
+### Mirror de juegos
+
+`hdd-games.mts → save_game_metrics`: además de guardar en `hdd_game_metrics`, inserta en `hdd_biometric_timeline`. Todos los juegos que usan `biomet.js` alimentan automáticamente la timeline lifetime.
+
+### Tabla `hdd_clinical_annotations`
+
+Los profesionales asocian estado clínico + síntomas a fechas. Estos se superponen sobre los gráficos biométricos:
+
+```sql
+clinical_state: 'estable' | 'mejoria' | 'deterioro' | 'crisis'
+symptoms: TEXT[]    -- ej. ['ansiedad', 'insomnio', 'alucinaciones']
+```
+
+### Dashboard clínico — secciones nuevas
+
+En `hdd/admin/clinical-dashboard.html`:
+
+1. **Panel de anotaciones clínicas** — el profesional registra estado + síntomas, se reflejan en gráficos en tiempo real
+2. **Radar "Perfil Psicomotor"** — 6 dimensiones normalizadas a 0-100 (RT, tremor, omisiones, comisiones, eficiencia, impulsividad) calculadas sobre toda la historia lifetime
+3. **"Dinámica de Teclado en Login"** — línea temporal del `ik_cv` desde el primer login; los puntos se colorean por estado clínico anotado en esa fecha
+
+### API endpoints
+
+```typescript
+// Obtener perfil lifetime completo
+POST /api/hdd/admin { action: 'get_biometric_profile', patient_dni: '12345678' }
+// → { timeline: [...captures...], annotations: [...clinical_states...] }
+
+// Agregar anotación clínica
+POST /api/hdd/admin { action: 'add_clinical_annotation',
+  patient_dni, annotation_date, clinical_state, symptoms, notes }
+```
+
+### Vista SQL `v_patient_biomet_profile`
+
+Agrega el perfil por `(patient_dni, capture_context, source_activity)` calculando promedios de cada dimensión biométrica sobre toda la historia.
+
+---
+
 ## Seguridad — consideraciones importantes
 
 - **NO exponer** credenciales en frontend (todo via funciones serverless)

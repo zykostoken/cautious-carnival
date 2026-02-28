@@ -67,6 +67,25 @@
             .charts-grid { grid-template-columns: 1fr; }
             .summary-row { grid-template-columns: repeat(3, 1fr); }
         }
+
+        /* Biometric profile radar */
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.5rem; }
+        @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
+
+        /* Clinical annotation panel */
+        .annotation-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.1rem; margin-bottom: 1.5rem; }
+        .annotation-panel h3 { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 0.8rem; }
+        .annotation-form { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
+        .annotation-form select, .annotation-form input { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); padding: 0.45rem 0.75rem; border-radius: 6px; font-size: 0.82rem; }
+        .annotation-form select option { background: #1e293b; }
+        .annotation-btn { background: rgba(96,165,250,0.2); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); border-radius: 6px; padding: 0.45rem 1rem; font-size: 0.82rem; cursor: pointer; }
+        .annotation-btn:hover { background: rgba(96,165,250,0.35); }
+        .annotation-list { margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .annotation-tag { padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+        .state-estable  { background: rgba(52,211,153,0.2); color: #34d399; }
+        .state-mejoria  { background: rgba(96,165,250,0.2); color: #60a5fa; }
+        .state-deterioro{ background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .state-crisis   { background: rgba(248,113,113,0.2); color: #f87171; }
     </style>
 </head>
 <body>
@@ -96,7 +115,10 @@ const GAMES = {
 
 let charts = {};
 let currentPatient = null;
+let currentDni = null;
 let allData = {};
+let bioTimeline = [];
+let clinicalAnnotations = [];
 
 // Auth check
 (async function init() {
@@ -168,6 +190,7 @@ async function loadPatientData(pid) {
 
         const dni = patient.patient_dni || patient.dni;
         if (!dni) throw new Error('Paciente sin DNI registrado');
+        currentDni = dni;
 
         // 2. Consultar por DNI — así guardan todos los juegos
         const [metRes, moodRes] = await Promise.all([
@@ -190,6 +213,9 @@ async function loadPatientData(pid) {
         document.getElementById('patientInfoBar').textContent =
             `DNI: ${dni} | Ingreso: ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-AR') : '?'} | Registros: ${metrics.length}`;
 
+        // 3. Load lifetime biometric profile via backend API
+        await loadBiometricProfile(dni);
+
         allData = { sessions, metrics, moods, patient, dni };
         renderDashboard(sessions, metrics, moods);
     } catch(e) {
@@ -198,6 +224,61 @@ async function loadPatientData(pid) {
     }
 }
 
+// ── Lifetime biometric profile ──────────────────────────────────────────────
+async function loadBiometricProfile(dni) {
+    const adminSession = localStorage.getItem('hdd_admin_session');
+    try {
+        const res = await fetch('/api/hdd/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_biometric_profile', patient_dni: dni, sessionToken: adminSession })
+        });
+        const d = await res.json();
+        bioTimeline     = d.timeline     || [];
+        clinicalAnnotations = d.annotations || [];
+    } catch(e) {
+        console.warn('Biomet profile load failed:', e);
+        bioTimeline = [];
+        clinicalAnnotations = [];
+    }
+}
+
+async function addAnnotation(clinical_state, symptoms_str, notes) {
+    const adminSession = localStorage.getItem('hdd_admin_session');
+    const symptoms = symptoms_str ? symptoms_str.split(',').map(s => s.trim()).filter(Boolean) : [];
+    try {
+        await fetch('/api/hdd/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'add_clinical_annotation',
+                patient_dni: currentDni,
+                annotation_date: new Date().toISOString().split('T')[0],
+                clinical_state, symptoms, notes,
+                sessionToken: adminSession
+            })
+        });
+        await loadBiometricProfile(currentDni);
+        renderAnnotationList();
+    } catch(e) { console.error('Annotation save failed:', e); }
+}
+
+function renderAnnotationList() {
+    const el = document.getElementById('annotationList');
+    if (!el) return;
+    if (!clinicalAnnotations.length) {
+        el.innerHTML = '<span style="color:rgba(255,255,255,0.3);font-size:0.8rem;">Sin anotaciones clínicas aún.</span>';
+        return;
+    }
+    el.innerHTML = clinicalAnnotations.slice(-10).reverse().map(a => {
+        const cls = 'state-' + (a.clinical_state || 'estable');
+        const syms = (a.symptoms || []).join(', ');
+        const dt   = new Date(a.annotation_date).toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'2-digit'});
+        return `<span class="annotation-tag ${cls}" title="${syms}${a.notes ? ' — '+a.notes : ''}">${dt}: ${a.clinical_state || '?'}${syms ? ' · '+syms : ''}</span>`;
+    }).join('');
+}
+
+// ── Main dashboard renderer ──────────────────────────────────────────────────
 function renderDashboard(sessions, metrics, moods) {
     const dc = document.getElementById('dashContent');
     Object.values(charts).forEach(c => c.destroy());
@@ -225,8 +306,26 @@ function renderDashboard(sessions, metrics, moods) {
     // Juegos únicos
     const gamesSlugs = [...new Set(gameSessions.map(s => s.game_slug).filter(Boolean))];
 
-    // Summary cards
-    let html = `<div class="summary-row">
+    // ── Clinical annotation panel ──────────────────────────────
+    let html = `<div class="annotation-panel">
+        <h3>Estado Clínico — Anotaciones Profesionales</h3>
+        <div class="annotation-form">
+            <select id="annState">
+                <option value="">Estado clínico...</option>
+                <option value="estable">Estable</option>
+                <option value="mejoria">Mejoría</option>
+                <option value="deterioro">Deterioro</option>
+                <option value="crisis">Crisis</option>
+            </select>
+            <input id="annSymptoms" type="text" placeholder="Síntomas (coma separados): ansiedad, insomnio..." style="min-width:220px;">
+            <input id="annNotes" type="text" placeholder="Nota breve (opcional)">
+            <button class="annotation-btn" onclick="(function(){addAnnotation(document.getElementById('annState').value, document.getElementById('annSymptoms').value, document.getElementById('annNotes').value);})()">+ Agregar</button>
+        </div>
+        <div class="annotation-list" id="annotationList"></div>
+    </div>`;
+
+    // ── Summary cards ──────────────────────────────────────────
+    html += `<div class="summary-row">
         <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones juego</div></div>
         <div class="summary-card"><div class="val">${completedSessions}</div><div class="lbl">Completadas</div></div>
         <div class="summary-card"><div class="val">${totalDays}</div><div class="lbl">Días activos</div></div>
@@ -234,9 +333,17 @@ function renderDashboard(sessions, metrics, moods) {
         <div class="summary-card"><div class="val">${avgRT}</div><div class="lbl">RT promedio (ms)</div></div>
         <div class="summary-card"><div class="val">${gamesSlugs.length}</div><div class="lbl">Juegos distintos</div></div>
         <div class="summary-card"><div class="val">${moods.length + colorEntries.length}</div><div class="lbl">Registros color</div></div>
+        <div class="summary-card"><div class="val">${bioTimeline.length}</div><div class="lbl">Captures lifetime</div></div>
     </div>`;
 
-    // Timeline de colores — combina hdd_mood_entries + color_eleccion en hdd_game_metrics
+    // ── Biometric profile (radar + login dynamics) ─────────────
+    html += `<div class="section-title">Perfil Biométrico Longitudinal <small style="color:rgba(255,255,255,0.3);font-size:0.75rem;">— desde primer login, de por vida</small></div>
+    <div class="profile-grid">
+        <div class="chart-box"><h3>Perfil Psicomotor (todos los juegos)</h3><canvas id="chartRadar"></canvas></div>
+        <div class="chart-box"><h3>Dinámica de Teclado en Login (CV inter-tecla — variabilidad motora)</h3><canvas id="chartLoginBiomet"></canvas></div>
+    </div>`;
+
+    // ── Timeline de colores — combina hdd_mood_entries + color_eleccion en hdd_game_metrics
     const allColors = [
         ...moods.map(m => ({ hex: m.color_hex, id: m.color_id, date: m.recorded_at || m.created_at, ctx: m.context_type || 'game' })),
         ...colorEntries.map(m => ({ hex: m.metric_data?.color_hex, id: m.metric_data?.color_id, date: m.session_date || m.created_at, ctx: m.metric_data?.context_type || m.game_slug }))
@@ -387,6 +494,124 @@ function renderCharts(gameSessions, biometSessions, allColors) {
             }
         });
     }
+
+    // ── Radar: Perfil Biométrico (agregado lifetime desde hdd_biometric_timeline) ──
+    // All game captures from bioTimeline with game context
+    const gameCaptures = bioTimeline.filter(b => b.capture_context === 'game' && b.biomet_data);
+    if (gameCaptures.length > 0 && document.getElementById('chartRadar')) {
+        const avg = (key) => {
+            const vals = gameCaptures.map(b => Number(b.biomet_data[key])).filter(v => !isNaN(v) && v > 0);
+            return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        };
+        // Normalize to 0-100 scale for radar readability
+        const rtAvg      = avg('rt_mean_ms');
+        const tremorAvg  = avg('tremor_reposo_px');
+        const omisAvg    = avg('errores_omision');
+        const comisAvg   = avg('errores_comision');
+        const eficAvg    = avg('eficiencia_trayectoria');
+        const impulsAvg  = avg('impulsividad_ratio');
+
+        // Normalize: RT > 0 ? map to 0-100 (lower is better, so invert)
+        const normalize = (val, max, invert=false) => {
+            const n = Math.min((val / max) * 100, 100);
+            return invert ? 100 - n : n;
+        };
+
+        charts.radar = new Chart(document.getElementById('chartRadar'), {
+            type: 'radar',
+            data: {
+                labels: ['Velocidad RT', 'Precisión\n(sin tremor)', 'Completitud\n(sin omisiones)', 'Control\n(sin comisiones)', 'Eficiencia\ntrayectoria', 'Control\nimpulsos'],
+                datasets: [{
+                    label: 'Perfil actual',
+                    data: [
+                        normalize(rtAvg, 1000, true),         // RT — lower is better
+                        normalize(tremorAvg, 20, true),        // tremor — lower is better
+                        normalize(omisAvg, 10, true),          // omissions — lower is better
+                        normalize(comisAvg, 10, true),         // commissions — lower is better
+                        normalize(eficAvg, 1, false) * 100,    // efficiency 0-1 → 0-100
+                        normalize(impulsAvg, 0.5, true)        // impulsivity — lower is better
+                    ],
+                    backgroundColor: 'rgba(96,165,250,0.15)',
+                    borderColor: '#60a5fa',
+                    pointBackgroundColor: '#60a5fa',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        ticks: { display: false },
+                        grid: { color: 'rgba(255,255,255,0.08)' },
+                        pointLabels: { color: 'rgba(255,255,255,0.5)', font: { size: 9 } },
+                        angleLines: { color: 'rgba(255,255,255,0.06)' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Login biometric trend: keyboard CV over time ──────────────────────────
+    const loginCaptures = bioTimeline
+        .filter(b => b.capture_context === 'login' && b.biomet_data?.ik_cv != null)
+        .sort((a, b) => new Date(a.captured_at) - new Date(b.captured_at));
+
+    if (loginCaptures.length > 0 && document.getElementById('chartLoginBiomet')) {
+        // Build annotation overlay (colored background by clinical state)
+        const annotationByDate = {};
+        clinicalAnnotations.forEach(a => { annotationByDate[a.annotation_date] = a.clinical_state; });
+        const stateColors = { estable: '#34d399', mejoria: '#60a5fa', deterioro: '#f59e0b', crisis: '#f87171' };
+
+        const loginLabels = loginCaptures.map(b => new Date(b.captured_at).toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'2-digit'}));
+        const loginCVs    = loginCaptures.map(b => b.biomet_data.ik_cv);
+        const bgColors    = loginCaptures.map(b => {
+            const dateStr = b.captured_at.split('T')[0];
+            const state   = annotationByDate[dateStr];
+            return state ? stateColors[state] + '33' : 'transparent';
+        });
+
+        charts.loginBiomet = new Chart(document.getElementById('chartLoginBiomet'), {
+            type: 'line',
+            data: {
+                labels: loginLabels,
+                datasets: [{
+                    label: 'CV inter-tecla (variabilidad motora login)',
+                    data: loginCVs,
+                    borderColor: '#a78bfa',
+                    backgroundColor: 'rgba(167,139,250,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: loginCaptures.map(b => {
+                        const state = annotationByDate[b.captured_at.split('T')[0]];
+                        return state ? stateColors[state] : '#a78bfa';
+                    }),
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                ...chartOpts,
+                plugins: {
+                    ...chartOpts.plugins,
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(ctx) {
+                                const b = loginCaptures[ctx.dataIndex];
+                                const state = annotationByDate[b.captured_at.split('T')[0]];
+                                const lines = [`Teclas: ${b.biomet_data.keypress_count || '?'}`, `Tiempo total: ${b.biomet_data.total_ms || '?'}ms`];
+                                if (state) lines.push(`Estado clínico: ${state}`);
+                                return lines;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Render annotation list after charts are built
+    renderAnnotationList();
 }
 </script>
 </body>

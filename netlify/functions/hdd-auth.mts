@@ -22,7 +22,7 @@ export default async (req: Request, context: Context) => {
 
       // Patient login with DNI and password
       if (action === "login") {
-        const { dni, password } = body;
+        const { dni, password, login_biomet } = body;
 
         if (!dni || !password) {
           return new Response(JSON.stringify({
@@ -68,6 +68,16 @@ export default async (req: Request, context: Context) => {
             VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
           `.catch(e => console.log('Login tracking failed:', e));
 
+          // Save login biometrics to lifetime timeline (first login = baseline)
+          if (login_biomet && typeof login_biomet === 'object') {
+            await sql`
+              INSERT INTO hdd_biometric_timeline
+                (patient_dni, patient_id, capture_context, source_activity, biomet_data, captured_at)
+              VALUES (${patient.dni}, ${patient.id}, 'login', 'login_form',
+                ${JSON.stringify({ ...login_biomet, first_login: true })}, NOW())
+            `.catch(e => console.log('Biomet timeline (first login) failed:', e));
+          }
+
           return new Response(JSON.stringify({
             success: true,
             firstLogin: true,
@@ -105,6 +115,16 @@ export default async (req: Request, context: Context) => {
           INSERT INTO hdd_login_tracking (patient_id, login_at, user_agent)
           VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
         `.catch(e => console.log('Login tracking failed:', e));
+
+        // Save login biometrics to lifetime timeline on every login
+        if (login_biomet && typeof login_biomet === 'object') {
+          await sql`
+            INSERT INTO hdd_biometric_timeline
+              (patient_dni, patient_id, capture_context, source_activity, biomet_data, captured_at)
+            VALUES (${patient.dni}, ${patient.id}, 'login', 'login_form',
+              ${JSON.stringify(login_biomet)}, NOW())
+          `.catch(e => console.log('Biomet timeline (login) failed:', e));
+        }
 
         return new Response(JSON.stringify({
           success: true,

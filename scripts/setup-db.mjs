@@ -697,6 +697,71 @@ SELECT
     ROW_NUMBER() OVER (PARTITION BY patient_dni ORDER BY recorded_at) AS global_ordinal
 FROM hdd_mood_entries
 ORDER BY patient_dni, recorded_at;
+
+-- =============================================
+-- LIFETIME BIOMETRIC TIMELINE
+-- DNI-anchored, permanent — never deleted even after discharge.
+-- Captures every biometric event: login, game, navigation.
+-- capture_context: 'login' | 'game' | 'navigation'
+-- =============================================
+CREATE TABLE IF NOT EXISTS hdd_biometric_timeline (
+    id SERIAL PRIMARY KEY,
+    patient_dni VARCHAR(20) NOT NULL,
+    patient_id INTEGER,
+    capture_context VARCHAR(64) NOT NULL DEFAULT 'game',
+    source_activity VARCHAR(64),
+    biomet_data JSONB NOT NULL DEFAULT '{}',
+    captured_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_biomet_tl_dni ON hdd_biometric_timeline(patient_dni);
+CREATE INDEX IF NOT EXISTS idx_biomet_tl_captured ON hdd_biometric_timeline(captured_at);
+CREATE INDEX IF NOT EXISTS idx_biomet_tl_context ON hdd_biometric_timeline(capture_context);
+CREATE INDEX IF NOT EXISTS idx_biomet_tl_patient ON hdd_biometric_timeline(patient_id);
+CREATE INDEX IF NOT EXISTS idx_biomet_tl_dni_time ON hdd_biometric_timeline(patient_dni, captured_at);
+
+-- =============================================
+-- CLINICAL ANNOTATIONS
+-- Professionals link clinical state / symptoms to a date.
+-- Used to pair biometric changes with clinical evolution.
+-- clinical_state: 'estable' | 'mejoria' | 'deterioro' | 'crisis'
+-- symptoms: array of tags, e.g. ARRAY['ansiedad', 'insomnio']
+-- =============================================
+CREATE TABLE IF NOT EXISTS hdd_clinical_annotations (
+    id SERIAL PRIMARY KEY,
+    patient_dni VARCHAR(20) NOT NULL,
+    patient_id INTEGER,
+    annotation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    clinical_state VARCHAR(64),
+    symptoms TEXT[],
+    notes TEXT,
+    created_by INTEGER REFERENCES healthcare_professionals(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_clinical_ann_dni ON hdd_clinical_annotations(patient_dni);
+CREATE INDEX IF NOT EXISTS idx_clinical_ann_date ON hdd_clinical_annotations(annotation_date);
+CREATE INDEX IF NOT EXISTS idx_clinical_ann_state ON hdd_clinical_annotations(clinical_state);
+
+-- View: full patient biometric profile across all time and contexts
+CREATE OR REPLACE VIEW v_patient_biomet_profile AS
+SELECT
+    bt.patient_dni,
+    bt.capture_context,
+    bt.source_activity,
+    COUNT(*) AS capture_count,
+    MIN(bt.captured_at) AS first_capture,
+    MAX(bt.captured_at) AS last_capture,
+    AVG((bt.biomet_data->>'rt_mean_ms')::FLOAT) FILTER (WHERE bt.biomet_data->>'rt_mean_ms' IS NOT NULL) AS avg_rt_ms,
+    AVG((bt.biomet_data->>'tremor_reposo_px')::FLOAT) FILTER (WHERE bt.biomet_data->>'tremor_reposo_px' IS NOT NULL) AS avg_tremor_px,
+    AVG((bt.biomet_data->>'errores_omision')::FLOAT) FILTER (WHERE bt.biomet_data->>'errores_omision' IS NOT NULL) AS avg_omisiones,
+    AVG((bt.biomet_data->>'errores_comision')::FLOAT) FILTER (WHERE bt.biomet_data->>'errores_comision' IS NOT NULL) AS avg_comisiones,
+    AVG((bt.biomet_data->>'eficiencia_trayectoria')::FLOAT) FILTER (WHERE bt.biomet_data->>'eficiencia_trayectoria' IS NOT NULL) AS avg_eficiencia,
+    AVG((bt.biomet_data->>'impulsividad_ratio')::FLOAT) FILTER (WHERE bt.biomet_data->>'impulsividad_ratio' IS NOT NULL) AS avg_impulsividad,
+    AVG((bt.biomet_data->>'ik_cv')::FLOAT) FILTER (WHERE bt.biomet_data->>'ik_cv' IS NOT NULL) AS avg_ik_cv
+FROM hdd_biometric_timeline bt
+GROUP BY bt.patient_dni, bt.capture_context, bt.source_activity;
 `;
 
 async function runMigration() {

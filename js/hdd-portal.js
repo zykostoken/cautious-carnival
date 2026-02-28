@@ -340,9 +340,10 @@ function submitMoodCheckin() {}
 
 // Auth
 async function login(dni, password) {
+  // Include keyboard-dynamics biometrics captured by the inline script in index.html
   const result = await api('/auth', {
     method: 'POST',
-    body: JSON.stringify({ action: 'login', dni, password })
+    body: JSON.stringify({ action: 'login', dni, password, login_biomet: window._loginBiomet || null })
   });
 
   if (result.success) {

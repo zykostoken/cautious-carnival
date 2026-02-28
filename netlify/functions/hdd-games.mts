@@ -399,6 +399,16 @@ export default async (req: Request, context: Context) => {
           VALUES (${patient.id}, ${gameSessionId || null}, ${gameSlug || null}, ${metricType}, ${metricValue || null}, ${JSON.stringify(metricData || {})}, NOW())
         `;
 
+        // Mirror to lifetime biometric timeline (DNI-anchored, permanent across admissions)
+        await sql`
+          INSERT INTO hdd_biometric_timeline
+            (patient_dni, patient_id, capture_context, source_activity, biomet_data, captured_at)
+          VALUES (${patient.dni}, ${patient.id}, 'game',
+            ${gameSlug || null},
+            ${JSON.stringify({ metric_type: metricType, metric_value: metricValue, ...(metricData || {}) })},
+            NOW())
+        `.catch(e => console.log('Biomet timeline mirror failed:', e));
+
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 

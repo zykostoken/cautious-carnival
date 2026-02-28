@@ -453,6 +453,66 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
+      // =============================================
+      // LIFETIME BIOMETRIC PROFILE
+      // Returns the full timeline from hdd_biometric_timeline
+      // anchored by patient_dni, permanent across admissions.
+      // =============================================
+      if (action === "get_biometric_profile") {
+        const { patient_dni } = body;
+        if (!patient_dni) {
+          return new Response(JSON.stringify({ error: "patient_dni requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [timeline, annotations] = await Promise.all([
+          sql`
+            SELECT id, capture_context, source_activity, biomet_data, captured_at
+            FROM hdd_biometric_timeline
+            WHERE patient_dni = ${patient_dni}
+            ORDER BY captured_at ASC
+          `,
+          sql`
+            SELECT id, annotation_date, clinical_state, symptoms, notes, created_at
+            FROM hdd_clinical_annotations
+            WHERE patient_dni = ${patient_dni}
+            ORDER BY annotation_date ASC
+          `
+        ]);
+
+        return new Response(JSON.stringify({ timeline, annotations }),
+          { status: 200, headers: corsHeaders });
+      }
+
+      // Add clinical annotation (link clinical state/symptoms to a date)
+      if (action === "add_clinical_annotation") {
+        const { patient_dni, patient_id, annotation_date, clinical_state, symptoms, notes } = body;
+        if (!patient_dni) {
+          return new Response(JSON.stringify({ error: "patient_dni requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [prof] = await sql`
+          SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken}
+        `;
+
+        await sql`
+          INSERT INTO hdd_clinical_annotations
+            (patient_dni, patient_id, annotation_date, clinical_state, symptoms, notes, created_by)
+          VALUES (
+            ${patient_dni}, ${patient_id || null},
+            ${annotation_date || new Date().toISOString().split('T')[0]},
+            ${clinical_state || null},
+            ${symptoms ? sql`${symptoms}::TEXT[]` : null},
+            ${notes || null},
+            ${prof?.id || null}
+          )
+        `;
+
+        return new Response(JSON.stringify({ success: true }),
+          { status: 201, headers: corsHeaders });
+      }
+
       return new Response(JSON.stringify({ error: "Acción inválida" }),
         { status: 400, headers: corsHeaders });
 
