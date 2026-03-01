@@ -541,7 +541,7 @@ function beginGame() {
     document.getElementById('progress-bar-wrap').style.display = 'flex';
 
     const params = new URLSearchParams(window.location.search);
-    state.patientDni = params.get('patient_id')
+    state.patientDni = params.get('dni') || params.get('patient_id')
         || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
         || 'DEMO';
     document.getElementById('patient-display').textContent = state.patientDni;
@@ -945,17 +945,18 @@ async function saveResults(metrics, biometData) {
         } catch(e) {}
 
         supabase.from('hdd_game_metrics').insert({
-            patient_id: dailyPatientId,
-            game_slug: 'daily-routine-v2',
-            metric_type: 'session_complete',
+            patient_dni: state.patientDni || null,
+            game_slug: 'daily-routine',
+            metric_type: 'session_summary',
             metric_value: metrics.final_score,
             metric_data: {
                 ...metrics,
                 biomet: biometData || {},
                 game_name: 'Mi Rutina Diaria',
-                completed: true
-            },
-            created_at: new Date().toISOString()
+                completed: true,
+                duration_ms: Date.now() - (state.startTime || Date.now()),
+                session_date: new Date().toISOString()
+            }
         }).then(()=>{}).catch(()=>{});
     } catch(e) {}
 }

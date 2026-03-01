@@ -246,7 +246,8 @@ function beginGame() {
 // ========== INIT ==========
 function initGame() {
     gameState.startTime = Date.now();
-    gameState.patientId = new URLSearchParams(window.location.search).get('patient_id') 
+    const _p = new URLSearchParams(window.location.search);
+    gameState.patientId = _p.get('dni') || _p.get('patient_id')
         || (function(){ try{return localStorage.getItem('hdd_patient_id')}catch(e){return null} })()
         || (function(){ try{return sessionStorage.getItem('hdd_patient_id')}catch(e){return null} })()
         || 'DEMO';
@@ -261,17 +262,20 @@ function initGame() {
         card.className = 'item-card animate-in';
         card.id = 'item-' + item.id;
         card.dataset.itemId = item.id;
-        card.draggable = true;
         card.innerHTML = '<span class="emoji">' + item.emoji + '</span><span class="name">' + item.name + '</span>';
         
-        // Desktop drag
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
-        
-        // Touch drag
-        card.addEventListener('touchstart', handleTouchStart, { passive: false });
-        card.addEventListener('touchmove', handleTouchMove, { passive: false });
-        card.addEventListener('touchend', handleTouchEnd);
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        if (isTouchDevice) {
+            // Touch-only: ghost drag
+            card.addEventListener('touchstart', handleTouchStart, { passive: false });
+            card.addEventListener('touchmove', handleTouchMove, { passive: false });
+            card.addEventListener('touchend', handleTouchEnd);
+        } else {
+            // Desktop: HTML5 drag native
+            card.draggable = true;
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        }
         
         grid.appendChild(card);
     });
@@ -636,36 +640,21 @@ async function saveResults(metrics) {
             game = newGame;
         }
         
-        // Get patient
-        let patientId = null;
-        if (gameState.patientId && gameState.patientId !== 'DEMO') {
-            const { data: patient } = await supabase.from('hdd_patients')
-                .select('id').eq('dni', gameState.patientId).single();
-            patientId = patient?.id;
-        }
-        
-        // Save session
-        await supabase.from('hdd_game_sessions').insert({
-            patient_id: patientId,
-            game_id: game?.id,
-            level: 1,
-            score: metrics.overall_score,
-            started_at: new Date(gameState.startTime).toISOString(),
-            completed_at: new Date().toISOString()
-        });
-        
-        // Save to unified hdd_game_metrics table
-        if (patientId) {
+        // Save to hdd_game_metrics with patient_dni (primary key for dashboard)
+        const patientDni = (gameState.patientId && gameState.patientId !== 'DEMO') ? gameState.patientId : null;
+        if (patientDni) {
             await supabase.from('hdd_game_metrics').insert({
-                patient_id: patientId,
+                patient_dni: patientDni,
                 game_slug: 'fridge-logic',
-                metric_type: 'session_complete',
+                metric_type: 'session_summary',
                 metric_value: metrics.overall_score,
                 metric_data: {
                     ...metrics,
-                    game_name: 'Heladera Inteligente'
+                    game_name: 'Heladera Inteligente',
+                    duration_ms: Date.now() - gameState.startTime,
+                    session_date: new Date().toISOString()
                 }
-            });
+            }).catch(e => console.warn('[fridge-logic] save error:', e.message));
         }
     } catch (err) {
         console.error('Save error:', err);
