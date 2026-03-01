@@ -201,6 +201,29 @@ export default async (req: Request, context: Context) => {
               WHERE external_reference = ${paymentInfo.external_reference}
             `;
 
+            // Notificar SIEMPRE a dirección médica según resultado
+            const siteUrlNotif = process.env.URL || 'https://clinicajoseingenieros.ar';
+            if (paymentInfo.status === 'approved' || paymentInfo.status === 'rejected' || paymentInfo.status === 'cancelled') {
+              // Get patient info for notification
+              const refPartsN = (paymentInfo.external_reference || '').split('-');
+              const userIdN = parseInt(refPartsN[1]);
+              const [patientN] = userIdN ? await sql`SELECT full_name, email FROM telemedicine_users WHERE id = ${userIdN}` : [null];
+
+              fetch(`${siteUrlNotif}/api/notifications`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: paymentInfo.status === 'approved' ? 'notify_payment_approved_admin' : 'notify_payment_failed',
+                  patientName: patientN?.full_name || 'Paciente',
+                  patientEmail: patientN?.email || '',
+                  amount: paymentInfo.transaction_amount,
+                  statusDetail: paymentInfo.status_detail,
+                  externalRef: paymentInfo.external_reference,
+                  mpPaymentId: paymentInfo.id,
+                })
+              }).catch(() => {});
+            }
+
             // If payment approved, activate the telemedicine session
             if (paymentInfo.status === 'approved') {
               // Extract userId from external reference (format: TELE-userId-planId-timestamp)

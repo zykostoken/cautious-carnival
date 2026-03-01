@@ -27,21 +27,28 @@ Precio: ${priceStr} (${timeSlotStr})
 Sala: ${roomName}
 Acceder: https://clinicajoseingenieros.ar/#profesional`;
 
-  const emailSubject = `Nueva Videoconsulta - ${patientName} - ${priceStr}`;
+  const emailSubject = `💳 PAGO CONFIRMADO — Videoconsulta ${patientName} — ${priceStr}`;
+  const profUrlBlock = body?.dailyProfUrl
+    ? `<div style="background:#dbeafe;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #2563eb;text-align:center">
+        <p style="color:#1e40af;font-weight:bold;margin:0 0 10px">Tu sala lista — entrá ahora</p>
+        <a href="${body.dailyProfUrl}" style="display:inline-block;background:#1e40af;color:white;padding:12px 28px;text-decoration:none;border-radius:8px;font-size:1em">📹 Entrar a la consulta</a>
+      </div>`
+    : '';
   const emailHtml = `
     <div style="font-family:Arial;max-width:600px;margin:0 auto">
       <div style="background:#1a5f2a;padding:20px;text-align:center;border-radius:8px 8px 0 0">
-        <h1 style="color:white;margin:0">Nueva Videoconsulta</h1>
+        <h1 style="color:white;margin:0">✅ Pago Confirmado</h1>
+        <p style="color:#86efac;margin:8px 0 0">Videoconsulta en espera</p>
       </div>
       <div style="padding:30px;background:#f5f5f5">
         <p><strong>Paciente:</strong> ${patientName}</p>
-        <p><strong>Precio:</strong> ${priceStr}</p>
-        <p><strong>Franja horaria:</strong> ${timeSlotStr}</p>
+        <p><strong>Monto cobrado:</strong> ${priceStr}</p>
         <p><strong>Sala:</strong> ${roomName}</p>
-        <p style="margin-top:20px;padding:15px;background:#fff3cd;border-radius:8px;border-left:4px solid #ffc107;">
-          <strong>El pago se procesará al tomar la llamada.</strong>
+        ${profUrlBlock}
+        <p style="margin-top:16px;padding:12px;background:#dcfce7;border-radius:8px;border-left:4px solid #16a34a;color:#14532d">
+          <strong>El paciente ya pagó.</strong> Tiene 1 hora para ser atendido; si no, se reembolsa automáticamente.
         </p>
-        <a href="https://clinicajoseingenieros.ar/#profesional" style="display:inline-block;background:#1a5f2a;color:white;padding:15px 30px;text-decoration:none;border-radius:8px;margin-top:20px">Atender Llamada</a>
+        <a href="https://clinicajoseingenieros.ar/hdd/admin/panel-profesional.html" style="display:inline-block;background:#1a5f2a;color:white;padding:14px 28px;text-decoration:none;border-radius:8px;margin-top:16px">Ver panel profesional</a>
       </div>
     </div>`;
 
@@ -412,6 +419,84 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
         } catch (e) {}
         return new Response(JSON.stringify({ success: result.success }), { status: 200, headers: corsHeaders });
       }
+
+      // ── NOTIFICACIONES DIRECCIÓN MÉDICA ──────────────────────────────
+
+      if (action === "notify_consultation_requested") {
+        const { patientName, patientEmail, planName, priceARS, priceUSD, externalRef } = body;
+        const subject = `📋 Solicitud de consulta — ${patientName || 'Paciente'} — esperando pago`;
+        const html = `<div style="font-family:Arial;max-width:580px;margin:0 auto">
+          <div style="background:#d97706;padding:18px 20px;border-radius:8px 8px 0 0;text-align:center">
+            <h2 style="color:#fff;margin:0">📋 Nueva solicitud de videoconsulta</h2>
+            <p style="color:#fef3c7;margin:4px 0 0;font-size:.95em">El paciente fue redirigido a MercadoPago — pago pendiente</p>
+          </div>
+          <div style="padding:24px 28px;background:#fffbeb;border:1px solid #fde68a;border-top:none;border-radius:0 0 8px 8px">
+            <p style="margin:0 0 8px"><strong>Paciente:</strong> ${patientName || '—'}</p>
+            ${patientEmail ? `<p style="margin:0 0 8px"><strong>Email:</strong> ${patientEmail}</p>` : ''}
+            <p style="margin:0 0 8px"><strong>Plan:</strong> ${planName || '—'}</p>
+            <p style="margin:0 0 8px"><strong>Monto:</strong> ARS $${Number(priceARS || 0).toLocaleString('es-AR')} · USD ${priceUSD || '—'}</p>
+            <p style="margin:0 0 16px"><strong>Ref MP:</strong> <code>${externalRef || '—'}</code></p>
+            <p style="background:#fef3c7;padding:12px;border-radius:6px;border-left:4px solid #d97706;margin:0;color:#92400e">
+              Recibirás otra notificación cuando el pago se confirme o rechace.
+            </p>
+          </div></div>`;
+        const r = await sendEmailNotification(ADMIN_EMAIL, subject, html);
+        try { await logNotification(sql, 'admin', 0, 'email', ADMIN_EMAIL, 'consultation_requested', subject, r); } catch {}
+        return new Response(JSON.stringify({ success: r.success }), { status: 200, headers: corsHeaders });
+      }
+
+      if (action === "notify_payment_approved_admin") {
+        const { patientName, patientEmail, amount, externalRef, mpPaymentId } = body;
+        const subject = `✅ PAGO CONFIRMADO — ${patientName || 'Paciente'} — ARS $${Number(amount || 0).toLocaleString('es-AR')}`;
+        const html = `<div style="font-family:Arial;max-width:580px;margin:0 auto">
+          <div style="background:#16a34a;padding:18px 20px;border-radius:8px 8px 0 0;text-align:center">
+            <h2 style="color:#fff;margin:0">✅ Pago confirmado — sala creada</h2>
+            <p style="color:#bbf7d0;margin:4px 0 0;font-size:.95em">Sala Daily.co generada — paciente en sala de espera</p>
+          </div>
+          <div style="padding:24px 28px;background:#f0fdf4;border:1px solid #86efac;border-top:none;border-radius:0 0 8px 8px">
+            <p style="margin:0 0 8px"><strong>Paciente:</strong> ${patientName || '—'}</p>
+            ${patientEmail ? `<p style="margin:0 0 8px"><strong>Email:</strong> ${patientEmail}</p>` : ''}
+            <p style="margin:0 0 8px"><strong>Monto:</strong> ARS $${Number(amount || 0).toLocaleString('es-AR')}</p>
+            <p style="margin:0 0 8px"><strong>Ref MP:</strong> <code>${externalRef || '—'}</code></p>
+            <p style="margin:0 0 16px"><strong>ID Pago MP:</strong> <code>${mpPaymentId || '—'}</code></p>
+            <p style="background:#dcfce7;padding:12px;border-radius:6px;border-left:4px solid #16a34a;margin:0;color:#14532d">
+              El paciente tiene <strong>1 hora</strong> para ser atendido. Si no se atiende, el reembolso es automático.
+            </p>
+            <a href="https://clinicajoseingenieros.ar/hdd/admin/panel-profesional.html"
+               style="display:inline-block;margin-top:16px;background:#16a34a;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px">
+              Ir al panel profesional
+            </a>
+          </div></div>`;
+        const r = await sendEmailNotification(ADMIN_EMAIL, subject, html);
+        try { await logNotification(sql, 'admin', 0, 'email', ADMIN_EMAIL, 'payment_approved', subject, r); } catch {}
+        return new Response(JSON.stringify({ success: r.success }), { status: 200, headers: corsHeaders });
+      }
+
+      if (action === "notify_payment_failed") {
+        const { patientName, patientEmail, amount, statusDetail, externalRef, mpPaymentId } = body;
+        const subject = `❌ Pago fallido — ${patientName || 'Paciente'}`;
+        const html = `<div style="font-family:Arial;max-width:580px;margin:0 auto">
+          <div style="background:#dc2626;padding:18px 20px;border-radius:8px 8px 0 0;text-align:center">
+            <h2 style="color:#fff;margin:0">❌ Pago rechazado o cancelado</h2>
+            <p style="color:#fecaca;margin:4px 0 0;font-size:.95em">No se generó sala — sesión cancelada</p>
+          </div>
+          <div style="padding:24px 28px;background:#fff5f5;border:1px solid #fca5a5;border-top:none;border-radius:0 0 8px 8px">
+            <p style="margin:0 0 8px"><strong>Paciente:</strong> ${patientName || '—'}</p>
+            ${patientEmail ? `<p style="margin:0 0 8px"><strong>Email:</strong> ${patientEmail}</p>` : ''}
+            ${amount ? `<p style="margin:0 0 8px"><strong>Monto intentado:</strong> ARS $${Number(amount).toLocaleString('es-AR')}</p>` : ''}
+            <p style="margin:0 0 8px"><strong>Motivo MP:</strong> ${statusDetail || 'rejected'}</p>
+            <p style="margin:0 0 8px"><strong>Ref MP:</strong> <code>${externalRef || '—'}</code></p>
+            <p style="margin:0 0 16px"><strong>ID Pago MP:</strong> <code>${mpPaymentId || '—'}</code></p>
+            <p style="background:#fee2e2;padding:12px;border-radius:6px;border-left:4px solid #dc2626;margin:0;color:#991b1b">
+              No se requiere acción. El paciente puede reintentar el pago desde la web.
+            </p>
+          </div></div>`;
+        const r = await sendEmailNotification(ADMIN_EMAIL, subject, html);
+        try { await logNotification(sql, 'admin', 0, 'email', ADMIN_EMAIL, 'payment_failed', subject, r); } catch {}
+        return new Response(JSON.stringify({ success: r.success }), { status: 200, headers: corsHeaders });
+      }
+
+      // ─────────────────────────────────────────────────────────────────
 
       return new Response(JSON.stringify({ error: "Accion invalida" }), { status: 400, headers: corsHeaders });
     } catch (error) {

@@ -261,9 +261,23 @@ export default async (req: Request, context: Context) => {
           RETURNING id
         `;
 
+        // Notificar a dirección médica: solicitud recibida, esperando pago
+        const siteUrl0 = process.env.URL || 'https://clinicajoseingenieros.ar';
+        fetch(`${siteUrl0}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'notify_consultation_requested',
+            patientName: user.full_name || patientName || 'Paciente',
+            patientEmail: user.email || patientEmail || '',
+            planName: priceInfo.planName,
+            priceARS: priceInfo.price,
+            priceUSD: priceInfo.usdPrice,
+            externalRef,
+          })
+        }).catch(() => {});
+
         return new Response(JSON.stringify({
-          success: true,
-          requiresPayment: true,
           sessionId: session.id,
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
