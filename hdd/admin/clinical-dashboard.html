@@ -679,13 +679,17 @@ function renderCharts(gameSessions, biometSessions, allColors) {
     const recent5 = biometSessions.slice(-5);
 
     // Atención
-    const rtA = avg(recent5, 'rt_mean_ms');
-    const cvA = avg(recent5, 'rt_cv');
-    const decA = avg(recent5, 'decaimiento_vigilancia');
-    const hesA = avg(recent5, 'hesitaciones_count');
-    if (rtA !== null || cvA !== null) {
+    const rtA   = avg(recent5, 'rt_mean_ms');
+    const cvA   = avg(recent5, 'rt_cv');
+    const decA  = avg(recent5, 'decaimiento_vigilancia');
+    const hesA  = avg(recent5, 'hesitaciones_count');
+    const latA  = avg(recent5, 'latencia_inicio_ms');
+    const tmovA = avg(recent5, 'tiempo_movimiento_ms');
+    if (rtA !== null || cvA !== null || latA !== null) {
         document.getElementById('dm-atencion').innerHTML =
-            domMetric('RT promedio', rtA, ' ms', { good: v => v < 600, bad: v => v > 1500 }) +
+            domMetric('RT total (ms)', rtA, ' ms', { good: v => v < 600, bad: v => v > 1500 }) +
+            domMetric('Latencia inicio (ms)', latA, ' ms', { good: v => v < 400, bad: v => v > 1000 }) +
+            domMetric('Tiempo movimiento (ms)', tmovA, ' ms', { good: v => v < 300, bad: v => v > 800 }) +
             domMetric('CV atención', cvA, '', { good: v => v < 0.3, bad: v => v > 0.6 }) +
             domMetric('Decaimiento vigilancia', decA, '', { good: v => v < 1.2, bad: v => v > 1.8 }) +
             domMetric('Hesitaciones (n)', hesA, '', { good: v => v <= 1, bad: v => v > 5 });
@@ -723,17 +727,27 @@ function renderCharts(gameSessions, biometSessions, allColors) {
             domMetric('Perseveraciones', persA, '', { good: v => v === 0, bad: v => v > 3 });
     }
 
-    // Psicomotricidad
-    const trRep = avg(recent5, 'tremor_reposo_px');
-    const trAcc = avg(recent5, 'tremor_accion_px');
-    const trDis = avg(recent5, 'tremor_distal_px');
-    const efTr  = avg(recent5, 'eficiencia_trayectoria');
-    if (trRep !== null || trAcc !== null) {
+    // Psicomotricidad — tremores + velocidad + rigidez + espasticidad
+    const trRep    = avg(recent5, 'tremor_reposo_px');
+    const trAcc    = avg(recent5, 'tremor_accion_px');
+    const trDis    = avg(recent5, 'tremor_distal_px');
+    const efTr     = avg(recent5, 'eficiencia_trayectoria');
+    const velMed   = avg(recent5, 'velocidad_media_px_s');
+    const velCV    = avg(recent5, 'velocidad_cv');
+    const bradRat  = avg(recent5, 'bradiquinesia_ratio');
+    const rigProxy = avg(recent5, 'rigidez_proxy');
+    const espProxy = avg(recent5, 'espasticidad_proxy');
+    if (trRep !== null || trAcc !== null || velMed !== null) {
         document.getElementById('dm-psicomotor').innerHTML =
-            domMetric('Tremor reposo (px)', trRep, '', { good: v => v < 1, bad: v => v > 3 }) +
-            domMetric('Tremor acción (px)', trAcc, '', { good: v => v < 1.5, bad: v => v > 4 }) +
-            domMetric('Tremor distal (px)', trDis, '', { good: v => v < 2, bad: v => v > 5 }) +
-            domMetric('Eficiencia trayectoria', efTr, '', { good: v => v >= 0.85, bad: v => v < 0.6 });
+            domMetric('Tremor reposo (px)',     trRep,   '', { good: v => v < 1,    bad: v => v > 3 }) +
+            domMetric('Tremor acción (px)',     trAcc,   '', { good: v => v < 1.5,  bad: v => v > 4 }) +
+            domMetric('Tremor distal (px)',     trDis,   '', { good: v => v < 2,    bad: v => v > 5 }) +
+            domMetric('Eficiencia tray.',       efTr,    '', { good: v => v >= 0.85,bad: v => v < 0.6 }) +
+            domMetric('Velocidad media (px/s)', velMed,  '', { good: v => v >= 200, bad: v => v < 80 }) +
+            domMetric('CV velocidad',           velCV,   '', { good: v => v >= 0.4 && v < 1.2, bad: v => v < 0.2 }) +
+            domMetric('Bradiquinesia',          bradRat, '', { good: v => v < 0.2,  bad: v => v > 0.5 }) +
+            domMetric('Proxy rigidez (0–1)',    rigProxy,'', { good: v => v < 0.1,  bad: v => v > 0.5 }) +
+            domMetric('Proxy espasticidad',     espProxy,'', { good: v => v < 0.05, bad: v => v > 0.15});
     }
 
     // Visuoespacial

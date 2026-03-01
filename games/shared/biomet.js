@@ -25,6 +25,9 @@ var CFG = {
     IMPULSIVIDAD_PERCENTIL: 0.10, // RT < p10 propio = respuesta impulsiva
     DECAIMIENTO_MITAD:    true,   // comparar primera vs segunda mitad de sesión
     SAMPLE_INTERVAL_MS:   30,     // frecuencia de muestreo de posición (30ms ≈ 33fps)
+    VELOCIDAD_RIGIDEZ_PX_S:   80,    // velocidad < umbral = segmento lento (bradiquinesia)
+    VELOCIDAD_CV_RIGIDEZ:     0.4,   // CV velocidad < umbral = movimiento uniforme (rigidez)
+    BRADIQUINESIA_RIGIDEZ:    0.5,   // fracción segmentos lentos > umbral → señal de rigidez
 };
 
 // ================================================================
@@ -98,6 +101,18 @@ var BM = {
         // Movimientos abortados (inhibición motora)
         moves_started: 0,
         moves_aborted: 0,
+
+        // Velocidad / Rigidez / Espasticidad
+        segment_velocities: [],       // velocidad (px/s) de cada segmento de trayectoria
+
+        // RT descompuesto: estímulo → primer movimiento → click
+        latencia_inicio_list: [],     // estímulo → primer movimiento (ms), por estímulo
+        tiempo_movimiento_list: [],   // primer movimiento → click (ms), por estímulo
+
+        // Flags internos RT latencia
+        _rt_pending_latencia: false,
+        _rt_latencia_start: null,
+        _rt_first_move_t: null,
     }
 };
 
@@ -179,6 +194,10 @@ function targetAt(x, y) {
 // ================================================================
 function stimulusShown(id) {
     BM.activeStimulus = { id: id, t_shown: Date.now() };
+    // RT latency decomposition: arm the pending flag
+    BM.metrics._rt_pending_latencia = true;
+    BM.metrics._rt_latencia_start   = BM.activeStimulus.t_shown;
+    BM.metrics._rt_first_move_t     = null;
 }
 
 function stimulusResponse(id) {
@@ -191,6 +210,18 @@ function stimulusResponse(id) {
         rt_ms: rt
     });
     BM.metrics.rt_list.push(rt);
+    // RT latency decomposition: compute latencia_inicio + tiempo_movimiento
+    if (BM.metrics._rt_first_move_t !== null && BM.metrics._rt_latencia_start !== null) {
+        var lat_inicio = BM.metrics._rt_first_move_t - BM.metrics._rt_latencia_start;
+        var t_mov      = Date.now() - BM.metrics._rt_first_move_t;
+        if (lat_inicio >= 0 && t_mov >= 0) {
+            BM.metrics.latencia_inicio_list.push(lat_inicio);
+            BM.metrics.tiempo_movimiento_list.push(t_mov);
+        }
+    }
+    BM.metrics._rt_pending_latencia = false;
+    BM.metrics._rt_latencia_start   = null;
+    BM.metrics._rt_first_move_t     = null;
     BM.activeStimulus = null;
 }
 
@@ -259,6 +290,12 @@ function _onMouseMove(e) {
     var moved = !BM.lastPos || dist({x,y}, BM.lastPos) > 1.5;
 
     if (moved) {
+        // RT latency: capturar primer movimiento post-estímulo
+        if (BM.metrics._rt_pending_latencia && BM.metrics._rt_first_move_t === null) {
+            BM.metrics._rt_first_move_t     = t;
+            BM.metrics._rt_pending_latencia = false; // _rt_latencia_start se preserva para stimulusResponse()
+        }
+
         // Inicio de movimiento nuevo
         if (!BM.currentMove || !BM.lastMoveTime || t - BM.lastMoveTime > 200) {
             if (BM.currentMove && BM.currentMove.path.length > 3) {
@@ -345,6 +382,14 @@ function _finalizeMove(move, t_end) {
     // Distancia recta (para eficiencia)
     var straight = dist(path[0], path[path.length-1]);
     BM.metrics.total_straight_px += straight;
+
+    // Velocidad por segmento (px/s) — base para rigidez y espasticidad
+    for (var vi = 0; vi < path.length - 1; vi++) {
+        var dt_seg = path[vi + 1].t - path[vi].t;
+        if (dt_seg > 0) {
+            BM.metrics.segment_velocities.push(dist(path[vi], path[vi + 1]) / dt_seg * 1000);
+        }
+    }
 }
 
 function _onMouseDown(e) {
@@ -437,6 +482,9 @@ function start(opts) {
         sequenceCorrect: 0, sequenceTotal: 0, objectives_achieved: 0, objectives_total: 0,
         plan_correct_executed: 0, plan_correct_total: 0, plan_failed_attempts: [],
         hesitations: [], rt_list: [], moves_started: 0, moves_aborted: 0,
+        segment_velocities: [],
+        latencia_inicio_list: [], tiempo_movimiento_list: [],
+        _rt_pending_latencia: false, _rt_latencia_start: null, _rt_first_move_t: null,
     });
 
     document.addEventListener('mousemove', _onMouseMove);
@@ -526,6 +574,34 @@ function compute() {
         ? m.moves_aborted / m.moves_started
         : 0;
 
+    // ---- VELOCIDAD / RIGIDEZ / ESPASTICIDAD ----
+    var seg_vel = m.segment_velocities;
+    var velocidad_media_px_s = seg_vel.length ? mean(seg_vel) : null;
+    var velocidad_sd_val     = seg_vel.length >= 2 ? sd(seg_vel) : null;
+    var velocidad_cv_val     = (velocidad_media_px_s && velocidad_media_px_s > 0 && velocidad_sd_val !== null)
+                                ? velocidad_sd_val / velocidad_media_px_s : null;
+    var bradiquinesia_ratio = null, espasticidad_proxy = null, rigidez_proxy = null;
+    if (seg_vel.length > 0) {
+        var n_lentos = seg_vel.filter(function(v){ return v < CFG.VELOCIDAD_RIGIDEZ_PX_S; }).length;
+        bradiquinesia_ratio = n_lentos / seg_vel.length;
+        if (velocidad_media_px_s !== null && velocidad_sd_val !== null) {
+            var vel_umbral_esp = velocidad_media_px_s + 2 * velocidad_sd_val;
+            var n_picos = seg_vel.filter(function(v){ return v > vel_umbral_esp; }).length;
+            espasticidad_proxy = n_picos / seg_vel.length;
+        }
+        if (bradiquinesia_ratio !== null && velocidad_cv_val !== null) {
+            var brad_f = Math.max(0, Math.min(1,
+                (bradiquinesia_ratio - CFG.BRADIQUINESIA_RIGIDEZ) / (1 - CFG.BRADIQUINESIA_RIGIDEZ)));
+            var unif_f = Math.max(0, Math.min(1,
+                (CFG.VELOCIDAD_CV_RIGIDEZ - velocidad_cv_val) / CFG.VELOCIDAD_CV_RIGIDEZ));
+            rigidez_proxy = +(brad_f * unif_f).toFixed(3);
+        }
+    }
+
+    // ---- RT DESCOMPUESTO ----
+    var latencia_inicio_mean_ms   = m.latencia_inicio_list.length   ? +mean(m.latencia_inicio_list).toFixed(1)   : null;
+    var tiempo_movimiento_mean_ms = m.tiempo_movimiento_list.length ? +mean(m.tiempo_movimiento_list).toFixed(1) : null;
+
     return {
         // Meta
         game_slug:      BM.gameSlug,
@@ -566,6 +642,17 @@ function compute() {
         impulsividad_ratio:       +impulsividad_ratio.toFixed(3),
         inhibicion_motor:         +inhibicion_motor.toFixed(3),
         economia_cognitiva:       +economia_cognitiva.toFixed(3),
+
+        // Velocidad / Rigidez / Espasticidad
+        velocidad_media_px_s:     velocidad_media_px_s !== null ? +velocidad_media_px_s.toFixed(1) : null,
+        velocidad_cv:             velocidad_cv_val     !== null ? +velocidad_cv_val.toFixed(3)     : null,
+        bradiquinesia_ratio:      bradiquinesia_ratio  !== null ? +bradiquinesia_ratio.toFixed(3)  : null,
+        rigidez_proxy:            rigidez_proxy,
+        espasticidad_proxy:       espasticidad_proxy   !== null ? +espasticidad_proxy.toFixed(3)   : null,
+
+        // RT descompuesto: latencia intención motora + tiempo ejecución
+        latencia_inicio_ms:       latencia_inicio_mean_ms,
+        tiempo_movimiento_ms:     tiempo_movimiento_mean_ms,
     };
 }
 
