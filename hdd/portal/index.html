@@ -171,7 +171,7 @@
           </div>
 
           <!-- Game 2: Memory Prescriptions -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/hdd/portal/games/medication-memory.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="openGame('medication-memory')">
             <div class="activity-icon" style="font-size: 2rem;">💊</div>
             <div class="activity-info">
               <div class="activity-name">Memoria de Medicamentos</div>
@@ -181,7 +181,7 @@
           </div>
 
           <!-- Game 3: Pill Organizer -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/games/play/pill-organizer.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('pill-organizer')">
             <div class="activity-icon" style="font-size: 2rem;">💊</div>
             <div class="activity-info">
               <div class="activity-name">Organizador de Medicación</div>
@@ -191,7 +191,7 @@
           </div>
 
           <!-- Game 4: Neuro-Chef -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/games/play/neuro-chef/index.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('neuro-chef')">
             <div class="activity-icon" style="font-size: 2rem;">🍽️</div>
             <div class="activity-info">
               <div class="activity-name">Neuro-Chef: La Mesa Puesta</div>
@@ -201,7 +201,7 @@
           </div>
 
           <!-- Game 5: Heladera Inteligente -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/games/play/fridge-logic.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('fridge-logic')">
             <div class="activity-icon" style="font-size: 2rem;">🧊</div>
             <div class="activity-info">
               <div class="activity-name">Heladera Inteligente</div>
@@ -211,7 +211,7 @@
           </div>
 
           <!-- Game 6: Desafío Milanesas (Supermercado) -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/games/play/super-market.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('super-market')">
             <div class="activity-icon" style="font-size: 2rem;">🛒</div>
             <div class="activity-info">
               <div class="activity-name">Desafío Milanesas</div>
@@ -221,7 +221,7 @@
           </div>
 
           <!-- Game 7: Mi Rutina Diaria -->
-          <div class="activity-card" style="cursor: pointer;" onclick="window.open('/games/play/daily-routine.html?demo=true', '_blank')">
+          <div class="activity-card" style="cursor: pointer;" onclick="launchGame('daily-routine')">
             <div class="activity-icon" style="font-size: 2rem;">🌅</div>
             <div class="activity-info">
               <div class="activity-name">Mi Rutina Diaria</div>
@@ -248,16 +248,6 @@
         <h2 style="margin-bottom: 1rem;">Actividades Semanales</h2>
         <div id="activities-list">
           <div class="loading">Cargando actividades...</div>
-        </div>
-
-        <div style="margin-top: 2rem;">
-          <h3 style="margin-bottom: 1rem;">Galeria de Productos</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
-            <img src="/hdd/img/kits-verduras.jpg" alt="Kits de Verduras" style="width: 100%; border-radius: 8px;">
-            <img src="/hdd/img/flores-papel.jpg" alt="Flores de Papel" style="width: 100%; border-radius: 8px;">
-            <img src="/hdd/img/masa-tortas.jpg" alt="Masa para Tortas" style="width: 100%; border-radius: 8px;">
-            <img src="/hdd/img/ensalada-frutas.jpg" alt="Ensalada de Frutas" style="width: 100%; border-radius: 8px;">
-          </div>
         </div>
 
         <!-- Resources Section -->

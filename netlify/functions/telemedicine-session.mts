@@ -2,10 +2,10 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 
 // Video call session management - ON-DEMAND ONLY
-// Pricing by time slot (Argentina time UTC-3):
-// - 09:00-13:00: $120,000 ARS
-// - 13:00-20:00: $150,000 ARS
-// - 20:00-09:00: $200,000 ARS
+// Pricing by modality (Argentina time UTC-3):
+// - Con espera en linea: $50,000 ARS / USD 35 (15 min)
+// - Sin cola: USD 70 (15 min)
+// - Sin cola premium: USD 120 (15 min)
 // PAYMENT MUST BE COMPLETED BEFORE consultation can proceed
 
 // Mercado Pago API configuration
@@ -38,18 +38,46 @@ async function createMPPreference(preference: MPPreference, accessToken: string)
   return response.json();
 }
 
-function getPriceForCurrentHour(): { price: number; planId: number; planName: string; timeSlot: string } {
+const SERVICE_PRICING: Record<string, { price: number; usdPrice: number; planId: number; planName: string; priority: number; }> = {
+  queue: {
+    price: 50000,
+    usdPrice: 35,
+    planId: 1,
+    planName: 'Telemedicina con espera (15 min)',
+    priority: 0
+  },
+  priority: {
+    price: 70000,
+    usdPrice: 70,
+    planId: 2,
+    planName: 'Telemedicina sin cola (15 min)',
+    priority: 10
+  },
+  vip: {
+    price: 120000,
+    usdPrice: 120,
+    planId: 3,
+    planName: 'Telemedicina sin cola premium (15 min)',
+    priority: 20
+  }
+};
+
+function getPriceForCurrentHour(callType?: string): { price: number; usdPrice: number; planId: number; planName: string; timeSlot: string; durationMinutes: number; priority: number } {
   const now = new Date();
   const argentinaHour = (now.getUTCHours() - 3 + 24) % 24;
+  const isNightPromo = argentinaHour >= 23 || argentinaHour < 7;
+  const timeSlot = isNightPromo ? '23:00-07:00' : '07:00-23:00';
+  const pricing = SERVICE_PRICING[callType || 'queue'] || SERVICE_PRICING.queue;
 
-  if (argentinaHour >= 9 && argentinaHour < 13) {
-    return { price: 120000, planId: 1, planName: 'Consulta Diurna (09-13hs)', timeSlot: '09:00-13:00' };
-  } else if (argentinaHour >= 13 && argentinaHour < 20) {
-    return { price: 150000, planId: 2, planName: 'Consulta Vespertina (13-20hs)', timeSlot: '13:00-20:00' };
-  } else {
-    // 20:00-09:00 (night/early morning)
-    return { price: 200000, planId: 3, planName: 'Consulta Nocturna (20-09hs)', timeSlot: '20:00-09:00' };
-  }
+  return {
+    price: pricing.price,
+    usdPrice: pricing.usdPrice,
+    planId: pricing.planId,
+    planName: pricing.planName,
+    timeSlot,
+    durationMinutes: 15,
+    priority: pricing.priority
+  };
 }
 
 export default async (req: Request, context: Context) => {
@@ -62,12 +90,13 @@ export default async (req: Request, context: Context) => {
 
       // Get current price based on time slot
       if (action === "get_current_price") {
-        const priceInfo = getPriceForCurrentHour();
+        const { callType } = body;
+        const priceInfo = getPriceForCurrentHour(callType);
         return new Response(JSON.stringify({
           success: true,
           ...priceInfo,
           currency: 'ARS',
-          formattedPrice: `$${priceInfo.price.toLocaleString('es-AR')} ARS`
+          formattedPrice: `ARS $${priceInfo.price.toLocaleString('es-AR')} · USD ${priceInfo.usdPrice}`
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" }
@@ -75,9 +104,10 @@ export default async (req: Request, context: Context) => {
       }
 
       if (action === "request_call") {
-        // User requests an immediate on-demand call (24/7 service)
+        // User requests an on-demand call (24/7 service)
         // PAYMENT MUST BE COMPLETED FIRST before entering the queue
         const { userId, callType, patientName, patientEmail, patientPhone } = body;
+        const normalizedCallType = ['queue', 'priority', 'vip'].includes(callType) ? callType : 'queue';
 
         if (!userId && !patientEmail) {
           return new Response(JSON.stringify({ error: "userId or patientEmail required" }), {
@@ -90,7 +120,7 @@ export default async (req: Request, context: Context) => {
         const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
         // Get current price for this time slot
-        const priceInfo = getPriceForCurrentHour();
+        const priceInfo = getPriceForCurrentHour(normalizedCallType);
 
         let user;
         if (userId) {
@@ -143,7 +173,7 @@ export default async (req: Request, context: Context) => {
             ${user.id},
             ${sessionToken},
             'awaiting_payment',
-            'on_demand',
+            ${normalizedCallType},
             ${priceInfo.price},
             NOW(),
             NOW() + INTERVAL '30 minutes'
@@ -163,7 +193,7 @@ export default async (req: Request, context: Context) => {
             const preference: MPPreference = {
               items: [{
                 title: priceInfo.planName,
-                description: `Videoconsulta de telemedicina - ${priceInfo.timeSlot}`,
+                description: `Videoconsulta de ${priceInfo.durationMinutes} min - ${priceInfo.timeSlot}`,
                 quantity: 1,
                 currency_id: 'ARS',
                 unit_price: priceInfo.price
@@ -216,16 +246,17 @@ export default async (req: Request, context: Context) => {
         const [queueEntry] = await sql`
           INSERT INTO call_queue (
             video_session_id, user_id, patient_name, patient_email, patient_phone,
-            status, created_at, notes
+            priority, status, created_at, notes
           )
           VALUES (
             ${session.id}, ${user.id},
             ${user.full_name || patientName || 'Paciente'},
             ${user.email || patientEmail || null},
             ${user.phone || patientPhone || null},
+            ${priceInfo.priority},
             'awaiting_payment',
             NOW(),
-            ${`Precio: $${priceInfo.price.toLocaleString('es-AR')} ARS (${priceInfo.timeSlot}) - Ref: ${externalRef}`}
+            ${`Modalidad: ${priceInfo.planName}. Precio: ARS $${priceInfo.price.toLocaleString('es-AR')} / USD ${priceInfo.usdPrice} (${priceInfo.timeSlot}). Ref: ${externalRef}`}
           )
           RETURNING id
         `;
@@ -246,7 +277,7 @@ export default async (req: Request, context: Context) => {
           },
           priceInfo: {
             ...priceInfo,
-            formattedPrice: `$${priceInfo.price.toLocaleString('es-AR')} ARS`
+            formattedPrice: `ARS $${priceInfo.price.toLocaleString('es-AR')} · USD ${priceInfo.usdPrice}`
           },
           message: mpPaymentLink
             ? "Por favor complete el pago para confirmar su consulta. Una vez confirmado el pago, entrará en la sala de espera y los profesionales serán notificados."
@@ -283,7 +314,7 @@ export default async (req: Request, context: Context) => {
               UPDATE video_sessions
               SET status = 'pending'
               WHERE session_token = ${sessionToken} AND status = 'awaiting_payment'
-              RETURNING id, user_id
+              RETURNING id, user_id, call_type
             `;
 
             if (session) {
@@ -299,7 +330,7 @@ export default async (req: Request, context: Context) => {
                 SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}
               `;
 
-              const priceInfo = getPriceForCurrentHour();
+              const priceInfo = getPriceForCurrentHour(session.call_type);
               const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
 
               fetch(`${new URL(req.url).origin}/api/notifications`, {

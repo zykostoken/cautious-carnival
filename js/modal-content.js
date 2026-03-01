@@ -428,7 +428,7 @@ window.modalContent = {
             <span style="background: linear-gradient(135deg, #3fb950, #22c55e); color: #0a0d12; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 10px;">24/7</span>
         </div>
         <div class="modal-body">
-            <p style="font-size: 1.1rem; margin-bottom: 1.5rem;"><strong>Servicio de videoconsulta bajo demanda - Solo se cobra al atender la llamada</strong></p>
+            <p style="font-size: 1.1rem; margin-bottom: 1.5rem;"><strong>Servicio de videoconsulta bajo demanda - Pago previo para ingresar a la sala de espera</strong></p>
 
             <!-- Telemedicine App Container -->
             <div id="telemed-container">
@@ -463,26 +463,41 @@ window.modalContent = {
 
                         <!-- Dynamic pricing display -->
                         <div style="background: rgba(0,0,0,0.4); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                            <h4 style="color: var(--text-primary); text-align: center; margin-bottom: 1rem;">Precios por franja horaria (Hora Argentina)</h4>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center;">
-                                <div style="background: rgba(63, 185, 80, 0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--accent-green);">
-                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">09:00 - 13:00</p>
-                                    <p style="font-size: 1.2rem; font-weight: 700; color: var(--accent-green); margin: 0;">$120.000</p>
+                            <h4 style="color: var(--text-primary); text-align: center; margin-bottom: 1rem;">Modalidades y precios (15 min)</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                                <div class="telemed-service-card" style="background: rgba(63, 185, 80, 0.18); padding: 1rem; border-radius: 10px; border: 1px solid var(--accent-green); text-align: left;">
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem;">Con espera en linea</p>
+                                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--accent-green); margin: 0;">ARS $50.000</p>
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0.75rem 0;">USD 35 · hasta conexion</p>
+                                    <button onclick="telemedSelectService('queue')" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.9rem; background: linear-gradient(135deg, var(--accent-green), #22c55e);">
+                                        Elegir con espera
+                                    </button>
                                 </div>
-                                <div style="background: rgba(88, 166, 255, 0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--accent-blue);">
-                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">13:00 - 20:00</p>
-                                    <p style="font-size: 1.2rem; font-weight: 700; color: var(--accent-blue); margin: 0;">$150.000</p>
+                                <div class="telemed-service-card" style="background: rgba(88, 166, 255, 0.18); padding: 1rem; border-radius: 10px; border: 1px solid var(--accent-blue); text-align: left;">
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem;">Sin cola de espera</p>
+                                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); margin: 0;">USD 70</p>
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0.75rem 0;">Prioridad inmediata</p>
+                                    <button onclick="telemedSelectService('priority')" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.9rem; background: linear-gradient(135deg, var(--accent-blue), #3b82f6);">
+                                        Elegir sin cola
+                                    </button>
                                 </div>
-                                <div style="background: rgba(163, 113, 247, 0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--accent-purple);">
-                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">20:00 - 09:00</p>
-                                    <p style="font-size: 1.2rem; font-weight: 700; color: var(--accent-purple); margin: 0;">$200.000</p>
+                                <div class="telemed-service-card" style="background: rgba(163, 113, 247, 0.18); padding: 1rem; border-radius: 10px; border: 1px solid var(--accent-purple); text-align: left;">
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem;">Sin cola premium</p>
+                                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--accent-purple); margin: 0;">USD 120</p>
+                                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0.75rem 0;">Maxima prioridad</p>
+                                    <button onclick="telemedSelectService('vip')" class="btn btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.9rem; background: linear-gradient(135deg, var(--accent-purple), #a855f7);">
+                                        Elegir premium
+                                    </button>
                                 </div>
                             </div>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0.9rem 0 0 0; text-align: center;">
+                                USD para pagos internacionales/cripto. Horario promocional sugerido: 23:00 - 07:00 (hora Argentina)
+                            </p>
                         </div>
 
                         <!-- Current price highlight -->
                         <div id="telemed-current-price" style="background: linear-gradient(135deg, rgba(63, 185, 80, 0.3), rgba(34, 197, 94, 0.2)); border: 2px solid var(--accent-green); border-radius: 12px; padding: 1.5rem; text-align: center; margin-bottom: 1.5rem;">
-                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Precio actual:</p>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Precio base con espera en linea:</p>
                             <p id="telemed-price-display" style="font-size: 2rem; font-weight: 700; color: var(--accent-green); margin: 0;">Cargando...</p>
                             <p id="telemed-timeslot-display" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;"></p>
                         </div>
@@ -493,10 +508,6 @@ window.modalContent = {
                                 <span style="font-size: 0.8rem; color: var(--text-muted);">Pago seguro via MercadoPago. Si no se atiende en 30 minutos, se gestiona el reembolso.</span>
                             </p>
                         </div>
-
-                        <button onclick="telemedSelectService('immediate')" class="btn btn-primary" style="width: 100%; padding: 1.25rem; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-green), #22c55e);">
-                            Solicitar Consulta Ahora
-                        </button>
 
                         <div style="margin-top: 1.5rem; text-align: center;">
                             <button onclick="telemedLogout()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">Cerrar sesion</button>
@@ -596,6 +607,7 @@ window.modalContent = {
                     <li>Videoconsulta HD con Jitsi Meet</li>
                     <li>Conexion segura y privada</li>
                     <li>Servicio 24/7 bajo demanda</li>
+                    <li>Consulta de 15 min</li>
                     <li>30 min de tolerancia</li>
                 </ul>
             </div>
