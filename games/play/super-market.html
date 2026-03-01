@@ -1000,10 +1000,30 @@ async function saveResults(metrics) {
             metric_data: {
                 ...metrics,
                 game_name: 'Desafío Milanesas',
+                mean_rt_ms: metrics.avg_hesitation_ms,
+                hesitation_count: metrics.hesitations || 0,
+                commission_errors: metrics.errors || 0,
+                movement_efficiency: metrics.scan_score || null,
+                input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
+                completed: true,
                 duration_ms: Date.now() - startTime,
                 session_date: new Date().toISOString()
             }
         }).catch(e => console.warn('[super-market] save error:', e.message));
+
+        // Save full biometric data to Supabase Storage bucket 'biometricas'
+        if (dni) {
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: dni,
+                    session_id: 'supermarket-' + Date.now(),
+                    game_slug: 'super-market',
+                    biometric_data: { ...metrics, game_name: 'Supermercado' }
+                })
+            }).catch(e => console.warn('[super-market] Bucket save fail:', e.message));
+        }
     } catch (err) { console.error('Save error:', err); }
 }
 

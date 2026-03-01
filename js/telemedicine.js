@@ -104,7 +104,7 @@ async function telemedFetchCurrentPrice() {
         const res = await fetch('/api/telemedicine/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_current_price' })
+            body: JSON.stringify({ action: 'get_current_price', callType: 'queue' })
         });
         const data = await res.json();
         if (data.success) {
@@ -115,7 +115,7 @@ async function telemedFetchCurrentPrice() {
                 priceDisplay.textContent = data.formattedPrice;
             }
             if (timeslotDisplay) {
-                timeslotDisplay.textContent = `Franja: ${data.timeSlot}`;
+                timeslotDisplay.textContent = `Franja: ${data.timeSlot} · ${data.durationMinutes || 15} min`;
             }
         }
     } catch (e) {
@@ -129,8 +129,10 @@ async function telemedSelectService(type) {
         return;
     }
 
-    if (type === 'immediate') {
-        // Request immediate on-demand call - will require payment first
+    if (type) {
+        const allowedTypes = new Set(['queue', 'priority', 'vip']);
+        const callType = allowedTypes.has(type) ? type : 'queue';
+        // Request on-demand call - will require payment first
         try {
             const res = await fetch('/api/telemedicine/session', {
                 method: 'POST',
@@ -138,7 +140,7 @@ async function telemedSelectService(type) {
                 body: JSON.stringify({
                     action: 'request_call',
                     userId: telemedCurrentUser.id,
-                    callType: 'on_demand',
+                    callType,
                     patientName: telemedCurrentUser.fullName,
                     patientEmail: telemedCurrentUser.email,
                     patientPhone: telemedCurrentUser.phone
@@ -165,7 +167,7 @@ async function telemedSelectService(type) {
                         payPrice.textContent = data.priceInfo.formattedPrice;
                     }
                     if (payTimeslot && data.priceInfo) {
-                        payTimeslot.textContent = `Franja: ${data.priceInfo.timeSlot}`;
+                        payTimeslot.textContent = `Franja: ${data.priceInfo.timeSlot} · ${data.priceInfo.durationMinutes || 15} min`;
                     }
                     if (mpLink && data.paymentInfo.mercadoPagoLink) {
                         mpLink.href = data.paymentInfo.mercadoPagoLink;
@@ -558,7 +560,7 @@ async function iniciarConsultaInmediata() {
             body: JSON.stringify({
                 action: 'request_call',
                 userId: telemedUserId,
-                callType: 'immediate'
+                callType: 'queue'
             })
         });
 
@@ -1564,4 +1566,3 @@ async function completeCall(queueId) {
         alert('Error de conexión');
     }
 }
-

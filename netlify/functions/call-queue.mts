@@ -4,18 +4,14 @@ import { getDatabase } from "./lib/db.mts";
 // Call queue management system
 // Payment is processed when professional takes the call
 
-// Get price based on current time (Argentina time UTC-3)
+// Get base price info for display (Argentina time UTC-3)
 function getPriceForCurrentHour(): { price: number; planName: string; timeSlot: string } {
   const now = new Date();
   const argentinaHour = (now.getUTCHours() - 3 + 24) % 24;
+  const isNightPromo = argentinaHour >= 23 || argentinaHour < 7;
+  const timeSlot = isNightPromo ? '23:00-07:00' : '07:00-23:00';
 
-  if (argentinaHour >= 9 && argentinaHour < 13) {
-    return { price: 120000, planName: 'Consulta Diurna (09-13hs)', timeSlot: '09:00-13:00' };
-  } else if (argentinaHour >= 13 && argentinaHour < 20) {
-    return { price: 150000, planName: 'Consulta Vespertina (13-20hs)', timeSlot: '13:00-20:00' };
-  } else {
-    return { price: 200000, planName: 'Consulta Nocturna (20-09hs)', timeSlot: '20:00-09:00' };
-  }
+  return { price: 50000, planName: 'Telemedicina con espera (15 min)', timeSlot };
 }
 
 export default async (req: Request, context: Context) => {

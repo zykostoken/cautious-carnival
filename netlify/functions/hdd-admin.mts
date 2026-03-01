@@ -899,7 +899,7 @@ export default async (req: Request, context: Context) => {
             `;
           } catch (e) { /* table might not exist */ }
 
-          // Get game metrics (biomarcadores)
+          // Get game metrics (biomarcadores) - raw rows
           let gameMetrics: any[] = [];
           try {
             gameMetrics = await sql`
@@ -910,6 +910,60 @@ export default async (req: Request, context: Context) => {
               LIMIT 100
             `;
           } catch (e) { /* table might not exist */ }
+
+          // Per-game longitudinal summary (baseline → latest, biometric trends)
+          // Uses v_patient_game_summary which normalizes field names across all games
+          let gameSummary: any[] = [];
+          try {
+            gameSummary = await sql`
+              SELECT
+                game_slug,
+                total_sessions,
+                first_session_at,
+                last_session_at,
+                avg_score,
+                min_score,
+                max_score,
+                baseline_score,
+                latest_score,
+                score_progress,
+                avg_rt_ms,
+                avg_tremor,
+                avg_commission_errors,
+                avg_omission_errors,
+                avg_hesitations,
+                avg_movement_eff,
+                avg_d_prime
+              FROM v_patient_game_summary
+              WHERE patient_id = ${patientId}
+              ORDER BY last_session_at DESC
+            `;
+          } catch (e) { /* view may not exist yet — run migration 013 */ }
+
+          // Cross-game clinical profile (global biometric averages + trend)
+          let clinicalProfile: any = null;
+          try {
+            const [profile] = await sql`
+              SELECT
+                games_played,
+                total_sessions,
+                last_activity_at,
+                overall_avg_score,
+                best_score_ever,
+                avg_rt_ms,
+                avg_tremor,
+                avg_commission_errors,
+                avg_omission_errors,
+                avg_hesitations,
+                avg_movement_eff,
+                avg_d_prime,
+                global_score_trend,
+                game_breakdown
+              FROM v_patient_clinical_profile
+              WHERE patient_id = ${patientId}
+            `;
+            clinicalProfile = profile || null;
+          } catch (e) { /* view may not exist yet — run migration 013 */ }
 
           // Get games progress
           let gamesProgress: any[] = [];
@@ -1041,6 +1095,43 @@ export default async (req: Request, context: Context) => {
               gameSlug: m.game_slug,
               createdAt: m.created_at
             })),
+            // Per-game longitudinal summary (baseline → latest per biometric)
+            gameSummary: gameSummary.map((g: any) => ({
+              gameSlug: g.game_slug,
+              totalSessions: parseInt(g.total_sessions) || 0,
+              firstSessionAt: g.first_session_at,
+              lastSessionAt: g.last_session_at,
+              avgScore: g.avg_score ? parseFloat(g.avg_score) : null,
+              minScore: g.min_score ? parseFloat(g.min_score) : null,
+              maxScore: g.max_score ? parseFloat(g.max_score) : null,
+              baselineScore: g.baseline_score ? parseFloat(g.baseline_score) : null,
+              latestScore: g.latest_score ? parseFloat(g.latest_score) : null,
+              scoreProgress: g.score_progress ? parseFloat(g.score_progress) : null,
+              avgRtMs: g.avg_rt_ms ? parseFloat(g.avg_rt_ms) : null,
+              avgTremor: g.avg_tremor ? parseFloat(g.avg_tremor) : null,
+              avgCommissionErrors: g.avg_commission_errors ? parseFloat(g.avg_commission_errors) : null,
+              avgOmissionErrors: g.avg_omission_errors ? parseFloat(g.avg_omission_errors) : null,
+              avgHesitations: g.avg_hesitations ? parseFloat(g.avg_hesitations) : null,
+              avgMovementEff: g.avg_movement_eff ? parseFloat(g.avg_movement_eff) : null,
+              avgDPrime: g.avg_d_prime ? parseFloat(g.avg_d_prime) : null
+            })),
+            // Cross-game clinical profile
+            clinicalProfile: clinicalProfile ? {
+              gamesPlayed: parseInt(clinicalProfile.games_played) || 0,
+              totalSessions: parseInt(clinicalProfile.total_sessions) || 0,
+              lastActivityAt: clinicalProfile.last_activity_at,
+              overallAvgScore: clinicalProfile.overall_avg_score ? parseFloat(clinicalProfile.overall_avg_score) : null,
+              bestScoreEver: clinicalProfile.best_score_ever ? parseFloat(clinicalProfile.best_score_ever) : null,
+              avgRtMs: clinicalProfile.avg_rt_ms ? parseFloat(clinicalProfile.avg_rt_ms) : null,
+              avgTremor: clinicalProfile.avg_tremor ? parseFloat(clinicalProfile.avg_tremor) : null,
+              avgCommissionErrors: clinicalProfile.avg_commission_errors ? parseFloat(clinicalProfile.avg_commission_errors) : null,
+              avgOmissionErrors: clinicalProfile.avg_omission_errors ? parseFloat(clinicalProfile.avg_omission_errors) : null,
+              avgHesitations: clinicalProfile.avg_hesitations ? parseFloat(clinicalProfile.avg_hesitations) : null,
+              avgMovementEff: clinicalProfile.avg_movement_eff ? parseFloat(clinicalProfile.avg_movement_eff) : null,
+              avgDPrime: clinicalProfile.avg_d_prime ? parseFloat(clinicalProfile.avg_d_prime) : null,
+              globalScoreTrend: clinicalProfile.global_score_trend ? parseFloat(clinicalProfile.global_score_trend) : null,
+              gameBreakdown: clinicalProfile.game_breakdown || []
+            } : null,
             gamesProgress: gamesProgress.map((g: any) => ({
               gameName: g.game_name,
               currentLevel: g.current_level,
@@ -1077,6 +1168,8 @@ export default async (req: Request, context: Context) => {
             colorHistory: [],
             gameSessionDetails: [],
             gameMetrics: [],
+            gameSummary: [],
+            clinicalProfile: null,
             gamesProgress: [],
             recentActivity: [],
             interactions: [],

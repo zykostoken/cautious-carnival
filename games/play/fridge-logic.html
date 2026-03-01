@@ -238,8 +238,6 @@ function beginGame() {
     document.getElementById('start-screen').style.display = 'none';
     document.getElementById('consigna').style.display = 'block';
     document.getElementById('game-area').style.display = 'block';
-    // Mood check después de que el juego es visible
-    if (typeof showPreGameChat === 'function') showPreGameChat();
     initGame();
 }
 
@@ -651,10 +649,23 @@ async function saveResults(metrics) {
                 metric_data: {
                     ...metrics,
                     game_name: 'Heladera Inteligente',
+                    input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
                     duration_ms: Date.now() - gameState.startTime,
                     session_date: new Date().toISOString()
                 }
             }).catch(e => console.warn('[fridge-logic] save error:', e.message));
+
+            // Save full biometric data to Supabase Storage bucket 'biometricas'
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientId,
+                    session_id: 'fridge-' + Date.now(),
+                    game_slug: 'fridge-logic',
+                    biometric_data: { ...metrics, game_name: 'Heladera Inteligente' }
+                })
+            }).catch(e => console.warn('[fridge-logic] Bucket save fail:', e.message));
         }
     } catch (err) {
         console.error('Save error:', err);

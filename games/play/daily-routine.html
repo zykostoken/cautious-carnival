@@ -555,8 +555,6 @@ function beginGame() {
         biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
     }
 
-    // Mood check DESPUÉS de que el juego es visible
-    if (typeof showPreGameChat === 'function') showPreGameChat();
 }
 
 function updateTimer() {
@@ -953,11 +951,26 @@ async function saveResults(metrics, biometData) {
                 ...metrics,
                 biomet: biometData || {},
                 game_name: 'Mi Rutina Diaria',
+                input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
                 completed: true,
                 duration_ms: Date.now() - (state.startTime || Date.now()),
                 session_date: new Date().toISOString()
             }
         }).then(()=>{}).catch(()=>{});
+
+        // Save full biometric data to Supabase Storage bucket 'biometricas'
+        if (dailyPatientId) {
+            fetch('/api/biometricas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: dailyPatientId,
+                    session_id: 'dailyroutine-' + Date.now(),
+                    game_slug: 'daily-routine-v2',
+                    biometric_data: { ...metrics, biomet: biometData || {}, game_name: 'Mi Rutina Diaria' }
+                })
+            }).catch(e => console.warn('[daily-routine] Bucket save fail:', e.message));
+        }
     } catch(e) {}
 }
 
