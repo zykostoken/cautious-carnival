@@ -103,6 +103,8 @@
 
     /* ---- ALL PATIENTS VIEW ---- */
     .patients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .video-btn{display:block;width:100%;margin-top:.75rem;padding:.45rem;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#60a5fa;font-size:.78rem;cursor:pointer;transition:all .2s}
+    .video-btn:hover{background:rgba(96,165,250,.22);border-color:rgba(96,165,250,.5)}
     .pat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;cursor:pointer;transition:all .2s}
     .pat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
     .pat-card .pname{font-weight:600;font-size:.95rem;margin-bottom:.2rem}
@@ -129,6 +131,33 @@
   <div id="loading-state" class="loading">
     <div class="spinner"></div>
     <p>Cargando pacientes...</p>
+  </div>
+
+  <!-- Modal videoconsulta -->
+  <div id="video-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#1e1e2e;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:2rem;max-width:480px;width:90%;position:relative">
+      <button onclick="closeVideoModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer">✕</button>
+      <h3 style="color:#60a5fa;margin-bottom:.25rem" id="vm-title">Videoconsulta</h3>
+      <p style="color:#888;font-size:.8rem;margin-bottom:1.5rem" id="vm-subtitle">Generando sala privada...</p>
+      <div id="vm-loading" style="text-align:center;padding:1rem">
+        <div class="spinner"></div>
+        <p style="color:#888;font-size:.85rem;margin-top:.75rem">Creando sala segura...</p>
+      </div>
+      <div id="vm-links" style="display:none">
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+          <p style="font-size:.75rem;color:#4ade80;margin-bottom:.5rem">🔒 Tu enlace (profesional)</p>
+          <a id="vm-prof-url" href="#" target="_blank" style="color:#60a5fa;word-break:break-all;font-size:.8rem"></a>
+          <button onclick="copyLink('vm-prof-url')" style="display:block;margin-top:.5rem;font-size:.75rem;padding:.3rem .7rem;background:rgba(96,165,250,.15);border:none;border-radius:6px;color:#60a5fa;cursor:pointer">Copiar</button>
+        </div>
+        <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:1rem;margin-bottom:1.25rem">
+          <p style="font-size:.75rem;color:#c084fc;margin-bottom:.5rem">📤 Enlace para el paciente</p>
+          <a id="vm-patient-url" href="#" target="_blank" style="color:#c084fc;word-break:break-all;font-size:.8rem"></a>
+          <button onclick="copyLink('vm-patient-url')" style="display:block;margin-top:.5rem;font-size:.75rem;padding:.3rem .7rem;background:rgba(168,85,247,.15);border:none;border-radius:6px;color:#c084fc;cursor:pointer">Copiar enlace del paciente</button>
+        </div>
+        <p style="font-size:.72rem;color:#666;text-align:center">La sala se destruye automáticamente al terminar. No queda historial.</p>
+      </div>
+      <div id="vm-error" style="display:none;color:#f87171;font-size:.85rem;text-align:center"></div>
+    </div>
   </div>
 
   <!-- Patients grid (overview) -->
@@ -240,6 +269,9 @@ async function showAllPatients() {
         <span><strong>${games.length}</strong> juegos</span>
       </div>
       ${lastActivity ? `<div class="last-act"><span class="activity-dot ${isRecent ? '' : 'old'}"></span>Última actividad: ${daysSince === 0 ? 'hoy' : daysSince + ' días'}</div>` : '<div class="last-act" style="color:var(--muted)">Sin actividad registrada</div>'}
+      <button class="video-btn" onclick="event.stopPropagation();startVideoConsult('${p.id}','${(p.full_name||'Paciente').replace(/'/g,"\\'")}')">
+        📹 Iniciar videoconsulta
+      </button>
     `;
     card.onclick = () => selectPatientFromGrid(p.id);
     grid.appendChild(card);
@@ -663,6 +695,68 @@ function renderGameCharts(slug, data) {
     const rt = sorted.map(m => m.metric_data?.mean_rt_ms ?? null);
     makeLineChart(`chart-${slug}-rt`, labels, [{ label: 'RT (ms)', data: rt, borderColor: '#fb923c', tension: 0.3, pointRadius: 4, spanGaps: true }]);
   }
+}
+
+// =================== VIDEOCONSULTA DAILY.CO ===================
+
+async function startVideoConsult(patientId, patientName) {
+  const modal = document.getElementById('video-modal');
+  modal.style.display = 'flex';
+  document.getElementById('vm-title').textContent = `Videoconsulta — ${patientName}`;
+  document.getElementById('vm-subtitle').textContent = 'Generando sala privada...';
+  document.getElementById('vm-loading').style.display = 'block';
+  document.getElementById('vm-links').style.display = 'none';
+  document.getElementById('vm-error').style.display = 'none';
+
+  try {
+    const sessionToken = crypto.randomUUID();
+    const res = await fetch('/api/daily/room', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_room',
+        sessionToken,
+        patientName,
+        professionalName: 'Profesional CJI',
+        durationMinutes: 60
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Error al crear sala');
+
+    document.getElementById('vm-loading').style.display = 'none';
+    document.getElementById('vm-links').style.display = 'block';
+    document.getElementById('vm-subtitle').textContent = 'Sala lista. Comparte el enlace con el paciente.';
+
+    const profLink = document.getElementById('vm-prof-url');
+    profLink.href = data.professionalUrl;
+    profLink.textContent = data.professionalUrl;
+
+    const patientLink = document.getElementById('vm-patient-url');
+    patientLink.href = data.patientUrl;
+    patientLink.textContent = data.patientUrl;
+
+  } catch (err) {
+    document.getElementById('vm-loading').style.display = 'none';
+    const errEl = document.getElementById('vm-error');
+    errEl.style.display = 'block';
+    errEl.textContent = 'Error: ' + err.message;
+  }
+}
+
+function closeVideoModal() {
+  document.getElementById('video-modal').style.display = 'none';
+}
+
+function copyLink(elId) {
+  const url = document.getElementById(elId).href;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById(elId).nextElementSibling;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
 }
 
 // =================== START ===================
