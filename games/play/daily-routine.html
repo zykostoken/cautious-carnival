@@ -872,6 +872,27 @@ function finishGame() {
     // Clinical vectors
     const sequenceScore = calcSequenceCoherence();
 
+    // ── Cognitive domain metrics ──
+    const totalHabits = HABITS.length;
+    const totalSelected = state.selected.size;
+    const healthyTotal = HABITS.filter(h => h.healthy).length;
+    const categories = new Set();
+    [...state.selected].forEach(id => {
+        const h = HABITS.find(x => x.id === id);
+        if (h && h.phase) categories.add(h.phase);
+    });
+
+    // Memoria de fijación: cuántos hábitos reales identificó del total posible
+    const fijacion_ratio = healthyTotal > 0 ? +(healthySelected / healthyTotal).toFixed(3) : 0;
+    // Memoria de evocación: cuántos de los colocados están en la fase temporal correcta
+    const evocacion_ratio = placedCount > 0 ? +(sequenceScore / 100).toFixed(3) : 0;
+    // Memoria de trabajo: manipular múltiples ítems simultáneamente (seleccionar + ordenar)
+    const trabajo_ratio = totalSelected > 0 ? +(placedCount / totalSelected).toFixed(3) : 0;
+    // Planificación visuoespacial: distribución temporal (mañana/tarde/noche)
+    const planificacion_temporal = +(categories.size / 3).toFixed(3);
+    // Latencia de respuesta (tiempo promedio por acción)
+    const latencia_por_accion_ms = state.totalActions > 0 ? Math.round((totalTime * 1000) / state.totalActions) : 0;
+
     const metrics = {
         healthy_selected: healthySelected,
         unhealthy_selected: unhealthySelected,
@@ -880,7 +901,14 @@ function finishGame() {
         hesitations: state.hesitations,
         duration_seconds: totalTime,
         sequence_coherence: sequenceScore,
-        final_score: total
+        final_score: total,
+        // Dominios cognitivos
+        memoria_fijacion_ratio: fijacion_ratio,
+        memoria_evocacion_ratio: evocacion_ratio,
+        memoria_trabajo_ratio: trabajo_ratio,
+        planificacion_temporal: planificacion_temporal,
+        latencia_por_accion_ms: latencia_por_accion_ms,
+        diversidad_categorias: categories.size
     };
 
     // Biomet: guardar métricas psicomotoras capturadas durante el juego

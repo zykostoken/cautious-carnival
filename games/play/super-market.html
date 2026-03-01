@@ -978,7 +978,18 @@ function finishGame() {
         gondola_visit_order: gondolaVisitOrder,
         total_actions: actionLog.length,
         clinical_flags: clinicalFlags,
-        action_log: actionLog
+        action_log: actionLog,
+        // Dominios cognitivos explícitos
+        errores_omision: essentialTotal - essentialCompleteCount,
+        errores_comision: gotErrors.length,
+        memoria_trabajo_ratio: essentialTotal > 0 ? +(essentialCompleteCount / essentialTotal).toFixed(3) : 0,
+        planificacion_ratio: +(score / 100).toFixed(3),
+        abstraccion_ratio: gotAdvanced.length > 0 ? +(gotAdvanced.length / advanced.length).toFixed(3) : 0,
+        flexibilidad_cognitiva: priceCheckCount,
+        impulsividad_compra: overBudgetAttempts,
+        latencia_inicio_ms: firstClickTime || 0,
+        autocorrecciones_count: removals,
+        escaneo_sistematico: scanScore
     });
 
     if (typeof showPostGameColorModal === 'function') showPostGameColorModal();

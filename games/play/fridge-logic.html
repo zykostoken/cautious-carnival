@@ -595,6 +595,27 @@ function finishGame() {
         </div>
     `;
     
+    // ── Cognitive domain metrics ──
+    const totalItems = ITEMS.length;
+    const omisiones = totalItems - correctPlacements - details.filter(d => d.status === 'wrong').length;
+    const comisiones = details.filter(d => d.status === 'wrong').length;
+    // Memoria semántica: categorización correcta (sabe dónde va cada cosa)
+    const memoria_semantica = +(correctPlacements / totalItems).toFixed(3);
+    // Abstracción: distinguir zonas conceptuales (frío vs alacena vs limpieza)
+    const zonesUsed = new Set(Object.values(gameState.placements));
+    const abstraccion_categorias = +(zonesUsed.size / 5).toFixed(3); // 5 zones possible
+    // Juicio/seguridad: capacidad de inferir riesgo
+    const juicio_seguridad = +(safetyPct / 100).toFixed(3);
+    // Latencia por acción
+    const latencia_por_accion = gameState.actionLog.length > 0 ? Math.round(totalTime / gameState.actionLog.length) : 0;
+    // Perseveraciones: misma zona consecutiva para ítems diferentes
+    let perseveraciones_zona = 0;
+    let lastZone = null;
+    gameState.actionLog.filter(a => a.type === 'place').forEach(a => {
+        if (a.zone === lastZone) perseveraciones_zona++;
+        lastZone = a.zone;
+    });
+
     // Save to Supabase
     saveResults({
         overall_score: overallScore,
@@ -607,7 +628,15 @@ function finishGame() {
         total_time_ms: totalTime,
         hesitation_count: gameState.hesitations.length,
         action_count: gameState.actionLog.length,
-        action_log: gameState.actionLog
+        action_log: gameState.actionLog,
+        // Dominios cognitivos
+        errores_omision: omisiones,
+        errores_comision: comisiones,
+        memoria_semantica_ratio: memoria_semantica,
+        abstraccion_categorias: abstraccion_categorias,
+        juicio_seguridad: juicio_seguridad,
+        latencia_por_accion_ms: latencia_por_accion,
+        perseveraciones_zona: perseveraciones_zona
     });
     
     // Show post-game color modal

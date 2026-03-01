@@ -64,7 +64,19 @@
         .loading { text-align:center; padding:4rem; color:rgba(255,255,255,0.35); }
         .no-data { text-align:center; padding:2.5rem; color:rgba(255,255,255,0.25); font-style:italic; }
 
-        @media (max-width:900px) { .charts-grid { grid-template-columns:1fr; } }
+        /* Domain panels */
+        .domain-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .domain-card { background:rgba(255,255,255,0.04); border-radius:12px; padding:1rem; border:1px solid rgba(255,255,255,0.06); }
+        .domain-card h4 { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:rgba(255,255,255,0.4); margin-bottom:0.6rem; }
+        .domain-metric { display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:0.78rem; }
+        .domain-metric:last-child { border-bottom:none; }
+        .domain-metric .dm-label { color:rgba(255,255,255,0.5); }
+        .domain-metric .dm-val { font-weight:700; min-width:50px; text-align:right; }
+        .dm-val.ok { color:#34d399; } .dm-val.warn { color:#fbbf24; } .dm-val.alert { color:#f87171; } .dm-val.neutral { color:rgba(255,255,255,0.6); }
+        .domain-badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:0.6rem; font-weight:700; margin-left:6px; }
+        .badge-ok { background:rgba(52,211,153,0.15); color:#34d399; } .badge-warn { background:rgba(251,191,36,0.15); color:#fbbf24; } .badge-alert { background:rgba(248,113,113,0.15); color:#f87171; }
+
+        @media (max-width:900px) { .charts-grid { grid-template-columns:1fr; } .domain-grid { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -256,7 +268,8 @@ function renderDashboard() {
     <div class="charts-grid">
         <div class="chart-box"><h3>Tiempo de Reacción — media ± SD (ms)</h3><canvas id="cRT"></canvas></div>
         <div class="chart-box"><h3>CV del TR (bradipsiquia vs variabilidad atencional)</h3><canvas id="cCV"></canvas></div>
-        <div class="chart-box"><h3>Tremor reposo / inicio / terminal (px)</h3><canvas id="cTremor"></canvas></div>
+        <div class="chart-box"><h3>Tremor reposo / acción / distal (px)</h3><canvas id="cTremor"></canvas></div>
+        <div class="chart-box"><h3>Rigidez / Rueda dentada / Espasticidad (0–1)</h3><canvas id="cRigid"></canvas></div>
         <div class="chart-box"><h3>Hesitaciones y Rectificaciones</h3><canvas id="cHes"></canvas></div>
         <div class="chart-box"><h3>Errores: Omisión / Comisión / Falsos clicks</h3><canvas id="cErr"></canvas></div>
         <div class="chart-box"><h3>Eficiencia de trayectoria (0–1)</h3><canvas id="cEfic"></canvas></div>
@@ -265,13 +278,16 @@ function renderDashboard() {
         <div class="chart-box wide"><h3>Decaimiento de vigilancia intra-sesión (ratio 2ª/1ª mitad RT) — umbral 1.3</h3><canvas id="cVig"></canvas></div>
     </div>`;
 
+    /* ── Dominios Neurocognitivos ── */
+    html += buildDomainPanels(bm, ses);
+
     /* ── Tabla detalle ── */
     const sorted = ses.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     html += `<div class="section-title">Detalle de sesiones (${sorted.length})</div>
     <div class="tbl-wrap"><table class="sessions-table"><thead><tr>
         <th>Fecha/Hora</th><th>Juego</th><th>Score</th>
         <th>RT med</th><th>RT±SD</th><th>CV-TR</th>
-        <th>Tr.rep</th><th>Tr.ini</th><th>Tr.ter</th><th>Dismet.</th>
+        <th>Tr.rep</th><th>Tr.acc</th><th>Tr.dis</th><th>Dismet.</th>
         <th>Rect.</th><th>Hesit.</th><th>H.dur ms</th>
         <th>Omis.</th><th>Comis.</th><th>F.Click</th><th>Persev.</th>
         <th>Ef.tray.</th><th>Impuls.</th><th>Inhib.</th><th>Econ.cog.</th>
@@ -322,6 +338,108 @@ function renderDashboard() {
     requestAnimationFrame(() => buildCharts(bm));
 }
 
+/* ── DOMINIOS NEUROCOGNITIVOS ─────────────────────────────────────────── */
+function buildDomainPanels(bm, ses) {
+    if (!bm.length && !ses.length) return '';
+    const all = [...bm, ...ses];
+    // Helper: get last N values for a metric key from metric_data
+    const lastN = (arr, key, n=5) => arr.slice(-n).map(m => m.metric_data?.[key]).filter(x => x != null && !isNaN(x));
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    const cls = (v, lo, hi, invert) => {
+        if (v == null) return 'neutral';
+        if (invert) return v < lo ? 'ok' : v < hi ? 'warn' : 'alert';
+        return v > hi ? 'ok' : v > lo ? 'warn' : 'alert';
+    };
+    const fmt = (v, dec=2) => v != null ? v.toFixed(dec) : '—';
+    const badge = c => c === 'ok' ? '<span class="domain-badge badge-ok">OK</span>' : c === 'warn' ? '<span class="domain-badge badge-warn">ATEN</span>' : c === 'alert' ? '<span class="domain-badge badge-alert">ALT</span>' : '';
+
+    // ── MOTOR ──
+    const trRep = avg(lastN(bm, 'tremor_reposo_px'));
+    const trAcc = avg(lastN(bm, 'tremor_inicio_px'));
+    const trDis = avg(lastN(bm, 'tremor_terminal_px'));
+    const rigid = avg(lastN(bm, 'rigidez_index'));
+    const cogwh = avg(lastN(bm, 'cogwheel_index'));
+    const clasp = avg(lastN(bm, 'espasticidad_index'));
+    const efTr  = avg(lastN(bm, 'eficiencia_trayectoria'));
+    const dismt = avg(lastN(bm, 'dismetria_mean_px'));
+
+    // ── MEMORIA ──
+    const memFij = avg(lastN(all, 'memoria_fijacion_ratio').concat(lastN(all, 'fijacion_ratio')));
+    const memEvo = avg(lastN(all, 'memoria_evocacion_ratio').concat(lastN(all, 'evocacion_ratio')));
+    const memTra = avg(lastN(all, 'memoria_trabajo_ratio').concat(lastN(all, 'trabajo_carga_dual')));
+    const memSem = avg(lastN(all, 'memoria_semantica_ratio'));
+    const memSpn = avg(lastN(all, 'memory_span'));
+    const primac = avg(lastN(all, 'efecto_primacia'));
+    const recenc = avg(lastN(all, 'efecto_recencia'));
+
+    // ── ATENCIÓN ──
+    const rtMean = avg(lastN(bm, 'rt_mean_ms'));
+    const rtCV   = avg(lastN(bm, 'rt_cv'));
+    const decay  = avg(lastN(bm, 'decaimiento_vigilancia'));
+    const hes    = bm.slice(-5).reduce((a,m)=>a+(m.metric_data?.hesitaciones_count||0),0);
+
+    // ── EJECUTIVO ──
+    const econ   = avg(lastN(bm, 'economia_cognitiva'));
+    const impuls = avg(lastN(bm, 'impulsividad_ratio'));
+    const inhib  = avg(lastN(bm, 'inhibicion_motor'));
+    const persev = bm.slice(-5).reduce((a,m)=>a+(m.metric_data?.perseveracion_count||0),0);
+    const planif = avg(lastN(all, 'planificacion_ratio').concat(lastN(all, 'planificacion_temporal')));
+
+    // ── ERRORES ──
+    const omis   = all.slice(-5).reduce((a,m)=>a+(m.metric_data?.errores_omision||0),0);
+    const comis  = all.slice(-5).reduce((a,m)=>a+(m.metric_data?.errores_comision||0),0);
+    const latenc = avg(lastN(all, 'latencia_por_accion_ms').concat(lastN(all, 'latencia_inicio_ms')));
+
+    let html = '<div class="section-title">Dominios neurocognitivos — últimas 5 sesiones</div><div class="domain-grid">';
+
+    // Motor
+    const mCls = c => cls(c, 0.3, 0.6, true);
+    html += `<div class="domain-card"><h4>Psicomotricidad ${badge(trRep!=null && trRep<2?'ok':trRep<5?'warn':'alert')}</h4>
+        <div class="domain-metric"><span class="dm-label">Tremor reposo</span><span class="dm-val ${cls(trRep,2,5,true)}">${fmt(trRep,1)} px</span></div>
+        <div class="domain-metric"><span class="dm-label">Tremor acción</span><span class="dm-val ${cls(trAcc,2,5,true)}">${fmt(trAcc,1)} px</span></div>
+        <div class="domain-metric"><span class="dm-label">Tremor distal</span><span class="dm-val ${cls(trDis,2,5,true)}">${fmt(trDis,1)} px</span></div>
+        <div class="domain-metric"><span class="dm-label">Rigidez index</span><span class="dm-val ${cls(rigid,0.3,0.6,true)}">${fmt(rigid,2)}</span></div>
+        <div class="domain-metric"><span class="dm-label">Rueda dentada</span><span class="dm-val ${cls(cogwh,0.3,0.5,true)}">${fmt(cogwh,2)}</span></div>
+        <div class="domain-metric"><span class="dm-label">Espasticidad</span><span class="dm-val ${cls(clasp,0.2,0.5,true)}">${fmt(clasp,2)}</span></div>
+        <div class="domain-metric"><span class="dm-label">Ef. trayectoria</span><span class="dm-val ${cls(efTr,0.5,0.8,false)}">${efTr!=null?(efTr*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Dismetría</span><span class="dm-val ${cls(dismt,20,50,true)}">${fmt(dismt,1)} px</span></div>
+    </div>`;
+
+    // Memoria
+    html += `<div class="domain-card"><h4>Memoria ${badge(memFij!=null && memFij>0.7?'ok':memFij>0.4?'warn':'alert')}</h4>
+        <div class="domain-metric"><span class="dm-label">Fijación (encoding)</span><span class="dm-val ${cls(memFij,0.4,0.7,false)}">${memFij!=null?(memFij*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Evocación (recall)</span><span class="dm-val ${cls(memEvo,0.4,0.7,false)}">${memEvo!=null?(memEvo*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">M. de trabajo</span><span class="dm-val ${cls(memTra,0.4,0.7,false)}">${memTra!=null?(memTra*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">M. semántica</span><span class="dm-val ${cls(memSem,0.4,0.7,false)}">${memSem!=null?(memSem*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Span mnésico</span><span class="dm-val neutral">${memSpn!=null?memSpn.toFixed(1):'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Efecto primacía</span><span class="dm-val ${cls(primac,0.4,0.7,false)}">${primac!=null?(primac*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Efecto recencia</span><span class="dm-val ${cls(recenc,0.4,0.7,false)}">${recenc!=null?(recenc*100).toFixed(0)+'%':'—'}</span></div>
+    </div>`;
+
+    // Atención
+    html += `<div class="domain-card"><h4>Atención ${badge(rtCV!=null && rtCV<0.2?'ok':rtCV<0.4?'warn':'alert')}</h4>
+        <div class="domain-metric"><span class="dm-label">RT media</span><span class="dm-val ${cls(rtMean,600,1200,true)}">${rtMean!=null?Math.round(rtMean)+' ms':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">CV atención</span><span class="dm-val ${cls(rtCV,0.2,0.4,true)}">${fmt(rtCV,3)}</span></div>
+        <div class="domain-metric"><span class="dm-label">Decaimiento vigil.</span><span class="dm-val ${cls(decay,1.1,1.3,true)}">${fmt(decay,2)}</span></div>
+        <div class="domain-metric"><span class="dm-label">Hesitaciones (5ses)</span><span class="dm-val ${hes>10?'alert':hes>3?'warn':'ok'}">${hes}</span></div>
+        <div class="domain-metric"><span class="dm-label">Latencia / acción</span><span class="dm-val neutral">${latenc!=null?Math.round(latenc)+' ms':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Omisiones (5ses)</span><span class="dm-val ${omis>5?'alert':omis>0?'warn':'ok'}">${omis}</span></div>
+        <div class="domain-metric"><span class="dm-label">Comisiones (5ses)</span><span class="dm-val ${comis>3?'alert':comis>0?'warn':'ok'}">${comis}</span></div>
+    </div>`;
+
+    // Funciones ejecutivas
+    html += `<div class="domain-card"><h4>Funciones Ejecutivas ${badge(econ!=null && econ>0.7?'ok':econ>0.4?'warn':'alert')}</h4>
+        <div class="domain-metric"><span class="dm-label">Economía cognitiva</span><span class="dm-val ${cls(econ,0.4,0.7,false)}">${econ!=null?(econ*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Impulsividad</span><span class="dm-val ${cls(impuls,0.05,0.15,true)}">${impuls!=null?(impuls*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Inhibición motora</span><span class="dm-val ${cls(inhib,0.1,0.3,true)}">${inhib!=null?(inhib*100).toFixed(0)+'%':'—'}</span></div>
+        <div class="domain-metric"><span class="dm-label">Perseveraciones (5ses)</span><span class="dm-val ${persev>5?'alert':persev>0?'warn':'ok'}">${persev}</span></div>
+        <div class="domain-metric"><span class="dm-label">Planificación</span><span class="dm-val ${cls(planif,0.4,0.7,false)}">${planif!=null?(planif*100).toFixed(0)+'%':'—'}</span></div>
+    </div>`;
+
+    html += '</div>';
+    return html;
+}
+
 /* ── GRÁFICOS ─────────────────────────────────────────────────────────── */
 function buildCharts(bm) {
     if (!bm.length) return;
@@ -351,9 +469,19 @@ function buildCharts(bm) {
 
     mkL('cTremor', lbl, [
         { label:'Reposo',  data:sorted.map(m=>d(m,'tremor_reposo_px')),  borderColor:'#f87171', tension:0.3, spanGaps:true, pointRadius:3 },
-        { label:'Inicio',  data:sorted.map(m=>d(m,'tremor_inicio_px')),  borderColor:'#fb923c', tension:0.3, spanGaps:true, pointRadius:3 },
-        { label:'Terminal',data:sorted.map(m=>d(m,'tremor_terminal_px')), borderColor:'#fbbf24', tension:0.3, spanGaps:true, pointRadius:3 }
+        { label:'Acción',  data:sorted.map(m=>d(m,'tremor_inicio_px')),  borderColor:'#fb923c', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Distal',  data:sorted.map(m=>d(m,'tremor_terminal_px')), borderColor:'#fbbf24', tension:0.3, spanGaps:true, pointRadius:3 }
     ], baseOpts());
+
+    // Rigidity / Spasticity chart
+    const rigidEl = document.getElementById('cRigid');
+    if (rigidEl) {
+        charts.cRigid = new Chart(rigidEl, { type:'line', data:{ labels:lbl, datasets:[
+            { label:'Rigidez index', data:sorted.map(m=>d(m,'rigidez_index')), borderColor:'#f97316', tension:0.3, spanGaps:true, pointRadius:3 },
+            { label:'Cogwheel', data:sorted.map(m=>d(m,'cogwheel_index')), borderColor:'#fb923c', tension:0.3, spanGaps:true, pointRadius:3, borderDash:[4,3] },
+            { label:'Espasticidad', data:sorted.map(m=>d(m,'espasticidad_index')), borderColor:'#ef4444', tension:0.3, spanGaps:true, pointRadius:3 },
+        ]}, options:baseOpts({ scales:{ x:baseOpts().scales.x, y:{ ...baseOpts().scales.y, min:0, max:1 } } }) });
+    }
 
     mkB('cHes', lbl, [
         { label:'Hesitaciones',   data:sorted.map(m=>d(m,'hesitaciones_count')),    backgroundColor:'rgba(251,191,36,0.75)', borderRadius:3 },
