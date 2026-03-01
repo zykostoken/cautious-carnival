@@ -1791,8 +1791,9 @@ function renderMoodHistoryTable(moodHistory, crisisAlerts) {
 }
 
 // =====================================
-// ROOMS FUNCTIONS (Jitsi Meet)
+// ROOMS FUNCTIONS (Daily.co)
 // =====================================
+const DAILY_DOMAIN = 'hdd-jose-ingenieros';
 let customRooms = JSON.parse(localStorage.getItem('hdd_custom_rooms') || '[]');
 
 function renderCustomRooms() {
@@ -1860,18 +1861,21 @@ function deleteRoom(index) {
 }
 
 function joinRoom(roomSlug) {
-  const jitsiUrl = `https://meet.jit.si/${roomSlug}`;
-  document.getElementById('jitsi-iframe').src = jitsiUrl;
-  document.getElementById('jitsi-container').classList.remove('hidden');
+  const dailyUrl = `https://${DAILY_DOMAIN}.daily.co/${roomSlug}`;
+  document.getElementById('daily-room-iframe').src = dailyUrl;
+  document.getElementById('daily-room-container').classList.remove('hidden');
 }
 
-function closeJitsi() {
-  document.getElementById('jitsi-iframe').src = '';
-  document.getElementById('jitsi-container').classList.add('hidden');
+function closeDailyRoom() {
+  document.getElementById('daily-room-iframe').src = '';
+  document.getElementById('daily-room-container').classList.add('hidden');
 }
+
+// Keep old name as alias
+function closeJitsi() { closeDailyRoom(); }
 
 function copyRoomLink(roomSlug) {
-  const link = `https://meet.jit.si/${roomSlug}`;
+  const link = `https://${DAILY_DOMAIN}.daily.co/${roomSlug}`;
   navigator.clipboard.writeText(link).then(() => {
     alert('Link copiado al portapapeles: ' + link);
   }).catch(() => {

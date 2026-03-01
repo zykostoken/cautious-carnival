@@ -277,15 +277,24 @@
         <h2 style="margin-bottom: 1rem;">📹 Salas de Videollamada Grupal</h2>
         <p style="color: var(--text-muted); margin-bottom: 2rem;">Accede a las salas de videollamada para sesiones grupales, talleres y actividades terapéuticas.</p>
 
+        <!-- Daily.co embedded video room (hidden by default) -->
+        <div id="daily-room-embed" style="display: none; margin-bottom: 2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h3 id="daily-room-title" style="margin: 0;"></h3>
+            <button class="btn btn-danger" onclick="closeDailyRoom()" style="padding: 0.5rem 1rem;">Salir de la Sala</button>
+          </div>
+          <iframe id="daily-room-iframe" style="width: 100%; height: 600px; border: none; border-radius: 12px; background: #000;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
+        </div>
+
         <div style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-          
+
           <!-- Sala 1: Consulta Grupal -->
           <div style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="font-size: 3rem; text-align: center; margin-bottom: 1rem;">👥</div>
             <h3 style="margin-bottom: 0.5rem; text-align: center;">Consulta Grupal</h3>
             <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala principal para consultas grupales con pacientes del HDD.</p>
             <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 20 participantes</p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('https://meet.jit.si/HDD-JoseIngenieros-ConsultaGrupal', '_blank')">Unirse a la Sala</button>
+            <button class="btn btn-primary" style="width: 100%;" onclick="openDailyRoom('consulta-grupal', 'Consulta Grupal')">Unirse a la Sala</button>
           </div>
 
           <!-- Sala 2: Aula Virtual -->
@@ -294,7 +303,7 @@
             <h3 style="margin-bottom: 0.5rem; text-align: center;">Aula Virtual</h3>
             <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala para clases, talleres educativos y presentaciones.</p>
             <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 30 participantes</p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('https://meet.jit.si/HDD-JoseIngenieros-AulaVirtual', '_blank')">Unirse a la Sala</button>
+            <button class="btn btn-primary" style="width: 100%;" onclick="openDailyRoom('aula-virtual', 'Aula Virtual')">Unirse a la Sala</button>
           </div>
 
           <!-- Sala 3: Terapia Grupal -->
@@ -303,7 +312,7 @@
             <h3 style="margin-bottom: 0.5rem; text-align: center;">Terapia Grupal</h3>
             <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Sala para sesiones de terapia grupal y mindfulness.</p>
             <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 15 participantes</p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('https://meet.jit.si/HDD-JoseIngenieros-TerapiaGrupal', '_blank')">Unirse a la Sala</button>
+            <button class="btn btn-primary" style="width: 100%;" onclick="openDailyRoom('terapia-grupal', 'Terapia Grupal')">Unirse a la Sala</button>
           </div>
 
           <!-- Sala 4: Sala Multimedia -->
@@ -312,16 +321,36 @@
             <h3 style="margin-bottom: 0.5rem; text-align: center;">Sala Multimedia</h3>
             <p style="color: var(--text-muted); text-align: center; font-size: 0.9rem; margin-bottom: 1rem;">Para compartir videos, películas y contenido multimedia.</p>
             <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Capacidad: 25 participantes</p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="window.open('https://meet.jit.si/HDD-JoseIngenieros-SalaMultimedia', '_blank')">Unirse a la Sala</button>
+            <button class="btn btn-primary" style="width: 100%;" onclick="openDailyRoom('sala-multimedia', 'Sala Multimedia')">Unirse a la Sala</button>
           </div>
 
         </div>
 
         <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 1.5rem; margin-top: 2rem;">
           <p style="color: var(--text-primary); font-size: 0.9rem; margin: 0;">
-            <strong>💡 Nota:</strong> Las salas utilizan tecnología Jitsi Meet (gratuita y segura). No necesitas instalar nada, funciona directo desde el navegador.
+            <strong>💡 Nota:</strong> Las salas utilizan Daily.co (2,000 min/mes gratis, sin limite de tiempo por sesion). Funciona directo desde el navegador, no requiere apps.
           </p>
         </div>
+
+        <script>
+          // Daily.co domain - CONFIGURE: replace with your Daily.co subdomain after creating account at https://dashboard.daily.co
+          const DAILY_DOMAIN = 'hdd-jose-ingenieros';
+
+          function openDailyRoom(roomSlug, roomTitle) {
+            const iframe = document.getElementById('daily-room-iframe');
+            const embed = document.getElementById('daily-room-embed');
+            document.getElementById('daily-room-title').textContent = roomTitle;
+            iframe.src = 'https://' + DAILY_DOMAIN + '.daily.co/' + roomSlug;
+            embed.style.display = 'block';
+            embed.scrollIntoView({ behavior: 'smooth' });
+          }
+
+          function closeDailyRoom() {
+            const iframe = document.getElementById('daily-room-iframe');
+            iframe.src = '';
+            document.getElementById('daily-room-embed').style.display = 'none';
+          }
+        </script>
       </div>
 
     </main>
