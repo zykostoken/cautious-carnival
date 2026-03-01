@@ -228,22 +228,89 @@ export default async (req: Request, context: Context) => {
               `;
 
               if (session) {
-                // Activate call queue entry - now professionals can see it
-                await sql`
-                  UPDATE call_queue
-                  SET status = 'waiting'
-                  WHERE video_session_id = ${session.id}
-                    AND status = 'awaiting_payment'
-                `;
-
-                // Get patient info for notification
+                // Get patient info
                 const [user] = await sql`
                   SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}
                 `;
 
-                // Notify professionals about the new PAID call
-                const roomName = `ClinicaJoseIngenieros_${session.session_token.substring(0, 12)}`;
+                // CREATE DAILY.CO ROOM — sala nueva, expira en 1 hora exacta
+                const DAILY_API_KEY = process.env.DAILY_API_KEY;
+                let dailyRoomName = '';
+                let dailyRoomUrl = '';
+                let dailyProfUrl = '';
+                let dailyPatientUrl = '';
+
+                if (DAILY_API_KEY) {
+                  try {
+                    const roomSlug = `cji-${session.session_token.substring(0, 12)}`;
+                    const roomExpires = Math.floor(Date.now() / 1000) + 65 * 60; // 1hr + 5min gracia
+
+                    const roomRes = await fetch('https://api.daily.co/v1/rooms', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name: roomSlug,
+                        privacy: 'private',
+                        properties: {
+                          exp: roomExpires,
+                          max_participants: 4,
+                          enable_chat: true,
+                          enable_screenshare: false,
+                          eject_at_room_exp: true,
+                          lang: 'es',
+                        }
+                      })
+                    });
+                    const room = await roomRes.json();
+                    dailyRoomName = room.name;
+                    dailyRoomUrl = room.url;
+
+                    const profTokenRes = await fetch('https://api.daily.co/v1/meeting-tokens', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ properties: { room_name: roomSlug, is_owner: true, user_name: 'Profesional CJI', exp: roomExpires } })
+                    });
+                    const profToken = await profTokenRes.json();
+
+                    const patientTokenRes = await fetch('https://api.daily.co/v1/meeting-tokens', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ properties: { room_name: roomSlug, is_owner: false, user_name: user?.full_name || 'Paciente', exp: roomExpires } })
+                    });
+                    const patientToken = await patientTokenRes.json();
+
+                    dailyProfUrl = `${room.url}?t=${profToken.token}`;
+                    dailyPatientUrl = `${room.url}?t=${patientToken.token}`;
+
+                    console.log(`Daily room created: ${roomSlug}`);
+                  } catch (dailyErr) {
+                    console.error('Daily room creation failed in webhook:', dailyErr);
+                  }
+                }
+
+                // Store room URLs + set 1hr window for attendance
+                await sql`
+                  UPDATE video_sessions
+                  SET status = 'pending',
+                      daily_room_name = ${dailyRoomName || null},
+                      daily_room_url = ${dailyRoomUrl || null},
+                      daily_prof_url = ${dailyProfUrl || null},
+                      daily_patient_url = ${dailyPatientUrl || null},
+                      expires_at = NOW() + INTERVAL '1 hour'
+                  WHERE id = ${session.id}
+                `;
+
+                // Activate call queue entry - now professionals can see it
+                await sql`
+                  UPDATE call_queue
+                  SET status = 'waiting',
+                      notes = CONCAT(COALESCE(notes,''), ' | Daily: ${dailyRoomName}')
+                  WHERE video_session_id = ${session.id}
+                    AND status = 'awaiting_payment'
+                `;
+
                 const siteUrl = process.env.URL || 'https://clinicajoseingenieros.ar';
+                const roomName = dailyRoomName || `cji-${session.session_token.substring(0, 12)}`;
 
                 fetch(`${siteUrl}/api/notifications`, {
                   method: 'POST',
@@ -253,13 +320,14 @@ export default async (req: Request, context: Context) => {
                     callQueueId: session.id,
                     patientName: user?.full_name || 'Paciente',
                     roomName,
+                    dailyProfUrl,       // profesional entra directo desde notificación
                     price: paymentInfo.transaction_amount,
                     paymentConfirmed: true,
                     paymentId: paymentInfo.id
                   })
                 }).catch(e => console.log('Notification trigger failed:', e));
 
-                // Send booking confirmation to patient if email is available
+                // Send booking confirmation to patient with their room link
                 if (user?.email) {
                   fetch(`${siteUrl}/api/notifications`, {
                     method: 'POST',
@@ -269,8 +337,10 @@ export default async (req: Request, context: Context) => {
                       email: user.email,
                       fullName: user.full_name || 'Paciente',
                       roomName,
+                      dailyPatientUrl,  // paciente recibe su link en el mail
                       price: paymentInfo.transaction_amount,
-                      sessionToken: session.session_token
+                      sessionToken: session.session_token,
+                      expiresInMinutes: 60
                     })
                   }).catch(e => console.log('Patient confirmation failed:', e));
                 }

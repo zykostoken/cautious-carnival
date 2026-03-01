@@ -325,7 +325,7 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
 
       // Send booking confirmation to patient after payment
       if (action === "send_booking_confirmation") {
-        const { email, fullName, roomName, price, sessionToken } = body;
+        const { email, fullName, roomName, dailyPatientUrl, price, sessionToken, expiresInMinutes } = body;
         if (!email) {
           return new Response(JSON.stringify({ error: "Email requerido" }), { status: 400, headers: corsHeaders });
         }
@@ -339,17 +339,24 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
             </div>
             <div style="padding:30px;background:#f5f5f5">
               <p>Hola ${fullName || 'Paciente'},</p>
-              <p>Tu pago ha sido procesado exitosamente. Ahora estás en la cola de espera para tu videoconsulta.</p>
+              <p>Tu pago ha sido procesado exitosamente. Tu sala de videoconsulta está lista.</p>
               ${priceStr ? `<p><strong>Monto:</strong> ${priceStr}</p>` : ''}
+              ${dailyPatientUrl ? `
+              <div style="background:#dbeafe;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #3b82f6;text-align:center">
+                <h3 style="color:#1e40af;margin:0 0 12px 0">Tu enlace de videoconsulta</h3>
+                <a href="${dailyPatientUrl}" style="display:inline-block;background:#1e40af;color:white;padding:14px 28px;text-decoration:none;border-radius:8px;font-size:1.05em">
+                  📹 Entrar a la consulta
+                </a>
+                <p style="color:#1e40af;font-size:0.8em;margin-top:10px">Este enlace es personal, no lo compartas.<br>Válido por ${expiresInMinutes || 60} minutos.</p>
+              </div>` : ''}
               <div style="background:#d4edda;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #28a745">
                 <h3 style="color:#155724;margin:0 0 10px 0">¿Qué sigue?</h3>
                 <ul style="color:#155724;margin:0;padding-left:20px">
-                  <li>Un profesional tomará tu llamada en breve</li>
-                  <li>Mantené abierta la página de telemedicina</li>
+                  <li>Un profesional se unirá a la sala en breve</li>
                   <li>Asegurate de tener cámara y micrófono habilitados</li>
+                  <li>Si en 1 hora no fuiste atendido, el pago se reembolsa automáticamente</li>
                 </ul>
               </div>
-              <a href="https://clinicajoseingenieros.ar/#telemedicina" style="display:inline-block;background:#1a5f2a;color:white;padding:15px 30px;text-decoration:none;border-radius:8px;margin-top:10px">Ir a Telemedicina</a>
               <p style="margin-top:20px;font-size:0.85em;color:#666">Si tenés algún problema, contactanos a ${ADMIN_EMAIL}</p>
             </div>
             <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
@@ -365,6 +372,45 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
         }
 
         return new Response(JSON.stringify({ success: result.success, error: result.error }), { status: 200, headers: corsHeaders });
+      }
+
+      if (action === "send_refund_notification") {
+        const { email, fullName, refundStatus } = body;
+        if (!email) {
+          return new Response(JSON.stringify({ error: "Email requerido" }), { status: 400, headers: corsHeaders });
+        }
+
+        const refundMsg = refundStatus === 'error'
+          ? 'El reembolso requiere gestión manual. Nuestro equipo te contactará a la brevedad.'
+          : 'El reembolso fue solicitado a MercadoPago y se acreditará en tu cuenta en los próximos días hábiles.';
+
+        const subject = "Consulta no atendida - Reembolso en proceso - Clínica José Ingenieros";
+        const htmlBody = `
+          <div style="font-family:Arial;max-width:600px;margin:0 auto">
+            <div style="background:#7c3aed;padding:20px;text-align:center;border-radius:8px 8px 0 0">
+              <h1 style="color:white;margin:0">Consulta cancelada</h1>
+            </div>
+            <div style="padding:30px;background:#f5f5f5">
+              <p>Hola ${fullName || 'Paciente'},</p>
+              <p>Lamentamos que ningún profesional haya podido atenderte en el tiempo previsto.</p>
+              <div style="background:#ede9fe;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #7c3aed">
+                <h3 style="color:#4c1d95;margin:0 0 8px 0">Reembolso automático</h3>
+                <p style="color:#4c1d95;margin:0">${refundMsg}</p>
+              </div>
+              <p>Para reagendar tu consulta, ingresá nuevamente desde nuestra web.</p>
+              <a href="https://clinicajoseingenieros.ar/#telemedicina" style="display:inline-block;background:#7c3aed;color:white;padding:14px 28px;text-decoration:none;border-radius:8px">Solicitar nueva consulta</a>
+              <p style="margin-top:20px;font-size:0.85em;color:#666">Dudas: ${ADMIN_EMAIL}</p>
+            </div>
+            <div style="padding:15px;background:#e8e8e8;text-align:center;border-radius:0 0 8px 8px">
+              <p style="margin:0;font-size:0.85em;color:#666">Clínica Psiquiátrica José Ingenieros - Necochea</p>
+            </div>
+          </div>`;
+
+        const result = await sendEmailNotification(email, subject, htmlBody);
+        try {
+          await logNotification(sql, 'patient', 0, 'email', email, 'refund_notification', subject, result);
+        } catch (e) {}
+        return new Response(JSON.stringify({ success: result.success }), { status: 200, headers: corsHeaders });
       }
 
       return new Response(JSON.stringify({ error: "Accion invalida" }), { status: 400, headers: corsHeaders });

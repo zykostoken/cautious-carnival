@@ -308,30 +308,97 @@ export default async (req: Request, context: Context) => {
         }
 
         if (payment && payment.status === 'approved') {
-          // Payment confirmed! Update session and queue to active
+          // Payment confirmed! Create Daily.co room and activate session
           if (sessionToken) {
             const [session] = await sql`
-              UPDATE video_sessions
-              SET status = 'pending'
-              WHERE session_token = ${sessionToken} AND status = 'awaiting_payment'
-              RETURNING id, user_id, call_type
+              SELECT id, user_id, call_type, daily_room_name, status
+              FROM video_sessions
+              WHERE session_token = ${sessionToken}
             `;
 
-            if (session) {
-              // Update call queue to 'waiting' so professionals can see it
-              await sql`
-                UPDATE call_queue
-                SET status = 'waiting'
-                WHERE video_session_id = ${session.id} AND status = 'awaiting_payment'
-              `;
+            if (session && session.status === 'awaiting_payment') {
+              // Create Daily.co room now that payment is confirmed
+              const DAILY_API_KEY = process.env.DAILY_API_KEY;
+              let dailyRoomName = '';
+              let dailyRoomUrl = '';
+              let dailyProfUrl = '';
+              let dailyPatientUrl = '';
 
-              // NOW notify professionals that a paid call is waiting
               const [user] = await sql`
                 SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}
               `;
 
+              if (DAILY_API_KEY) {
+                try {
+                  const roomSlug = `cji-${sessionToken.substring(0, 12)}`;
+                  // Sala expira en 1 hora exacta desde el pago (+ 5 min gracia)
+                  const roomExpires = Math.floor(Date.now() / 1000) + 65 * 60;
+
+                  const roomRes = await fetch('https://api.daily.co/v1/rooms', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      name: roomSlug,
+                      privacy: 'private',
+                      properties: {
+                        exp: roomExpires,
+                        max_participants: 4,
+                        enable_chat: true,
+                        enable_screenshare: false,
+                        eject_at_room_exp: true,
+                        lang: 'es',
+                      }
+                    })
+                  });
+                  const room = await roomRes.json();
+                  dailyRoomName = room.name;
+                  dailyRoomUrl = room.url;
+
+                  // Token profesional (owner)
+                  const profTokenRes = await fetch('https://api.daily.co/v1/meeting-tokens', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ properties: { room_name: roomSlug, is_owner: true, user_name: 'Profesional CJI', exp: roomExpires } })
+                  });
+                  const profToken = await profTokenRes.json();
+
+                  // Token paciente
+                  const patientTokenRes = await fetch('https://api.daily.co/v1/meeting-tokens', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${DAILY_API_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ properties: { room_name: roomSlug, is_owner: false, user_name: user?.full_name || 'Paciente', exp: roomExpires } })
+                  });
+                  const patientToken = await patientTokenRes.json();
+
+                  dailyProfUrl = `${room.url}?t=${profToken.token}`;
+                  dailyPatientUrl = `${room.url}?t=${patientToken.token}`;
+                } catch (dailyErr) {
+                  console.error('Daily room creation failed:', dailyErr);
+                }
+              }
+
+              // Update session: active, 1hr window, room urls stored
+              await sql`
+                UPDATE video_sessions
+                SET status = 'pending',
+                    daily_room_name = ${dailyRoomName || null},
+                    daily_room_url = ${dailyRoomUrl || null},
+                    daily_prof_url = ${dailyProfUrl || null},
+                    daily_patient_url = ${dailyPatientUrl || null},
+                    expires_at = NOW() + INTERVAL '1 hour'
+                WHERE id = ${session.id}
+              `;
+
+              // Update call queue to 'waiting'
+              await sql`
+                UPDATE call_queue
+                SET status = 'waiting',
+                    notes = CONCAT(notes, ' | Sala: ${dailyRoomName || 'sin sala'}')
+                WHERE video_session_id = ${session.id} AND status = 'awaiting_payment'
+              `;
+
               const priceInfo = getPriceForCurrentHour(session.call_type);
-              const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
+              const roomName = dailyRoomName || `cji-${sessionToken.substring(0, 12)}`;
 
               fetch(`${new URL(req.url).origin}/api/notifications`, {
                 method: 'POST',
@@ -353,24 +420,119 @@ export default async (req: Request, context: Context) => {
             success: true,
             paymentStatus: 'approved',
             paidAt: payment.paid_at,
-            message: "Pago confirmado. Ha ingresado a la sala de espera. Los profesionales han sido notificados."
+            // Room URLs for the patient to enter
+            room: dailyRoomUrl ? {
+              patientUrl: dailyPatientUrl,
+              roomUrl: dailyRoomUrl,
+              expiresInMinutes: 60,
+            } : null,
+            message: dailyPatientUrl
+              ? "Pago confirmado. Tu sala está lista. Los profesionales fueron notificados y tienen 1 hora para atenderte."
+              : "Pago confirmado. Ha ingresado a la sala de espera. Los profesionales han sido notificados."
           }), {
             status: 200,
             headers: { "Content-Type": "application/json" }
           });
         }
+      }
+
+      // Expire unattended sessions (called by scheduled job or patient polling)
+      // If 1hr passed since payment and no professional attended → cancel + refund
+      if (action === "expire_unattended") {
+        const { sessionToken } = body;
+
+        const [session] = await sql`
+          SELECT vs.id, vs.user_id, vs.daily_room_name, vs.payment_reference,
+                 vs.expires_at, vs.status, vs.credits_held
+          FROM video_sessions vs
+          WHERE vs.session_token = ${sessionToken}
+        `;
+
+        if (!session) {
+          return new Response(JSON.stringify({ error: "Session not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+        }
+
+        if (session.status !== 'pending') {
+          return new Response(JSON.stringify({ success: true, status: session.status, message: "Sesión ya procesada." }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+
+        const expired = new Date(session.expires_at) < new Date();
+        if (!expired) {
+          const minutesLeft = Math.ceil((new Date(session.expires_at).getTime() - Date.now()) / 60000);
+          return new Response(JSON.stringify({ success: false, message: `Sesión activa. Quedan ${minutesLeft} minutos.`, minutesLeft }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+
+        // 1 hour passed, nobody attended → cancel
+        await sql`
+          UPDATE video_sessions SET status = 'expired', cancelled_at = NOW(),
+            cancel_reason = 'No atendido en 1 hora - reembolso automático'
+          WHERE id = ${session.id}
+        `;
+        await sql`
+          UPDATE call_queue SET status = 'cancelled' WHERE video_session_id = ${session.id}
+        `;
+
+        // Delete Daily room if it exists
+        const DAILY_API_KEY = process.env.DAILY_API_KEY;
+        if (DAILY_API_KEY && session.daily_room_name) {
+          fetch(`https://api.daily.co/v1/rooms/${session.daily_room_name}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${DAILY_API_KEY}` }
+          }).catch(() => {});
+        }
+
+        // Trigger MercadoPago refund
+        let refundStatus = 'pending';
+        const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+        if (MP_ACCESS_TOKEN && session.payment_reference) {
+          try {
+            // Get MP payment ID from our records
+            const [mpPayment] = await sql`
+              SELECT mp_payment_id, amount FROM mp_payments
+              WHERE external_reference = ${session.payment_reference} AND status = 'approved'
+            `;
+            if (mpPayment?.mp_payment_id) {
+              const refundRes = await fetch(
+                `https://api.mercadopago.com/v1/payments/${mpPayment.mp_payment_id}/refunds`,
+                {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ amount: mpPayment.amount })
+                }
+              );
+              const refundData = await refundRes.json();
+              refundStatus = refundData.status || 'requested';
+              await sql`
+                UPDATE mp_payments SET status = 'refunded', refunded_at = NOW()
+                WHERE external_reference = ${session.payment_reference}
+              `;
+            }
+          } catch (refundErr) {
+            console.error('Refund failed:', refundErr);
+            refundStatus = 'error';
+          }
+        }
 
         return new Response(JSON.stringify({
           success: true,
-          paymentStatus: payment?.status || 'pending',
-          message: payment?.status === 'rejected'
-            ? "El pago fue rechazado. Por favor intente nuevamente."
-            : "Esperando confirmación del pago..."
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
+          expired: true,
+          refundStatus,
+          message: refundStatus === 'error'
+            ? "Sesión cancelada. El reembolso requiere gestión manual."
+            : "Sesión cancelada. El reembolso fue solicitado a MercadoPago."
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
+
+      return new Response(JSON.stringify({
+        success: true,
+        paymentStatus: payment?.status || 'pending',
+        message: payment?.status === 'rejected'
+          ? "El pago fue rechazado. Por favor intente nuevamente."
+          : "Esperando confirmación del pago..."
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
 
       // Scheduled appointments are disabled - on-demand only
       if (action === "schedule_call") {

@@ -171,19 +171,16 @@ export default async (req: Request, context: Context) => {
           WHERE id = ${professional.id}
         `;
 
-        // Update video session with professional assignment
-        await sql`
+        // Update video session with professional assignment + attended_at (prevents auto-cancel)
+        const [sessionData] = await sql`
           UPDATE video_sessions
           SET professional_id = ${professional.id},
               status = 'in_progress',
               started_at = NOW(),
+              attended_at = NOW(),
               credits_charged = ${chargedAmount}
           WHERE id = ${queueEntry.video_session_id}
-        `;
-
-        // Generate the room name
-        const [session] = await sql`
-          SELECT session_token FROM video_sessions WHERE id = ${queueEntry.video_session_id}
+          RETURNING session_token, daily_room_name, daily_prof_url, daily_patient_url, daily_room_url
         `;
 
         // Send notification to admin about the session start
@@ -210,7 +207,15 @@ export default async (req: Request, context: Context) => {
             email: queueEntry.patient_email,
             phone: queueEntry.patient_phone
           },
-          roomName: `ClinicaJoseIngenieros_${session?.session_token?.substring(0, 12) || queueEntry.video_session_id}`,
+          // Daily.co links — sala ya creada al confirmarse el pago
+          room: sessionData?.daily_prof_url ? {
+            professionalUrl: sessionData.daily_prof_url,
+            patientUrl: sessionData.daily_patient_url,
+            roomUrl: sessionData.daily_room_url,
+            roomName: sessionData.daily_room_name,
+          } : {
+            roomName: `cji-${sessionData?.session_token?.substring(0, 12) || queueEntry.video_session_id}`,
+          },
           paymentInfo: {
             verified: paymentVerified,
             amount: chargedAmount,
@@ -218,7 +223,7 @@ export default async (req: Request, context: Context) => {
             reference: payment?.external_reference || 'N/A'
           },
           message: paymentVerified
-            ? "Pago verificado. Conectándote con el paciente."
+            ? "Pago verificado. Sala lista — entrá con tu enlace."
             : "Conectándote con el paciente. Verificar pago manualmente."
         }), { status: 200, headers: corsHeaders });
       }
