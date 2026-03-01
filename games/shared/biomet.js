@@ -422,7 +422,8 @@ function start(opts) {
     if (BM.active) return;
     BM.active = true;
     BM.sessionStart = Date.now();
-    BM.patientId = opts.patientId || 'DEMO';
+    BM.patientId  = opts.patientId  || opts.patientDni || 'DEMO';
+    BM.patientDni = opts.patientDni || opts.patientId  || 'DEMO';
     BM.gameSlug = opts.gameSlug || 'unknown';
 
     // Reset
@@ -581,17 +582,20 @@ function save(extra_data) {
         var sb = window.supabase;
         if (!sb) return result;
         var client = sb.createClient(
-            'https://yqpqfzvgcmvxvqzvtajx.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk'
+            'https://buzblnkpfydeheingzgn.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA'
         );
 
-        // Guardar en hdd_game_metrics con metric_type = 'session_complete'
+        // Guardar en hdd_game_metrics con metric_type = 'session_biomet'
         client.from('hdd_game_metrics').insert({
-            patient_id:   result.patient_id,
+            patient_id:   null,
+            patient_dni:  BM.patientDni,
             game_slug:    result.game_slug,
+            session_id:   BM.sessionId || null,
             metric_type:  'session_biomet',
-            metric_value: result.economia_cognitiva,   // índice de síntesis (0-1)
+            metric_value: result.economia_cognitiva,
             metric_data:  result,
+            session_date: new Date().toISOString().slice(0, 10),
             created_at:   new Date().toISOString()
         }).then(function(){}).catch(function(e){ console.warn('biomet save:', e); });
 

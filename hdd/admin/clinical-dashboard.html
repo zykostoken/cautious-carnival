@@ -9,64 +9,62 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .dashboard { max-width: 1300px; margin: 0 auto; padding: 1.5rem; }
+        .dashboard { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
         .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; }
         .dash-header h1 { font-size: 1.3rem; color: #60a5fa; }
         .dash-header h1 span { color: #f87171; font-size: 0.7rem; background: rgba(248,113,113,0.15); padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
         .back-btn { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.85rem; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; }
-        .back-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .back-btn:hover { background: rgba(255,255,255,0.08); }
 
-        /* Auth gate */
-        .auth-gate { text-align: center; padding: 4rem 1rem; }
-        .auth-gate h2 { color: #f87171; margin-bottom: 1rem; }
-        .auth-gate a { color: #60a5fa; }
+        .auth-gate { text-align:center; padding:4rem 1rem; }
+        .auth-gate h2 { color:#f87171; margin-bottom:1rem; }
+        .auth-gate a { color:#60a5fa; }
 
-        /* Patient selector */
-        .patient-selector { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .patient-selector select { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem; min-width: 280px; }
-        .patient-selector select option { background: #1e293b; }
-        .patient-info-bar { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+        .patient-selector { display:flex; gap:1rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
+        .patient-selector select { background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.2); padding:0.6rem 1rem; border-radius:8px; font-size:0.9rem; min-width:300px; cursor:pointer; }
+        .patient-selector select option { background:#1e293b; }
+        .patient-info-bar { font-size:0.82rem; color:rgba(255,255,255,0.4); }
 
-        /* Summary cards */
-        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.7rem; margin-bottom: 1.5rem; }
-        .summary-card { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 0.9rem; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
-        .summary-card .val { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .summary-card .lbl { font-size: 0.65rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.2rem; }
+        .view-tabs { display:flex; gap:0.4rem; margin-bottom:1.5rem; }
+        .view-tab { padding:0.5rem 1.2rem; border-radius:8px; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.45); cursor:pointer; border:1px solid transparent; font-size:0.85rem; transition:all 0.2s; }
+        .view-tab.active { background:rgba(96,165,250,0.15); color:#60a5fa; border-color:rgba(96,165,250,0.3); font-weight:600; }
 
-        /* Game tabs */
-        .game-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-        .game-tab { padding: 0.5rem 1rem; border-radius: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); cursor: pointer; border: 1px solid transparent; font-size: 0.85rem; transition: all 0.2s; }
-        .game-tab:hover { background: rgba(255,255,255,0.1); }
-        .game-tab.active { background: rgba(96,165,250,0.15); color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+        .summary-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:0.7rem; margin-bottom:1.5rem; }
+        .summary-card { background:rgba(255,255,255,0.05); border-radius:10px; padding:0.9rem; text-align:center; border:1px solid rgba(255,255,255,0.07); }
+        .summary-card .val { font-size:1.4rem; font-weight:700; color:#fff; }
+        .summary-card .val.ok    { color:#34d399; }
+        .summary-card .val.warn  { color:#fbbf24; }
+        .summary-card .val.alert { color:#f87171; }
+        .summary-card .lbl { font-size:0.6rem; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:0.5px; margin-top:0.3rem; }
 
-        /* Charts */
-        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.5rem; }
-        .chart-box { background: rgba(255,255,255,0.04); border-radius: 12px; padding: 1rem; border: 1px solid rgba(255,255,255,0.06); }
-        .chart-box h3 { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 0.6rem; }
-        .chart-box canvas { max-height: 260px; }
-        .chart-box.full { grid-column: 1 / -1; }
+        .section-title { font-size:0.78rem; color:rgba(255,255,255,0.4); margin:1.5rem 0 0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; border-left:3px solid rgba(96,165,250,0.4); padding-left:0.6rem; }
 
-        /* Color mood timeline */
-        .mood-timeline { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 1.5rem; }
-        .mood-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); cursor: pointer; position: relative; }
-        .mood-dot:hover { transform: scale(1.3); border-color: rgba(255,255,255,0.4); }
-        .mood-dot .tooltip { display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; z-index: 10; }
-        .mood-dot:hover .tooltip { display: block; }
+        .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+        .chart-box { background:rgba(255,255,255,0.03); border-radius:12px; padding:1rem; border:1px solid rgba(255,255,255,0.06); }
+        .chart-box h3 { font-size:0.7rem; color:rgba(255,255,255,0.35); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.4px; }
+        .chart-box canvas { max-height:200px; }
+        .chart-box.wide { grid-column:1/-1; }
+        .chart-box.wide canvas { max-height:160px; }
 
-        /* Sessions table */
-        .sessions-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-        .sessions-table th { text-align: left; padding: 0.5rem; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.5px; }
-        .sessions-table td { padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.7); }
-        .sessions-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .mood-timeline { display:flex; flex-wrap:wrap; gap:5px; padding:0.8rem; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid rgba(255,255,255,0.05); min-height:52px; align-items:center; margin-bottom:1.5rem; }
+        .mood-dot { width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,0.08); cursor:pointer; position:relative; transition:transform 0.15s; }
+        .mood-dot:hover { transform:scale(1.4); z-index:10; }
+        .mood-dot .tip { display:none; position:absolute; bottom:120%; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:4px 8px; border-radius:4px; font-size:0.65rem; white-space:nowrap; z-index:20; border:1px solid rgba(255,255,255,0.1); }
+        .mood-dot:hover .tip { display:block; }
 
-        .loading { text-align: center; padding: 4rem; color: rgba(255,255,255,0.4); }
-        .no-data { text-align: center; padding: 3rem; color: rgba(255,255,255,0.3); font-style: italic; }
-        .section-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 1.5rem 0 0.8rem; }
+        .tbl-wrap { overflow-x:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.06); margin-bottom:2rem; }
+        .sessions-table { width:100%; border-collapse:collapse; font-size:0.72rem; }
+        .sessions-table th { text-align:left; padding:0.55rem 0.5rem; color:rgba(255,255,255,0.3); border-bottom:1px solid rgba(255,255,255,0.08); font-weight:700; text-transform:uppercase; font-size:0.6rem; letter-spacing:0.4px; white-space:nowrap; background:rgba(255,255,255,0.02); }
+        .sessions-table td { padding:0.45rem 0.5rem; border-bottom:1px solid rgba(255,255,255,0.03); color:rgba(255,255,255,0.6); white-space:nowrap; }
+        .sessions-table tr:hover td { background:rgba(255,255,255,0.025); }
+        .ok   { color:#34d399; }
+        .warn { color:#fbbf24; }
+        .alert{ color:#f87171; }
 
-        @media (max-width: 768px) {
-            .charts-grid { grid-template-columns: 1fr; }
-            .summary-row { grid-template-columns: repeat(3, 1fr); }
-        }
+        .loading { text-align:center; padding:4rem; color:rgba(255,255,255,0.35); }
+        .no-data { text-align:center; padding:2.5rem; color:rgba(255,255,255,0.25); font-style:italic; }
+
+        @media (max-width:900px) { .charts-grid { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
@@ -77,316 +75,337 @@
     </div>
     <div id="content"><div class="loading">Verificando acceso...</div></div>
 </div>
-
 <script>
-const SB_URL = 'https://yqpqfzvgcmvxvqzvtajx.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxcHFmenZnY212eHZxenZ0YWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1OTMzODksImV4cCI6MjA2NTE2OTM4OX0.jM2YEBXQ0YFwFOBu3mGbU3NxCez29x8RKYYDV2d8snk';
+const SB_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 const GAMES = {
-    'lawn-mower': { name: 'Cortadora de Césped', icon: '🌿', color: '#22c55e' },
-    'medication-memory': { name: 'Memoria de Medicación', icon: '💊', color: '#3b82f6' },
-    'pill-organizer': { name: 'Organizador de Pastillas', icon: '🎯', color: '#f59e0b' },
-    'daily-routine': { name: 'Rutina Diaria', icon: '📅', color: '#06b6d4' },
-    'fridge-logic': { name: 'Lógica de Heladera', icon: '🧊', color: '#8b5cf6' },
-    'super-market': { name: 'Supermercado', icon: '🛒', color: '#ec4899' },
-    'neuro-chef': { name: 'Neuro-Chef', icon: '👨‍🍳', color: '#a855f7' },
-    'neuro-chef-v2': { name: 'Neuro-Chef v2', icon: '🧠', color: '#a855f7' }
+    'lawn-mower':        { name:'Cortadora de Césped',  color:'#22c55e' },
+    'medication-memory': { name:'Memoria Medicación',   color:'#3b82f6' },
+    'pill-organizer':    { name:'Organizador Pastillas',color:'#f59e0b' },
+    'daily-routine':     { name:'Rutina Diaria',        color:'#06b6d4' },
+    'fridge-logic':      { name:'Lógica Heladera',      color:'#8b5cf6' },
+    'super-market':      { name:'Supermercado',         color:'#ec4899' },
+    'neuro-chef':        { name:'Neuro-Chef',           color:'#a855f7' },
 };
+const GC = slug => GAMES[slug]?.color || '#6b7280';
+const GN = slug => GAMES[slug]?.name  || slug;
 
-let charts = {};
-let currentPatient = null;
-let allData = {};
+let charts = {}, state = { patients:[], patient:null, metrics:[], moods:[], view:'longitudinal', dni:'' };
 
-// Auth check
+/* ── AUTH ─────────────────────────────────────────────────────────────── */
 (async function init() {
-    const adminSession = localStorage.getItem('hdd_admin_session');
-    if (!adminSession) {
-        document.getElementById('content').innerHTML = `
-            <div class="auth-gate">
-                <h2>Acceso restringido</h2>
-                <p>Este dashboard es solo para profesionales autorizados.</p>
-                <p style="margin-top:1rem;"><a href="/hdd/admin/">Iniciar sesión como administrador</a></p>
-            </div>`;
-        return;
-    }
-
-    // Verify session
+    const sess = localStorage.getItem('hdd_admin_session');
+    if (!sess) { showAuth(); return; }
     try {
-        const res = await fetch('/api/hdd/admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'verify_session', sessionToken: adminSession })
-        });
-        const d = await res.json();
-        if (!d.valid) throw new Error('invalid');
-    } catch(e) {
-        // Allow if session exists (offline resilience)
-        console.warn('Admin verify failed, proceeding with stored session');
-    }
-
+        const r = await fetch('/api/hdd/admin',{ method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ action:'verify_session', sessionToken:sess }) });
+        const d = await r.json();
+        if (!d.valid) throw 'invalid';
+    } catch { /* offline: continuar si hay sesión guardada */ }
     await loadPatients();
 })();
 
+function showAuth() {
+    document.getElementById('content').innerHTML = `<div class="auth-gate">
+        <h2>Acceso restringido</h2><p>Solo profesionales autorizados.</p>
+        <p style="margin-top:1rem;"><a href="/hdd/admin/">Iniciar sesión</a></p></div>`;
+}
+
+/* ── PACIENTES ────────────────────────────────────────────────────────── */
 async function loadPatients() {
-    const { data: patients } = await sb.from('hdd_patients').select('id, full_name, patient_dni, dni, created_at').order('full_name');
-    if (!patients || patients.length === 0) {
+    const { data:pts } = await sb.from('hdd_patients').select('id, full_name, dni, created_at').order('full_name');
+    state.patients = pts || [];
+    if (!state.patients.length) {
         document.getElementById('content').innerHTML = '<div class="no-data">No hay pacientes registrados.</div>';
         return;
     }
-
     let html = `<div class="patient-selector">
-        <select id="patientSelect"><option value="">Seleccionar paciente...</option>`;
-    patients.forEach(p => {
-        html += `<option value="${p.id}">${p.full_name || 'Sin nombre'} — DNI: ${p.patient_dni || p.dni || '?'}</option>`;
+        <select id="pSel"><option value="">Seleccionar paciente...</option>`;
+    state.patients.forEach(p => {
+        html += `<option value="${p.id}">${p.full_name||'Sin nombre'} — DNI: ${p.dni||'?'}</option>`;
     });
-    html += `</select><span class="patient-info-bar" id="patientInfoBar"></span></div>
-        <div id="dashContent"><div class="no-data">Seleccioná un paciente para ver su evolución clínica.</div></div>`;
+    html += `</select><span class="patient-info-bar" id="pBar"></span></div>
+    <div class="view-tabs">
+        <div class="view-tab active" id="tabLong" onclick="setView('longitudinal')">📈 Evolución longitudinal</div>
+        <div class="view-tab" id="tabHoy" onclick="setView('hoy')">📅 Sesión de hoy</div>
+    </div>
+    <div id="dashContent"><div class="no-data">Seleccioná un paciente.</div></div>`;
     document.getElementById('content').innerHTML = html;
-
-    document.getElementById('patientSelect').addEventListener('change', function() {
-        if (this.value) loadPatientData(this.value);
-    });
-
-    // Auto-select from URL param
+    document.getElementById('pSel').addEventListener('change', function(){ if(this.value) loadPatientData(this.value); });
     const urlPid = new URLSearchParams(window.location.search).get('patient_id');
-    if (urlPid) {
-        document.getElementById('patientSelect').value = urlPid;
-        loadPatientData(urlPid);
-    }
+    if (urlPid) { document.getElementById('pSel').value = urlPid; loadPatientData(urlPid); }
 }
 
+function setView(v) {
+    state.view = v;
+    document.getElementById('tabLong')?.classList.toggle('active', v==='longitudinal');
+    document.getElementById('tabHoy')?.classList.toggle('active', v==='hoy');
+    if (state.patient) renderDashboard();
+}
+
+/* ── CARGA DATOS ──────────────────────────────────────────────────────── */
 async function loadPatientData(pid) {
-    currentPatient = pid;
+    destroyCharts();
     document.getElementById('dashContent').innerHTML = '<div class="loading">Cargando datos clínicos...</div>';
+    const pat = state.patients.find(p => p.id == pid);
+    state.patient = pat;
+    const dni = pat?.dni;
+    if (!dni) { document.getElementById('dashContent').innerHTML = '<div class="no-data">Paciente sin DNI.</div>'; return; }
+    state.dni = dni;
+    document.getElementById('pBar').textContent = `DNI: ${dni} | Ingreso: ${pat.created_at ? new Date(pat.created_at).toLocaleDateString('es-AR') : '?'}`;
 
-    try {
-        // 1. Obtener paciente por ID para conseguir su DNI
-        const patRes = await sb.from('hdd_patients').select('*').eq('id', pid).single();
-        const patient = patRes.data;
-        if (!patient) throw new Error('Paciente no encontrado');
-
-        const dni = patient.patient_dni || patient.dni;
-        if (!dni) throw new Error('Paciente sin DNI registrado');
-
-        // 2. Consultar por DNI — así guardan todos los juegos
-        const [metRes, moodRes] = await Promise.all([
-            sb.from('hdd_game_metrics')
-                .select('*')
-                .eq('patient_dni', dni)
-                .order('session_date', { ascending: true }),
-            sb.from('hdd_mood_entries')
-                .select('*')
-                .eq('patient_dni', dni)
-                .order('recorded_at', { ascending: true })
-        ]);
-
-        const metrics = metRes.data || [];
-        const moods = moodRes.data || [];
-
-        // Sessions = registros de tipo session_summary (uno por partida)
-        const sessions = metrics.filter(m => m.metric_type === 'session_summary' || (!m.metric_type || m.metric_type === 'session'));
-
-        document.getElementById('patientInfoBar').textContent =
-            `DNI: ${dni} | Ingreso: ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-AR') : '?'} | Registros: ${metrics.length}`;
-
-        allData = { sessions, metrics, moods, patient, dni };
-        renderDashboard(sessions, metrics, moods);
-    } catch(e) {
-        console.error(e);
-        document.getElementById('dashContent').innerHTML = `<div class="no-data">Error cargando datos: ${e.message}</div>`;
-    }
+    const [metRes, moodRes] = await Promise.all([
+        sb.from('hdd_game_metrics').select('*').eq('patient_dni', dni).order('created_at', { ascending: true }),
+        sb.from('hdd_mood_entries').select('*').eq('patient_dni', dni).order('created_at', { ascending: true })
+    ]);
+    state.metrics = metRes.data || [];
+    state.moods   = moodRes.data || [];
+    renderDashboard();
 }
 
-function renderDashboard(sessions, metrics, moods) {
-    const dc = document.getElementById('dashContent');
-    Object.values(charts).forEach(c => c.destroy());
-    charts = {};
+/* ── RENDER DASHBOARD ─────────────────────────────────────────────────── */
+function renderDashboard() {
+    destroyCharts();
+    const { metrics, moods, view } = state;
 
-    if (metrics.length === 0 && moods.length === 0) {
-        dc.innerHTML = '<div class="no-data">Sin datos registrados para este paciente aún.<br><small style="color:rgba(255,255,255,0.3)">Los datos aparecen a medida que el paciente juega y selecciona colores.</small></div>';
+    const biomet   = metrics.filter(m => m.metric_type === 'session_biomet');
+    const sessions = metrics.filter(m => m.metric_type === 'session_summary');
+    const colorMet = metrics.filter(m => m.metric_type === 'color_eleccion');
+    const today    = new Date().toISOString().slice(0,10);
+    const ft = arr => arr.filter(m => (m.session_date||m.created_at||'').startsWith(today));
+
+    const bm  = view==='hoy' ? ft(biomet)   : biomet;
+    const ses = view==='hoy' ? ft(sessions)  : sessions;
+    const md  = view==='hoy' ? ft(moods)     : moods;
+    const cm  = view==='hoy' ? ft(colorMet)  : colorMet;
+
+    if (!bm.length && !ses.length && !md.length) {
+        document.getElementById('dashContent').innerHTML =
+            `<div class="no-data">${view==='hoy'?'Sin actividad hoy.':'Sin datos registrados aún.'}<br>
+            <small style="color:rgba(255,255,255,0.2)">Los datos aparecen cuando el paciente juega.</small></div>`;
         return;
     }
 
-    // Agregados globales desde hdd_game_metrics
-    const gameSessions = metrics.filter(m => m.metric_type === 'session_summary');
-    const biometSessions = metrics.filter(m => m.metric_type === 'session_biomet');
-    const colorEntries = metrics.filter(m => m.metric_type === 'color_eleccion');
+    /* KPIs */
+    const v = (arr, key) => arr.map(m => m.metric_data?.[key]).filter(x=>x!=null&&x>0);
+    const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    const fmtAvg = (arr, dec=0) => { const a=avg(arr); return a===null?'—':a.toFixed(dec); };
 
-    const totalSessions = gameSessions.length;
-    const completedSessions = gameSessions.filter(s => s.completed).length;
-    const totalTimeSec = gameSessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
-    const totalDays = new Set(gameSessions.map(s => (s.session_date || s.created_at || '').split('T')[0]).filter(Boolean)).size;
+    const rtVals = v(bm,'rt_mean_ms');
+    const avgRT  = avg(rtVals);
+    const cvVals = v(bm,'rt_cv');
+    const avgCV  = avg(cvVals);
+    const trRVals= v(bm,'tremor_reposo_px');
+    const avgTrR = avg(trRVals);
+    const trIVals= v(bm,'tremor_inicio_px');
+    const avgTrI = avg(trIVals);
+    const econVals=v(bm,'economia_cognitiva');
+    const avgEcon= avg(econVals);
+    const efVals = v(bm,'eficiencia_trayectoria');
+    const avgEf  = avg(efVals);
+    const totalOm = bm.reduce((a,m)=>a+(m.metric_data?.errores_omision||0),0);
+    const totalCom= bm.reduce((a,m)=>a+(m.metric_data?.errores_comision||0),0);
+    const totalFC = bm.reduce((a,m)=>a+(m.metric_data?.falsos_clicks||0),0);
+    const totalHes= bm.reduce((a,m)=>a+(m.metric_data?.hesitaciones_count||0),0);
+    const totalRect=bm.reduce((a,m)=>a+(m.metric_data?.rectificaciones_count||0),0);
+    const days    = new Set(ses.map(s=>(s.session_date||s.created_at||'').slice(0,10)).filter(Boolean)).size;
 
-    // RT promedio desde biomet
-    const rtValues = biometSessions.map(m => m.metric_data?.rt_mean_ms).filter(v => v > 0);
-    const avgRT = rtValues.length ? Math.round(rtValues.reduce((a, b) => a + b, 0) / rtValues.length) : '—';
+    const rtCls  = avgRT===null?'':avgRT<600?'ok':avgRT<1200?'warn':'alert';
+    const cvCls  = avgCV===null?'':avgCV<0.2?'ok':avgCV<0.4?'warn':'alert';
+    const trCls  = avgTrR===null?'':avgTrR<2?'ok':avgTrR<5?'warn':'alert';
 
-    // Juegos únicos
-    const gamesSlugs = [...new Set(gameSessions.map(s => s.game_slug).filter(Boolean))];
-
-    // Summary cards
     let html = `<div class="summary-row">
-        <div class="summary-card"><div class="val">${totalSessions}</div><div class="lbl">Sesiones juego</div></div>
-        <div class="summary-card"><div class="val">${completedSessions}</div><div class="lbl">Completadas</div></div>
-        <div class="summary-card"><div class="val">${totalDays}</div><div class="lbl">Días activos</div></div>
-        <div class="summary-card"><div class="val">${Math.round(totalTimeSec / 60)}min</div><div class="lbl">Tiempo total</div></div>
-        <div class="summary-card"><div class="val">${avgRT}</div><div class="lbl">RT promedio (ms)</div></div>
-        <div class="summary-card"><div class="val">${gamesSlugs.length}</div><div class="lbl">Juegos distintos</div></div>
-        <div class="summary-card"><div class="val">${moods.length + colorEntries.length}</div><div class="lbl">Registros color</div></div>
+        <div class="summary-card"><div class="val">${bm.length||ses.length}</div><div class="lbl">Sesiones</div></div>
+        <div class="summary-card"><div class="val ${rtCls}">${avgRT===null?'—':Math.round(avgRT)}</div><div class="lbl">RT media ms</div></div>
+        <div class="summary-card"><div class="val ${cvCls}">${avgCV===null?'—':avgCV.toFixed(2)}</div><div class="lbl">CV-TR</div></div>
+        <div class="summary-card"><div class="val ${trCls}">${avgTrR===null?'—':avgTrR.toFixed(1)}</div><div class="lbl">Tremor reposo px</div></div>
+        <div class="summary-card"><div class="val">${avgTrI===null?'—':avgTrI.toFixed(1)}</div><div class="lbl">Tremor inicio px</div></div>
+        <div class="summary-card"><div class="val ${totalOm>0?'alert':''}">${totalOm}</div><div class="lbl">Omisiones</div></div>
+        <div class="summary-card"><div class="val ${totalCom>0?'warn':''}">${totalCom}</div><div class="lbl">Comisiones</div></div>
+        <div class="summary-card"><div class="val">${totalFC}</div><div class="lbl">Falsos clicks</div></div>
+        <div class="summary-card"><div class="val">${totalRect}</div><div class="lbl">Rectificaciones</div></div>
+        <div class="summary-card"><div class="val">${totalHes}</div><div class="lbl">Hesitaciones</div></div>
+        <div class="summary-card"><div class="val">${avgEcon===null?'—':(avgEcon*100).toFixed(0)+'%'}</div><div class="lbl">Economía cog.</div></div>
+        <div class="summary-card"><div class="val">${avgEf===null?'—':(avgEf*100).toFixed(0)+'%'}</div><div class="lbl">Ef. trayectoria</div></div>
+        ${view==='longitudinal'?`<div class="summary-card"><div class="val">${days}</div><div class="lbl">Días activos</div></div>`:''}
+        <div class="summary-card"><div class="val">${md.length+cm.length}</div><div class="lbl">Reg. color</div></div>
     </div>`;
 
-    // Timeline de colores — combina hdd_mood_entries + color_eleccion en hdd_game_metrics
+    /* ── Timeline colores ── */
     const allColors = [
-        ...moods.map(m => ({ hex: m.color_hex, id: m.color_id, date: m.recorded_at || m.created_at, ctx: m.context_type || 'game' })),
-        ...colorEntries.map(m => ({ hex: m.metric_data?.color_hex, id: m.metric_data?.color_id, date: m.session_date || m.created_at, ctx: m.metric_data?.context_type || m.game_slug }))
-    ].filter(c => c.hex).sort((a, b) => new Date(a.date) - new Date(b.date));
+        ...md.map(m=>({ hex:m.color_hex, label:m.color_name||m.color_id||'', date:m.created_at, ctx:m.source_activity||m.context_type||'registro' })),
+        ...cm.map(m=>({ hex:m.metric_data?.color_hex, label:m.metric_data?.color_id||'', date:m.created_at, ctx:m.game_slug||'juego' }))
+    ].filter(c=>c.hex).sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-    if (allColors.length > 0) {
-        html += `<div class="section-title">Colores seleccionados (línea temporal — ${allColors.length} registros)</div><div class="mood-timeline">`;
+    html += `<div class="section-title">Selección de color — línea temporal (${allColors.length} registros)</div>
+    <div class="mood-timeline">`;
+    if (allColors.length) {
         allColors.forEach(c => {
-            const d = new Date(c.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
-            html += `<div class="mood-dot" style="background:${c.hex}"><div class="tooltip">${d} — ${c.ctx}</div></div>`;
+            const d = new Date(c.date).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+            html += `<div class="mood-dot" style="background:${c.hex}"><div class="tip">${d} ${c.ctx}</div></div>`;
         });
-        html += `</div>`;
     } else {
-        html += `<div class="section-title">Colores seleccionados</div><div class="no-data" style="padding:1rem;">Sin registros de color aún.</div>`;
+        html += `<span style="color:rgba(255,255,255,0.2);font-size:0.8rem;">Sin registros de color</span>`;
     }
+    html += `</div>`;
 
-    // Charts area
-    html += `<div class="section-title">Evolución Longitudinal</div>`;
-    html += `<div class="charts-grid">
-        <div class="chart-box"><h3>Tiempo de Reacción (ms)</h3><canvas id="chartRT"></canvas></div>
-        <div class="chart-box"><h3>Puntaje por sesión</h3><canvas id="chartScore"></canvas></div>
-        <div class="chart-box"><h3>Errores (omisión vs comisión)</h3><canvas id="chartErrors"></canvas></div>
-        <div class="chart-box full"><h3>Tremor / Hesitaciones</h3><canvas id="chartTremor"></canvas></div>
+    /* ── Gráficos ── */
+    html += `<div class="section-title">Biometría psicomotora — ${view==='hoy'?'sesión de hoy':'evolución entre sesiones'}</div>
+    <div class="charts-grid">
+        <div class="chart-box"><h3>Tiempo de Reacción — media ± SD (ms)</h3><canvas id="cRT"></canvas></div>
+        <div class="chart-box"><h3>CV del TR (bradipsiquia vs variabilidad atencional)</h3><canvas id="cCV"></canvas></div>
+        <div class="chart-box"><h3>Tremor reposo / inicio / terminal (px)</h3><canvas id="cTremor"></canvas></div>
+        <div class="chart-box"><h3>Hesitaciones y Rectificaciones</h3><canvas id="cHes"></canvas></div>
+        <div class="chart-box"><h3>Errores: Omisión / Comisión / Falsos clicks</h3><canvas id="cErr"></canvas></div>
+        <div class="chart-box"><h3>Eficiencia de trayectoria (0–1)</h3><canvas id="cEfic"></canvas></div>
+        <div class="chart-box"><h3>Impulsividad / Inhibición motora</h3><canvas id="cImp"></canvas></div>
+        <div class="chart-box"><h3>Economía cognitiva / Dismetría (px)</h3><canvas id="cEcon"></canvas></div>
+        <div class="chart-box wide"><h3>Decaimiento de vigilancia intra-sesión (ratio 2ª/1ª mitad RT) — umbral 1.3</h3><canvas id="cVig"></canvas></div>
     </div>`;
 
-    // Tabla de sesiones
-    html += `<div class="section-title">Historial de Sesiones (${totalSessions} registros)</div>
-    <div style="overflow-x:auto;">
-    <table class="sessions-table">
-        <thead><tr>
-            <th>Fecha</th><th>Juego</th><th>Nivel</th><th>Puntaje</th><th>Duración</th><th>RT (ms)</th><th>Omisiones</th><th>Comisiones</th><th>Completado</th>
-        </tr></thead><tbody>`;
+    /* ── Tabla detalle ── */
+    const sorted = ses.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    html += `<div class="section-title">Detalle de sesiones (${sorted.length})</div>
+    <div class="tbl-wrap"><table class="sessions-table"><thead><tr>
+        <th>Fecha/Hora</th><th>Juego</th><th>Score</th>
+        <th>RT med</th><th>RT±SD</th><th>CV-TR</th>
+        <th>Tr.rep</th><th>Tr.ini</th><th>Tr.ter</th><th>Dismet.</th>
+        <th>Rect.</th><th>Hesit.</th><th>H.dur ms</th>
+        <th>Omis.</th><th>Comis.</th><th>F.Click</th><th>Persev.</th>
+        <th>Ef.tray.</th><th>Impuls.</th><th>Inhib.</th><th>Econ.cog.</th>
+        <th>Decaim.</th><th>Ef.obj.</th><th>Ef.plan</th><th>Seq.%</th><th>Duración</th>
+    </tr></thead><tbody>`;
 
-    const rows = gameSessions.slice().reverse().map(s => {
-        const game = GAMES[s.game_slug] || { name: s.game_slug || 'juego', icon: '🎮' };
-        const dt = (s.session_date || s.created_at) ? new Date(s.session_date || s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' }) : '?';
-        // Buscar biomet correspondiente a esta sesión
-        const bio = biometSessions.find(b => b.game_slug === s.game_slug && Math.abs(new Date(b.session_date||b.created_at) - new Date(s.session_date||s.created_at)) < 60000);
-        const bd = bio?.metric_data || {};
-        return `<tr>
+    sorted.forEach(s => {
+        const bio = bm.find(b => b.session_id && b.session_id===s.session_id)
+                 || bm.find(b => b.game_slug===s.game_slug && Math.abs(new Date(b.created_at)-new Date(s.created_at))<120000);
+        const bd  = bio?.metric_data || {};
+        const dt  = new Date(s.session_date||s.created_at).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        const c   = (v, lo, hi) => v==null?'':v<lo?'ok':v<hi?'warn':'alert';
+        const pct = v => v!=null ? (v*100).toFixed(0)+'%' : '—';
+        const dur = s.duration_seconds ? Math.round(s.duration_seconds)+'s' : (bd.duration_ms ? Math.round(bd.duration_ms/1000)+'s' : '—');
+        html += `<tr>
             <td>${dt}</td>
-            <td>${game.icon} ${game.name}</td>
-            <td>${s.level_reached ?? '—'}</td>
-            <td>${s.score ?? s.metric_value ?? 0}</td>
-            <td>${s.duration_seconds ? Math.round(s.duration_seconds) + 's' : '—'}</td>
-            <td>${bd.rt_mean_ms ? Math.round(bd.rt_mean_ms) : '—'}</td>
-            <td>${bd.errores_omision ?? '—'}</td>
-            <td>${bd.errores_comision ?? '—'}</td>
-            <td>${s.completed ? '✓' : '✗'}</td>
+            <td style="color:${GC(s.game_slug)}">${GN(s.game_slug)}</td>
+            <td>${s.score??s.metric_value??'—'}</td>
+            <td class="${c(bd.rt_mean_ms,600,1200)}">${bd.rt_mean_ms!=null?Math.round(bd.rt_mean_ms):'—'}</td>
+            <td>${bd.rt_sd_ms!=null?Math.round(bd.rt_sd_ms):'—'}</td>
+            <td class="${c(bd.rt_cv,0.2,0.4)}">${bd.rt_cv!=null?bd.rt_cv.toFixed(2):'—'}</td>
+            <td>${bd.tremor_reposo_px!=null?bd.tremor_reposo_px.toFixed(1):'—'}</td>
+            <td>${bd.tremor_inicio_px!=null?bd.tremor_inicio_px.toFixed(1):'—'}</td>
+            <td>${bd.tremor_terminal_px!=null?bd.tremor_terminal_px.toFixed(1):'—'}</td>
+            <td>${bd.dismetria_mean_px!=null?bd.dismetria_mean_px.toFixed(1):'—'}</td>
+            <td>${bd.rectificaciones_count??'—'}</td>
+            <td>${bd.hesitaciones_count??'—'}</td>
+            <td>${bd.hesitacion_duracion_mean_ms!=null?Math.round(bd.hesitacion_duracion_mean_ms):'—'}</td>
+            <td class="${bd.errores_omision>0?'alert':''}">${bd.errores_omision??'—'}</td>
+            <td class="${bd.errores_comision>0?'warn':''}">${bd.errores_comision??'—'}</td>
+            <td>${bd.falsos_clicks??'—'}</td>
+            <td>${bd.perseveracion_count??'—'}</td>
+            <td>${pct(bd.eficiencia_trayectoria)}</td>
+            <td>${pct(bd.impulsividad_ratio)}</td>
+            <td>${pct(bd.inhibicion_motor)}</td>
+            <td>${pct(bd.economia_cognitiva)}</td>
+            <td class="${bd.decaimiento_vigilancia>1.3?'alert':bd.decaimiento_vigilancia>1.1?'warn':''}">${bd.decaimiento_vigilancia!=null?bd.decaimiento_vigilancia.toFixed(2):'—'}</td>
+            <td>${pct(bd.eficacia_objetivo)}</td>
+            <td>${pct(bd.eficacia_plan_propio)}</td>
+            <td>${pct(bd.secuencia_correcta_pct)}</td>
+            <td>${dur}</td>
         </tr>`;
     });
-
-    html += rows.join('') || '<tr><td colspan="9" style="text-align:center;color:rgba(255,255,255,0.3);padding:2rem;">Sin sesiones registradas</td></tr>';
+    if (!sorted.length) html += `<tr><td colspan="26" class="no-data">Sin sesiones${view==='hoy'?' hoy':''}</td></tr>`;
     html += `</tbody></table></div>`;
 
-    dc.innerHTML = html;
-    requestAnimationFrame(() => renderCharts(gameSessions, biometSessions, allColors));
+    document.getElementById('dashContent').innerHTML = html;
+    requestAnimationFrame(() => buildCharts(bm));
 }
 
-function getGameSlug(session) {
-    return session.game_slug || 'unknown';
+/* ── GRÁFICOS ─────────────────────────────────────────────────────────── */
+function buildCharts(bm) {
+    if (!bm.length) return;
+    const sorted = bm.slice().sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const lbl = sorted.map(m => new Date(m.session_date||m.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}));
+    const d = (m,k) => m.metric_data?.[k]??null;
+
+    const baseOpts = (extra={}) => ({
+        responsive:true, animation:{duration:300},
+        plugins:{ legend:{ labels:{ color:'rgba(255,255,255,0.4)', font:{size:9}, boxWidth:10, padding:6 } } },
+        scales:{
+            x:{ ticks:{color:'rgba(255,255,255,0.28)',font:{size:8},maxRotation:30}, grid:{color:'rgba(255,255,255,0.04)'} },
+            y:{ ticks:{color:'rgba(255,255,255,0.28)',font:{size:8}}, grid:{color:'rgba(255,255,255,0.06)'} }
+        }, ...extra
+    });
+
+    mkL('cRT', lbl, [
+        { label:'RT media ms', data:sorted.map(m=>d(m,'rt_mean_ms')), borderColor:'#60a5fa', tension:0.3, spanGaps:true, pointRadius:4 },
+        { label:'±SD',         data:sorted.map(m=>d(m,'rt_sd_ms')),  borderColor:'rgba(96,165,250,0.3)', tension:0.3, spanGaps:true, pointRadius:2, borderDash:[4,3] }
+    ], baseOpts());
+
+    mkL('cCV', lbl, [
+        { label:'CV-TR', data:sorted.map(m=>d(m,'rt_cv')), borderColor:'#f59e0b', tension:0.3, spanGaps:true, pointRadius:4,
+          segment:{ borderColor: ctx => ctx.p0.parsed.y>0.4?'#ef4444':ctx.p0.parsed.y>0.2?'#f59e0b':'#34d399' } }
+    ], baseOpts({ scales:{ x:baseOpts().scales.x, y:{ ...baseOpts().scales.y, min:0,
+        title:{ display:true, text:'CV (>0.4 = irreg. atencional  <0.2 = bradipsiquia)', color:'rgba(255,255,255,0.25)', font:{size:8} } } } }));
+
+    mkL('cTremor', lbl, [
+        { label:'Reposo',  data:sorted.map(m=>d(m,'tremor_reposo_px')),  borderColor:'#f87171', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Inicio',  data:sorted.map(m=>d(m,'tremor_inicio_px')),  borderColor:'#fb923c', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Terminal',data:sorted.map(m=>d(m,'tremor_terminal_px')), borderColor:'#fbbf24', tension:0.3, spanGaps:true, pointRadius:3 }
+    ], baseOpts());
+
+    mkB('cHes', lbl, [
+        { label:'Hesitaciones',   data:sorted.map(m=>d(m,'hesitaciones_count')),    backgroundColor:'rgba(251,191,36,0.75)', borderRadius:3 },
+        { label:'Rectificaciones',data:sorted.map(m=>d(m,'rectificaciones_count')), backgroundColor:'rgba(168,85,247,0.7)',  borderRadius:3 }
+    ], baseOpts());
+
+    mkB('cErr', lbl, [
+        { label:'Omisión',  data:sorted.map(m=>d(m,'errores_omision')),  backgroundColor:'rgba(239,68,68,0.8)',   borderRadius:3 },
+        { label:'Comisión', data:sorted.map(m=>d(m,'errores_comision')), backgroundColor:'rgba(245,158,11,0.75)', borderRadius:3 },
+        { label:'F.Clicks', data:sorted.map(m=>d(m,'falsos_clicks')),    backgroundColor:'rgba(156,163,175,0.55)',borderRadius:3 }
+    ], baseOpts());
+
+    mkL('cEfic', lbl, [
+        { label:'Ef. trayectoria', data:sorted.map(m=>d(m,'eficiencia_trayectoria')), borderColor:'#34d399', tension:0.3, spanGaps:true, pointRadius:4,
+          fill:true, backgroundColor:'rgba(52,211,153,0.07)' }
+    ], baseOpts({ scales:{ x:baseOpts().scales.x, y:{ ...baseOpts().scales.y, min:0, max:1 } } }));
+
+    mkL('cImp', lbl, [
+        { label:'Impulsividad', data:sorted.map(m=>d(m,'impulsividad_ratio')), borderColor:'#f87171', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Inhib.motor',  data:sorted.map(m=>d(m,'inhibicion_motor')),   borderColor:'#a78bfa', tension:0.3, spanGaps:true, pointRadius:3 }
+    ], baseOpts({ scales:{ x:baseOpts().scales.x, y:{ ...baseOpts().scales.y, min:0, max:1 } } }));
+
+    mkL('cEcon', lbl, [
+        { label:'Economía cog.', data:sorted.map(m=>d(m,'economia_cognitiva')), borderColor:'#06b6d4', tension:0.3, spanGaps:true, pointRadius:3, yAxisID:'y' },
+        { label:'Dismetría px',  data:sorted.map(m=>d(m,'dismetria_mean_px')),  borderColor:'#a855f7', tension:0.3, spanGaps:true, pointRadius:3, yAxisID:'y1' }
+    ], { ...baseOpts(), scales:{
+        x:baseOpts().scales.x,
+        y: { ticks:{color:'rgba(255,255,255,0.28)',font:{size:8}}, grid:{color:'rgba(255,255,255,0.06)'}, position:'left',  min:0, max:1 },
+        y1:{ ticks:{color:'rgba(255,255,255,0.28)',font:{size:8}}, grid:{drawOnChartArea:false},           position:'right' }
+    }});
+
+    mkL('cVig', lbl, [
+        { label:'Decaimiento vigilancia', data:sorted.map(m=>d(m,'decaimiento_vigilancia')), borderColor:'#f59e0b', tension:0.3, spanGaps:true, pointRadius:4,
+          fill:true, backgroundColor:'rgba(245,158,11,0.05)',
+          segment:{ borderColor: ctx=>ctx.p0.parsed.y>1.3?'#ef4444':'#f59e0b', pointBackgroundColor: ctx=>ctx.p0.parsed.y>1.3?'#ef4444':'#f59e0b' } }
+    ], baseOpts({ scales:{ x:baseOpts().scales.x, y:{
+        ...baseOpts().scales.y, min:0.5,
+        title:{ display:true, text:'ratio >1.3 = fatigabilidad significativa', color:'rgba(255,255,255,0.25)', font:{size:8} }
+    }}}));
 }
 
-function renderCharts(gameSessions, biometSessions, allColors) {
-    const chartOpts = {
-        responsive: true,
-        plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } } } },
-        scales: {
-            x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
-            y: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
-        }
-    };
-
-    // RT chart: de biomet sessions
-    const rtData = biometSessions.filter(m => m.metric_data?.rt_mean_ms > 0).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
-    if (rtData.length > 0) {
-        const byGame = {};
-        rtData.forEach(m => {
-            const slug = m.game_slug || 'unknown';
-            if (!byGame[slug]) byGame[slug] = [];
-            byGame[slug].push({ date: m.session_date || m.created_at, rt: m.metric_data.rt_mean_ms });
-        });
-        const allDates = [...new Set(rtData.map(m => (m.session_date||m.created_at).split('T')[0]))].sort();
-        const datasets = Object.entries(byGame).map(([slug, pts]) => {
-            const game = GAMES[slug] || { name: slug, color: '#6b7280' };
-            return {
-                label: game.name || slug,
-                data: allDates.map(d => { const p = pts.find(x => (x.date||'').startsWith(d)); return p ? p.rt : null; }),
-                borderColor: game.color || '#60a5fa', tension: 0.3, spanGaps: true, pointRadius: 4
-            };
-        });
-        charts.rt = new Chart(document.getElementById('chartRT'), {
-            type: 'line',
-            data: { labels: allDates, datasets },
-            options: chartOpts
-        });
-    }
-
-    // Score chart
-    const scoreSessions = gameSessions.filter(s => (s.score ?? s.metric_value) > 0).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
-    if (scoreSessions.length > 0) {
-        charts.score = new Chart(document.getElementById('chartScore'), {
-            type: 'bar',
-            data: {
-                labels: scoreSessions.map(s => new Date(s.session_date||s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
-                datasets: [{ label: 'Puntaje', data: scoreSessions.map(s => s.score ?? s.metric_value ?? 0),
-                    backgroundColor: scoreSessions.map(s => GAMES[s.game_slug]?.color || '#6b7280'), borderRadius: 4 }]
-            },
-            options: { ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }
-        });
-    }
-
-    // Errors chart: omisiones y comisiones desde biomet
-    const errData = biometSessions.filter(m => m.metric_data?.errores_omision != null || m.metric_data?.errores_comision != null).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
-    if (errData.length > 0) {
-        charts.errors = new Chart(document.getElementById('chartErrors'), {
-            type: 'bar',
-            data: {
-                labels: errData.map(m => new Date(m.session_date||m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
-                datasets: [
-                    { label: 'Omisiones', data: errData.map(m => m.metric_data.errores_omision || 0), backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 3 },
-                    { label: 'Comisiones', data: errData.map(m => m.metric_data.errores_comision || 0), backgroundColor: 'rgba(245,158,11,0.7)', borderRadius: 3 }
-                ]
-            },
-            options: chartOpts
-        });
-    }
-
-    // Tremor / Hesitaciones chart desde biomet
-    const tremorData = biometSessions.filter(m => m.metric_data?.tremor_reposo_px != null).sort((a, b) => new Date(a.session_date||a.created_at) - new Date(b.session_date||b.created_at));
-    if (tremorData.length > 0) {
-        charts.tremor = new Chart(document.getElementById('chartTremor'), {
-            type: 'line',
-            data: {
-                labels: tremorData.map(m => new Date(m.session_date||m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' })),
-                datasets: [
-                    { label: 'Tremor reposo (px)', data: tremorData.map(m => m.metric_data.tremor_reposo_px || 0), borderColor: '#f87171', tension: 0.3, yAxisID: 'y' },
-                    { label: 'Hesitaciones', data: tremorData.map(m => m.metric_data.hesitaciones_count || 0), borderColor: '#fbbf24', tension: 0.3, yAxisID: 'y1' }
-                ]
-            },
-            options: {
-                ...chartOpts,
-                scales: {
-                    ...chartOpts.scales,
-                    y: { ...chartOpts.scales.y, position: 'left', title: { display: true, text: 'Tremor px', color: 'rgba(255,255,255,0.3)' } },
-                    y1: { ticks: { color: 'rgba(255,255,255,0.3)' }, grid: { drawOnChartArea: false }, position: 'right', title: { display: true, text: 'Hesitaciones', color: 'rgba(255,255,255,0.3)' } }
-                }
-            }
-        });
-    }
+function mkL(id, lbl, ds, opts) {
+    const el = document.getElementById(id); if (!el) return;
+    charts[id] = new Chart(el, { type:'line', data:{ labels:lbl, datasets:ds }, options:opts });
+}
+function mkB(id, lbl, ds, opts) {
+    const el = document.getElementById(id); if (!el) return;
+    charts[id] = new Chart(el, { type:'bar', data:{ labels:lbl, datasets:ds }, options:opts });
+}
+function destroyCharts() {
+    Object.values(charts).forEach(c => { try { c.destroy(); } catch {} });
+    charts = {};
 }
 </script>
 </body>
