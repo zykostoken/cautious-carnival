@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:status": "node scripts/migrate.mjs --status",
+    "migrate:dry": "node scripts/migrate.mjs --dry-run",
     "setup-db": "node scripts/setup-db.mjs",
-    "build": "npm run setup-db"
+    "build": "npm install && node scripts/migrate.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^8.0.0",
