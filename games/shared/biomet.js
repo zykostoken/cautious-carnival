@@ -98,6 +98,12 @@ var BM = {
         // Movimientos abortados (inhibición motora)
         moves_started: 0,
         moves_aborted: 0,
+
+        // Rigidez y espasticidad (motor extrapiramidal)
+        move_velocities: [],          // velocidad pico de cada movimiento (px/ms)
+        move_velocity_profiles: [],   // serie temporal de velocidades por movimiento
+        velocity_oscillations: [],    // frecuencia de cambios de velocidad (rueda dentada)
+        acceleration_drops: [],       // ratio aceleración_pico / aceleración_sostenida
     }
 };
 
@@ -345,6 +351,51 @@ function _finalizeMove(move, t_end) {
     // Distancia recta (para eficiencia)
     var straight = dist(path[0], path[path.length-1]);
     BM.metrics.total_straight_px += straight;
+
+    // ---- Rigidez / Espasticidad: perfil de velocidad del movimiento ----
+    if (path.length >= 4) {
+        var velocities = [];
+        var accelerations = [];
+        for (var j = 1; j < path.length; j++) {
+            var dt_ms = path[j].t - path[j-1].t;
+            if (dt_ms > 0) {
+                var v = dist(path[j-1], path[j]) / dt_ms; // px/ms
+                velocities.push(v);
+            }
+        }
+        for (var k = 1; k < velocities.length; k++) {
+            accelerations.push(velocities[k] - velocities[k-1]);
+        }
+
+        if (velocities.length >= 3) {
+            var peakV = Math.max.apply(null, velocities);
+            BM.metrics.move_velocities.push(peakV);
+            BM.metrics.move_velocity_profiles.push(velocities);
+
+            // Oscilación de velocidad (rueda dentada / cogwheel)
+            // Contar cambios de signo en aceleración
+            var signChanges = 0;
+            for (var s = 1; s < accelerations.length; s++) {
+                if ((accelerations[s] > 0 && accelerations[s-1] < 0) ||
+                    (accelerations[s] < 0 && accelerations[s-1] > 0)) {
+                    signChanges++;
+                }
+            }
+            var oscRate = accelerations.length > 0 ? signChanges / accelerations.length : 0;
+            BM.metrics.velocity_oscillations.push(oscRate);
+
+            // Espasticidad (clasp-knife): ratio pico_aceleración / aceleración_sostenida
+            if (accelerations.length >= 3) {
+                var posAccel = accelerations.filter(function(a){ return a > 0; });
+                if (posAccel.length >= 2) {
+                    var peakAccel = Math.max.apply(null, posAccel);
+                    var meanAccel = mean(posAccel);
+                    var dropRatio = meanAccel > 0 ? peakAccel / meanAccel : 1;
+                    BM.metrics.acceleration_drops.push(dropRatio);
+                }
+            }
+        }
+    }
 }
 
 function _onMouseDown(e) {
@@ -438,6 +489,7 @@ function start(opts) {
         sequenceCorrect: 0, sequenceTotal: 0, objectives_achieved: 0, objectives_total: 0,
         plan_correct_executed: 0, plan_correct_total: 0, plan_failed_attempts: [],
         hesitations: [], rt_list: [], moves_started: 0, moves_aborted: 0,
+        move_velocities: [], move_velocity_profiles: [], velocity_oscillations: [], acceleration_drops: [],
     });
 
     document.addEventListener('mousemove', _onMouseMove);
@@ -527,6 +579,18 @@ function compute() {
         ? m.moves_aborted / m.moves_started
         : 0;
 
+    // ---- RIGIDEZ ----
+    // Velocidad pico baja + baja varianza = rigidez (bradicinesia + hipertonía)
+    var vel_peak_mean = mean(m.move_velocities);
+    var vel_peak_sd   = sd(m.move_velocities);
+    var vel_cv = vel_peak_mean > 0 ? vel_peak_sd / vel_peak_mean : 0;
+    // Oscilación (rueda dentada): media de tasa de cambios de signo en aceleración
+    var cogwheel_index = mean(m.velocity_oscillations);
+
+    // ---- ESPASTICIDAD ----
+    // Clasp-knife: ratio alto = pico brusco seguido de caída = espástico
+    var clasp_knife_ratio = mean(m.acceleration_drops);
+
     return {
         // Meta
         game_slug:      BM.gameSlug,
@@ -567,6 +631,15 @@ function compute() {
         impulsividad_ratio:       +impulsividad_ratio.toFixed(3),
         inhibicion_motor:         +inhibicion_motor.toFixed(3),
         economia_cognitiva:       +economia_cognitiva.toFixed(3),
+
+        // Motor extrapiramidal
+        vel_peak_mean_px_ms:      m.move_velocities.length ? +vel_peak_mean.toFixed(4) : null,
+        vel_peak_sd_px_ms:        m.move_velocities.length ? +vel_peak_sd.toFixed(4) : null,
+        vel_cv:                   m.move_velocities.length ? +vel_cv.toFixed(3) : null,
+        rigidez_index:            m.move_velocities.length ? +(1 - Math.min(1, vel_cv)).toFixed(3) : null,
+        cogwheel_index:           m.velocity_oscillations.length ? +cogwheel_index.toFixed(3) : null,
+        clasp_knife_ratio:        m.acceleration_drops.length ? +clasp_knife_ratio.toFixed(3) : null,
+        espasticidad_index:       m.acceleration_drops.length ? +Math.min(1, Math.max(0, (clasp_knife_ratio - 1) / 4)).toFixed(3) : null,
     };
 }
 
