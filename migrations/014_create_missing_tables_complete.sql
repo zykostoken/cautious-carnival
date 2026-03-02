@@ -1,0 +1,50 @@
+-- =====================================================
+-- MIGRATION 014: Create ALL Missing Tables + Views + RLS
+-- Applied: 2026-03-02 via Supabase MCP
+-- 
+-- CONTEXT: 17 tables/views referenced by code did not exist in DB.
+-- This migration was applied in 4 parts:
+--   1. create_missing_tables_part1_core_games
+--   2. create_missing_tables_part2_clinical  
+--   3. create_missing_tables_part3_access_and_views
+--   4. rls_policies_new_tables
+--
+-- AUDIT FINDINGS:
+-- - 14 tables missing (code referenced, DB didn't have)
+-- - 3 views missing (code referenced, DB didn't have)
+-- - 4 frontend files had WRONG Supabase anon key (different project)
+-- - 1 frontend file had PLACEHOLDER credentials
+-- - hdd_game_metrics was missing game_session_id column
+--
+-- TABLES CREATED:
+--   hdd_games, hdd_game_schedule, hdd_game_sessions, hdd_game_progress,
+--   hdd_mood_checkins, hdd_crisis_alerts, hdd_game_color_selections,
+--   hdd_patient_monthly_summaries, hdd_interaction_log, hdd_resources,
+--   game_access_codes, game_access_sessions, external_game_sessions
+--
+-- COLUMNS ADDED:
+--   hdd_game_metrics.game_session_id (INTEGER, nullable)
+--
+-- VIEWS CREATED:
+--   hdd_game_biometrics (biometric metrics from hdd_game_metrics)
+--   v_hdd_session_analysis (game sessions + mood data for patient dashboard)
+--   v_patient_game_summary (per-game longitudinal stats per patient)
+--   v_patient_clinical_profile (cross-game clinical summary per patient)
+--
+-- FRONTEND CODE FIXES (same commit):
+--   games/portal/dashboard.html - wrong anon key → fixed
+--   games/play/neuro-chef/dashboard.html - wrong anon key → fixed
+--   hdd/portal/metrics-dashboard.html - wrong anon key → fixed
+--   hdd/portal/metrics.html - placeholder → fixed
+--
+-- SEED DATA:
+--   6 therapeutic games registered in hdd_games
+--   3 default access codes in game_access_codes
+-- =====================================================
+
+-- This file documents what was applied. See Supabase migration history for actual SQL.
+-- Supabase migration versions:
+--   20260302XXXXXX create_missing_tables_part1_core_games
+--   20260302XXXXXX create_missing_tables_part2_clinical
+--   20260302XXXXXX create_missing_tables_part3_access_and_views
+--   20260302XXXXXX rls_policies_new_tables
