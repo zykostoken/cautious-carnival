@@ -413,19 +413,26 @@ function placeItem(itemId, zoneName) {
     gameState.placements[itemId] = zoneName;
     logAction('place', { item: itemId, zone: zoneName });
     
-    // Visual + toast feedback
+    // Visual + toast feedback (sin revelar la respuesta correcta)
     if (item) {
-        const correct = item.zone === zoneName;
+        var correct = item.zone === zoneName;
         card.classList.add(correct ? 'placed-ok' : 'placed-bad');
-        setTimeout(() => card.classList.remove('placed-ok', 'placed-bad'), 600);
-        
+        setTimeout(function() { card.classList.remove('placed-ok', 'placed-bad'); }, 600);
+
         if (item.safety === 'toxic' && (zoneName === 'frio' || zoneName === 'freezer' || zoneName === 'verduras')) {
-            showToast('⚠️ ' + item.emoji + ' ¡Cuidado! Productos tóxicos NUNCA en la heladera', 'warn');
+            showToast('⚠️ ¡Cuidado! Los productos de limpieza no van con alimentos', 'warn');
         } else if (!correct) {
-            const zoneNames = { freezer: 'Freezer', frio: 'Estante frío', verduras: 'Cajón verduras', alacena: 'Alacena', limpieza: 'Limpieza' };
-            showToast(item.emoji + ' ' + item.name + ' → mejor iba en ' + (zoneNames[item.zone] || item.zone), 'bad');
+            // Pista contextual sin revelar la zona correcta
+            var hints = {
+                freezer: 'Esto no necesita estar tan frío...',
+                frio: 'Pensá en qué temperatura necesita este producto...',
+                verduras: 'No todo va en el cajón de verduras...',
+                alacena: '¿Seguro que no necesita frío?',
+                limpieza: 'Esto no es un producto de limpieza...'
+            };
+            showToast(item.emoji + ' ' + (hints[zoneName] || 'Mmm, ¿estás seguro?'), 'bad');
         } else {
-            showToast(item.emoji + ' ' + item.name + ' ¡Bien ubicado!', 'ok');
+            showToast(item.emoji + ' ' + item.name + ' ¡Bien!', 'ok');
         }
     }
     

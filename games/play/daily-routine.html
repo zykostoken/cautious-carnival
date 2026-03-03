@@ -334,7 +334,7 @@ try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPAB
 // HABITS DATA — con fotos de Unsplash (IDs confiables) + emoji fallback
 // ================================================================
 const HABITS = [
-    // MORNING
+    // MORNING (3 healthy)
     {
         id: 'despertarse',
         label: 'Levantarse a horario',
@@ -359,31 +359,7 @@ const HABITS = [
         fbFrom: '#3d2000', fbTo: '#7a4800',
         healthy: true, phase: 'morning', order: 3
     },
-    {
-        id: 'medicacion_am',
-        label: 'Medicación mañana',
-        emoji: '💊',
-        photo: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0f3320', fbTo: '#1a5c3a',
-        healthy: true, phase: 'morning', order: 4
-    },
-    {
-        id: 'tender_cama',
-        label: 'Tender la cama',
-        emoji: '🛏️',
-        photo: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#2a1a0f', fbTo: '#4a3020',
-        healthy: true, phase: 'morning', order: 5
-    },
-    {
-        id: 'ejercicio',
-        label: 'Actividad física',
-        emoji: '🏃',
-        photo: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#1a2e0f', fbTo: '#2e5020',
-        healthy: true, phase: 'morning', order: 6
-    },
-    // AFTERNOON
+    // AFTERNOON (3 healthy)
     {
         id: 'almuerzo',
         label: 'Almuerzo',
@@ -394,37 +370,21 @@ const HABITS = [
     },
     {
         id: 'taller',
-        label: 'Taller del HDD',
+        label: 'Taller / actividad grupal',
         emoji: '🏥',
         photo: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=300&h=220&fit=crop&auto=format&q=80',
         fbFrom: '#0a1a3d', fbTo: '#1a3070',
         healthy: true, phase: 'afternoon', order: 2
     },
     {
-        id: 'hobby',
-        label: 'Hobby / actividad',
-        emoji: '🎨',
-        photo: 'https://images.unsplash.com/photo-1452802447250-470a88ac82bc?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#2a0a3d', fbTo: '#4a1a70',
+        id: 'medicacion_am',
+        label: 'Tomar medicación',
+        emoji: '💊',
+        photo: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=220&fit=crop&auto=format&q=80',
+        fbFrom: '#0f3320', fbTo: '#1a5c3a',
         healthy: true, phase: 'afternoon', order: 3
     },
-    {
-        id: 'merienda',
-        label: 'Merienda',
-        emoji: '☕',
-        photo: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#2d1500', fbTo: '#5a3000',
-        healthy: true, phase: 'afternoon', order: 4
-    },
-    {
-        id: 'social',
-        label: 'Contacto social',
-        emoji: '👥',
-        photo: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0f2a3d', fbTo: '#1a4a6e',
-        healthy: true, phase: 'afternoon', order: 5
-    },
-    // EVENING
+    // EVENING (3 healthy)
     {
         id: 'cena',
         label: 'Cena',
@@ -434,28 +394,12 @@ const HABITS = [
         healthy: true, phase: 'evening', order: 1
     },
     {
-        id: 'medicacion_pm',
-        label: 'Medicación noche',
-        emoji: '💊',
-        photo: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0a1a2d', fbTo: '#1a2d4a',
-        healthy: true, phase: 'evening', order: 2
-    },
-    {
         id: 'relajacion',
-        label: 'Relajación',
+        label: 'Relajación / tiempo libre',
         emoji: '🧘',
         photo: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=220&fit=crop&auto=format&q=80',
         fbFrom: '#0a2030', fbTo: '#103a50',
-        healthy: true, phase: 'evening', order: 3
-    },
-    {
-        id: 'higiene_pm',
-        label: 'Higiene nocturna',
-        emoji: '🚿',
-        photo: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0f2535', fbTo: '#1a3d52',
-        healthy: true, phase: 'evening', order: 4
+        healthy: true, phase: 'evening', order: 2
     },
     {
         id: 'dormir',
@@ -463,9 +407,9 @@ const HABITS = [
         emoji: '😴',
         photo: 'https://images.unsplash.com/photo-1541480601022-2308c0f02487?w=300&h=220&fit=crop&auto=format&q=80',
         fbFrom: '#05050f', fbTo: '#0f0f28',
-        healthy: true, phase: 'evening', order: 5
+        healthy: true, phase: 'evening', order: 3
     },
-    // UNHEALTHY
+    // UNHEALTHY (4 distractors)
     {
         id: 'saltear_comida',
         label: 'No comer',
@@ -480,14 +424,6 @@ const HABITS = [
         emoji: '📱',
         photo: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=220&fit=crop&auto=format&q=80',
         fbFrom: '#0a0a2d', fbTo: '#15154a',
-        healthy: false, phase: null, order: 0
-    },
-    {
-        id: 'aislarse',
-        label: 'Aislarse todo el día',
-        emoji: '🚪',
-        photo: 'https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#1a1a1a', fbTo: '#2d2d2d',
         healthy: false, phase: null, order: 0
     },
     {
@@ -506,20 +442,12 @@ const HABITS = [
         fbFrom: '#2d0a0a', fbTo: '#4a1515',
         healthy: false, phase: null, order: 0
     },
-    {
-        id: 'comida_chatarra',
-        label: 'Solo comida chatarra',
-        emoji: '🍔',
-        photo: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#3d1500', fbTo: '#6e2d00',
-        healthy: false, phase: null, order: 0
-    },
 ];
 
 // ================================================================
 // STATE
 // ================================================================
-const HEALTHY_REQUIRED = 8;
+const HEALTHY_REQUIRED = 4;
 const state = {
     patientDni: 'DEMO',
     startTime: null,
@@ -686,11 +614,12 @@ function updatePhase1UI() {
     if (healthyCount >= HEALTHY_REQUIRED) {
         btn.disabled = false;
         btn.classList.add('ready');
-        btn.textContent = `Organizar el día →`;
+        btn.textContent = 'Organizar el día \u2192';
     } else {
+        const faltan = HEALTHY_REQUIRED - healthyCount;
         btn.disabled = true;
         btn.classList.remove('ready');
-        btn.textContent = `Seleccioná al menos ${HEALTHY_REQUIRED} hábitos saludables`;
+        btn.textContent = 'Seleccion\u00e1 ' + faltan + ' m\u00e1s';
     }
 }
 
@@ -699,17 +628,13 @@ function updatePhase1UI() {
 // ================================================================
 const SLOT_CONFIG = {
     morning: [
-        {id:'m1', label:'1°'}, {id:'m2', label:'2°'},
-        {id:'m3', label:'3°'}, {id:'m4', label:'4°'},
-        {id:'m5', label:'5°'}
+        {id:'m1', label:'1°'}, {id:'m2', label:'2°'}, {id:'m3', label:'3°'}
     ],
     afternoon: [
-        {id:'a1', label:'1°'}, {id:'a2', label:'2°'},
-        {id:'a3', label:'3°'}, {id:'a4', label:'4°'},
+        {id:'a1', label:'1°'}, {id:'a2', label:'2°'}, {id:'a3', label:'3°'}
     ],
     evening: [
-        {id:'e1', label:'1°'}, {id:'e2', label:'2°'},
-        {id:'e3', label:'3°'}, {id:'e4', label:'4°'},
+        {id:'e1', label:'1°'}, {id:'e2', label:'2°'}, {id:'e3', label:'3°'}
     ]
 };
 
@@ -769,7 +694,7 @@ function renderPhase2() {
             slot.ondragover = e => { e.preventDefault(); slot.classList.add('drop-over'); };
             slot.ondragleave = () => slot.classList.remove('drop-over');
             slot.ondrop = e => { e.preventDefault(); slot.classList.remove('drop-over'); if (state.draggingId) placeHabitInSlot(state.draggingId, s.id); state.draggingId = null; };
-            slot.onclick = () => { if (!slot.classList.contains('filled')) placeNextDragging(s.id); };
+            slot.onclick = () => { if (!slot.classList.contains('filled')) placeNextUnplaced(s.id); };
 
             container.appendChild(slot);
         });
@@ -781,6 +706,14 @@ function placeNextAvailable(habitId) {
     const allSlots = [...document.querySelectorAll('.timeline-slot:not(.filled)')];
     if (allSlots.length === 0) return;
     placeHabitInSlot(habitId, allSlots[0].dataset.slotId);
+}
+
+function placeNextUnplaced(slotId) {
+    // Click on an empty slot → place the first unplaced pool habit
+    const poolCards = [...document.querySelectorAll('.pool-card:not(.placed)')];
+    if (poolCards.length === 0) return;
+    const habitId = poolCards[0].dataset.habitId;
+    if (habitId) placeHabitInSlot(habitId, slotId);
 }
 
 function placeHabitInSlot(habitId, slotId) {
@@ -846,8 +779,13 @@ function removeFromSlot(slotId) {
 
 function updatePhase2UI() {
     const placed = Object.keys(state.placements).length;
+    const total = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
     const btn = document.getElementById('btn-finish');
-    if (placed >= 6) {
+    const label = document.getElementById('progress-label');
+    label.textContent = placed + ' de ' + total + ' organizadas';
+    const pct = total > 0 ? Math.min(100, (placed / total) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    if (placed >= Math.min(total, 4)) {
         btn.disabled = false;
         btn.classList.add('ready');
     } else {
@@ -869,10 +807,11 @@ function finishGame() {
     const unhealthySelected = [...state.selected].filter(id => !HABITS.find(h=>h.id===id)?.healthy).length;
     const placedCount = Object.keys(state.placements).length;
 
-    // Score
-    const selScore = Math.min(100, (healthySelected / 15) * 40);
-    const placedScore = Math.min(100, (placedCount / 8) * 35);
-    const penaltyScore = Math.max(0, 25 - (unhealthySelected * 5));
+    // Score (9 healthy total, 9 slots)
+    const healthyTotal = HABITS.filter(h => h.healthy).length;
+    const selScore = Math.min(40, (healthySelected / healthyTotal) * 40);
+    const placedScore = Math.min(35, (placedCount / Math.max(1, healthySelected)) * 35);
+    const penaltyScore = Math.max(0, 25 - (unhealthySelected * 8));
     const total = Math.round(selScore + placedScore + penaltyScore);
 
     // Clinical vectors
@@ -881,7 +820,6 @@ function finishGame() {
     // ── Cognitive domain metrics ──
     const totalHabits = HABITS.length;
     const totalSelected = state.selected.size;
-    const healthyTotal = HABITS.filter(h => h.healthy).length;
     const categories = new Set();
     [...state.selected].forEach(id => {
         const h = HABITS.find(x => x.id === id);
