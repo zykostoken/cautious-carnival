@@ -948,21 +948,7 @@ document.getElementById('register-form').addEventListener('submit', async functi
 let currentGame = null;
 let gameState = {};
 
-function openGame(gameId) {
-  document.getElementById('game-container').classList.remove('hidden');
-  currentGame = gameId;
-
-  if (gameId === 'lawn-mower') {
-    document.getElementById('game-title').textContent = 'Cortadora de Cesped';
-    initLawnMowerGame();
-  } else if (gameId === 'memory-meds') {
-    document.getElementById('game-title').textContent = 'Memoria de Medicamentos';
-    initMemoryMedsGame();
-  }
-
-  // Track activity
-  trackGameActivity(gameId, 'start');
-}
+// openGame definida más abajo
 
 function closeGame() {
   document.getElementById('game-container').classList.add('hidden');
@@ -1537,12 +1523,10 @@ async function loadGames() {
 }
 
 function openGame(slug) {
-  const token = sessionToken;
-  if (isPreviewMode) {
-    window.open(`/hdd/portal/games/${slug}.html?demo=true`, '_blank');
-  } else {
-    window.open(`/hdd/portal/games/${slug}.html?token=${encodeURIComponent(token)}`, '_blank');
-  }
+  // Juegos en /games/play/ — pasamos DNI del paciente
+  const dni = (currentUser && currentUser.dni) ? currentUser.dni : (function(){ try { return localStorage.getItem('hdd_patient_id') || ''; } catch(e) { return ''; } })();
+  const demoParam = isPreviewMode ? '&demo=true' : '';
+  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(dni) + demoParam, '_blank');
 }
 
 // Init
@@ -1583,30 +1567,5 @@ async function init() {
 
 init();
 
-// Launch game in /games/play/ directory (for new games like pill-organizer, neuro-chef)
-function launchGame(gameSlug) {
-  console.log('[launchGame] Called with slug:', gameSlug);
-  const token = sessionToken;
-  const patientId = currentUser?.id || 'preview';
-  
-  // Map game slugs to actual paths
-  const gamePaths = {
-    'pill-organizer': '/games/play/pill-organizer.html',
-    'neuro-chef': '/games/play/neuro-chef/index.html'
-  };
-  
-  const gamePath = gamePaths[gameSlug] || `/games/play/${gameSlug}.html`;
-  console.log('[launchGame] Game path:', gamePath);
-  console.log('[launchGame] Preview mode:', isPreviewMode);
-  console.log('[launchGame] Patient ID:', patientId);
-  
-  if (isPreviewMode) {
-    const url = `${gamePath}?demo=true&patient_id=${patientId}`;
-    console.log('[launchGame] Opening URL:', url);
-    window.open(url, '_blank');
-  } else {
-    const url = `${gamePath}?session=${encodeURIComponent(token)}&patient_id=${patientId}`;
-    console.log('[launchGame] Opening URL:', url);
-    window.open(url, '_blank');
-  }
-}
+// launchGame → alias de openGame
+function launchGame(slug) { openGame(slug); }
