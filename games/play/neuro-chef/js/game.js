@@ -70,9 +70,9 @@ function saveRecentPlayer(dni, name) {
 }
 
 async function loadPlayerHistory() {
-    if (!gameState.patientId || !supabase) return;
+    if (!gameState.patientId || !sb) return;
     try {
-        const { data } = await supabase.from('hdd_game_sessions').select('id, started_at, completed_at, final_score')
+        const { data } = await sb.from('hdd_game_sessions').select('id, started_at, completed_at, final_score')
             .eq('patient_id', gameState.patientId).order('started_at', { ascending: false }).limit(10);
         gameState.playerHistory = data || [];
         console.log(`[Neuro-Chef] ${(data||[]).length} previous sessions`);
@@ -80,11 +80,11 @@ async function loadPlayerHistory() {
 }
 
 async function getOrCreatePatient(dni, name) {
-    if (!supabase) { console.warn('[neuro-chef] Offline, usando ID local'); return 'offline-' + dni; }
+    if (!sb) { console.warn('[neuro-chef] Offline, usando ID local'); return 'offline-' + dni; }
     try {
-        const { data: existing } = await supabase.from('hdd_patients').select('id, full_name').eq('dni', dni).single();
+        const { data: existing } = await sb.from('hdd_patients').select('id, full_name').eq('dni', dni).single();
         if (existing) { document.getElementById('patient-display').textContent = existing.full_name || `Pac: ${dni}`; return existing.id; }
-        const { data: np } = await supabase.from('hdd_patients').insert({ dni, full_name: name || `Paciente ${dni}`, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
+        const { data: np } = await sb.from('hdd_patients').insert({ dni, full_name: name || `Paciente ${dni}`, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
         return np?.id || 'offline-' + dni;
     } catch(e) { console.error('[Neuro-Chef] Patient error:', e); return 'offline-' + dni; }
 }
@@ -214,14 +214,14 @@ async function startGame() {
     gameState.levelMetrics = []; gameState.biometricData = [];
     Biometrics.resetCount = 0;
     
-    try { const { data: g } = await supabase.from('hdd_games').select('id').eq('slug', 'neuro-chef-v2').single(); gameState.gameId = g?.id; } catch(e) {}
+    try { const { data: g } = await sb.from('hdd_games').select('id').eq('slug', 'neuro-chef-v2').single(); gameState.gameId = g?.id; } catch(e) {}
     try {
-        const { data: s } = await supabase.from('hdd_game_sessions').insert({ patient_id: gameState.patientId, game_id: gameState.gameId, level: 1, started_at: new Date().toISOString() }).select('id').single();
+        const { data: s } = await sb.from('hdd_game_sessions').insert({ patient_id: gameState.patientId, game_id: gameState.gameId, level: 1, started_at: new Date().toISOString() }).select('id').single();
         gameState.sessionId = s?.id;
     } catch(e) { console.warn('[Neuro-Chef] Session fail:', e); }
     
     if (gameState.preMood && !gameState.preMood.skipped) {
-        await supabase.from('hdd_mood_checkins').insert({ patient_id: gameState.patientId, context: 'pre_game_neuro_chef', mood_level: null, notes: JSON.stringify(gameState.preMood) }).catch(()=>{});
+        await sb.from('hdd_mood_checkins').insert({ patient_id: gameState.patientId, context: 'pre_game_neuro_chef', mood_level: null, notes: JSON.stringify(gameState.preMood) }).catch(()=>{});
     }
     
     document.getElementById('game-container').classList.remove('hidden');
@@ -648,7 +648,7 @@ function showColorSelectorDirect(btnContinue) {
 }
 
 async function savePostMoodAndFinish() {
-    await supabase.from('hdd_mood_checkins').insert({ patient_id:gameState.patientId, context:'post_game_neuro_chef', mood_level:null, color_intensity:null, color_selected:gameState.postMood.color, skipped:gameState.postMood.skipped||false }).catch(()=>{});
+    await sb.from('hdd_mood_checkins').insert({ patient_id:gameState.patientId, context:'post_game_neuro_chef', mood_level:null, color_intensity:null, color_selected:gameState.postMood.color, skipped:gameState.postMood.skipped||false }).catch(()=>{});
     document.getElementById('post-game-modal').classList.add('hidden'); finishGame();
 }
 
@@ -670,9 +670,9 @@ async function finishGame() {
             total_commissions:sum(gameState.biometricData.map(b=>b.false_alarms))
         }
     };
-    await supabase.from('hdd_game_sessions').update({ completed_at:new Date().toISOString(), final_score:gameState.totalCorrect-gameState.totalErrors, metadata:summary }).eq('id',gameState.sessionId).catch(()=>{});
+    await sb.from('hdd_game_sessions').update({ completed_at:new Date().toISOString(), final_score:gameState.totalCorrect-gameState.totalErrors, metadata:summary }).eq('id',gameState.sessionId).catch(()=>{});
     // Save session_complete to hdd_game_metrics for longitudinal panel
-    await supabase.from('hdd_game_metrics').insert({
+    await sb.from('hdd_game_metrics').insert({
         patient_id: gameState.patientId,
         game_session_id: gameState.sessionId,
         game_slug: 'neuro-chef-v2',
@@ -727,12 +727,12 @@ function showResultsScreen(summary) {
 // ========== SUPABASE HELPERS ==========
 async function saveLevelMetrics(metric) {
     const clean={...metric};if(clean.biometrics){clean.biometrics={...clean.biometrics};delete clean.biometrics.action_log;delete clean.biometrics.tremor_details;delete clean.biometrics.hesitation_details}
-    await supabase.from('hdd_game_metrics').insert({ patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2', metric_type:`level_${metric.level}`, metric_value:metric.score, metric_data:clean }).catch(e=>console.warn('Metric save fail:',e));
+    await sb.from('hdd_game_metrics').insert({ patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2', metric_type:`level_${metric.level}`, metric_value:metric.score, metric_data:clean }).catch(e=>console.warn('Metric save fail:',e));
 }
 
 async function saveBiometrics(bio) {
     // Save summary to DB (without heavy raw data)
-    await supabase.from('hdd_game_metrics').insert({
+    await sb.from('hdd_game_metrics').insert({
         patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2',
         metric_type:`biometric_level_${bio.level}`, metric_value:bio.d_prime||0,
         metric_data:{ reaction_time_ms:bio.reaction_time_ms, total_time_ms:bio.total_time_ms, hits:bio.hits, misses:bio.misses, false_alarms:bio.false_alarms, correct_rejects:bio.correct_rejects, d_prime:bio.d_prime, tremor_avg:bio.tremor_avg, tremor_speed_var:bio.tremor_speed_var, hesitation_count:bio.hesitation_count, hesitation_total_ms:bio.hesitation_total_ms, undo_count:bio.undo_count, reset_count:bio.reset_count, total_interactions:bio.total_interactions }

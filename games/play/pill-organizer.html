@@ -270,10 +270,10 @@
         // ===========================================
         const SUPABASE_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-        var supabase = null;
+        var sb = null;
         try {
             if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             } else { console.warn('[pill-organizer] Supabase SDK no cargó, modo offline'); }
         } catch(e) { console.warn('[pill-organizer] Supabase init failed:', e.message); }
 
@@ -335,12 +335,12 @@
                 document.getElementById('patient-display').textContent = 'Paciente: ' + sessionState.patientDni;
                 
                 // Supabase calls in background - don't block start screen
-                if (supabase) {
+                if (sb) {
                     getOrCreatePatient(sessionState.patientDni)
                         .then(id => { sessionState.patientId = id; })
                         .catch(e => { console.warn('[pill-organizer] Patient lookup failed:', e.message); });
                     
-                    supabase.from('hdd_games').select('id').eq('slug', 'pill-organizer').single()
+                    sb.from('hdd_games').select('id').eq('slug', 'pill-organizer').single()
                         .then(({ data }) => { sessionState.gameId = data?.id || null; })
                         .catch(e => { console.warn('[pill-organizer] Game lookup failed:', e.message); });
                 }
@@ -365,8 +365,8 @@
         }
 
         async function getOrCreatePatient(dni) {
-            if (!supabase) return null;
-            const { data: existing } = await supabase
+            if (!sb) return null;
+            const { data: existing } = await sb
                 .from('hdd_patients')
                 .select('id')
                 .eq('dni', dni)
@@ -375,7 +375,7 @@
             if (existing) return existing.id;
             
             // Crear paciente demo
-            const { data: newPatient } = await supabase
+            const { data: newPatient } = await sb
                 .from('hdd_patients')
                 .insert({ 
                     dni: dni,
@@ -397,9 +397,9 @@
             sessionState.gameActive = true;
             
             // Crear sesión en Supabase (non-blocking)
-            if (supabase) {
+            if (sb) {
                 try {
-                    const { data: session } = await supabase
+                    const { data: session } = await sb
                         .from('hdd_game_sessions')
                         .insert({
                             patient_id: sessionState.patientId,
@@ -571,8 +571,8 @@
                 sessionState.movements.push(movement);
 
                 // Guardar métrica granular en Supabase
-                if (supabase) {
-                    await supabase.from('hdd_game_metrics').insert({
+                if (sb) {
+                    await sb.from('hdd_game_metrics').insert({
                         patient_id: sessionState.patientId,
                         game_session_id: sessionState.sessionId,
                         game_slug: 'pill-organizer',
@@ -764,8 +764,8 @@
             
             // === GUARDAR EN hdd_game_metrics (longitudinal) ===
             const _dni = sessionState.patientDni && sessionState.patientDni !== 'HDD-DEMO' ? sessionState.patientDni : null;
-            if (supabase && _dni) {
-                await supabase.from('hdd_game_metrics').insert({
+            if (sb && _dni) {
+                await sb.from('hdd_game_metrics').insert({
                     patient_dni: _dni,
                     game_slug: 'pill-organizer',
                     metric_type: 'session_summary',
@@ -793,8 +793,8 @@
             }
 
             // Actualizar sesión en Supabase
-            if (supabase && sessionState.sessionId) {
-                await supabase
+            if (sb && sessionState.sessionId) {
+                await sb
                     .from('hdd_game_sessions')
                     .update({
                         completed_at: new Date().toISOString(),

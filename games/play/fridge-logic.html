@@ -188,10 +188,10 @@
 // ========== CONFIG ==========
 const supabaseUrl = 'https://buzblnkpfydeheingzgn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-var supabase = null;
+var sb = null;
 try {
     if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        sb = window.supabase.createClient(supabaseUrl, supabaseKey);
     } else { console.warn('[fridge-logic] Supabase SDK no cargó, modo offline'); }
 } catch(e) { console.warn('[fridge-logic] Supabase init failed:', e.message); }
 
@@ -663,12 +663,12 @@ function goToPortal() {
 
 // ========== SUPABASE SAVE ==========
 async function saveResults(metrics) {
-    if (!supabase) { console.warn('[fridge-logic] Supabase offline, resultados no guardados'); return; }
+    if (!sb) { console.warn('[fridge-logic] Supabase offline, resultados no guardados'); return; }
     try {
         // Get or create game entry
-        let { data: game } = await supabase.from('hdd_games').select('id').eq('slug', 'fridge-logic').single();
+        let { data: game } = await sb.from('hdd_games').select('id').eq('slug', 'fridge-logic').single();
         if (!game) {
-            const { data: newGame } = await supabase.from('hdd_games').insert({ 
+            const { data: newGame } = await sb.from('hdd_games').insert({ 
                 slug: 'fridge-logic', name: 'Heladera Inteligente', category: 'avd',
                 description: 'Categorización de alimentos y productos - memoria semántica y juicio'
             }).select('id').single();
@@ -678,7 +678,7 @@ async function saveResults(metrics) {
         // Save to hdd_game_metrics with patient_dni (primary key for dashboard)
         const patientDni = (gameState.patientId && gameState.patientId !== 'DEMO') ? gameState.patientId : null;
         if (patientDni) {
-            await supabase.from('hdd_game_metrics').insert({
+            await sb.from('hdd_game_metrics').insert({
                 patient_dni: patientDni,
                 game_slug: 'fridge-logic',
                 metric_type: 'session_summary',
