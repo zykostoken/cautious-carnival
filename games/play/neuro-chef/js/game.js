@@ -14,7 +14,11 @@ async function initGame() {
     if (loginModal) loginModal.style.display = 'none';
     // Supabase en background, no bloquea el juego
     getOrCreatePatient(playerDni, 'Demo').then(id => { gameState.patientId = id; }).catch(() => {});
-    setupPreGameModal();
+    // Ocultar pre-game modal y arrancar directo
+    var preModal = document.getElementById('pre-game-modal');
+    if (preModal) preModal.classList.add('hidden');
+    document.getElementById('patient-display').textContent = playerDni;
+    startGame();
 }
 
 // ========== PLAYER LOGIN ==========
