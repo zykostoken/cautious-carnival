@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { createDailyRoom } from "./lib/daily.mts";
 
 // Video call session management - ON-DEMAND ONLY
 // Pricing by modality (Argentina time UTC-3):
@@ -331,7 +332,25 @@ export default async (req: Request, context: Context) => {
               `;
 
               const priceInfo = getPriceForCurrentHour(session.call_type);
-              const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
+              const roomName = `ClinicaJoseIngenieros-${sessionToken.substring(0, 12)}`;
+
+              // Create Daily.co room for this session (expires in 60 min)
+              let dailyRoomUrl = '';
+              try {
+                const dailyRoom = await createDailyRoom(roomName, 60);
+                dailyRoomUrl = dailyRoom.url;
+
+                // Store room URL in video_sessions for frontend to use
+                await sql`
+                  UPDATE video_sessions
+                  SET room_id = ${dailyRoomUrl}
+                  WHERE id = ${session.id}
+                `;
+              } catch (e) {
+                console.log('Daily.co room creation failed (will use fallback URL):', e);
+                const dailyDomain = process.env.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+                dailyRoomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+              }
 
               fetch(`${new URL(req.url).origin}/api/notifications`, {
                 method: 'POST',
@@ -349,10 +368,18 @@ export default async (req: Request, context: Context) => {
             }
           }
 
+          // Fetch the room URL from video_sessions if available
+          let roomUrl = '';
+          if (sessionToken) {
+            const [vs] = await sql`SELECT room_id FROM video_sessions WHERE session_token = ${sessionToken}`;
+            roomUrl = vs?.room_id || '';
+          }
+
           return new Response(JSON.stringify({
             success: true,
             paymentStatus: 'approved',
             paidAt: payment.paid_at,
+            roomUrl,
             message: "Pago confirmado. Ha ingresado a la sala de espera. Los profesionales han sido notificados."
           }), {
             status: 200,

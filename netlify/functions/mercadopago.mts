@@ -242,7 +242,7 @@ export default async (req: Request, context: Context) => {
                 `;
 
                 // Notify professionals about the new PAID call
-                const roomName = `ClinicaJoseIngenieros_${session.session_token.substring(0, 12)}`;
+                const roomName = `ClinicaJoseIngenieros-${session.session_token.substring(0, 12)}`;
                 const siteUrl = process.env.URL || 'https://clinicajoseingenieros.ar';
 
                 fetch(`${siteUrl}/api/notifications`, {

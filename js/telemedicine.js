@@ -246,6 +246,11 @@ async function telemedVerifyPayment() {
             statusTextEl.textContent = 'Pago confirmado! Ingresando a sala de espera...';
             statusTextEl.style.color = 'var(--accent-green)';
 
+            // Store Daily.co room URL from backend (created on payment confirmation)
+            if (data.roomUrl) {
+                window.telemedRoomUrl = data.roomUrl;
+            }
+
             // Stop payment timer
             if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
 
@@ -392,13 +397,13 @@ function telemedStartVideoCall() {
     }, 1000);
 
     // Initialize Daily.co video call in the container
-    const roomName = `ClinicaJoseIngenieros-${telemedSessionToken.substring(0, 12)}`;
     const container = document.getElementById('telemed-jitsi-container');
     if (!container) return;
 
-    // Embed Daily.co prebuilt UI via iframe
+    // Use room URL from backend (created when payment confirmed) or build fallback
     const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const roomName = `ClinicaJoseIngenieros-${telemedSessionToken.substring(0, 12)}`;
+    const roomUrl = window.telemedRoomUrl || `https://${dailyDomain}.daily.co/${roomName}`;
     container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
     window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
@@ -599,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function iniciarVideollamadaDaily(sessionToken) {
     const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
     const roomName = `ClinicaJoseIngenieros-${sessionToken.substring(0, 12)}`;
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const roomUrl = window.telemedRoomUrl || `https://${dailyDomain}.daily.co/${roomName}`;
 
     // Create the video call container
     const videoModal = document.createElement('div');
