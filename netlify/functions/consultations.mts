@@ -145,7 +145,7 @@ export default async (req: Request, context: Context) => {
 
         await sql`
           UPDATE consultations
-          SET is_read = TRUE, status = 'read'
+          SET status = 'read', updated_at = NOW()
           WHERE id = ${consultationId}
         `;
 
@@ -177,7 +177,8 @@ export default async (req: Request, context: Context) => {
           SET status = 'responded',
               responded_at = NOW(),
               responded_by = ${professional.id},
-              notes = ${notes || null}
+              response = ${notes || null},
+              updated_at = NOW()
           WHERE id = ${consultationId}
         `;
 
@@ -206,7 +207,7 @@ export default async (req: Request, context: Context) => {
 
         await sql`
           UPDATE consultations
-          SET status = 'archived'
+          SET status = 'archived', archived_at = NOW(), updated_at = NOW()
           WHERE id = ${consultationId}
         `;
 
@@ -320,8 +321,8 @@ export default async (req: Request, context: Context) => {
           message: c.message,
           consultationType: c.consultation_type,
           status: c.status,
-          isRead: c.is_read,
-          notes: c.notes,
+          isRead: c.status !== 'pending',
+          response: c.response,
           respondedAt: c.responded_at,
           respondedByName: c.responded_by_name,
           createdAt: c.created_at

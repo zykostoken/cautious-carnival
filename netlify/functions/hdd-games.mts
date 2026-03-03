@@ -92,6 +92,55 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ games: result }), { headers: corsHeaders });
     }
 
+    // Get patient profile (used by metrics.html)
+    if (action === "profile") {
+      return new Response(JSON.stringify({
+        patient: {
+          id: patient.id,
+          dni: patient.dni,
+          full_name: patient.full_name,
+          status: patient.status
+        }
+      }), { headers: corsHeaders });
+    }
+
+    // Get patient metrics / session analysis (used by metrics.html)
+    if (action === "metrics") {
+      try {
+        const sessions = await sql`
+          SELECT
+            gs.id AS session_id,
+            g.slug AS game_type,
+            gs.score,
+            gs.duration_seconds AS session_duration_seconds,
+            gs.completed,
+            gs.started_at,
+            gs.completed_at,
+            gs.metrics AS game_metrics,
+            me.color_hex AS post_color_hex,
+            me.color_name AS post_intensity
+          FROM hdd_game_sessions gs
+          LEFT JOIN hdd_games g ON g.id = gs.game_id
+          LEFT JOIN LATERAL (
+            SELECT me2.color_hex, me2.color_name
+            FROM hdd_mood_entries me2
+            WHERE me2.patient_id = gs.patient_id
+              AND me2.created_at >= gs.started_at
+              AND me2.created_at <= COALESCE(gs.completed_at, gs.started_at + interval '2 hours')
+            ORDER BY me2.created_at DESC
+            LIMIT 1
+          ) me ON true
+          WHERE gs.patient_id = ${patient.id}
+          ORDER BY gs.completed_at DESC NULLS LAST
+          LIMIT 200
+        `;
+        return new Response(JSON.stringify({ sessions }), { headers: corsHeaders });
+      } catch (err: any) {
+        console.error("Metrics query error:", err);
+        return new Response(JSON.stringify({ sessions: [], error: err.message }), { headers: corsHeaders });
+      }
+    }
+
     // Get game details with recent sessions
     if (action === "detail") {
       const gameSlug = url.searchParams.get("game");

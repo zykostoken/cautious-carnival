@@ -60,23 +60,34 @@ function _moodSaveToSupabase(type, data, context) {
         var ctx = context || 'game';
         var gameSlug = _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html','');
         var now = new Date().toISOString();
+        var pid = _moodState.patientId;
+        var pDni = _moodState.patientDni || null;
 
         // Guardar en hdd_mood_entries — registro clínico puro
-        client.from('hdd_mood_entries').insert({
-            patient_id: _moodState.patientId || 'DEMO',
-            game_slug: gameSlug,
+        // Columnas reales: patient_id(int), patient_dni, color_hex, color_id, color_name,
+        //   context_type, source_activity, session_id, session_ordinal, entry_type, created_at
+        var entryRow = {
+            patient_id: (typeof pid === 'number' && pid > 0) ? pid : null,
+            patient_dni: pDni,
+            color_hex: (data && data.color) ? data.color : null,
+            color_id: (data && data.color_name) ? data.color_name : null,
+            color_name: (data && data.color_name) ? data.color_name : null,
             context_type: ctx,
+            source_activity: gameSlug,
+            session_id: _moodState.sessionId || null,
+            session_ordinal: (data && data.session_ordinal) ? data.session_ordinal : null,
             entry_type: type,
-            data: data,
             created_at: now
-        }).then(function(){}).catch(function(){});
+        };
+        client.from('hdd_mood_entries').insert(entryRow).then(function(){}).catch(function(e){ console.warn('mood_entry save:', e); });
 
         // Guardar en hdd_game_metrics para serie longitudinal
         // Se guarda el color tal cual — sin ningún mapeo numérico a priori.
         // La secuencia de colores en el tiempo es el dato; la interpretación es clínica.
         if (data && data.color && !data.skipped) {
             client.from('hdd_game_metrics').insert({
-                patient_id: _moodState.patientId || 'DEMO',
+                patient_id: (typeof pid === 'number' && pid > 0) ? pid : null,
+                patient_dni: pDni,
                 game_slug: ctx === 'game' ? (gameSlug + '_color') : (ctx + '_color'),
                 metric_type: 'color_eleccion',
                 metric_value: null,   // sin valor numérico — no interpretamos
@@ -88,7 +99,7 @@ function _moodSaveToSupabase(type, data, context) {
                     session_ordinal: data.session_ordinal || null
                 },
                 created_at: now
-            }).then(function(){}).catch(function(){});
+            }).then(function(){}).catch(function(e){ console.warn('metric color save:', e); });
         }
     } catch(e) {}
 }
