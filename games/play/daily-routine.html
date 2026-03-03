@@ -6,6 +6,7 @@
     <title>Rutina Diaria | CJI HDD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/games/shared/biomet.js"></script>
+    <script>window.onerror=function(m,s,l,c,e){document.title='ERROR';var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:16px;z-index:99999;font-size:14px';d.textContent='JS Error: '+m+' (line '+l+')';document.body.appendChild(d);console.error('[daily-routine]',m,s,l,e);};</script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -536,25 +537,31 @@ const state = {
 // GAME START
 // ================================================================
 function beginGame() {
-    document.getElementById('start-screen').style.display = 'none';
-    document.getElementById('phase1').style.display = 'block';
-    document.getElementById('progress-bar-wrap').style.display = 'flex';
+    try {
+        console.log('[daily-routine] beginGame() called');
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('phase1').style.display = 'block';
+        document.getElementById('progress-bar-wrap').style.display = 'flex';
 
-    const params = new URLSearchParams(window.location.search);
-    state.patientDni = params.get('dni') || params.get('patient_id')
-        || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
-        || 'DEMO';
-    document.getElementById('patient-display').textContent = state.patientDni;
+        const params = new URLSearchParams(window.location.search);
+        state.patientDni = params.get('dni') || params.get('patient_id')
+            || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
+            || 'DEMO';
+        document.getElementById('patient-display').textContent = state.patientDni;
 
-    state.startTime = Date.now();
-    state.timerInterval = setInterval(updateTimer, 1000);
-    renderPhase1();
+        state.startTime = Date.now();
+        state.timerInterval = setInterval(updateTimer, 1000);
+        renderPhase1();
+        console.log('[daily-routine] renderPhase1() completed');
 
-    // Captura biométrica — comienza al iniciar el juego
-    if (typeof biomet !== 'undefined') {
-        biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
+        // Captura biométrica — comienza al iniciar el juego
+        if (typeof biomet !== 'undefined') {
+            biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
+        }
+    } catch(e) {
+        console.error('[daily-routine] beginGame crashed:', e);
+        alert('Error al iniciar juego: ' + e.message);
     }
-
 }
 
 function updateTimer() {
