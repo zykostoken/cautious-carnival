@@ -1,10 +1,10 @@
 // ========== CONFIGURACIÓN DE SUPABASE ==========
 const supabaseUrl = 'https://buzblnkpfydeheingzgn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-var supabase = null;
+var sb = null;
 try {
     if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        sb = window.supabase.createClient(supabaseUrl, supabaseKey);
     } else { console.warn('[neuro-chef] Supabase SDK no cargó, modo offline'); }
 } catch(e) { console.warn('[neuro-chef] Supabase init failed:', e.message); }
 

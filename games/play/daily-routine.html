@@ -327,8 +327,8 @@
 // ================================================================
 const SUPABASE_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-var supabase = null;
-try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
+var sb = null;
+try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
 
 // ================================================================
 // HABITS DATA — con fotos de Unsplash (IDs confiables) + emoji fallback
@@ -967,16 +967,16 @@ function calcSequenceCoherence() {
 }
 
 async function saveResults(metrics, biometData) {
-    if (!supabase) return;
+    if (!sb) return;
     try {
         // Get patient UUID from DNI first
         let dailyPatientId = null;
         try {
-            const { data: pdata } = await supabase.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
+            const { data: pdata } = await sb.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
             if (pdata) dailyPatientId = pdata.id;
         } catch(e) {}
 
-        supabase.from('hdd_game_metrics').insert({
+        sb.from('hdd_game_metrics').insert({
             patient_dni: state.patientDni || null,
             game_slug: 'daily-routine',
             metric_type: 'session_summary',
