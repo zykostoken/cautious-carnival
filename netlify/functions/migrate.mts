@@ -497,6 +497,153 @@ CREATE INDEX IF NOT EXISTS idx_hdd_resources_type ON hdd_resources(resource_type
 CREATE INDEX IF NOT EXISTS idx_hdd_resources_active ON hdd_resources(is_active);
 `;
 
+// Two-tier patient access model: obra social vs direct pay
+const twoTierModelSQL = `
+-- Obras Sociales (Insurance Providers)
+CREATE TABLE IF NOT EXISTS obras_sociales (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(32) UNIQUE NOT NULL,
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(32),
+    billing_address TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Service Plans (abonos)
+CREATE TABLE IF NOT EXISTS service_plans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(32) UNIQUE NOT NULL,
+    plan_type VARCHAR(32) NOT NULL,
+    description TEXT,
+    price_ars DECIMAL(12, 2) DEFAULT 0,
+    price_usd DECIMAL(10, 2) DEFAULT 0,
+    billing_period VARCHAR(16) DEFAULT 'monthly',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Entitlements per plan (what each plan includes)
+CREATE TABLE IF NOT EXISTS plan_entitlements (
+    id SERIAL PRIMARY KEY,
+    plan_id INTEGER NOT NULL REFERENCES service_plans(id),
+    service_type VARCHAR(32) NOT NULL,
+    max_per_month INTEGER,
+    max_per_week INTEGER,
+    is_included BOOLEAN DEFAULT TRUE,
+    requires_prescription BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    UNIQUE(plan_id, service_type)
+);
+
+-- Patient plans (links patient to active plan)
+CREATE TABLE IF NOT EXISTS patient_plans (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    plan_id INTEGER NOT NULL REFERENCES service_plans(id),
+    obra_social_id INTEGER REFERENCES obras_sociales(id),
+    obra_social_member_number VARCHAR(64),
+    plan_type VARCHAR(32) NOT NULL,
+    status VARCHAR(32) DEFAULT 'active',
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    end_date DATE,
+    payment_reference TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Service usage tracking (enforces limits)
+CREATE TABLE IF NOT EXISTS service_usage (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    service_type VARCHAR(32) NOT NULL,
+    usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    session_reference VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_service_usage_monthly ON service_usage(patient_id, service_type, usage_date);
+
+-- Doctor prescriptions (for services requiring medical indication)
+CREATE TABLE IF NOT EXISTS doctor_prescriptions (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    prescribed_by INTEGER NOT NULL REFERENCES healthcare_professionals(id),
+    service_type VARCHAR(32) NOT NULL,
+    diagnosis TEXT,
+    indication TEXT NOT NULL,
+    frequency VARCHAR(64),
+    max_sessions INTEGER,
+    valid_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    valid_until DATE,
+    status VARCHAR(32) DEFAULT 'active',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Bridge telemedicine_users to hdd_patients
+ALTER TABLE telemedicine_users ADD COLUMN IF NOT EXISTS hdd_patient_id INTEGER REFERENCES hdd_patients(id);
+
+-- Add patient_type for quick lookups
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS patient_type VARCHAR(32) DEFAULT 'obra_social';
+
+-- Seed plans
+INSERT INTO service_plans (name, code, plan_type, description, price_ars, billing_period) VALUES
+    ('HDD Obra Social Completo', 'hdd_obra_social', 'obra_social', 'Plan completo obra social: terapia grupal 2/sem, telemedicina 1/mes, actividades HDD diarias, gaming diario.', 0, 'monthly'),
+    ('Abono Completo Particular', 'abono_completo', 'direct_pay', 'Acceso completo HDD particular: terapia grupal, telemedicina, actividades, gaming.', 250000, 'monthly'),
+    ('Telemedicina Sola', 'telemedicina_sola', 'direct_pay', 'Acceso solo a telemedicina. Cobro por sesion via MercadoPago.', 0, 'per_session')
+ON CONFLICT (code) DO NOTHING;
+
+-- Seed entitlements: Obra Social
+INSERT INTO plan_entitlements (plan_id, service_type, max_per_month, max_per_week, is_included, requires_prescription)
+SELECT id, s.service_type, s.max_month, s.max_week, true, false
+FROM service_plans, (VALUES
+    ('terapia_grupal', NULL::int, 2),
+    ('telemedicina', 1, NULL::int),
+    ('actividades_hdd', NULL::int, NULL::int),
+    ('gaming', NULL::int, NULL::int),
+    ('terapia_ocupacional', NULL::int, NULL::int)
+) AS s(service_type, max_month, max_week)
+WHERE code = 'hdd_obra_social'
+ON CONFLICT (plan_id, service_type) DO NOTHING;
+
+-- Seed entitlements: Abono Completo
+INSERT INTO plan_entitlements (plan_id, service_type, max_per_month, max_per_week, is_included, requires_prescription)
+SELECT id, s.service_type, s.max_month, s.max_week, true, false
+FROM service_plans, (VALUES
+    ('terapia_grupal', NULL::int, 2),
+    ('telemedicina', 2, NULL::int),
+    ('actividades_hdd', NULL::int, NULL::int),
+    ('gaming', NULL::int, NULL::int),
+    ('terapia_ocupacional', NULL::int, NULL::int)
+) AS s(service_type, max_month, max_week)
+WHERE code = 'abono_completo'
+ON CONFLICT (plan_id, service_type) DO NOTHING;
+
+-- Seed entitlements: Telemedicina Sola
+INSERT INTO plan_entitlements (plan_id, service_type, max_per_month, max_per_week, is_included, requires_prescription)
+SELECT id, 'telemedicina', NULL, NULL, true, false FROM service_plans WHERE code = 'telemedicina_sola'
+ON CONFLICT (plan_id, service_type) DO NOTHING;
+
+INSERT INTO plan_entitlements (plan_id, service_type, max_per_month, max_per_week, is_included, requires_prescription)
+SELECT id, 'gaming', NULL, NULL, false, true FROM service_plans WHERE code = 'telemedicina_sola'
+ON CONFLICT (plan_id, service_type) DO NOTHING;
+
+-- Seed common Obras Sociales
+INSERT INTO obras_sociales (name, code) VALUES
+    ('OSDE', 'OSDE'), ('Swiss Medical', 'SWISS_MEDICAL'), ('Galeno', 'GALENO'),
+    ('PAMI', 'PAMI'), ('OSECAC', 'OSECAC'), ('Medicus', 'MEDICUS'),
+    ('Accord Salud', 'ACCORD'), ('IOMA', 'IOMA'),
+    ('Hospital Italiano', 'HOSP_ITALIANO'), ('Particular (sin obra social)', 'PARTICULAR')
+ON CONFLICT (code) DO NOTHING;
+`;
+
 // Seed HDD patients data
 const seedHDDPatientsSQL = `
 -- Insert all 23 authorized HDD patients
@@ -560,6 +707,11 @@ export default async (req: Request, context: Context) => {
     results.push("Creating resources and activity management tables...");
     await sql.unsafe(resourcesMigrationSQL);
     results.push("Resources and activity tables created successfully");
+
+    // Run two-tier patient access model migration
+    results.push("Creating two-tier patient model (obra social / direct pay)...");
+    await sql.unsafe(twoTierModelSQL);
+    results.push("Two-tier patient model created successfully");
 
     // Verify tables exist
     const tables = await sql`

@@ -1,6 +1,7 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
+import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
 
 const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
 
@@ -39,6 +40,24 @@ export default async (req: Request, context: Context) => {
     const patient = await getPatientBySession(sql, sessionToken);
     if (!patient) {
       return new Response(JSON.stringify({ error: "Sesión inválida" }), { status: 401, headers: corsHeaders });
+    }
+
+    // Check gaming entitlement (plan-based access control)
+    try {
+      const entitlement = await checkEntitlement(sql, patient.id, 'gaming');
+      if (!entitlement.allowed) {
+        return new Response(JSON.stringify({
+          error: "Acceso restringido",
+          message: entitlement.reason,
+          planType: entitlement.planType,
+          requiresPrescription: entitlement.requiresPrescription,
+          hasPrescription: entitlement.hasPrescription
+        }), { status: 403, headers: corsHeaders });
+      }
+    } catch (e) {
+      // If entitlement tables don't exist yet (pre-migration), allow access
+      // This maintains backward compatibility during rollout
+      console.log('Entitlement check skipped (tables may not exist):', e);
     }
 
     // List all games with availability and progress
@@ -154,6 +173,9 @@ export default async (req: Request, context: Context) => {
           VALUES (${patient.id}, ${game.id}, ${level || 1})
           RETURNING id, started_at
         `;
+
+        // Record service usage for entitlement tracking
+        recordUsage(sql, patient.id, 'gaming', `game_session:${session.id}`).catch(() => {});
 
         return new Response(JSON.stringify({ success: true, sessionId: session.id, startedAt: session.started_at }), { headers: corsHeaders });
       }
