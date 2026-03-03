@@ -220,7 +220,7 @@ async function startGame() {
         gameState.sessionId = s?.id;
     } catch(e) { console.warn('[Neuro-Chef] Session fail:', e); }
     
-    if (gameState.preMood && !gameState.preMood.skipped) {
+    if (supabase && gameState.preMood && !gameState.preMood.skipped) {
         await supabase.from('hdd_mood_checkins').insert({ patient_id: gameState.patientId, context: 'pre_game_neuro_chef', mood_level: null, notes: JSON.stringify(gameState.preMood) }).catch(()=>{});
     }
     
