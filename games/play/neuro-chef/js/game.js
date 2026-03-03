@@ -218,14 +218,16 @@ async function startGame() {
     gameState.levelMetrics = []; gameState.biometricData = [];
     Biometrics.resetCount = 0;
     
-    try { const { data: g } = await sb.from('hdd_games').select('id').eq('slug', 'neuro-chef-v2').single(); gameState.gameId = g?.id; } catch(e) {}
-    try {
-        const { data: s } = await sb.from('hdd_game_sessions').insert({ patient_id: gameState.patientId, game_id: gameState.gameId, level: 1, started_at: new Date().toISOString() }).select('id').single();
-        gameState.sessionId = s?.id;
-    } catch(e) { console.warn('[Neuro-Chef] Session fail:', e); }
+    if (sb) {
+        try { const { data: g } = await sb.from('hdd_games').select('id').eq('slug', 'neuro-chef-v2').single(); gameState.gameId = g?.id; } catch(e) {}
+        try {
+            const { data: s } = await sb.from('hdd_game_sessions').insert({ patient_id: gameState.patientId, game_id: gameState.gameId, level: 1, started_at: new Date().toISOString() }).select('id').single();
+            gameState.sessionId = s?.id;
+        } catch(e) { console.warn('[Neuro-Chef] Session fail:', e); }
+    }
     
-    if (gameState.preMood && !gameState.preMood.skipped) {
-        await sb.from('hdd_mood_checkins').insert({ patient_id: gameState.patientId, context: 'pre_game_neuro_chef', mood_level: null, notes: JSON.stringify(gameState.preMood) }).catch(()=>{});
+    if (gameState.preMood && !gameState.preMood.skipped && sb) {
+        try { await sb.from('hdd_mood_checkins').insert({ patient_id: gameState.patientId, context: 'pre_game_neuro_chef', mood_level: null, notes: JSON.stringify(gameState.preMood) }); } catch(e) {}
     }
     
     document.getElementById('game-container').classList.remove('hidden');
@@ -652,7 +654,7 @@ function showColorSelectorDirect(btnContinue) {
 }
 
 async function savePostMoodAndFinish() {
-    await sb.from('hdd_mood_checkins').insert({ patient_id:gameState.patientId, context:'post_game_neuro_chef', mood_level:null, color_intensity:null, color_selected:gameState.postMood.color, skipped:gameState.postMood.skipped||false }).catch(()=>{});
+    if (sb) { try { await sb.from('hdd_mood_checkins').insert({ patient_id:gameState.patientId, context:'post_game_neuro_chef', mood_level:null, color_intensity:null, color_selected:gameState.postMood.color, skipped:gameState.postMood.skipped||false }); } catch(e) {} }
     document.getElementById('post-game-modal').classList.add('hidden'); finishGame();
 }
 
@@ -667,34 +669,54 @@ async function finishGame() {
         biometric_summary:{
             avg_reaction_time:avg(gameState.biometricData.map(b=>b.reaction_time_ms)),
             avg_tremor:avg(gameState.biometricData.map(b=>b.tremor_avg)),
+            avg_tremor_speed_var:avg(gameState.biometricData.map(b=>b.tremor_speed_var)),
             avg_d_prime:avg(gameState.biometricData.map(b=>b.d_prime)),
             total_hesitations:sum(gameState.biometricData.map(b=>b.hesitation_count)),
+            total_hesitation_ms:sum(gameState.biometricData.map(b=>b.hesitation_total_ms)),
             total_undos:sum(gameState.biometricData.map(b=>b.undo_count)),
+            total_resets:sum(gameState.biometricData.map(b=>b.reset_count)),
             total_omissions:sum(gameState.biometricData.map(b=>b.misses)),
-            total_commissions:sum(gameState.biometricData.map(b=>b.false_alarms))
+            total_commissions:sum(gameState.biometricData.map(b=>b.false_alarms)),
+            total_direction_changes:sum(gameState.biometricData.map(b=>b.abrupt_direction_changes)),
+            total_interactions:sum(gameState.biometricData.map(b=>b.total_interactions)),
+            avg_action_interval:avg(gameState.biometricData.map(b=>b.avg_action_interval_ms))
         }
     };
-    await sb.from('hdd_game_sessions').update({ completed_at:new Date().toISOString(), final_score:gameState.totalCorrect-gameState.totalErrors, metadata:summary }).eq('id',gameState.sessionId).catch(()=>{});
-    // Save session_complete to hdd_game_metrics for longitudinal panel
-    await sb.from('hdd_game_metrics').insert({
-        patient_id: gameState.patientId,
-        game_session_id: gameState.sessionId,
-        game_slug: 'neuro-chef-v2',
-        metric_type: 'session_complete',
-        metric_value: gameState.totalCorrect - gameState.totalErrors,
-        metric_data: {
-            game_name: 'Neuro-Chef',
-            total_correct: gameState.totalCorrect,
-            total_errors: gameState.totalErrors,
-            levels_completed: summary.levels_completed,
-            duration_sec: Math.round(summary.total_time_ms / 1000),
-            total_time_ms: summary.total_time_ms,
-            mean_rt_ms: gameState.biometricData.length ? Math.round(gameState.biometricData.reduce((s,b)=>s+(b.mean_rt||0),0)/gameState.biometricData.length) : null,
-            commission_errors: summary.total_commissions,
-            omission_errors: summary.total_omissions,
-            completed: true
-        }
-    }).catch(()=>{});
+    if (sb) {
+        try { await sb.from('hdd_game_sessions').update({ completed_at:new Date().toISOString(), final_score:gameState.totalCorrect-gameState.totalErrors, metadata:summary }).eq('id',gameState.sessionId); } catch(e) {}
+        try { await sb.from('hdd_game_metrics').insert({
+            patient_id: gameState.patientId,
+            patient_dni: (gameState.patientDni && gameState.patientDni.indexOf('DEMO') === -1) ? gameState.patientDni : null,
+            game_session_id: gameState.sessionId,
+            game_slug: 'neuro-chef-v2',
+            metric_type: 'session_complete',
+            metric_value: gameState.totalCorrect - gameState.totalErrors,
+            metric_data: {
+                game_name: 'Neuro-Chef',
+                total_correct: gameState.totalCorrect,
+                total_errors: gameState.totalErrors,
+                levels_completed: summary.levels_completed,
+                duration_sec: Math.round(summary.total_time_ms / 1000),
+                total_time_ms: summary.total_time_ms,
+                mean_rt_ms: gameState.biometricData.length ? Math.round(gameState.biometricData.reduce((s,b)=>s+(b.reaction_time_ms||0),0)/gameState.biometricData.length) : null,
+                commission_errors: summary.biometric_summary.total_commissions,
+                omission_errors: summary.biometric_summary.total_omissions,
+                completed: true,
+                // Motor / Tremor
+                tremor_avg: summary.biometric_summary.avg_tremor,
+                tremor_speed_var: summary.biometric_summary.avg_tremor_speed_var,
+                // Behavioral
+                total_hesitations: summary.biometric_summary.total_hesitations,
+                total_hesitation_ms: summary.biometric_summary.total_hesitation_ms,
+                total_undos: summary.biometric_summary.total_undos,
+                total_resets: summary.biometric_summary.total_resets,
+                direction_changes: summary.biometric_summary.total_direction_changes,
+                avg_action_interval_ms: summary.biometric_summary.avg_action_interval,
+                // SDT
+                avg_d_prime: summary.biometric_summary.avg_d_prime
+            }
+        }); } catch(e) {}
+    }
 
     // Save full session biometric summary to Supabase Storage bucket 'biometricas'
     saveBiometricsToBucket({
@@ -713,13 +735,25 @@ function showResultsScreen(summary) {
     document.getElementById('controls').classList.add('hidden');
     const tt=Math.round(summary.total_time_ms/1000);
     const mins=Math.floor(tt/60);const secs=tt%60;
+    const bio = summary.biometric_summary;
     ga.innerHTML=`<div class="results-screen">
-        <h2>Sesión Completada</h2>
+        <h2>Sesion Completada</h2>
         <div class="results-grid">
             <div class="result-card"><div class="result-value">${summary.total_correct}</div><div class="result-label">Aciertos</div></div>
             <div class="result-card"><div class="result-value">${summary.total_errors}</div><div class="result-label">Errores</div></div>
             <div class="result-card"><div class="result-value">${mins}:${secs.toString().padStart(2,'0')}</div><div class="result-label">Tiempo total</div></div>
             <div class="result-card"><div class="result-value">${summary.levels_completed}/6</div><div class="result-label">Niveles</div></div>
+        </div>
+        <h3 style="color:#D4A574;margin:1.5rem 0 0.5rem;font-size:0.95rem;">Perfil Biometrico</h3>
+        <div class="results-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+            <div class="result-card"><div class="result-value">${Math.round(bio.avg_reaction_time||0)}</div><div class="result-label">RT Media (ms)</div></div>
+            <div class="result-card"><div class="result-value">${(bio.avg_tremor||0).toFixed(2)}</div><div class="result-label">Temblor Prom</div></div>
+            <div class="result-card"><div class="result-value">${(bio.avg_d_prime||0).toFixed(2)}</div><div class="result-label">d-prime</div></div>
+            <div class="result-card"><div class="result-value">${bio.total_hesitations||0}</div><div class="result-label">Hesitaciones</div></div>
+            <div class="result-card"><div class="result-value">${bio.total_undos||0}</div><div class="result-label">Deshacer</div></div>
+            <div class="result-card"><div class="result-value">${bio.total_resets||0}</div><div class="result-label">Reinicios</div></div>
+            <div class="result-card"><div class="result-value">${bio.total_direction_changes||0}</div><div class="result-label">Cambios Dir.</div></div>
+            <div class="result-card"><div class="result-value">${bio.total_omissions||0}</div><div class="result-label">Omisiones</div></div>
         </div>
         <div class="results-actions">
             <button onclick="window.location.reload()" class="btn-primary">Jugar de nuevo</button>
@@ -730,17 +764,19 @@ function showResultsScreen(summary) {
 
 // ========== SUPABASE HELPERS ==========
 async function saveLevelMetrics(metric) {
+    if (!sb) return;
     const clean={...metric};if(clean.biometrics){clean.biometrics={...clean.biometrics};delete clean.biometrics.action_log;delete clean.biometrics.tremor_details;delete clean.biometrics.hesitation_details}
-    await sb.from('hdd_game_metrics').insert({ patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2', metric_type:`level_${metric.level}`, metric_value:metric.score, metric_data:clean }).catch(e=>console.warn('Metric save fail:',e));
+    try { await sb.from('hdd_game_metrics').insert({ patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2', metric_type:`level_${metric.level}`, metric_value:metric.score, metric_data:clean }); } catch(e) { console.warn('Metric save fail:',e); }
 }
 
 async function saveBiometrics(bio) {
+    if (!sb) return;
     // Save summary to DB (without heavy raw data)
-    await sb.from('hdd_game_metrics').insert({
+    try { await sb.from('hdd_game_metrics').insert({
         patient_id:gameState.patientId, game_session_id:gameState.sessionId, game_slug:'neuro-chef-v2',
         metric_type:`biometric_level_${bio.level}`, metric_value:bio.d_prime||0,
-        metric_data:{ reaction_time_ms:bio.reaction_time_ms, total_time_ms:bio.total_time_ms, hits:bio.hits, misses:bio.misses, false_alarms:bio.false_alarms, correct_rejects:bio.correct_rejects, d_prime:bio.d_prime, tremor_avg:bio.tremor_avg, tremor_speed_var:bio.tremor_speed_var, hesitation_count:bio.hesitation_count, hesitation_total_ms:bio.hesitation_total_ms, undo_count:bio.undo_count, reset_count:bio.reset_count, total_interactions:bio.total_interactions }
-    }).catch(e=>console.warn('Bio save fail:',e));
+        metric_data:{ reaction_time_ms:bio.reaction_time_ms, total_time_ms:bio.total_time_ms, hits:bio.hits, misses:bio.misses, false_alarms:bio.false_alarms, correct_rejects:bio.correct_rejects, d_prime:bio.d_prime, tremor_avg:bio.tremor_avg, tremor_speed_var:bio.tremor_speed_var, tremor_samples:bio.tremor_samples, hesitation_count:bio.hesitation_count, hesitation_total_ms:bio.hesitation_total_ms, undo_count:bio.undo_count, reset_count:bio.reset_count, total_interactions:bio.total_interactions, abrupt_direction_changes:bio.abrupt_direction_changes, avg_action_interval_ms:bio.avg_action_interval_ms }
+    }); } catch(e) { console.warn('Bio save fail:',e); }
 
     // Save full biometric data (including raw action_log, tremor_details, hesitation_details) to Supabase Storage bucket 'biometricas'
     saveBiometricsToBucket(bio).catch(e=>console.warn('Bucket bio save fail:',e));

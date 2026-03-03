@@ -179,6 +179,38 @@
                 <tbody id="biometrics-tbody"></tbody>
             </table>
         </div>
+
+        <!-- MOTOR & CLINICAL METRICS PANEL -->
+        <div class="charts-grid" style="margin-top:18px;">
+            <div class="chart-card" style="grid-column:1/-1;">
+                <h3>🧠 Perfil Motor y Cognitivo (últimas sesiones)</h3>
+                <div id="motor-profile-panel" style="padding:10px 0;">
+                    <p style="color:var(--muted);font-size:0.85rem;">Seleccione un paciente para ver su perfil motor</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILED METRICS TABLE -->
+        <div class="table-card" style="margin-top:18px;">
+            <h3>📊 Métricas Clínicas Detalladas</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Juego</th>
+                        <th>Nivel</th>
+                        <th>Temblor</th>
+                        <th>Dismetria</th>
+                        <th>Torpeza</th>
+                        <th>Minuciosidad</th>
+                        <th>Efic. Plan</th>
+                        <th>Prolijidad</th>
+                        <th>Demora Inicio</th>
+                    </tr>
+                </thead>
+                <tbody id="clinical-metrics-tbody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -225,6 +257,12 @@ async function loadDashboard() {
         if (patientFilter) moodQuery = moodQuery.eq('patient_id', patientFilter);
         const { data: moods } = await moodQuery;
 
+        // Fetch game metrics (clinical/biometric data)
+        let metricsQuery = sb.from('hdd_game_metrics').select('*').eq('metric_type', 'session_complete').order('created_at', { ascending: false }).limit(100);
+        if (patientFilter) metricsQuery = metricsQuery.eq('patient_id', patientFilter);
+        if (gameFilter) metricsQuery = metricsQuery.eq('game_slug', gameFilter);
+        const { data: gameMetrics } = await metricsQuery;
+
         // Populate patient dropdown
         const patientSelect = document.getElementById('filter-patient');
         const currentVal = patientSelect.value;
@@ -243,6 +281,8 @@ async function loadDashboard() {
         renderMoodColors(moods || []);
         renderSessionsTable(sessions || [], patients || [], gameMap);
         renderBiometricsTable(biometrics || [], patients || [], gameMap);
+        renderClinicalMetrics(gameMetrics || [], patients || []);
+        renderMotorProfile(gameMetrics || []);
 
         document.getElementById('loading').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
@@ -441,6 +481,115 @@ function renderBiometricsTable(biometrics, patients, gameMap) {
     if (biometrics.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;">Sin biométricos registrados</td></tr>';
     }
+}
+
+// ========== CLINICAL METRICS TABLE ==========
+function renderClinicalMetrics(metrics, patients) {
+    const patientMap = {};
+    patients.forEach(p => { patientMap[p.id] = p; });
+    const tbody = document.getElementById('clinical-metrics-tbody');
+    tbody.innerHTML = '';
+
+    metrics.slice(0, 30).forEach(m => {
+        const d = m.metric_data || {};
+        const date = m.created_at ? new Date(m.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+        const gameSlug = m.game_slug || '—';
+        const level = d.level || '—';
+
+        // Motor metrics
+        const tremor = d.tremor_avg_jitter != null ? d.tremor_avg_jitter.toFixed(2) : (d.tremor_avg != null ? d.tremor_avg.toFixed(2) : '—');
+        const dysmetria = d.dysmetria_overshoot_count != null ? d.dysmetria_overshoot_count : '—';
+        const clumsiness = d.motor_clumsiness_score != null ? (d.motor_clumsiness_score * 100).toFixed(0) + '/100' : '—';
+        const meticulousness = d.meticulousness_score != null ? (d.meticulousness_score * 100).toFixed(0) + '/100' : '—';
+        const planEff = d.plan_efficiency != null ? (d.plan_efficiency * 100).toFixed(1) + '%' : '—';
+        const neatness = d.neatness_score != null ? (d.neatness_score * 100).toFixed(0) + '/100' : '—';
+        const startDelay = d.time_to_first_action_ms != null ? d.time_to_first_action_ms + 'ms' : '—';
+
+        // Color coding
+        const clumColor = d.motor_clumsiness_score != null ? (d.motor_clumsiness_score > 0.5 ? 'var(--danger)' : d.motor_clumsiness_score > 0.3 ? 'var(--warn)' : 'var(--success)') : '';
+        const metColor = d.meticulousness_score != null ? (d.meticulousness_score > 0.7 ? 'var(--success)' : d.meticulousness_score > 0.4 ? 'var(--warn)' : 'var(--danger)') : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + date + '</td>' +
+            '<td>' + gameSlug + '</td>' +
+            '<td>' + level + '</td>' +
+            '<td>' + tremor + '</td>' +
+            '<td>' + dysmetria + '</td>' +
+            '<td style="color:' + clumColor + ';font-weight:600;">' + clumsiness + '</td>' +
+            '<td style="color:' + metColor + ';font-weight:600;">' + meticulousness + '</td>' +
+            '<td>' + planEff + '</td>' +
+            '<td>' + neatness + '</td>' +
+            '<td>' + startDelay + '</td>';
+        tbody.appendChild(tr);
+    });
+
+    if (metrics.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:30px;">Sin métricas clínicas aún</td></tr>';
+    }
+}
+
+// ========== MOTOR PROFILE PANEL ==========
+function renderMotorProfile(metrics) {
+    const panel = document.getElementById('motor-profile-panel');
+    if (!metrics || metrics.length === 0) {
+        panel.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Sin datos de perfil motor aún</p>';
+        return;
+    }
+
+    // Aggregate metrics across sessions
+    const motorData = metrics.filter(m => m.metric_data).map(m => m.metric_data);
+    if (motorData.length === 0) { panel.innerHTML = '<p style="color:var(--muted);">Sin datos</p>'; return; }
+
+    function safeAvg(arr) { const valid = arr.filter(v => v != null && !isNaN(v)); return valid.length > 0 ? valid.reduce((a,b)=>a+b,0)/valid.length : null; }
+
+    const avgRT = safeAvg(motorData.map(d => d.mean_rt_ms));
+    const avgTremor = safeAvg(motorData.map(d => d.tremor_avg_jitter || d.tremor_avg));
+    const avgClumsiness = safeAvg(motorData.map(d => d.motor_clumsiness_score));
+    const avgMeticulousness = safeAvg(motorData.map(d => d.meticulousness_score));
+    const avgPlanEff = safeAvg(motorData.map(d => d.plan_efficiency));
+    const avgNeatness = safeAvg(motorData.map(d => d.neatness_score));
+    const avgDirChanges = safeAvg(motorData.map(d => d.direction_changes));
+    const avgStartDelay = safeAvg(motorData.map(d => d.time_to_first_action_ms));
+    const avgMovEff = safeAvg(motorData.map(d => d.movement_efficiency));
+    const avgPathEff = safeAvg(motorData.map(d => d.path_efficiency));
+    const totalResets = motorData.reduce((s, d) => s + (d.resets || 0), 0);
+    const avgImpulsivity = safeAvg(motorData.map(d => d.impulsivity_ratio));
+
+    function metricCard(label, value, color) {
+        return '<div style="background:var(--card);border-radius:10px;padding:12px;text-align:center;">' +
+            '<div style="font-size:1.4rem;font-weight:700;color:' + (color || 'var(--text)') + ';">' + value + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--muted);margin-top:2px;">' + label + '</div></div>';
+    }
+
+    function fmt(v, suffix, decimals) { return v != null ? v.toFixed(decimals || 0) + (suffix || '') : '—'; }
+    function bar100(v, label) {
+        if (v == null) return metricCard(label, '—', 'var(--muted)');
+        const pct = Math.round(v * 100);
+        const color = pct > 70 ? 'var(--success)' : pct > 40 ? 'var(--warn)' : 'var(--danger)';
+        return metricCard(label, pct + '/100', color);
+    }
+    function barInverse(v, label) {
+        if (v == null) return metricCard(label, '—', 'var(--muted)');
+        const pct = Math.round(v * 100);
+        const color = pct < 30 ? 'var(--success)' : pct < 60 ? 'var(--warn)' : 'var(--danger)';
+        return metricCard(label, pct + '/100', color);
+    }
+
+    panel.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">' +
+        metricCard('RT Media', fmt(avgRT, ' ms'), '#3b82f6') +
+        metricCard('Temblor Prom', fmt(avgTremor, ' px', 2), avgTremor != null && avgTremor > 5 ? 'var(--danger)' : 'var(--success)') +
+        barInverse(avgClumsiness, 'Torpeza Motora') +
+        bar100(avgMeticulousness, 'Minuciosidad') +
+        bar100(avgPlanEff, 'Efic. Plan') +
+        bar100(avgNeatness, 'Prolijidad') +
+        bar100(avgMovEff, 'Efic. Movimiento') +
+        bar100(avgPathEff, 'Efic. Trayecto') +
+        metricCard('Demora Inicio', fmt(avgStartDelay, ' ms'), avgStartDelay != null && avgStartDelay > 5000 ? 'var(--warn)' : 'var(--text)') +
+        metricCard('Cambios Dir.', fmt(avgDirChanges, ''), 'var(--text)') +
+        barInverse(avgImpulsivity, 'Impulsividad') +
+        metricCard('Reinicios Total', totalResets, totalResets > 10 ? 'var(--warn)' : 'var(--text)') +
+    '</div>' +
+    '<p style="color:var(--muted);font-size:0.72rem;margin-top:10px;text-align:center;">Promedio de ' + motorData.length + ' sesiones</p>';
 }
 
 // ========== INIT ==========

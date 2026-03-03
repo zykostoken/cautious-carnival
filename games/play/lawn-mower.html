@@ -1276,7 +1276,24 @@
           hesitation_count: clinicalStats.clinical_markers?.long_pauses_count,
           avg_pause_ms: clinicalStats.clinical_markers?.avg_pause_duration_ms,
           time_to_first_action_ms: clinicalStats.clinical_markers?.time_to_first_action_ms,
-          impulsivity_ratio: clinicalStats.clinical_markers?.impulsivity_ratio
+          impulsivity_ratio: clinicalStats.clinical_markers?.impulsivity_ratio,
+          // Motor / Fine Motor metrics
+          tremor_event_count: clinicalStats.motor_markers?.tremor_event_count,
+          tremor_avg_jitter: clinicalStats.motor_markers?.tremor_avg_jitter,
+          tremor_max_jitter: clinicalStats.motor_markers?.tremor_max_jitter,
+          dysmetria_overshoot_count: clinicalStats.motor_markers?.overshoot_count,
+          dysmetria_ratio: clinicalStats.motor_markers?.dysmetria_ratio,
+          direction_changes: clinicalStats.motor_markers?.direction_changes,
+          rapid_reversals: clinicalStats.motor_markers?.rapid_reversals,
+          motor_clumsiness_score: clinicalStats.motor_markers?.motor_clumsiness_score,
+          meticulousness_score: clinicalStats.motor_markers?.meticulousness_score,
+          // Planning metrics
+          plan_efficiency: clinicalStats.planning_markers?.plan_efficiency,
+          ideal_path_length: clinicalStats.planning_markers?.ideal_path_length,
+          actual_path_length: clinicalStats.planning_markers?.actual_path_length,
+          avg_inter_objective_delay_ms: clinicalStats.planning_markers?.avg_inter_objective_delay_ms,
+          neatness_score: clinicalStats.planning_markers?.neatness?.score,
+          neatness_pattern: clinicalStats.planning_markers?.neatness?.pattern_type
         }
       });
 
@@ -1379,7 +1396,20 @@
       cable_stucks: stats.clinical_markers.cable_stucks,
       input_method: stats.device_context.input_method,
       resets: resetEvents.length,
-      reset_timing: resetEvents.map(r => r.timeSinceStart)
+      reset_timing: resetEvents.map(r => r.timeSinceStart),
+      // Motor / Fine Motor
+      tremor_events: stats.motor_markers?.tremor_event_count || 0,
+      tremor_avg_jitter: stats.motor_markers?.tremor_avg_jitter || 0,
+      dysmetria_overshoots: stats.motor_markers?.overshoot_count || 0,
+      direction_changes: stats.motor_markers?.direction_changes || 0,
+      rapid_reversals: stats.motor_markers?.rapid_reversals || 0,
+      motor_clumsiness: stats.motor_markers?.motor_clumsiness_score || 0,
+      meticulousness: stats.motor_markers?.meticulousness_score || 0,
+      // Planning
+      plan_efficiency: stats.planning_markers?.plan_efficiency || 0,
+      neatness_score: stats.planning_markers?.neatness?.score || 0,
+      neatness_pattern: stats.planning_markers?.neatness?.pattern_type || 'N/A',
+      avg_inter_obj_delay: stats.planning_markers?.avg_inter_objective_delay_ms || 0
     };
     metricsHistory.push(entry);
     // Keep last 200 entries
@@ -1480,7 +1510,40 @@
     // Session timing
     sessionStartTime: 0,
     firstMoveTime: 0,        // Time to first action (reaction to start)
-    levelCompletionAttempts: 0  // How many times level was restarted
+    levelCompletionAttempts: 0,  // How many times level was restarted
+
+    // === NEW: Fine Motor / Tremor ===
+    mouseMoveSamples: [],    // {x, y, t} raw mouse positions during play
+    tremorEvents: [],        // computed jitter per movement segment
+    lastMouseX: 0,
+    lastMouseY: 0,
+
+    // === NEW: Dysmetria (over/undershoot) ===
+    overshootCount: 0,       // moved past target then reversed
+    consecutiveSameDir: 0,   // streak in same direction
+    lastDirection: null,     // {dx, dy} of last move
+
+    // === NEW: Direction Changes (indecision/rumbo) ===
+    directionChanges: 0,     // total direction changes
+    rapidReversals: 0,       // direction reversed within 500ms
+    directionSequence: [],   // [{dx,dy,t}] for pattern analysis
+    lastDirectionTime: 0,
+
+    // === NEW: Inter-objective Delays ===
+    objectiveTimestamps: [],  // timestamps when each grass tile was cut
+    interObjectiveDelays: [], // ms between consecutive grass cuts
+
+    // === NEW: Neatness / Pattern Analysis ===
+    mowingPattern: [],       // ordered list of {x,y} of cut tiles
+    rowTransitions: 0,       // how many times player changed row while mowing
+    adjacentCuts: 0,         // cuts that were adjacent to previous cut
+    totalCutsTracked: 0,
+    lastCutX: -1,
+    lastCutY: -1,
+
+    // === NEW: Plan Efficiency (ideal vs actual) ===
+    idealPathLength: 0,      // BFS optimal path to cover all grass
+    actualPathLength: 0      // actual tiles visited
   };
 
   function resetClinicalMetrics() {
@@ -1499,7 +1562,34 @@
       lastFrameTime: 0,
       sessionStartTime: Date.now(),
       firstMoveTime: 0,
-      levelCompletionAttempts: clinicalMetrics.levelCompletionAttempts + 1
+      levelCompletionAttempts: clinicalMetrics.levelCompletionAttempts + 1,
+      // Fine motor / tremor
+      mouseMoveSamples: [],
+      tremorEvents: [],
+      lastMouseX: 0,
+      lastMouseY: 0,
+      // Dysmetria
+      overshootCount: 0,
+      consecutiveSameDir: 0,
+      lastDirection: null,
+      // Direction changes
+      directionChanges: 0,
+      rapidReversals: 0,
+      directionSequence: [],
+      lastDirectionTime: 0,
+      // Inter-objective delays
+      objectiveTimestamps: [],
+      interObjectiveDelays: [],
+      // Neatness
+      mowingPattern: [],
+      rowTransitions: 0,
+      adjacentCuts: 0,
+      totalCutsTracked: 0,
+      lastCutX: -1,
+      lastCutY: -1,
+      // Plan efficiency
+      idealPathLength: 0,
+      actualPathLength: 0
     };
   }
 
@@ -1545,10 +1635,60 @@
         avg_pause_duration_ms: 0,
         long_pauses_count: 0,  // pauses > 3 seconds
 
-        // Time to first action (initial reaction)
+        // Time to first action (initial reaction / demora de inicio)
         time_to_first_action_ms: clinicalMetrics.firstMoveTime > 0
           ? (clinicalMetrics.firstMoveTime - clinicalMetrics.sessionStartTime) : 0
       },
+
+      // === NEW: Motor / Fine Motor (Motricidad Fina) ===
+      motor_markers: {
+        // Tremor detection
+        tremor_event_count: clinicalMetrics.tremorEvents.length,
+        tremor_avg_jitter: 0,
+        tremor_max_jitter: 0,
+        tremor_avg_speed_var: 0,
+
+        // Dysmetria (imprecise targeting)
+        overshoot_count: clinicalMetrics.overshootCount,
+        dysmetria_ratio: clinicalMetrics.totalMoves > 0
+          ? (clinicalMetrics.overshootCount / clinicalMetrics.totalMoves) : 0,
+
+        // Direction changes (cambios de rumbo)
+        direction_changes: clinicalMetrics.directionChanges,
+        rapid_reversals: clinicalMetrics.rapidReversals,
+        indecision_ratio: clinicalMetrics.totalMoves > 0
+          ? (clinicalMetrics.rapidReversals / clinicalMetrics.totalMoves) : 0,
+
+        // Motor clumsiness composite (torpeza motora)
+        // High = clumsy: many errors, overshoots, invalid moves, tremor
+        motor_clumsiness_score: 0,
+
+        // Meticulousness composite (minuciosidad / prolijidad)
+        // High = meticulous: systematic pattern, few errors, high efficiency
+        meticulousness_score: 0
+      },
+
+      // === NEW: Planning / Executive Function ===
+      planning_markers: {
+        // Ideal vs actual path (plan efficiency)
+        ideal_path_length: clinicalMetrics.idealPathLength,
+        actual_path_length: clinicalMetrics.actualPathLength,
+        plan_efficiency: (clinicalMetrics.idealPathLength > 0 && clinicalMetrics.actualPathLength > 0)
+          ? Math.min(1, clinicalMetrics.idealPathLength / clinicalMetrics.actualPathLength) : 0,
+
+        // Inter-objective delays (demora entre objetivos)
+        avg_inter_objective_delay_ms: 0,
+        max_inter_objective_delay_ms: 0,
+        inter_objective_variability_sd: 0,
+
+        // Neatness / pattern analysis
+        neatness: { score: 0, adjacency_ratio: 0, row_stability: 0, pattern_type: 'N/A' },
+
+        // Resets (restarts)
+        total_resets: resetEvents.length,
+        reset_timing: resetEvents.map(r => r.timeSinceStart)
+      },
+
       device_context: {
         input_method: clinicalMetrics.inputMethod,
         frame_rate_avg: 0,
@@ -1585,6 +1725,55 @@
         Math.round(frs.reduce((a, b) => a + b, 0) / frs.length);
     }
 
+    // === Tremor statistics ===
+    if (clinicalMetrics.tremorEvents.length > 0) {
+      const tremors = clinicalMetrics.tremorEvents;
+      stats.motor_markers.tremor_avg_jitter =
+        Math.round(tremors.reduce((a, t) => a + t.jitter, 0) / tremors.length * 100) / 100;
+      stats.motor_markers.tremor_max_jitter =
+        Math.round(Math.max(...tremors.map(t => t.jitter)) * 100) / 100;
+      stats.motor_markers.tremor_avg_speed_var =
+        Math.round(tremors.reduce((a, t) => a + t.speed_var, 0) / tremors.length * 1000) / 1000;
+    }
+
+    // === Inter-objective delay statistics ===
+    if (clinicalMetrics.interObjectiveDelays.length > 0) {
+      const iod = clinicalMetrics.interObjectiveDelays;
+      const iodSum = iod.reduce((a, b) => a + b, 0);
+      const iodMean = iodSum / iod.length;
+      stats.planning_markers.avg_inter_objective_delay_ms = Math.round(iodMean);
+      stats.planning_markers.max_inter_objective_delay_ms = Math.round(Math.max(...iod));
+      if (iod.length > 1) {
+        const iodVar = iod.reduce((a, v) => a + (v - iodMean) ** 2, 0) / iod.length;
+        stats.planning_markers.inter_objective_variability_sd = Math.round(Math.sqrt(iodVar));
+      }
+    }
+
+    // === Neatness score ===
+    stats.planning_markers.neatness = calculateNeatnessScore();
+
+    // === Motor clumsiness composite (0-1, higher = more clumsy) ===
+    const clumsyFactors = [
+      stats.clinical_markers.impulsivity_ratio,                          // errors / moves
+      Math.min(1, clinicalMetrics.overshootCount / Math.max(1, clinicalMetrics.totalMoves) * 10),  // dysmetria
+      1 - stats.clinical_markers.movement_efficiency,                    // invalid moves ratio
+      Math.min(1, clinicalMetrics.tremorEvents.length / 20),             // tremor frequency
+      Math.min(1, stats.clinical_markers.cable_stucks / 5)               // cable stucks
+    ];
+    stats.motor_markers.motor_clumsiness_score =
+      Math.round(clumsyFactors.reduce((a, b) => a + b, 0) / clumsyFactors.length * 100) / 100;
+
+    // === Meticulousness composite (0-1, higher = more meticulous) ===
+    const meticulousFactors = [
+      stats.planning_markers.neatness.score,                             // systematic mowing
+      stats.clinical_markers.movement_efficiency,                        // precise moves
+      stats.planning_markers.plan_efficiency,                            // efficient path
+      1 - Math.min(1, clinicalMetrics.rapidReversals / Math.max(1, clinicalMetrics.totalMoves) * 5), // low indecision
+      stats.session_summary.accuracy_percentage / 100                    // high completion
+    ];
+    stats.motor_markers.meticulousness_score =
+      Math.round(meticulousFactors.reduce((a, b) => a + b, 0) / meticulousFactors.length * 100) / 100;
+
     return stats;
   }
 
@@ -1602,6 +1791,7 @@
     if (successful) {
       clinicalMetrics.successfulMoves++;
       clinicalMetrics.totalDistanceTraveled += Math.abs(dx) + Math.abs(dy);
+      clinicalMetrics.actualPathLength++;
       clinicalMetrics.movementPath.push({
         x: playerX,
         y: playerY,
@@ -1623,6 +1813,38 @@
     if (clinicalMetrics.firstMoveTime === 0) {
       clinicalMetrics.firstMoveTime = timestamp;
     }
+
+    // === Direction change analysis ===
+    const curDir = { dx, dy };
+    if (clinicalMetrics.lastDirection) {
+      const prev = clinicalMetrics.lastDirection;
+      if (prev.dx !== curDir.dx || prev.dy !== curDir.dy) {
+        clinicalMetrics.directionChanges++;
+        // Rapid reversal: opposite direction within 500ms
+        const timeSinceLast = timestamp - clinicalMetrics.lastDirectionTime;
+        if (timeSinceLast < 500 && prev.dx === -curDir.dx && prev.dy === -curDir.dy) {
+          clinicalMetrics.rapidReversals++;
+        }
+      }
+    }
+    clinicalMetrics.lastDirection = curDir;
+    clinicalMetrics.lastDirectionTime = timestamp;
+    clinicalMetrics.directionSequence.push({ dx, dy, t: timestamp - clinicalMetrics.sessionStartTime });
+
+    // === Dysmetria: overshoot detection (reversal after consecutive same direction) ===
+    if (clinicalMetrics.directionSequence.length >= 2) {
+      const seq = clinicalMetrics.directionSequence;
+      const prevEntry = seq[seq.length - 2];
+      if (prevEntry.dx === dx && prevEntry.dy === dy) {
+        clinicalMetrics.consecutiveSameDir++;
+      } else {
+        // If we were going in same direction for 2+ moves then reversed, it's an overshoot
+        if (clinicalMetrics.consecutiveSameDir >= 2 && prevEntry.dx === -dx && prevEntry.dy === -dy) {
+          clinicalMetrics.overshootCount++;
+        }
+        clinicalMetrics.consecutiveSameDir = 1;
+      }
+    }
   }
 
   // Record grass cut timing for RTV calculation
@@ -1635,8 +1857,22 @@
         clinicalMetrics.reactionTimes.push(reactionTime);
         metricsTimeSeries.reactionTimesOverTime.push(reactionTime);
       }
+      // Inter-objective delay
+      clinicalMetrics.interObjectiveDelays.push(reactionTime);
     }
     clinicalMetrics.lastGrassCutTime = now;
+    clinicalMetrics.objectiveTimestamps.push(now);
+
+    // === Neatness tracking: was this cut adjacent to the previous cut? ===
+    clinicalMetrics.totalCutsTracked++;
+    clinicalMetrics.mowingPattern.push({ x: playerX, y: playerY });
+    if (clinicalMetrics.lastCutX >= 0) {
+      const dist = Math.abs(playerX - clinicalMetrics.lastCutX) + Math.abs(playerY - clinicalMetrics.lastCutY);
+      if (dist === 1) clinicalMetrics.adjacentCuts++;
+      if (playerY !== clinicalMetrics.lastCutY) clinicalMetrics.rowTransitions++;
+    }
+    clinicalMetrics.lastCutX = playerX;
+    clinicalMetrics.lastCutY = playerY;
   }
 
   // Frame rate monitoring (for device context)
@@ -2725,20 +2961,35 @@
     // Summary stats
     const summaryDiv = document.createElement('div');
     summaryDiv.style.cssText = 'grid-column: 1 / -1; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1rem;';
-    summaryDiv.innerHTML = '<h3 style="font-size:0.9rem; color:#15803d; margin-bottom:0.5rem;">Resumen Estadistico (FDA Biomarkers)</h3>'
-      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.5rem; font-size:0.82rem;">'
+    const mm = stats.motor_markers || {};
+    const pm = stats.planning_markers || {};
+    const neat = pm.neatness || {};
+    summaryDiv.innerHTML =
+      '<h3 style="font-size:0.9rem; color:#15803d; margin-bottom:0.5rem;">Atencion y Tiempo de Reaccion</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.4rem; font-size:0.82rem;">'
       + metricItem('RT Media', stats.clinical_markers.mean_reaction_time_ms + ' ms')
       + metricItem('RT Variabilidad (SD)', stats.clinical_markers.rt_variability_sd + ' ms')
-      + metricItem('Coef. Variacion RT', (stats.clinical_markers.rt_coefficient_of_variation * 100).toFixed(1) + '%')
       + metricItem('Errores Omision', stats.clinical_markers.omission_errors)
       + metricItem('Errores Comision', stats.clinical_markers.commission_errors)
-      + metricItem('Ratio Impulsividad', (stats.clinical_markers.impulsivity_ratio * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Movimiento', (stats.clinical_markers.movement_efficiency * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Trayecto', (stats.clinical_markers.path_efficiency * 100).toFixed(1) + '%')
+      + metricItem('Demora Inicio', stats.clinical_markers.time_to_first_action_ms + ' ms')
       + metricItem('Pausas >3s', stats.clinical_markers.long_pauses_count)
-      + metricItem('Pausa Media', stats.clinical_markers.avg_pause_duration_ms + ' ms')
-      + metricItem('T. Primera Accion', stats.clinical_markers.time_to_first_action_ms + ' ms')
-      + metricItem('Reinicios', stats.device_context.session_restarts)
+      + '</div>'
+      + '<h3 style="font-size:0.9rem; color:#7c3aed; margin:0.8rem 0 0.4rem;">Motricidad Fina / Motor</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.4rem; font-size:0.82rem;">'
+      + metricItem('Temblor', (mm.tremor_event_count || 0) + ' eventos')
+      + metricItem('Jitter Prom', (mm.tremor_avg_jitter || 0).toFixed(2) + ' px')
+      + metricItem('Dismetria', (mm.overshoot_count || 0) + ' overshoots')
+      + metricItem('Cambios Rumbo', mm.direction_changes || 0)
+      + metricItem('Torpeza', ((mm.motor_clumsiness_score || 0) * 100).toFixed(0) + '/100')
+      + metricItem('Minuciosidad', ((mm.meticulousness_score || 0) * 100).toFixed(0) + '/100')
+      + '</div>'
+      + '<h3 style="font-size:0.9rem; color:#0891b2; margin:0.8rem 0 0.4rem;">Planificacion</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.4rem; font-size:0.82rem;">'
+      + metricItem('Efic. Movimiento', (stats.clinical_markers.movement_efficiency * 100).toFixed(1) + '%')
+      + metricItem('Efic. Plan', ((pm.plan_efficiency || 0) * 100).toFixed(1) + '%')
+      + metricItem('Prolijidad', ((neat.score || 0) * 100).toFixed(0) + '/100 (' + (neat.pattern_type || 'N/A') + ')')
+      + metricItem('Demora entre Obj', (pm.avg_inter_objective_delay_ms || 0) + ' ms')
+      + metricItem('Reinicios', resetEvents.length)
       + '</div>';
     metricsCharts.appendChild(summaryDiv);
 
@@ -2806,6 +3057,9 @@
     for (let r = 0; r < gridH; r++)
       for (let c = 0; c < gridW; c++)
         if (grid[r][c] === T.GRASS || grid[r][c] === T.CABLE) totalGrass++;
+
+    // Calculate ideal path BEFORE player starts (for plan comparison)
+    clinicalMetrics.idealPathLength = calculateIdealPath();
 
     // cut starting tile
     if (grid[playerY][playerX] === T.GRASS) {
@@ -3895,6 +4149,117 @@
     };
   }
 
+  // ---- TREMOR TRACKING (mouse/touch micro-movements) ----
+  (function() {
+    let sampleCounter = 0;
+    function trackTremor(x, y) {
+      if (!gameRunning) return;
+      sampleCounter++;
+      if (sampleCounter % 3 !== 0) return; // Sample every 3rd event to reduce noise
+      const now = Date.now();
+      const samples = clinicalMetrics.mouseMoveSamples;
+      samples.push({ x, y, t: now });
+      // Keep last 200 samples for analysis
+      if (samples.length > 200) samples.splice(0, samples.length - 200);
+      // Calculate jitter from last 10 samples
+      if (samples.length >= 10) {
+        const recent = samples.slice(-10);
+        let totalJitter = 0;
+        for (let i = 2; i < recent.length; i++) {
+          // Perpendicular deviation from straight line (i-2 -> i)
+          const p0 = recent[i-2], p1 = recent[i-1], p2 = recent[i];
+          const ldx = p2.x - p0.x, ldy = p2.y - p0.y;
+          const len = Math.sqrt(ldx*ldx + ldy*ldy) || 1;
+          const px = p1.x - p0.x, py = p1.y - p0.y;
+          const cross = Math.abs(px * ldy - py * ldx) / len;
+          totalJitter += cross;
+        }
+        const avgJitter = totalJitter / (recent.length - 2);
+        // Record tremor event if jitter exceeds threshold (>3px avg deviation)
+        if (avgJitter > 3) {
+          // Speed variance
+          const speeds = [];
+          for (let i = 1; i < recent.length; i++) {
+            const sdx = recent[i].x - recent[i-1].x;
+            const sdy = recent[i].y - recent[i-1].y;
+            const dt = (recent[i].t - recent[i-1].t) || 1;
+            speeds.push(Math.sqrt(sdx*sdx + sdy*sdy) / dt);
+          }
+          const avgSpd = speeds.reduce((a,b) => a+b, 0) / speeds.length;
+          const spdVar = speeds.reduce((a,s) => a + (s-avgSpd)**2, 0) / speeds.length;
+          clinicalMetrics.tremorEvents.push({
+            jitter: Math.round(avgJitter * 100) / 100,
+            speed_var: Math.round(spdVar * 1000) / 1000,
+            t: now - clinicalMetrics.sessionStartTime
+          });
+        }
+      }
+    }
+    document.addEventListener('mousemove', function(e) { trackTremor(e.clientX, e.clientY); }, { passive: true });
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches && e.touches[0]) trackTremor(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+  })();
+
+  // ---- IDEAL PATH CALCULATOR (BFS greedy for optimal mowing) ----
+  function calculateIdealPath() {
+    if (!grid || gridH === 0) return 0;
+    // Simple estimate: BFS shortest path that visits all grass tiles
+    // Use nearest-neighbor heuristic for TSP approximation
+    const grassTiles = [];
+    for (let r = 0; r < gridH; r++) {
+      for (let c = 0; c < gridW; c++) {
+        if (grid[r][c] === T.GRASS || grid[r][c] === T.CABLE || grid[r][c] === T.CUT) {
+          grassTiles.push({ x: c, y: r });
+        }
+      }
+    }
+    if (grassTiles.length === 0) return 0;
+    // Nearest-neighbor path length estimation
+    const visited = new Set();
+    let cx = playerX, cy = playerY;
+    let totalDist = 0;
+    for (let i = 0; i < grassTiles.length; i++) {
+      let bestDist = Infinity, bestIdx = -1;
+      for (let j = 0; j < grassTiles.length; j++) {
+        const key = grassTiles[j].x + ',' + grassTiles[j].y;
+        if (visited.has(key)) continue;
+        const d = Math.abs(grassTiles[j].x - cx) + Math.abs(grassTiles[j].y - cy);
+        if (d < bestDist) { bestDist = d; bestIdx = j; }
+      }
+      if (bestIdx < 0) break;
+      visited.add(grassTiles[bestIdx].x + ',' + grassTiles[bestIdx].y);
+      totalDist += bestDist;
+      cx = grassTiles[bestIdx].x;
+      cy = grassTiles[bestIdx].y;
+    }
+    return totalDist;
+  }
+
+  // ---- NEATNESS SCORE CALCULATOR ----
+  function calculateNeatnessScore() {
+    const m = clinicalMetrics;
+    if (m.totalCutsTracked <= 1) return { score: 1, adjacency_ratio: 1, row_stability: 1, pattern_type: 'N/A' };
+    // Adjacency ratio: what % of cuts were adjacent to previous cut (systematic = high)
+    const adjacencyRatio = m.adjacentCuts / (m.totalCutsTracked - 1);
+    // Row stability: low row transitions = mowing in rows (systematic)
+    const rowStability = 1 - Math.min(1, m.rowTransitions / m.totalCutsTracked);
+    // Combined neatness score 0-1 (1 = very neat/systematic)
+    const neatness = (adjacencyRatio * 0.6 + rowStability * 0.4);
+    // Detect pattern type
+    let patternType = 'caotico';
+    if (neatness > 0.8) patternType = 'muy_sistematico';
+    else if (neatness > 0.6) patternType = 'sistematico';
+    else if (neatness > 0.4) patternType = 'semi_organizado';
+    else if (neatness > 0.2) patternType = 'desorganizado';
+    return {
+      score: Math.round(neatness * 100) / 100,
+      adjacency_ratio: Math.round(adjacencyRatio * 100) / 100,
+      row_stability: Math.round(rowStability * 100) / 100,
+      pattern_type: patternType
+    };
+  }
+
   // ---- METRICS CHARTS ----
   function metricItem(label, value) {
     return '<div style="padding:0.3rem 0.5rem; background:#fff; border-radius:6px; border:1px solid #dcfce7;">'
@@ -3917,22 +4282,52 @@
       drawIntraBarChart('intraPauseChart', clinicalMetrics.pauseDurations.filter(p => p > 500), 'Pausa #', 'rgb(14,165,233)', 'ms');
     }
 
-    // === FDA SUMMARY STATS (12 biomarkers) ===
+    // === FDA SUMMARY STATS ===
     const stats = calculateClinicalStats();
     const summaryDiv = document.getElementById('fdaSummaryPanel');
-    summaryDiv.innerHTML = '<h3 style="font-size:0.9rem; color:#15803d; margin-bottom:0.5rem;">Resumen Estadistico (FDA Biomarkers)</h3>'
-      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0.4rem; font-size:0.82rem;">'
+    const mm = stats.motor_markers || {};
+    const pm = stats.planning_markers || {};
+    const neatness = pm.neatness || {};
+    summaryDiv.innerHTML =
+      // Section 1: Attention & RT
+      '<h3 style="font-size:0.9rem; color:#15803d; margin-bottom:0.5rem;">Atencion y Tiempo de Reaccion</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:0.4rem; font-size:0.82rem;">'
       + metricItem('RT Media', stats.clinical_markers.mean_reaction_time_ms + ' ms')
       + metricItem('RT Variabilidad (SD)', stats.clinical_markers.rt_variability_sd + ' ms')
       + metricItem('Coef. Variacion RT', (stats.clinical_markers.rt_coefficient_of_variation * 100).toFixed(1) + '%')
       + metricItem('Errores Omision', stats.clinical_markers.omission_errors)
       + metricItem('Errores Comision', stats.clinical_markers.commission_errors)
       + metricItem('Ratio Impulsividad', (stats.clinical_markers.impulsivity_ratio * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Movimiento', (stats.clinical_markers.movement_efficiency * 100).toFixed(1) + '%')
-      + metricItem('Eficiencia Trayecto', (stats.clinical_markers.path_efficiency * 100).toFixed(1) + '%')
+      + metricItem('Demora Inicio', stats.clinical_markers.time_to_first_action_ms + ' ms')
       + metricItem('Pausas >3s', stats.clinical_markers.long_pauses_count)
       + metricItem('Pausa Media', stats.clinical_markers.avg_pause_duration_ms + ' ms')
-      + metricItem('T. Primera Accion', stats.clinical_markers.time_to_first_action_ms + ' ms')
+      + '</div>'
+      // Section 2: Motor / Fine Motor
+      + '<h3 style="font-size:0.9rem; color:#7c3aed; margin:1rem 0 0.5rem;">Motricidad Fina / Perfil Motor</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:0.4rem; font-size:0.82rem;">'
+      + metricItem('Temblor (eventos)', mm.tremor_event_count || 0)
+      + metricItem('Temblor Jitter Prom', (mm.tremor_avg_jitter || 0).toFixed(2) + ' px')
+      + metricItem('Temblor Max', (mm.tremor_max_jitter || 0).toFixed(2) + ' px')
+      + metricItem('Dismetria (overshoots)', mm.overshoot_count || 0)
+      + metricItem('Ratio Dismetria', ((mm.dysmetria_ratio || 0) * 100).toFixed(1) + '%')
+      + metricItem('Cambios Rumbo', mm.direction_changes || 0)
+      + metricItem('Reversiones Rapidas', mm.rapid_reversals || 0)
+      + metricItem('Indecision', ((mm.indecision_ratio || 0) * 100).toFixed(1) + '%')
+      + metricItem('Torpeza Motora', ((mm.motor_clumsiness_score || 0) * 100).toFixed(0) + '/100')
+      + metricItem('Minuciosidad', ((mm.meticulousness_score || 0) * 100).toFixed(0) + '/100')
+      + '</div>'
+      // Section 3: Planning / Executive
+      + '<h3 style="font-size:0.9rem; color:#0891b2; margin:1rem 0 0.5rem;">Planificacion y Eficiencia</h3>'
+      + '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:0.4rem; font-size:0.82rem;">'
+      + metricItem('Efic. Movimiento', (stats.clinical_markers.movement_efficiency * 100).toFixed(1) + '%')
+      + metricItem('Efic. Trayecto', (stats.clinical_markers.path_efficiency * 100).toFixed(1) + '%')
+      + metricItem('Efic. Plan', ((pm.plan_efficiency || 0) * 100).toFixed(1) + '%')
+      + metricItem('Ruta Ideal', pm.ideal_path_length || 0)
+      + metricItem('Ruta Real', pm.actual_path_length || 0)
+      + metricItem('Demora entre Obj', (pm.avg_inter_objective_delay_ms || 0) + ' ms')
+      + metricItem('Demora Max', (pm.max_inter_objective_delay_ms || 0) + ' ms')
+      + metricItem('Prolijidad', ((neatness.score || 0) * 100).toFixed(0) + '/100')
+      + metricItem('Patron', neatness.pattern_type || 'N/A')
       + metricItem('Reinicios', resetEvents.length)
       + '</div>';
 
