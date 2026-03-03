@@ -1,6 +1,7 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
+import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
 
 const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
 
@@ -41,6 +42,27 @@ export default async (req: Request, context: Context) => {
       return new Response(JSON.stringify({ error: "Sesión inválida" }), { status: 401, headers: corsHeaders });
     }
 
+    // Check gaming entitlement (plan-based access control)
+    // NOTE: Only enforce if patient has a plan assigned. If no plan exists,
+    // allow access (backward compat - plans not yet rolled out to all patients)
+    try {
+      const entitlement = await checkEntitlement(sql, patient.id, 'gaming');
+      if (entitlement.planType && !entitlement.allowed) {
+        // Patient HAS a plan but gaming is not allowed under it
+        return new Response(JSON.stringify({
+          error: "Acceso restringido",
+          message: entitlement.reason,
+          planType: entitlement.planType,
+          requiresPrescription: entitlement.requiresPrescription,
+          hasPrescription: entitlement.hasPrescription
+        }), { status: 403, headers: corsHeaders });
+      }
+      // If planType is null → no plan assigned → allow access (legacy behavior)
+    } catch (e) {
+      // Tables don't exist yet → allow access
+      console.log('Entitlement check skipped:', e);
+    }
+
     // List all games with availability and progress
     if (action === "list") {
       const games = await sql`
@@ -68,14 +90,21 @@ export default async (req: Request, context: Context) => {
       const currentDay = argTime.getDay();
       const currentTimeStr = argTime.toTimeString().slice(0, 5);
 
-      const schedules = await sql`
-        SELECT game_id, available_from, available_until
-        FROM hdd_game_schedule
-        WHERE is_active = TRUE AND day_of_week = ${currentDay}
-      `;
+      let schedules: any[] = [];
+      try {
+        schedules = await sql`
+          SELECT game_id, available_from, available_until
+          FROM hdd_game_schedule
+          WHERE is_active = TRUE AND (day_of_week = ${currentDay} OR day_of_week IS NULL)
+        `;
+      } catch (e) {
+        // Schedule table might not exist yet
+      }
 
+      const scheduledGameIds = new Set<number>();
       const availableSet = new Set<number>();
       for (const s of schedules) {
+        scheduledGameIds.add(s.game_id);
         const from = s.available_from.slice(0, 5);
         const until = s.available_until.slice(0, 5);
         if (currentTimeStr >= from && currentTimeStr <= until) {
@@ -86,7 +115,8 @@ export default async (req: Request, context: Context) => {
       const result = games.map((g: any) => ({
         ...g,
         progress: progressMap[g.id] || null,
-        available: availableSet.has(g.id),
+        // If game has no schedule defined, it's always available
+        available: !scheduledGameIds.has(g.id) || availableSet.has(g.id),
       }));
 
       return new Response(JSON.stringify({ games: result }), { headers: corsHeaders });
@@ -203,6 +233,9 @@ export default async (req: Request, context: Context) => {
           VALUES (${patient.id}, ${game.id}, ${level || 1})
           RETURNING id, started_at
         `;
+
+        // Record service usage for entitlement tracking
+        recordUsage(sql, patient.id, 'gaming', `game_session:${session.id}`).catch(() => {});
 
         return new Response(JSON.stringify({ success: true, sessionId: session.id, startedAt: session.started_at }), { headers: corsHeaders });
       }

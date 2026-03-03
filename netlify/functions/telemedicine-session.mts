@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { createDailyRoom } from "./lib/daily.mts";
 
 // Video call session management - ON-DEMAND ONLY
 // Pricing by modality (Argentina time UTC-3):
@@ -430,6 +431,13 @@ export default async (req: Request, context: Context) => {
             }
           }
 
+          // Fetch the room URL from video_sessions if available
+          let roomUrl = '';
+          if (sessionToken) {
+            const [vs] = await sql`SELECT room_id FROM video_sessions WHERE session_token = ${sessionToken}`;
+            roomUrl = vs?.room_id || '';
+          }
+
           return new Response(JSON.stringify({
             success: true,
             paymentStatus: 'approved',
@@ -440,6 +448,7 @@ export default async (req: Request, context: Context) => {
               roomUrl: dailyRoomUrl,
               expiresInMinutes: 60,
             } : null,
+            roomUrl: roomUrl || '',
             message: dailyPatientUrl
               ? "Pago confirmado. Tu sala está lista. Los profesionales fueron notificados y tienen 1 hora para atenderte."
               : "Pago confirmado. Ha ingresado a la sala de espera. Los profesionales han sido notificados."

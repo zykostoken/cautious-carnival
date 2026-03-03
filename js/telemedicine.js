@@ -246,6 +246,11 @@ async function telemedVerifyPayment() {
             statusTextEl.textContent = 'Pago confirmado! Ingresando a sala de espera...';
             statusTextEl.style.color = 'var(--accent-green)';
 
+            // Store Daily.co room URL from backend (created on payment confirmation)
+            if (data.roomUrl) {
+                window.telemedRoomUrl = data.roomUrl;
+            }
+
             // Stop payment timer
             if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
 
@@ -404,7 +409,6 @@ function telemedStartVideoCall() {
     // Si no está disponible, fallback a URL pública (sala puede rechazar sin token)
     const roomUrl = window.telemedPatientRoomUrl
         || `https://${window.DAILY_DOMAIN || 'hdd-jose-ingenieros'}.daily.co/cji-${(telemedSessionToken||'').substring(0, 12)}`;
-
     container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
     window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
@@ -605,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function iniciarVideollamadaDaily(sessionToken) {
     const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
     const roomName = `ClinicaJoseIngenieros-${sessionToken.substring(0, 12)}`;
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const roomUrl = window.telemedRoomUrl || `https://${dailyDomain}.daily.co/${roomName}`;
 
     // Create the video call container
     const videoModal = document.createElement('div');

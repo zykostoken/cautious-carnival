@@ -60,7 +60,7 @@ export default async (req: Request, context: Context) => {
         `;
 
         // Trigger notification to professionals (async, don't wait)
-        const roomName = `ClinicaJoseIngenieros_call_${queueEntry.id}`;
+        const roomName = `ClinicaJoseIngenieros-call_${queueEntry.id}`;
         fetch(`${new URL(req.url).origin}/api/notifications`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -425,7 +425,7 @@ export default async (req: Request, context: Context) => {
           paymentConfirmed,
           professionalJoined,
           professionalName: callStatus.professional_name,
-          roomName: `ClinicaJoseIngenieros_${callStatus.session_token.substring(0, 12)}`
+          roomName: `ClinicaJoseIngenieros-${callStatus.session_token.substring(0, 12)}`
         }), { status: 200, headers: corsHeaders });
       }
 
@@ -513,7 +513,7 @@ export default async (req: Request, context: Context) => {
           createdAt: q.created_at,
           assignedAt: q.assigned_at,
           professionalName: q.professional_name,
-          roomName: q.room_token ? `ClinicaJoseIngenieros_${q.room_token.substring(0, 12)}` : null
+          roomName: q.room_token ? `ClinicaJoseIngenieros-${q.room_token.substring(0, 12)}` : null
         })),
         waitingCount: parseInt(countResult.waiting_count)
       }), { status: 200, headers: corsHeaders });

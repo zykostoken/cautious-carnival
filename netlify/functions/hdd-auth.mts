@@ -2,6 +2,50 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
 
+// Fetch patient plan info for login responses
+async function getPatientPlanInfo(sql: ReturnType<typeof import("postgres")>, patientId: number) {
+  try {
+    const [plan] = await sql`
+      SELECT pp.plan_type, pp.status as plan_status,
+             sp.name as plan_name, sp.code as plan_code,
+             os.name as obra_social_name, os.code as obra_social_code,
+             pp.obra_social_member_number
+      FROM patient_plans pp
+      JOIN service_plans sp ON sp.id = pp.plan_id
+      LEFT JOIN obras_sociales os ON os.id = pp.obra_social_id
+      WHERE pp.patient_id = ${patientId} AND pp.status = 'active'
+      ORDER BY pp.created_at DESC LIMIT 1
+    `;
+    if (!plan) return null;
+
+    const entitlements = await sql`
+      SELECT pe.service_type, pe.max_per_month, pe.max_per_week, pe.is_included, pe.requires_prescription
+      FROM plan_entitlements pe
+      JOIN service_plans sp ON sp.id = pe.plan_id
+      WHERE sp.code = ${plan.plan_code}
+    `;
+
+    return {
+      planType: plan.plan_type,
+      planName: plan.plan_name,
+      planCode: plan.plan_code,
+      obraSocial: plan.obra_social_name || null,
+      obraSocialCode: plan.obra_social_code || null,
+      memberNumber: plan.obra_social_member_number || null,
+      services: entitlements.map((e: any) => ({
+        type: e.service_type,
+        included: e.is_included,
+        maxPerMonth: e.max_per_month,
+        maxPerWeek: e.max_per_week,
+        requiresPrescription: e.requires_prescription,
+      })),
+    };
+  } catch (e) {
+    // Tables might not exist yet (pre-migration)
+    return null;
+  }
+}
+
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
   const corsHeaders = {
@@ -68,6 +112,8 @@ export default async (req: Request, context: Context) => {
             VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
           `.catch(e => console.log('Login tracking failed:', e));
 
+          const planInfo = await getPatientPlanInfo(sql, patient.id);
+
           return new Response(JSON.stringify({
             success: true,
             firstLogin: true,
@@ -76,8 +122,10 @@ export default async (req: Request, context: Context) => {
               dni: patient.dni,
               fullName: patient.full_name,
               email: patient.email,
-              photoUrl: patient.photo_url
+              photoUrl: patient.photo_url,
+              patientType: patient.patient_type || 'obra_social'
             },
+            planInfo,
             sessionToken,
             message: "Bienvenido/a! Su contraseña ha sido configurada."
           }), { status: 200, headers: corsHeaders });
@@ -106,6 +154,8 @@ export default async (req: Request, context: Context) => {
           VALUES (${patient.id}, NOW(), ${req.headers.get('user-agent') || null})
         `.catch(e => console.log('Login tracking failed:', e));
 
+        const planInfo = await getPatientPlanInfo(sql, patient.id);
+
         return new Response(JSON.stringify({
           success: true,
           patient: {
@@ -113,8 +163,10 @@ export default async (req: Request, context: Context) => {
             dni: patient.dni,
             fullName: patient.full_name,
             email: patient.email,
-            photoUrl: patient.photo_url
+            photoUrl: patient.photo_url,
+            patientType: patient.patient_type || 'obra_social'
           },
+          planInfo,
           sessionToken,
           message: "Inicio de sesión exitoso"
         }), { status: 200, headers: corsHeaders });
@@ -404,7 +456,7 @@ export default async (req: Request, context: Context) => {
     if (action === "verify" && sessionToken) {
       try {
         const [patient] = await sql`
-          SELECT id, dni, full_name, email, phone, photo_url, status
+          SELECT id, dni, full_name, email, phone, photo_url, status, patient_type
           FROM hdd_patients
           WHERE session_token = ${sessionToken} AND status = 'active'
         `;
@@ -416,6 +468,8 @@ export default async (req: Request, context: Context) => {
           }), { status: 401, headers: corsHeaders });
         }
 
+        const planInfo = await getPatientPlanInfo(sql, patient.id);
+
         return new Response(JSON.stringify({
           valid: true,
           patient: {
@@ -424,8 +478,10 @@ export default async (req: Request, context: Context) => {
             fullName: patient.full_name,
             email: patient.email,
             phone: patient.phone,
-            photoUrl: patient.photo_url
-          }
+            photoUrl: patient.photo_url,
+            patientType: patient.patient_type || 'obra_social'
+          },
+          planInfo
         }), { status: 200, headers: corsHeaders });
 
       } catch (error) {
