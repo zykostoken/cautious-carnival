@@ -466,6 +466,12 @@ function switchTab(tabId) {
     loadPortalActivities();
     loadPortalResources();
   }
+  if (tabId === 'metrics') {
+    const iframe = document.querySelector('#tab-metrics iframe');
+    if (iframe && sessionToken) {
+      iframe.src = '/hdd/portal/metrics.html?sessionToken=' + encodeURIComponent(sessionToken);
+    }
+  }
 }
 
 // ==================== ACTIVITIES & RESOURCES (DB-backed) ====================

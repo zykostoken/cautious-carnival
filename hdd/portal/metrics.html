@@ -228,7 +228,7 @@
   <script>
     // Get patient session
     const urlParams = new URLSearchParams(window.location.search);
-    const sessionToken = urlParams.get('sessionToken') || localStorage.getItem('hdd_session_token');
+    const sessionToken = urlParams.get('sessionToken') || localStorage.getItem('hdd_session');
 
     if (!sessionToken) {
       window.location.href = '/hdd/portal';
