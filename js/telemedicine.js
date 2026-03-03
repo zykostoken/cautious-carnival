@@ -249,6 +249,11 @@ async function telemedVerifyPayment() {
             // Stop payment timer
             if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
 
+            // Guardar URL del paciente para la sala Daily (con token privado)
+            if (data.room && data.room.patientUrl) {
+                window.telemedPatientRoomUrl = data.room.patientUrl;
+            }
+
             // Update waiting room with price info
             const waitingPrice = document.getElementById('telemed-waiting-price');
             if (waitingPrice && telemedCurrentPrice) {
@@ -392,13 +397,14 @@ function telemedStartVideoCall() {
     }, 1000);
 
     // Initialize Daily.co video call in the container
-    const roomName = `ClinicaJoseIngenieros-${telemedSessionToken.substring(0, 12)}`;
     const container = document.getElementById('telemed-jitsi-container');
     if (!container) return;
 
-    // Embed Daily.co prebuilt UI via iframe
-    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    // Usar URL con token privado (guardada al confirmar el pago)
+    // Si no está disponible, fallback a URL pública (sala puede rechazar sin token)
+    const roomUrl = window.telemedPatientRoomUrl
+        || `https://${window.DAILY_DOMAIN || 'hdd-jose-ingenieros'}.daily.co/cji-${(telemedSessionToken||'').substring(0, 12)}`;
+
     container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
     window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
@@ -1241,8 +1247,12 @@ async function takeCall(queueId) {
         const data = await res.json();
 
         if (data.success) {
+            // Usar URL con token del profesional (sala privada Daily.co)
+            const profUrl = data.room && data.room.professionalUrl
+                ? data.room.professionalUrl
+                : null;
             // Join the video call with queueId for proper completion tracking
-            joinCall(data.roomName, data.queueId);
+            joinCall(data.room && data.room.roomName || data.roomName, data.queueId, profUrl);
             // Refresh the queue
             loadCallQueue();
             loadActiveCalls();
@@ -1254,7 +1264,7 @@ async function takeCall(queueId) {
     }
 }
 
-function joinCall(roomName, queueId) {
+function joinCall(roomName, queueId, profUrl) {
     // Store current call's queueId for later use
     window.currentCallQueueId = queueId;
 
@@ -1284,9 +1294,10 @@ function joinCall(roomName, queueId) {
     `;
     document.body.appendChild(videoModal);
 
-    // Load Daily.co room
+    // Load Daily.co room — usar URL con token si está disponible
     const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const roomUrl = profUrl
+        || `https://${dailyDomain}.daily.co/${roomName}`;
     const iframe = document.getElementById('daily-prof-iframe');
     iframe.src = roomUrl;
     window.dailyProfIframe = iframe;
