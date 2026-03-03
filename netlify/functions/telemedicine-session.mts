@@ -279,6 +279,8 @@ export default async (req: Request, context: Context) => {
         }).catch(() => {});
 
         return new Response(JSON.stringify({
+          success: true,
+          requiresPayment: true,
           sessionId: session.id,
           sessionToken: session.session_token,
           expiresAt: session.expires_at,
