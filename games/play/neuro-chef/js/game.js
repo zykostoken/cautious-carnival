@@ -375,8 +375,8 @@ function verifyLevel2() {
 // ========== NIVEL 3: COCINA ==========
 function loadLevel3_Cocina() {
     document.getElementById('level-title').textContent = 'Nivel 3: Cocina';
-    const recetasConPasos = Object.values(RECETAS).filter(r=>r.pasos&&r.pasos.length>0);
-    const receta = recetasConPasos[Math.floor(Math.random()*recetasConPasos.length)];
+    const recetaKey = document.getElementById('game-area').dataset.recetaKey;
+    const receta = (recetaKey && RECETAS[recetaKey]) ? RECETAS[recetaKey] : (() => { const rcp = Object.values(RECETAS).filter(r=>r.pasos&&r.pasos.length>0); return rcp[Math.floor(Math.random()*rcp.length)]; })();
     document.getElementById('level-description').innerHTML = `Ordená los pasos para preparar <strong>${receta.nombre}</strong>`;
     const gameArea = document.getElementById('game-area');
     const shuffledPasos = shuffleArray([...receta.pasos]);
