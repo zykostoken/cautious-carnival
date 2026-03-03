@@ -43,9 +43,12 @@ export default async (req: Request, context: Context) => {
     }
 
     // Check gaming entitlement (plan-based access control)
+    // NOTE: Only enforce if patient has a plan assigned. If no plan exists,
+    // allow access (backward compat - plans not yet rolled out to all patients)
     try {
       const entitlement = await checkEntitlement(sql, patient.id, 'gaming');
-      if (!entitlement.allowed) {
+      if (entitlement.planType && !entitlement.allowed) {
+        // Patient HAS a plan but gaming is not allowed under it
         return new Response(JSON.stringify({
           error: "Acceso restringido",
           message: entitlement.reason,
@@ -54,10 +57,10 @@ export default async (req: Request, context: Context) => {
           hasPrescription: entitlement.hasPrescription
         }), { status: 403, headers: corsHeaders });
       }
+      // If planType is null → no plan assigned → allow access (legacy behavior)
     } catch (e) {
-      // If entitlement tables don't exist yet (pre-migration), allow access
-      // This maintains backward compatibility during rollout
-      console.log('Entitlement check skipped (tables may not exist):', e);
+      // Tables don't exist yet → allow access
+      console.log('Entitlement check skipped:', e);
     }
 
     // List all games with availability and progress
@@ -87,14 +90,21 @@ export default async (req: Request, context: Context) => {
       const currentDay = argTime.getDay();
       const currentTimeStr = argTime.toTimeString().slice(0, 5);
 
-      const schedules = await sql`
-        SELECT game_id, available_from, available_until
-        FROM hdd_game_schedule
-        WHERE is_active = TRUE AND day_of_week = ${currentDay}
-      `;
+      let schedules: any[] = [];
+      try {
+        schedules = await sql`
+          SELECT game_id, available_from, available_until
+          FROM hdd_game_schedule
+          WHERE is_active = TRUE AND (day_of_week = ${currentDay} OR day_of_week IS NULL)
+        `;
+      } catch (e) {
+        // Schedule table might not exist yet
+      }
 
+      const scheduledGameIds = new Set<number>();
       const availableSet = new Set<number>();
       for (const s of schedules) {
+        scheduledGameIds.add(s.game_id);
         const from = s.available_from.slice(0, 5);
         const until = s.available_until.slice(0, 5);
         if (currentTimeStr >= from && currentTimeStr <= until) {
@@ -105,7 +115,8 @@ export default async (req: Request, context: Context) => {
       const result = games.map((g: any) => ({
         ...g,
         progress: progressMap[g.id] || null,
-        available: availableSet.has(g.id),
+        // If game has no schedule defined, it's always available
+        available: !scheduledGameIds.has(g.id) || availableSet.has(g.id),
       }));
 
       return new Response(JSON.stringify({ games: result }), { headers: corsHeaders });

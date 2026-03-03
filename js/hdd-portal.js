@@ -1536,14 +1536,7 @@ async function loadGames() {
   }
 }
 
-function openGame(slug) {
-  const token = sessionToken;
-  if (isPreviewMode) {
-    window.open(`/hdd/portal/games/${slug}.html?demo=true`, '_blank');
-  } else {
-    window.open(`/hdd/portal/games/${slug}.html?token=${encodeURIComponent(token)}`, '_blank');
-  }
-}
+// openGame removed - all games now use launchGame() which opens /games/play/ versions
 
 // Init
 async function init() {
@@ -1605,7 +1598,8 @@ function launchGame(gameSlug) {
     console.log('[launchGame] Opening URL:', url);
     window.open(url, '_blank');
   } else {
-    const url = `${gamePath}?session=${encodeURIComponent(token)}&patient_id=${patientId}`;
+    // Games expect ?token= parameter for authentication (not ?session=)
+    const url = `${gamePath}?token=${encodeURIComponent(token)}&patient_id=${patientId}`;
     console.log('[launchGame] Opening URL:', url);
     window.open(url, '_blank');
   }
