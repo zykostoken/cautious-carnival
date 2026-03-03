@@ -1462,6 +1462,7 @@ const THERAPEUTIC_LABELS = {
 
 async function loadGames() {
   const container = document.getElementById('games-list');
+  if (!container) return;
   container.innerHTML = '<div class="loading">Cargando juegos...</div>';
 
   try {

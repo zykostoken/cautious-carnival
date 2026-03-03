@@ -391,66 +391,25 @@ function telemedStartVideoCall() {
         durationEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }, 1000);
 
-    // Initialize Jitsi Meet in the container
-    const roomName = `ClinicaJoseIngenieros_${telemedSessionToken.substring(0, 12)}`;
+    // Initialize Daily.co video call in the container
+    const roomName = `ClinicaJoseIngenieros-${telemedSessionToken.substring(0, 12)}`;
     const container = document.getElementById('telemed-jitsi-container');
+    if (!container) return;
 
-    // Load Jitsi API if not loaded
-    if (!window.JitsiMeetExternalAPI) {
-        const script = document.createElement('script');
-        script.src = 'https://meet.jit.si/external_api.js';
-        script.onload = () => initJitsiInModal(roomName, container);
-        document.head.appendChild(script);
-    } else {
-        initJitsiInModal(roomName, container);
-    }
-}
-
-function initJitsiInModal(roomName, container) {
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: container,
-        userInfo: {
-            displayName: telemedCurrentUser?.fullName || 'Paciente'
-        },
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            defaultLanguage: 'es'
-        },
-        interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#1a1a2e',
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
-                'videoquality', 'tileview'
-            ],
-            SETTINGS_SECTIONS: ['devices', 'language'],
-            MOBILE_APP_PROMO: false,
-            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
-        }
-    };
-
-    window.telemedJitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-    window.telemedJitsiApi.addEventListener('readyToClose', () => {
-        telemedEndCall();
-    });
+    // Embed Daily.co prebuilt UI via iframe
+    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
+    window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
 
 async function telemedEndCall() {
     if (telemedCallDurationInterval) clearInterval(telemedCallDurationInterval);
 
-    if (window.telemedJitsiApi) {
-        window.telemedJitsiApi.dispose();
-        window.telemedJitsiApi = null;
+    // Clean up Daily.co iframe
+    if (window.telemedDailyIframe) {
+        window.telemedDailyIframe.src = '';
+        window.telemedDailyIframe = null;
     }
 
     // Notify backend
@@ -634,13 +593,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ========== JITSI MEET VIDEO CALL INTEGRATION ==========
-// Jitsi is free, open-source, no app download needed, works in browser
+// ========== DAILY.CO VIDEO CALL INTEGRATION ==========
+// Daily.co: 2,000 min/month free, no 5-min limit, works in browser
 
-function iniciarVideollamadaJitsi(sessionToken) {
-    // Generate a unique room name using the session token
-    const roomName = `ClinicaJoseIngenieros_${sessionToken.substring(0, 12)}`;
-    const displayName = telemedUserId ? `Paciente_${telemedUserId}` : 'Paciente';
+function iniciarVideollamadaDaily(sessionToken) {
+    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+    const roomName = `ClinicaJoseIngenieros-${sessionToken.substring(0, 12)}`;
+    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
 
     // Create the video call container
     const videoModal = document.createElement('div');
@@ -649,7 +608,7 @@ function iniciarVideollamadaJitsi(sessionToken) {
         <div class="video-call-overlay">
             <div class="video-call-container">
                 <div class="video-call-header">
-                    <h3>Videoconsulta - Clínica José Ingenieros</h3>
+                    <h3>Videoconsulta - Clinica Jose Ingenieros</h3>
                     <div class="video-call-status">
                         <span class="status-dot"></span>
                         <span id="video-status-text">Conectando...</span>
@@ -657,10 +616,10 @@ function iniciarVideollamadaJitsi(sessionToken) {
                     <button class="video-call-close" onclick="cerrarVideollamada('${sessionToken}')" title="Finalizar llamada">&times;</button>
                 </div>
                 <div class="video-call-body">
-                    <div id="jitsi-container"></div>
+                    <iframe id="daily-call-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
                 </div>
                 <div class="video-call-footer">
-                    <p><small>La videollamada utiliza Jitsi Meet (tecnología segura y cifrada). No se requiere descargar ninguna aplicación.</small></p>
+                    <p><small>La videollamada utiliza Daily.co (sin limite de tiempo). No se requiere descargar ninguna aplicacion.</small></p>
                     <button class="btn btn-danger" onclick="cerrarVideollamada('${sessionToken}')">Finalizar Consulta</button>
                 </div>
             </div>
@@ -668,83 +627,23 @@ function iniciarVideollamadaJitsi(sessionToken) {
     `;
     document.body.appendChild(videoModal);
 
-    // Load Jitsi Meet API
-    if (!window.JitsiMeetExternalAPI) {
-        const script = document.createElement('script');
-        script.src = 'https://meet.jit.si/external_api.js';
-        script.onload = () => cargarJitsi(roomName, displayName);
-        document.head.appendChild(script);
-    } else {
-        cargarJitsi(roomName, displayName);
-    }
+    const statusText = document.getElementById('video-status-text');
+    if (statusText) statusText.textContent = 'En consulta';
+
+    window.dailyCallIframe = document.getElementById('daily-call-iframe');
 }
 
-function cargarJitsi(roomName, displayName) {
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: document.querySelector('#jitsi-container'),
-        userInfo: {
-            displayName: displayName
-        },
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            defaultLanguage: 'es'
-        },
-        interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#1a1a2e',
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
-                'videoquality', 'tileview'
-            ],
-            SETTINGS_SECTIONS: ['devices', 'language'],
-            MOBILE_APP_PROMO: false,
-            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
-        }
-    };
-
-    const api = new JitsiMeetExternalAPI(domain, options);
-
-    // Event handlers
-    api.addEventListener('videoConferenceJoined', () => {
-        const statusText = document.getElementById('video-status-text');
-        if (statusText) {
-            statusText.textContent = 'Conectado - Esperando al profesional';
-            statusText.parentElement.classList.add('connected');
-        }
-    });
-
-    api.addEventListener('participantJoined', (participant) => {
-        const statusText = document.getElementById('video-status-text');
-        if (statusText) {
-            statusText.textContent = 'En consulta';
-            statusText.parentElement.classList.add('in-call');
-        }
-    });
-
-    api.addEventListener('readyToClose', () => {
-        const modal = document.getElementById('video-call-modal');
-        if (modal) modal.remove();
-    });
-
-    // Store API reference for cleanup
-    window.jitsiApi = api;
+// Keep old name as alias for backward compatibility with any callers
+function iniciarVideollamadaJitsi(sessionToken) {
+    iniciarVideollamadaDaily(sessionToken);
 }
 
 async function cerrarVideollamada(sessionToken) {
     if (confirm('¿Deseas finalizar la videoconsulta?')) {
-        // Dispose Jitsi
-        if (window.jitsiApi) {
-            window.jitsiApi.dispose();
-            window.jitsiApi = null;
+        // Clean up Daily.co iframe
+        if (window.dailyCallIframe) {
+            window.dailyCallIframe.src = '';
+            window.dailyCallIframe = null;
         }
 
         // Remove modal
@@ -1374,7 +1273,7 @@ function joinCall(roomName, queueId) {
                     <button class="video-call-close" onclick="endProfessionalCall('${roomName}', ${queueId})" title="Finalizar llamada">&times;</button>
                 </div>
                 <div class="video-call-body">
-                    <div id="jitsi-container"></div>
+                    <iframe id="daily-prof-iframe" src="" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
                 </div>
                 <div class="video-call-footer">
                     <p><small>Sala: ${roomName}</small></p>
@@ -1385,66 +1284,23 @@ function joinCall(roomName, queueId) {
     `;
     document.body.appendChild(videoModal);
 
-    // Load Jitsi
-    if (!window.JitsiMeetExternalAPI) {
-        const script = document.createElement('script');
-        script.src = 'https://meet.jit.si/external_api.js';
-        script.onload = () => loadJitsiForProfessional(roomName);
-        document.head.appendChild(script);
-    } else {
-        loadJitsiForProfessional(roomName);
-    }
-}
+    // Load Daily.co room
+    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const iframe = document.getElementById('daily-prof-iframe');
+    iframe.src = roomUrl;
+    window.dailyProfIframe = iframe;
 
-function loadJitsiForProfessional(roomName) {
-    const displayName = professionalData ? professionalData.fullName : 'Profesional';
-
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: document.querySelector('#jitsi-container'),
-        userInfo: {
-            displayName: displayName
-        },
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            defaultLanguage: 'es'
-        },
-        interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#1a1a2e',
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'chat', 'settings', 'raisehand',
-                'videoquality', 'tileview', 'recording'
-            ],
-            MOBILE_APP_PROMO: false
-        }
-    };
-
-    const api = new JitsiMeetExternalAPI('meet.jit.si', options);
-
-    api.addEventListener('videoConferenceJoined', () => {
-        const statusText = document.getElementById('video-status-text');
-        if (statusText) {
-            statusText.textContent = 'En consulta';
-            statusText.parentElement.classList.add('in-call');
-        }
-    });
-
-    window.jitsiApi = api;
+    const statusText = document.getElementById('video-status-text');
+    if (statusText) statusText.textContent = 'En consulta';
 }
 
 async function endProfessionalCall(roomName, queueId) {
     if (confirm('¿Deseas finalizar esta consulta?')) {
-        if (window.jitsiApi) {
-            window.jitsiApi.dispose();
-            window.jitsiApi = null;
+        // Clean up Daily.co iframe
+        if (window.dailyProfIframe) {
+            window.dailyProfIframe.src = '';
+            window.dailyProfIframe = null;
         }
 
         const modal = document.getElementById('video-call-modal');

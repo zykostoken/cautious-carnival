@@ -493,7 +493,7 @@
           <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1.5rem;">
               Cree y gestione salas de videollamada para consultas grupales, clases, talleres y sesiones terapeuticas.
-              Las salas usan tecnologia Jitsi Meet (gratuita y segura).
+              Las salas usan tecnologia Daily.co (2,000 min/mes gratis, sin limite por sesion).
             </div>
 
             <div class="rooms-grid" id="rooms-list">
@@ -777,7 +777,7 @@
               <option value="👨‍👩‍👧‍👦">👨‍👩‍👧‍👦 Familia</option>
             </select>
           </div>
-          <div class="form-hint">La sala se creara con un enlace unico de Jitsi Meet.</div>
+          <div class="form-hint">La sala se creara con un enlace unico de Daily.co.</div>
         </form>
       </div>
       <div class="modal-footer">
@@ -959,10 +959,10 @@
     </div>
   </div>
 
-  <!-- Jitsi Room Container -->
-  <div id="jitsi-container" class="jitsi-container hidden">
-    <button class="jitsi-close" onclick="closeJitsi()">Salir de la Sala</button>
-    <iframe id="jitsi-iframe" src="" allow="camera; microphone; fullscreen; display-capture"></iframe>
+  <!-- Daily.co Room Container -->
+  <div id="daily-room-container" class="jitsi-container hidden">
+    <button class="jitsi-close" onclick="closeDailyRoom()">Salir de la Sala</button>
+    <iframe id="daily-room-iframe" src="" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
   </div>
 
 

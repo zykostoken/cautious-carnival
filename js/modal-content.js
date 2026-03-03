@@ -581,6 +581,7 @@ window.modalContent = {
                             <span id="telemed-call-duration" style="color: var(--text-secondary); font-size: 0.9rem;">00:00</span>
                         </div>
                         <div id="telemed-jitsi-container" style="width: 100%; height: 500px; background: #000;"></div>
+                        <!-- Daily.co iframe will be injected here by telemedicine.js -->
                         <div style="padding: 1rem; display: flex; justify-content: center; gap: 1rem;">
                             <button onclick="telemedEndCall()" class="btn btn-danger" style="padding: 0.75rem 2rem;">Finalizar llamada</button>
                         </div>
@@ -604,7 +605,7 @@ window.modalContent = {
 
             <div style="margin-top: 1.5rem; background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); border-radius: 12px; padding: 1rem;">
                 <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary); font-size: 0.85rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
-                    <li>Videoconsulta HD con Jitsi Meet</li>
+                    <li>Videoconsulta HD con Daily.co (sin limite de tiempo)</li>
                     <li>Conexion segura y privada</li>
                     <li>Servicio 24/7 bajo demanda</li>
                     <li>Consulta de 15 min</li>
