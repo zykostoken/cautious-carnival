@@ -69,11 +69,12 @@
   status = 200
   force = true
 
-# HDD Games
+# HDD Games — redirect old path to new /games/play/ location
 [[redirects]]
   from = "/hdd/portal/games/*"
-  to = "/hdd/portal/games/:splat"
-  status = 200
+  to = "/games/play/:splat"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/hdd/*"
