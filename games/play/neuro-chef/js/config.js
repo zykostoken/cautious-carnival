@@ -324,6 +324,15 @@ const ALIMENTOS = {
         temperatura: 20,
         duracion_dias: 3
     },
+    pan_rallado: {
+        id: 'pan_rallado',
+        nombre: 'Pan Rallado',
+        imagen: 'https://images.unsplash.com/photo-1586444248879-bc604bc77bdd?w=300',
+        categoria: 'cereal',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
     sal: {
         id: 'sal',
         nombre: 'Sal',
@@ -416,6 +425,33 @@ const ALIMENTOS = {
         temperatura: 6,
         duracion_dias: 14
     },
+    perejil: {
+        id: 'perejil',
+        nombre: 'Perejil',
+        imagen: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300',
+        categoria: 'verdura',
+        zona_heladera: 'verduras',
+        temperatura: 6,
+        duracion_dias: 7
+    },
+    nuez_moscada: {
+        id: 'nuez_moscada',
+        nombre: 'Nuez Moscada',
+        imagen: 'https://images.unsplash.com/photo-1599909533503-f2781e5dcfd4?w=300',
+        categoria: 'condimento',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 365
+    },
+    ciruelas_pasas: {
+        id: 'ciruelas_pasas',
+        nombre: 'Ciruelas Pasas',
+        imagen: 'https://images.unsplash.com/photo-1590282610690-6bbb53fa2e5f?w=300',
+        categoria: 'fruto_seco',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
 
     // FRUTAS para licuados
     banana: {
@@ -461,9 +497,9 @@ const RECETAS = {
     pastel_papas: {
         id: 'pastel_papas',
         nombre: 'Pastel de Papas',
-        ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos'],
-        ingredientes_opcionales: ['aceitunas', 'sal', 'pasas_uva'],
-        distractores: ['pescado', 'lechuga', 'azucar', 'arroz', 'canela'],
+        ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos', 'aceite', 'sal'],
+        ingredientes_opcionales: ['aceitunas', 'pasas_uva', 'leche', 'manteca', 'canela', 'azucar', 'queso', 'ciruelas_pasas'],
+        distractores: ['pescado', 'lechuga', 'arroz', 'banana', 'helado'],
         pasos: [
             'Hervir las papas con piel en agua con sal',
             'Hacer un sofrito de cebolla hasta transparentar',
@@ -476,14 +512,14 @@ const RECETAS = {
         tips_receta: {
             consejo_clave: 'Las papas se hierven CON piel para que no absorban agua. El puré queda más seco y firme.',
             error_comun: 'Si el puré queda aguado, el pastel no se sostiene. Escurrí bien las papas.',
-            logica: 'Las aceitunas y pasas de uva son extras clásicos del pastel. La canela y el arroz NO van en este plato salado.'
+            logica: 'Las aceitunas, pasas de uva y ciruelas pasas son extras clásicos del pastel. La canela, el azúcar y el queso son opcionales según la receta familiar.'
         }
     },
     lasagna: {
         id: 'lasagna',
         nombre: 'Lasaña',
-        ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche'],
-        ingredientes_opcionales: ['sal', 'aceite', 'queso_rallado'],
+        ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche', 'sal'],
+        ingredientes_opcionales: ['aceite', 'queso_rallado', 'manteca', 'harina'],
         distractores: ['pescado', 'lechuga', 'arroz', 'azucar', 'banana'],
         pasos: [
             'Hacer la salsa bolognesa con carne, cebolla y tomate',
@@ -502,7 +538,7 @@ const RECETAS = {
     budin_ingles: {
         id: 'budin_ingles',
         nombre: 'Budín Inglés',
-        ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche'],
+        ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche', 'harina'],
         ingredientes_opcionales: ['sal', 'pasas_uva', 'frutas_secas', 'canela'],
         distractores: ['carne_picada', 'lechuga', 'papa', 'pollo', 'tomate'],
         pasos: [
@@ -522,8 +558,8 @@ const RECETAS = {
     ensalada_completa: {
         id: 'ensalada_completa',
         nombre: 'Ensalada Completa',
-        ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'zanahoria'],
-        ingredientes_opcionales: ['aceitunas', 'aceite', 'sal', 'vinagre', 'limon'],
+        ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'aceite', 'sal'],
+        ingredientes_opcionales: ['aceitunas', 'zanahoria', 'vinagre', 'limon'],
         distractores: ['carne_picada', 'azucar', 'arroz', 'canela', 'helado'],
         pasos: [
             'Lavar bien la lechuga hoja por hoja',
@@ -542,9 +578,9 @@ const RECETAS = {
     milanesas: {
         id: 'milanesas',
         nombre: 'Milanesas',
-        ingredientes_base: ['bife', 'huevos', 'pan'],
-        ingredientes_opcionales: ['sal', 'aceite', 'ajo'],
-        distractores: ['leche', 'azucar', 'arroz', 'banana', 'helado'],
+        ingredientes_base: ['bife', 'huevos', 'pan_rallado', 'aceite', 'sal'],
+        ingredientes_opcionales: ['ajo', 'limon', 'perejil', 'nuez_moscada', 'leche'],
+        distractores: ['azucar', 'arroz', 'banana', 'helado', 'pescado'],
         pasos: [
             'Golpear los bifes con un martillo hasta aplanar',
             'Salar los bifes por ambos lados',
@@ -556,7 +592,7 @@ const RECETAS = {
         tips_receta: {
             consejo_clave: 'Aplanar el bife asegura cocción pareja. El pan rallado debe presionarse bien para que no se despegue.',
             error_comun: 'Si el aceite no está bien caliente, la milanesa absorbe grasa y queda pesada.',
-            logica: 'El ajo es un extra válido para saborizar el huevo batido. La leche y el azúcar NO se usan en milanesas.'
+            logica: 'El ajo y perejil saborizan el huevo batido. La leche y nuez moscada tiernizan la carne al remojarla. El azúcar NO va en milanesas.'
         }
     }
 };

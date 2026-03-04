@@ -305,7 +305,7 @@ function loadLevel1_Supermercado() {
             ${shuffled.map(food => `<div class="food-item" draggable="true" data-id="${food.id}"><img src="${food.imagen}" alt="${food.nombre}" loading="lazy"><div class="label">${food.nombre}</div></div>`).join('')}
         </div>
         <div class="cart-container"><h3>Tu Carrito</h3>
-            <div class="cart-grid" id="cart">${Array(8).fill(0).map((_,i)=>`<div class="cart-slot" data-slot="${i}"></div>`).join('')}</div>
+            <div class="cart-grid" id="cart">${Array(10).fill(0).map((_,i)=>`<div class="cart-slot" data-slot="${i}"></div>`).join('')}</div>
         </div>`;
     
     setupDragAndDrop();
@@ -508,6 +508,8 @@ function setupMesaDragDrop() {
     document.querySelectorAll('.mesa-item').forEach(item=>{
         item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',item.dataset.id);item.classList.add('dragging');Biometrics.logDragStart(item.dataset.id)});
         item.addEventListener('dragend',()=>item.classList.remove('dragging'));
+        // Click to select (mobile fallback)
+        item.addEventListener('click',()=>{item.classList.toggle('selected');document.querySelectorAll('.mesa-item').forEach(r=>{if(r!==item)r.classList.remove('selected')})});
     });
     document.querySelectorAll('.mesa-zone').forEach(zone=>{
         zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over')});
@@ -517,6 +519,14 @@ function setupMesaDragDrop() {
             const b=document.createElement('div');b.className='mesa-placed';b.dataset.id=id;b.innerHTML=`${item.emoji} ${item.nombre}`;zone.appendChild(b);
             const o=document.querySelector(`.mesa-item[data-id="${id}"]`);if(o)o.style.display='none';
             Biometrics.logDrop(id,zone.dataset.zone,item.zona===zone.dataset.zone);
+        });
+        // Click to place selected item (mobile fallback)
+        zone.addEventListener('click',e=>{
+            if(e.target.closest('.mesa-placed'))return;const sel=document.querySelector('.mesa-item.selected');if(!sel)return;
+            const id=sel.dataset.id;const item=ELEMENTOS_MESA[id];if(!item)return;
+            const b=document.createElement('div');b.className='mesa-placed';b.dataset.id=id;b.innerHTML=`${item.emoji} ${item.nombre}`;zone.appendChild(b);
+            sel.style.display='none';sel.classList.remove('selected');
+            Biometrics.logClick(id,zone.dataset.zone);
         });
     });
 }
@@ -598,6 +608,7 @@ function verifyLevel6() {
 
 // ========== DRAG & DROP (Generic for levels 1-2) ==========
 function setupDragAndDrop() {
+    // === DESKTOP: HTML5 Drag API ===
     document.querySelectorAll('.food-item[draggable="true"]').forEach(item=>{
         item.addEventListener('dragstart',e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/html',e.target.outerHTML);e.target.style.opacity='0.4';e.target.classList.add('dragging');Biometrics.logDragStart(item.dataset.id)});
         item.addEventListener('dragend',e=>{e.target.style.opacity='1';e.target.classList.remove('dragging')});
@@ -612,6 +623,110 @@ function setupDragAndDrop() {
             zone.appendChild(di);zone.classList.add('filled');
             Biometrics.logDrop(di.dataset.id,zone.dataset.zone||zone.dataset.slot,null);
             di.addEventListener('dragstart',e2=>{e2.dataTransfer.effectAllowed='move';e2.dataTransfer.setData('text/html',e2.target.outerHTML);e2.target.style.opacity='0.4';e2.target.classList.add('dragging');Biometrics.logDragStart(di.dataset.id)});
+        });
+    });
+
+    // === MOBILE/TOUCH: Custom touch drag system ===
+    // HTML5 Drag API does NOT work on mobile browsers. This polyfill
+    // uses touchstart/touchmove/touchend on document for reliable tracking.
+    let _touchDragEl = null;
+    let _touchClone = null;
+    let _touchOffX = 0, _touchOffY = 0;
+
+    document.addEventListener('touchstart', function(e) {
+        const item = e.target.closest('.food-item');
+        if (!item) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = item.getBoundingClientRect();
+        _touchOffX = touch.clientX - rect.left;
+        _touchOffY = touch.clientY - rect.top;
+        _touchDragEl = item;
+        _touchDragEl.style.opacity = '0.4';
+
+        // Create floating clone
+        _touchClone = item.cloneNode(true);
+        _touchClone.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;width:'+rect.width+'px;opacity:0.85;transform:scale(1.1);box-shadow:0 10px 30px rgba(0,0,0,0.5);border:2px solid #e8c170;border-radius:12px;overflow:hidden;';
+        _touchClone.style.left = (touch.clientX - _touchOffX) + 'px';
+        _touchClone.style.top = (touch.clientY - _touchOffY) + 'px';
+        document.body.appendChild(_touchClone);
+
+        Biometrics.logDragStart(item.dataset.id);
+    }, { passive: false });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!_touchClone) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        _touchClone.style.left = (touch.clientX - _touchOffX) + 'px';
+        _touchClone.style.top = (touch.clientY - _touchOffY) + 'px';
+
+        // Highlight drop targets
+        document.querySelectorAll('.cart-slot, .zone-slot').forEach(z => z.classList.remove('drag-over'));
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el) {
+            const slot = el.closest('.cart-slot, .zone-slot');
+            if (slot && !slot.querySelector('.food-item')) slot.classList.add('drag-over');
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(e) {
+        if (!_touchClone || !_touchDragEl) return;
+        e.preventDefault();
+
+        // Find drop target under last touch position
+        if (_touchClone.parentNode) _touchClone.parentNode.removeChild(_touchClone);
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        let dropTarget = null;
+        if (el) dropTarget = el.closest('.cart-slot, .zone-slot');
+
+        document.querySelectorAll('.cart-slot, .zone-slot').forEach(z => z.classList.remove('drag-over'));
+
+        if (dropTarget && !dropTarget.querySelector('.food-item')) {
+            // Valid drop — move the item
+            const clone = _touchDragEl.cloneNode(true);
+            clone.style.opacity = '1';
+            clone.removeAttribute('draggable');
+            _touchDragEl.remove();
+            dropTarget.appendChild(clone);
+            dropTarget.classList.add('filled');
+            Biometrics.logDrop(clone.dataset.id, dropTarget.dataset.zone || dropTarget.dataset.slot, null);
+        } else {
+            // Invalid drop — restore opacity
+            _touchDragEl.style.opacity = '1';
+        }
+
+        _touchDragEl = null;
+        _touchClone = null;
+    }, { passive: false });
+
+    // === CLICK-TO-SELECT FALLBACK (works on all devices) ===
+    // Tap a food item to select it, tap a cart/zone slot to place it.
+    document.querySelectorAll('.food-item[draggable="true"]').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't interfere if we just finished a touch drag
+            if (_touchClone) return;
+            e.stopPropagation();
+            const wasSelected = item.classList.contains('selected');
+            // Deselect all
+            document.querySelectorAll('.food-item.selected').forEach(f => f.classList.remove('selected'));
+            if (!wasSelected) item.classList.add('selected');
+        });
+    });
+    document.querySelectorAll('.cart-slot, .zone-slot').forEach(slot => {
+        slot.addEventListener('click', function(e) {
+            if (slot.querySelector('.food-item')) return;
+            const sel = document.querySelector('.food-item.selected');
+            if (!sel) return;
+            e.stopPropagation();
+            const clone = sel.cloneNode(true);
+            clone.classList.remove('selected');
+            clone.removeAttribute('draggable');
+            sel.remove();
+            slot.appendChild(clone);
+            slot.classList.add('filled');
+            Biometrics.logClick(clone.dataset.id, slot.dataset.zone || slot.dataset.slot);
         });
     });
 }
