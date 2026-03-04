@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rutina Diaria | CJI HDD</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/games/shared/supabase-config.js"></script>
     <script src="/games/shared/biomet.js"></script>
     <script>window.onerror=function(m,s,l,c,e){document.title='ERROR';var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:16px;z-index:99999;font-size:14px';d.textContent='JS Error: '+m+' (line '+l+')';document.body.appendChild(d);console.error('[daily-routine]',m,s,l,e);};</script>
     <style>
@@ -192,10 +193,7 @@
 // ================================================================
 // SUPABASE
 // ================================================================
-const SUPABASE_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-var sb = null;
-try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
+var sb = window.sbClient || null;
 
 // ================================================================
 // SCENE DEFINITIONS

@@ -6,6 +6,7 @@
   <title>Dashboard de Métricas - HDD</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/games/shared/supabase-config.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -234,11 +235,7 @@
       window.location.href = '/hdd/portal';
     }
 
-    // Initialize Supabase (use environment variables in production)
-    const supabase = window.supabase.createClient(
-      'https://buzblnkpfydeheingzgn.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA'
-    );
+    const supabase = window.sbClient;
 
     let patientData = null;
     let sessionsData = [];

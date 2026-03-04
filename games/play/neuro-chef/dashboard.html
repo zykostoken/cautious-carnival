@@ -6,6 +6,7 @@
     <title>Neuro-Chef | Dashboard Biométrico</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/games/shared/supabase-config.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #e8e0d6; min-height: 100vh; }
@@ -60,9 +61,7 @@
     </div>
 
     <script>
-    const supabaseUrl = 'https://buzblnkpfydeheingzgn.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-    const sb = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const sb = window.sbClient;
 
     const params = new URLSearchParams(window.location.search);
     const patientId = params.get('patient_id');

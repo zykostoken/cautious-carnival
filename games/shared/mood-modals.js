@@ -51,12 +51,8 @@ function _moodStorageSet(key, val) {
 // ====================================================================
 function _moodSaveToSupabase(type, data, context) {
     try {
-        var sb = window.supabase;
-        if (!sb) return;
-        var client = sb.createClient(
-            'https://buzblnkpfydeheingzgn.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA'
-        );
+        var client = window.sbClient;
+        if (!client) return;
         var ctx = context || 'game';
         var gameSlug = _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html','');
         var now = new Date().toISOString();

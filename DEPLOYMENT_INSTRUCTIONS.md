@@ -113,7 +113,7 @@ Conectar a Supabase:
 # - sql/02_game_sessions.sql
 
 # Opción 2: Desde psql (si tenés instalado)
-export SUPABASE_URL="postgresql://postgres.yqpqfzvgcmvxvqzvtajx:Mafalda401!@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
+export SUPABASE_URL="postgresql://postgres.XXXXX:YOUR_DB_PASSWORD@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
 psql $SUPABASE_URL -f sql/01_color_psychology.sql
 psql $SUPABASE_URL -f sql/02_game_sessions.sql

@@ -6,6 +6,7 @@
     <title>Dashboard Biométrico HDD - Clínica José Ingenieros</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/games/shared/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; --text: #e2e8f0; --muted: #94a3b8; }
@@ -216,9 +217,7 @@
 
 <script>
 // ========== SUPABASE ==========
-const SUPA_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const sb = window.sbClient;
 
 let chartSessions = null;
 let chartGames = null;
