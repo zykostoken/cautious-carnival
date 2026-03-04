@@ -8,252 +8,153 @@
     <script src="/games/shared/biomet.js"></script>
     <script>window.onerror=function(m,s,l,c,e){document.title='ERROR';var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:16px;z-index:99999;font-size:14px';d.textContent='JS Error: '+m+' (line '+l+')';document.body.appendChild(d);console.error('[daily-routine]',m,s,l,e);};</script>
     <style>
+        :root {
+            --bg: #0a0f1e; --surface: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0; --text-dim: rgba(255,255,255,0.5); --accent: #7c3aed; --accent-glow: rgba(124,58,237,0.4);
+            --green: #22c55e; --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: #0a0f1e;
-            color: #e2e8f0;
-            font-family: system-ui, sans-serif;
-            min-height: 100vh;
-        }
+        body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
 
-        /* ── HEADER ── */
         header {
-            background: rgba(255,255,255,0.04);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            padding: 14px 20px;
-            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
         }
-        .header-left a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 0.8rem; display: block; }
-        .header-left h1 { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
-        .header-right { text-align: right; }
-        #timer-display { font-size: 1.6rem; font-family: monospace; font-weight: 700; color: #7c3aed; }
-        #patient-display { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+        .header-left a { color: var(--text-dim); text-decoration: none; font-size: 0.75rem; }
+        .header-left h1 { font-size: 1rem; font-weight: 700; margin-top: 2px; }
+        #timer-display { font-size: 1.4rem; font-family: monospace; font-weight: 700; color: var(--accent); }
+        #patient-display { font-size: 0.65rem; color: var(--text-dim); margin-top: 2px; text-align: right; }
 
-        /* ── PROGRESS BAR ── */
-        #progress-bar-wrap {
-            background: rgba(255,255,255,0.05);
-            padding: 10px 20px;
-            display: flex; align-items: center; gap: 12px;
+        /* Progress */
+        #progress-wrap {
+            background: var(--surface); padding: 8px 20px;
+            display: flex; align-items: center; gap: 10px;
         }
-        #progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
-        #progress-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa); border-radius: 3px; transition: width .4s ease; width: 0%; }
-        #progress-label { font-size: 0.75rem; color: rgba(255,255,255,0.5); white-space: nowrap; }
+        #progress-bar { flex: 1; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+        #progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a78bfa); border-radius: 3px; transition: width .4s; width: 0%; }
+        #progress-label { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; }
 
-        /* ── START SCREEN ── */
-        #start-screen {
-            display: flex; align-items: center; justify-content: center;
-            min-height: calc(100vh - 55px); padding: 24px;
-        }
+        /* Start screen */
+        #start-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 50px); padding: 24px; }
         .start-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 24px; padding: 40px; max-width: 480px; width: 100%; text-align: center;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 36px; max-width: 460px; width: 100%; text-align: center;
         }
-        .start-card h2 { font-size: 1.8rem; margin-bottom: 8px; }
-        .start-card p { color: rgba(255,255,255,0.6); margin-bottom: 24px; line-height: 1.6; }
-        .btn-start {
-            display: inline-block; padding: 16px 48px;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        .start-card h2 { font-size: 1.6rem; margin-bottom: 8px; }
+        .start-card p { color: var(--text-dim); margin-bottom: 20px; line-height: 1.5; font-size: 0.9rem; }
+        .btn-primary {
+            display: inline-block; padding: 14px 44px;
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
             border: none; border-radius: 14px; color: #fff;
-            font-size: 1.15rem; font-weight: 700; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(124,58,237,0.4);
-            transition: all .2s;
+            font-size: 1.05rem; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 20px var(--accent-glow); transition: all .2s;
         }
-        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.5); }
+        .btn-primary:hover { transform: translateY(-2px); }
 
-        /* ── PHASE 1: PHOTO GRID ── */
-        #phase1 { display: none; padding: 16px; }
+        /* Scene container */
+        #game-area { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
 
-        .phase-title {
-            font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em;
-            text-transform: uppercase; color: rgba(255,255,255,0.35);
-            text-align: center; margin-bottom: 12px;
+        .scene-header {
+            text-align: center; margin-bottom: 16px;
+        }
+        .scene-icon { font-size: 2.5rem; margin-bottom: 6px; }
+        .scene-name { font-size: 1.1rem; font-weight: 700; }
+        .scene-desc { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+
+        /* Room visual */
+        .room {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 16px; margin-bottom: 12px;
         }
 
-        #habits-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        /* Action items grid */
+        .items-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 10px;
-            max-width: 1000px; margin: 0 auto;
         }
-
-        .habit-card {
-            position: relative;
-            width: 100%; padding-top: 80%;
-            border-radius: 14px;
-            overflow: hidden;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: all .2s;
-            background: #1e293b;
+        .action-item {
+            background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 14px; padding: 14px 10px;
+            text-align: center; cursor: pointer; transition: all .25s;
+            position: relative; user-select: none;
         }
-        .habit-card:hover { transform: scale(1.04); }
-        .habit-card.selected {
-            border-color: #a78bfa;
-            box-shadow: 0 0 0 3px rgba(167,139,250,0.3), 0 8px 30px rgba(124,58,237,0.3);
-        }
-        .habit-card.unhealthy.selected {
-            border-color: #f87171;
-            box-shadow: 0 0 0 3px rgba(248,113,113,0.3);
-        }
-        .habit-photo {
-            position: absolute; inset: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .habit-photo-fallback {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--fb-from, #1e293b), var(--fb-to, #334155));
-        }
-        /* Overlay siempre visible pero sutil - se intensifica al seleccionar */
-        .habit-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
-            transition: all .2s;
-        }
-        .habit-card.selected .habit-overlay {
-            background: linear-gradient(to top, rgba(109,40,217,0.85) 0%, rgba(109,40,217,0.15) 100%);
-        }
-        .habit-card.unhealthy.selected .habit-overlay {
-            background: linear-gradient(to top, rgba(239,68,68,0.85) 0%, rgba(239,68,68,0.15) 100%);
-        }
-        .habit-check {
-            position: absolute; top: 8px; right: 8px;
-            width: 28px; height: 28px; border-radius: 50%;
-            background: rgba(255,255,255,0.15);
-            border: 2px solid rgba(255,255,255,0.3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem; opacity: 0; transition: all .2s;
-        }
-        .habit-card.selected .habit-check { opacity: 1; background: #7c3aed; border-color: #a78bfa; }
-        .habit-card.unhealthy.selected .habit-check { background: #dc2626; border-color: #f87171; }
-
-        /* tiny label bottom — visible but subtle */
-        .habit-label {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            padding: 6px 8px 8px;
-            font-size: 0.65rem; font-weight: 600;
-            color: rgba(255,255,255,0.85);
-            letter-spacing: 0.02em;
-            z-index: 2;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-        }
-
-        /* Button to advance */
-        .btn-next-phase {
-            display: block; margin: 20px auto 0;
-            padding: 14px 40px; max-width: 320px; width: 100%;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            border: none; border-radius: 14px; color: #fff;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            opacity: 0.35; transition: all .3s;
-        }
-        .btn-next-phase.ready { opacity: 1; box-shadow: 0 4px 20px rgba(124,58,237,0.4); }
-        .btn-next-phase.ready:hover { transform: translateY(-2px); }
-
-        /* ── PHASE 2: TIMELINE ── */
-        #phase2 { display: none; padding: 16px; }
-
-        #selected-pool {
-            display: flex; flex-wrap: wrap; gap: 8px;
-            justify-content: center; margin-bottom: 16px;
-            min-height: 80px;
-        }
-        .pool-card {
-            position: relative; width: 72px; height: 72px;
-            border-radius: 12px; overflow: hidden; cursor: grab;
-            border: 2px solid rgba(255,255,255,0.15);
-            background: #1e293b; flex-shrink: 0;
-            transition: all .2s;
-        }
-        .pool-card:hover { transform: scale(1.08); border-color: rgba(167,139,250,0.5); }
-        .pool-card.placed { opacity: 0.25; cursor: default; pointer-events: none; }
-        .pool-card img { width: 100%; height: 100%; object-fit: cover; }
-        .pool-card .pool-emoji { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-
-        #timeline {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 700px; margin: 0 auto;
-        }
-        .timeline-group { }
-        .timeline-group-title {
-            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em;
-            text-transform: uppercase; padding: 6px 4px;
-            color: rgba(255,255,255,0.4); text-align: center;
-        }
-        .timeline-slot {
-            position: relative;
-            width: 100%; padding-top: 80%;
-            border-radius: 12px; overflow: hidden;
-            border: 2px dashed rgba(255,255,255,0.15);
-            background: rgba(255,255,255,0.03);
-            cursor: pointer; transition: all .25s;
-        }
-        .timeline-slot.drop-over { border-color: #a78bfa; background: rgba(124,58,237,0.1); transform: scale(1.03); }
-        .timeline-slot.filled { border-style: solid; border-color: #7c3aed; }
-        .timeline-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-        .timeline-slot .slot-emoji { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-        .timeline-slot .slot-label {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            padding: 4px 6px 6px;
-            font-size: 0.6rem; font-weight: 600;
-            color: rgba(255,255,255,0.9);
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-            z-index: 2;
-        }
-        .timeline-slot .slot-order {
+        .action-item:hover { border-color: rgba(255,255,255,0.25); transform: scale(1.03); }
+        .action-item:active { transform: scale(0.97); }
+        .action-item .item-emoji { font-size: 2rem; margin-bottom: 6px; display: block; }
+        .action-item .item-label { font-size: 0.72rem; font-weight: 600; line-height: 1.3; }
+        .action-item .item-order {
             position: absolute; top: 6px; left: 6px;
-            width: 22px; height: 22px; border-radius: 50%;
-            background: rgba(0,0,0,0.6); color: #fff;
-            font-size: 0.65rem; font-weight: 700;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--accent); color: #fff;
+            font-size: 0.6rem; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
-            z-index: 3;
+            opacity: 0; transition: opacity .2s;
         }
-        .slot-remove {
-            position: absolute; top: 6px; right: 6px;
-            width: 22px; height: 22px; border-radius: 50%;
-            background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3);
-            color: rgba(255,255,255,0.7); cursor: pointer;
-            font-size: 0.7rem; display: none; align-items: center; justify-content: center;
-            z-index: 4;
-        }
-        .timeline-slot.filled:hover .slot-remove { display: flex; }
+        .action-item.done { border-color: var(--green); background: rgba(34,197,94,0.08); opacity: 0.7; pointer-events: none; }
+        .action-item.done .item-order { opacity: 1; background: var(--green); }
+        .action-item.error { border-color: var(--red); background: rgba(239,68,68,0.08); }
+        .action-item.warning { border-color: var(--yellow); background: rgba(245,158,11,0.08); }
 
-        .btn-finish-phase {
-            display: block; margin: 20px auto 0;
-            padding: 14px 40px; max-width: 320px; width: 100%;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            border: none; border-radius: 14px; color: #fff;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            opacity: 0.35; transition: all .3s;
+        /* Feedback toast */
+        .feedback {
+            text-align: center; padding: 10px; margin-bottom: 10px;
+            border-radius: 10px; font-size: 0.8rem; font-weight: 600;
+            animation: fadeUp .3s ease; min-height: 40px;
         }
-        .btn-finish-phase.ready { opacity: 1; box-shadow: 0 4px 20px rgba(34,197,94,0.4); }
+        .feedback.good { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+        .feedback.bad { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+        .feedback.info { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+        .feedback.warn { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
 
-        /* ── RESULTS ── */
+        /* Navigation */
+        .scene-nav {
+            display: flex; gap: 10px; justify-content: center; margin-top: 12px;
+        }
+        .btn-nav {
+            padding: 12px 28px; border-radius: 12px; border: none;
+            font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all .2s;
+        }
+        .btn-nav.next {
+            background: linear-gradient(135deg, var(--accent), #6d28d9);
+            color: #fff; box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .btn-nav.skip {
+            background: rgba(255,255,255,0.06); color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+        .btn-nav:hover { transform: translateY(-1px); }
+
+        /* Action log sidebar */
+        .action-log {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px; margin-top: 10px;
+        }
+        .action-log h4 { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .log-entry { font-size: 0.72rem; padding: 3px 0; color: rgba(255,255,255,0.6); border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .log-entry:last-child { border: none; }
+        .log-entry .log-icon { margin-right: 4px; }
+
+        /* Results */
         #results { display: none; padding: 24px; }
         .results-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px; padding: 32px; max-width: 600px; margin: 0 auto; text-align: center;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 28px; max-width: 550px; margin: 0 auto; text-align: center;
         }
         .score-circle {
-            width: 120px; height: 120px; border-radius: 50%;
-            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            width: 110px; height: 110px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.5rem; font-weight: 800;
+            margin: 0 auto 16px; font-size: 2.2rem; font-weight: 800;
         }
-        .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; }
+        .result-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
         .result-row:last-child { border: none; }
-        .btn-replay { display: inline-block; margin-top: 20px; padding: 12px 32px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.9rem; }
+        .result-section { margin: 16px 0 8px; font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; text-align: left; }
+        .clinical-flag { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 8px 12px; margin-top: 12px; text-align: left; }
+        .clinical-flag .flag-title { font-size: 0.7rem; font-weight: 700; color: #f87171; margin-bottom: 4px; }
+        .clinical-flag .flag-item { font-size: 0.72rem; color: rgba(255,255,255,0.6); padding: 2px 0; }
+        .btn-replay { display: inline-block; margin-top: 16px; padding: 10px 28px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-size: 0.85rem; }
 
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeUp .25s ease forwards; }
     </style>
 </head>
@@ -262,68 +163,34 @@
 <header>
     <div class="header-left">
         <a id="back-link" href="/hdd/portal/">← Portal</a>
-        <h1>Rutina Diaria</h1>
+        <h1>Mi Rutina Diaria</h1>
     </div>
-    <div class="header-right">
+    <div style="text-align:right">
         <div id="timer-display">00:00</div>
         <div id="patient-display">—</div>
     </div>
 </header>
 
-<div id="progress-bar-wrap" style="display:none">
+<div id="progress-wrap" style="display:none">
     <div id="progress-bar"><div id="progress-fill"></div></div>
-    <div id="progress-label">0 seleccionadas</div>
+    <div id="progress-label"></div>
 </div>
 
-<!-- START SCREEN -->
 <div id="start-screen">
     <div class="start-card">
+        <div style="font-size:3rem;margin-bottom:8px;">🌅</div>
         <h2>Mi Rutina Diaria</h2>
-        <p>Seleccioná las actividades que forman parte de una rutina saludable, y luego ordenálas en el día.</p>
-        <button class="btn-start" onclick="beginGame()">Comenzar</button>
+        <p>Recorré tu casa y hacé las actividades del día. Cada habitación tiene objetos para interactuar. Vos decidís qué hacer y en qué orden.</p>
+        <button class="btn-primary" onclick="beginGame()">Comenzar el día</button>
     </div>
 </div>
 
-<!-- PHASE 1 -->
-<div id="phase1">
-    <p class="phase-title">¿Qué hacés en tu día? Seleccioná lo que corresponde</p>
-    <div id="habits-grid"></div>
-    <button id="btn-to-phase2" class="btn-next-phase" disabled onclick="goToPhase2()">
-        Continuar →
-    </button>
-</div>
-
-<!-- PHASE 2 -->
-<div id="phase2">
-    <p class="phase-title">Organizá tu día: colocá cada actividad en su momento</p>
-    <div id="selected-pool"></div>
-    <div id="timeline">
-        <div class="timeline-group">
-            <div class="timeline-group-title">Mañana</div>
-            <div id="slots-morning"></div>
-        </div>
-        <div class="timeline-group">
-            <div class="timeline-group-title">Tarde</div>
-            <div id="slots-afternoon"></div>
-        </div>
-        <div class="timeline-group">
-            <div class="timeline-group-title">Noche</div>
-            <div id="slots-evening"></div>
-        </div>
-    </div>
-    <button id="btn-finish" class="btn-finish-phase" disabled onclick="finishGame()">
-        Ver resultados
-    </button>
-</div>
-
-<!-- RESULTS -->
-<div id="results">
-    <div class="results-card animate-in" id="results-content"></div>
-</div>
+<div id="game-area"></div>
+<div id="results"></div>
 
 <script>
 // ================================================================
-// SUPABASE (SDK ya cargado en el head)
+// SUPABASE
 // ================================================================
 const SUPABASE_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
@@ -331,164 +198,162 @@ var sb = null;
 try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) {}
 
 // ================================================================
-// HABITS DATA — con fotos de Unsplash (IDs confiables) + emoji fallback
+// SCENE DEFINITIONS
 // ================================================================
-const HABITS = [
-    // MORNING (3 healthy)
+const SCENES = [
     {
-        id: 'despertarse',
-        label: 'Levantarse a horario',
-        emoji: '⏰',
-        photo: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#1a2744', fbTo: '#2d3f6e',
-        healthy: true, phase: 'morning', order: 1
+        id: 'dormitorio',
+        name: 'Dormitorio',
+        icon: '🛏️',
+        description: 'Te acabás de despertar. La cama está destendida y hay ropa en el piso.',
+        items: [
+            { id: 'tender_cama', label: 'Tender la cama', emoji: '🛏️', type: 'positive', points: 10, feedback: 'Bien, cama tendida.' },
+            { id: 'juntar_ropa', label: 'Juntar la ropa del piso', emoji: '👕', type: 'positive', points: 10, feedback: 'Ropa juntada y guardada.' },
+            { id: 'abrir_cortinas', label: 'Abrir las cortinas', emoji: '🪟', type: 'positive', points: 5, feedback: 'Entra luz natural, muy bien.' },
+        ],
+        skipLabel: 'Salir sin hacer nada →',
+        nextLabel: 'Ir al baño →',
+        skipFlag: 'Dejó el dormitorio desordenado',
     },
     {
-        id: 'higiene_am',
-        label: 'Higiene personal',
-        emoji: '🪥',
-        photo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0f3544', fbTo: '#1a5c6e',
-        healthy: true, phase: 'morning', order: 2
+        id: 'bano',
+        name: 'Baño',
+        icon: '🪥',
+        description: 'Estás frente al espejo del baño. Tenés los utensilios de higiene a mano.',
+        items: [
+            { id: 'abrir_canilla', label: 'Abrir la canilla', emoji: '🚰', type: 'sequence', points: 5, feedback: 'Canilla abierta.' },
+            { id: 'jabon', label: 'Usar jabón', emoji: '🧼', type: 'sequence', points: 5, requires: ['abrir_canilla'], feedback: 'Te enjabonás las manos.' },
+            { id: 'lavarse_manos', label: 'Lavarse las manos', emoji: '🤲', type: 'sequence', points: 10, requires: ['jabon'], feedback: 'Manos limpias.' },
+            { id: 'secarse', label: 'Secarse con toalla', emoji: '🧖', type: 'sequence', points: 5, requires: ['lavarse_manos'], feedback: 'Manos secas.' },
+            { id: 'pasta_dental', label: 'Poner pasta dental', emoji: '🦷', type: 'sequence', points: 5, requires: ['lavarse_manos'], feedback: 'Pasta en el cepillo.' },
+            { id: 'cepillarse', label: 'Cepillarse los dientes', emoji: '🪥', type: 'sequence', points: 10, requires: ['pasta_dental'], feedback: 'Dientes limpios.' },
+            { id: 'peinarse', label: 'Peinarse', emoji: '💇', type: 'positive', points: 5, feedback: 'Pelo prolijo.' },
+        ],
+        skipLabel: 'Salir sin higiene →',
+        nextLabel: 'Ir a la cocina →',
+        skipFlag: 'Salteó la higiene personal',
+        sequenceWarnings: {
+            'cepillarse': { without: 'lavarse_manos', msg: 'Te cepillaste sin lavarte las manos primero' },
+            'lavarse_manos': { without: 'jabon', msg: 'Te lavaste sin jabón' },
+            'jabon': { without: 'abrir_canilla', msg: 'Usaste jabón sin abrir la canilla' },
+            'cepillarse': { without: 'pasta_dental', msg: 'Te cepillaste sin pasta dental' },
+        },
     },
     {
-        id: 'desayuno',
-        label: 'Desayuno',
-        emoji: '🥐',
-        photo: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#3d2000', fbTo: '#7a4800',
-        healthy: true, phase: 'morning', order: 3
-    },
-    // AFTERNOON (3 healthy)
-    {
-        id: 'almuerzo',
-        label: 'Almuerzo',
-        emoji: '🍽️',
-        photo: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#3d1500', fbTo: '#7a3500',
-        healthy: true, phase: 'afternoon', order: 1
-    },
-    {
-        id: 'taller',
-        label: 'Taller / actividad grupal',
-        emoji: '🏥',
-        photo: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0a1a3d', fbTo: '#1a3070',
-        healthy: true, phase: 'afternoon', order: 2
+        id: 'cocina',
+        name: 'Cocina',
+        icon: '🍳',
+        description: 'Estás en la cocina. Sobre la mesada hay ingredientes para preparar el desayuno.',
+        items: [
+            { id: 'galletitas', label: 'Sacar galletitas', emoji: '🍪', type: 'positive', points: 5, feedback: 'Galletitas listas.' },
+            { id: 'chocolatada', label: 'Preparar chocolatada', emoji: '🥛', type: 'positive', points: 10, feedback: 'Chocolatada servida.' },
+            { id: 'naranjas', label: 'Tomar naranjas', emoji: '🍊', type: 'sequence', points: 5, feedback: 'Naranjas listas para exprimir.' },
+            { id: 'exprimidor', label: 'Usar el exprimidor', emoji: '🧃', type: 'sequence', points: 10, requires: ['naranjas'], feedback: 'Jugo de naranja exprimido.' },
+            { id: 'pan', label: 'Poner pan en tostadora', emoji: '🍞', type: 'sequence', points: 5, feedback: 'Pan en la tostadora.' },
+            { id: 'tostadora', label: 'Tostar el pan', emoji: '🔥', type: 'sequence', points: 5, requires: ['pan'], feedback: 'Tostadas listas.' },
+            { id: 'cafe', label: 'Preparar café', emoji: '☕', type: 'positive', points: 10, feedback: 'Café preparado.' },
+        ],
+        skipLabel: 'No desayunar →',
+        nextLabel: 'Sentarse a desayunar →',
+        skipFlag: 'No preparó desayuno',
     },
     {
-        id: 'medicacion_am',
-        label: 'Tomar medicación',
-        emoji: '💊',
-        photo: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0f3320', fbTo: '#1a5c3a',
-        healthy: true, phase: 'afternoon', order: 3
-    },
-    // EVENING (3 healthy)
-    {
-        id: 'cena',
-        label: 'Cena',
-        emoji: '🥗',
-        photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#1a0a2d', fbTo: '#2d1a50',
-        healthy: true, phase: 'evening', order: 1
+        id: 'mesa',
+        name: 'Mesa del desayuno',
+        icon: '🍽️',
+        description: 'Terminaste de desayunar. La mesa tiene platos, tazas y migas.',
+        items: [
+            { id: 'juntar_platos', label: 'Juntar platos y tazas', emoji: '🍽️', type: 'positive', points: 10, feedback: 'Platos recogidos.' },
+            { id: 'limpiar_migas', label: 'Limpiar las migas', emoji: '🧹', type: 'positive', points: 5, feedback: 'Mesa limpia.' },
+            { id: 'lavar_vajilla', label: 'Lavar la vajilla', emoji: '🧽', type: 'positive', points: 10, requires: ['juntar_platos'], feedback: 'Vajilla lavada.' },
+            { id: 'guardar_comida', label: 'Guardar lo que sobró', emoji: '🫙', type: 'positive', points: 5, feedback: 'Comida guardada en la heladera.' },
+        ],
+        skipLabel: 'Dejar la mesa sucia →',
+        nextLabel: 'Ir al living →',
+        skipFlag: 'Dejó la mesa sin limpiar',
     },
     {
-        id: 'relajacion',
-        label: 'Relajación / tiempo libre',
-        emoji: '🧘',
-        photo: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0a2030', fbTo: '#103a50',
-        healthy: true, phase: 'evening', order: 2
+        id: 'vestibulo',
+        name: 'Vestíbulo / Salida',
+        icon: '🚪',
+        description: 'Estás cerca de la puerta de salida. En el perchero y la mesita hay tus cosas.',
+        items: [
+            { id: 'abrigo', label: 'Ponerse abrigo', emoji: '🧥', type: 'positive', points: 5, feedback: 'Abrigo puesto.' },
+            { id: 'celular', label: 'Agarrar celular', emoji: '📱', type: 'essential', points: 10, feedback: 'Celular en el bolsillo.' },
+            { id: 'llaves', label: 'Agarrar las llaves', emoji: '🔑', type: 'essential', points: 10, feedback: 'Llaves listas.' },
+            { id: 'billetera', label: 'Agarrar billetera', emoji: '👛', type: 'positive', points: 5, feedback: 'Billetera lista.' },
+            { id: 'control_remoto', label: 'Agarrar el control remoto', emoji: '📺', type: 'distractor', points: -5, feedback: 'Agarraste el control... ¿vas a salir o te quedás?' },
+        ],
+        skipLabel: null,
+        nextLabel: 'Salir de casa →',
+        nextAlt: { condition: 'control_remoto', label: 'Ir al sillón →', nextScene: 'sillon' },
+        missingEssentials: 'Salió sin: ',
     },
     {
-        id: 'dormir',
-        label: 'Dormir a horario',
-        emoji: '😴',
-        photo: 'https://images.unsplash.com/photo-1541480601022-2308c0f02487?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#05050f', fbTo: '#0f0f28',
-        healthy: true, phase: 'evening', order: 3
-    },
-    // UNHEALTHY (4 distractors)
-    {
-        id: 'saltear_comida',
-        label: 'No comer',
-        emoji: '🚫',
-        photo: 'https://images.unsplash.com/photo-1517093157656-b9eccef91cb1?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#2d0505', fbTo: '#4a0a0a',
-        healthy: false, phase: null, order: 0
-    },
-    {
-        id: 'pantallas',
-        label: 'Pantallas toda la noche',
-        emoji: '📱',
-        photo: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#0a0a2d', fbTo: '#15154a',
-        healthy: false, phase: null, order: 0
-    },
-    {
-        id: 'dormir_dia',
-        label: 'Dormir todo el día',
-        emoji: '😪',
-        photo: 'https://images.unsplash.com/photo-1493894473891-10fc1e5dbd22?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#1a0a2d', fbTo: '#2d1a4a',
-        healthy: false, phase: null, order: 0
-    },
-    {
-        id: 'no_medicacion',
-        label: 'No tomar medicación',
-        emoji: '❌',
-        photo: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=300&h=220&fit=crop&auto=format&q=80',
-        fbFrom: '#2d0a0a', fbTo: '#4a1515',
-        healthy: false, phase: null, order: 0
+        id: 'sillon',
+        name: 'Sillón',
+        icon: '🛋️',
+        description: 'Te sentaste en el sillón con el control remoto. ¿Qué mirás?',
+        items: [
+            { id: 'noticieros', label: 'Noticieros', emoji: '📰', type: 'neutral', points: 5, feedback: 'Estás viendo las noticias del día.' },
+            { id: 'pelicula', label: 'Película / Serie', emoji: '🎬', type: 'neutral', points: 0, feedback: 'Empezaste a ver una película...' },
+            { id: 'levantarse', label: 'Apagar TV y salir', emoji: '🚶', type: 'positive', points: 10, feedback: 'Decidiste salir. Buena decisión.' },
+        ],
+        skipLabel: null,
+        nextLabel: 'Terminar el día →',
+        isOptional: true,
     },
 ];
 
 // ================================================================
-// STATE
+// GAME STATE
 // ================================================================
-const HEALTHY_REQUIRED = 4;
 const state = {
     patientDni: 'DEMO',
     startTime: null,
     timerInterval: null,
-    selected: new Set(),   // habit ids
-    placements: {},        // slot_id → habit_id
-    draggingId: null,
-    totalActions: 0,
+    currentSceneIdx: 0,
+    // Track ALL actions globally
+    actionLog: [],          // { sceneId, itemId, timestamp, correct, warning }
+    sceneActions: {},       // sceneId → Set of done item IDs
+    skippedScenes: [],      // scene IDs where player skipped
+    clinicalFlags: [],      // text flags for clinical review
+    sequenceErrors: 0,
+    totalPoints: 0,
+    maxPossiblePoints: 0,
     hesitations: 0,
     lastActionTime: null,
+    missedEssentials: [],
+    visitedSillon: false,
 };
 
 // ================================================================
-// GAME START
+// INIT
 // ================================================================
 function beginGame() {
-    try {
-        console.log('[daily-routine] beginGame() called');
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('phase1').style.display = 'block';
-        document.getElementById('progress-bar-wrap').style.display = 'flex';
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-area').style.display = 'block';
+    document.getElementById('progress-wrap').style.display = 'flex';
 
-        const params = new URLSearchParams(window.location.search);
-        state.patientDni = params.get('dni') || params.get('patient_id')
-            || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
-            || 'DEMO';
-        document.getElementById('patient-display').textContent = state.patientDni;
+    const params = new URLSearchParams(window.location.search);
+    state.patientDni = params.get('dni') || params.get('patient_id')
+        || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
+        || 'DEMO';
+    document.getElementById('patient-display').textContent = state.patientDni;
 
-        state.startTime = Date.now();
-        state.timerInterval = setInterval(updateTimer, 1000);
-        renderPhase1();
-        console.log('[daily-routine] renderPhase1() completed');
+    state.startTime = Date.now();
+    state.timerInterval = setInterval(updateTimer, 1000);
 
-        // Captura biométrica — comienza al iniciar el juego
-        if (typeof biomet !== 'undefined') {
-            biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
-        }
-    } catch(e) {
-        console.error('[daily-routine] beginGame crashed:', e);
-        alert('Error al iniciar juego: ' + e.message);
+    // Calc max possible points
+    SCENES.forEach(s => {
+        s.items.forEach(it => { if (it.points > 0) state.maxPossiblePoints += it.points; });
+    });
+
+    if (typeof biomet !== 'undefined') {
+        biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
     }
+
+    renderScene(0);
 }
 
 function updateTimer() {
@@ -498,416 +363,433 @@ function updateTimer() {
     el.textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
 
-// ================================================================
-// PHASE 1: PHOTO GRID
-// ================================================================
-function renderPhase1() {
-    const grid = document.getElementById('habits-grid');
-    const shuffled = [...HABITS].sort(() => Math.random() - 0.5);
-    grid.innerHTML = '';
-
-    shuffled.forEach((h, i) => {
-        const card = document.createElement('div');
-        card.className = 'habit-card animate-in' + (h.healthy ? '' : ' unhealthy');
-        card.dataset.id = h.id;
-        card.style.animationDelay = (i * 0.03) + 's';
-        card.onclick = () => toggleHabit(h.id);
-
-        // Photo
-        const img = document.createElement('img');
-        img.className = 'habit-photo';
-        img.alt = h.label;
-        img.loading = 'lazy';
-        img.src = h.photo;
-        img.onerror = function() {
-            this.style.display = 'none';
-            const fb = card.querySelector('.habit-photo-fallback');
-            if (fb) fb.style.display = 'flex';
-        };
-        card.appendChild(img);
-
-        // Fallback
-        const fb = document.createElement('div');
-        fb.className = 'habit-photo-fallback';
-        fb.style.setProperty('--fb-from', h.fbFrom);
-        fb.style.setProperty('--fb-to', h.fbTo);
-        fb.style.display = 'none';
-        fb.textContent = h.emoji;
-        card.appendChild(fb);
-
-        // Overlay
-        const ov = document.createElement('div');
-        ov.className = 'habit-overlay';
-        card.appendChild(ov);
-
-        // Check
-        const chk = document.createElement('div');
-        chk.className = 'habit-check';
-        chk.textContent = '✓';
-        card.appendChild(chk);
-
-        // Label (tiny, bottom)
-        const lbl = document.createElement('div');
-        lbl.className = 'habit-label';
-        lbl.textContent = h.label;
-        card.appendChild(lbl);
-
-        grid.appendChild(card);
-    });
-
-    // Registrar cards como targets para biomet
-    if (typeof biomet !== 'undefined') {
-        setTimeout(function() {
-            shuffled.forEach(function(h) {
-                var el = document.querySelector('.habit-card[data-id="' + h.id + '"]');
-                if (el) biomet.registerTarget(h.id, el);
-            });
-        }, 100);
-    }
+function updateProgress() {
+    const total = SCENES.length;
+    const current = state.currentSceneIdx;
+    const pct = Math.min(100, (current / total) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    const scene = SCENES[current];
+    document.getElementById('progress-label').textContent = scene ? scene.name : 'Fin';
 }
 
-function toggleHabit(id) {
-    const card = document.querySelector(`.habit-card[data-id="${id}"]`);
-    const h = HABITS.find(x => x.id === id);
-    if (!card || !h) return;
+// ================================================================
+// SCENE RENDERER
+// ================================================================
+function renderScene(idx) {
+    state.currentSceneIdx = idx;
+    const scene = SCENES[idx];
+    if (!scene) { finishGame(); return; }
 
-    state.totalActions++;
+    // Init scene actions tracker
+    if (!state.sceneActions[scene.id]) state.sceneActions[scene.id] = new Set();
+
+    updateProgress();
+
+    const area = document.getElementById('game-area');
+    area.innerHTML = '';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'scene-header animate-in';
+    header.innerHTML = `
+        <div class="scene-icon">${scene.icon}</div>
+        <div class="scene-name">${scene.name}</div>
+        <div class="scene-desc">${scene.description}</div>
+    `;
+    area.appendChild(header);
+
+    // Feedback area
+    const fb = document.createElement('div');
+    fb.id = 'scene-feedback';
+    area.appendChild(fb);
+
+    // Room with items
+    const room = document.createElement('div');
+    room.className = 'room animate-in';
+    const grid = document.createElement('div');
+    grid.className = 'items-grid';
+    grid.id = 'items-grid';
+
+    scene.items.forEach((item, i) => {
+        const el = document.createElement('div');
+        el.className = 'action-item';
+        el.id = 'item-' + item.id;
+        el.dataset.id = item.id;
+        el.style.animationDelay = (i * 0.05) + 's';
+
+        // If already done (revisiting), mark it
+        if (state.sceneActions[scene.id].has(item.id)) {
+            el.classList.add('done');
+        }
+
+        const orderEl = document.createElement('div');
+        orderEl.className = 'item-order';
+        orderEl.id = 'order-' + item.id;
+        el.appendChild(orderEl);
+
+        const emoji = document.createElement('span');
+        emoji.className = 'item-emoji';
+        emoji.textContent = item.emoji;
+        el.appendChild(emoji);
+
+        const label = document.createElement('div');
+        label.className = 'item-label';
+        label.textContent = item.label;
+        el.appendChild(label);
+
+        el.addEventListener('click', function() {
+            handleAction(scene, item);
+        });
+
+        grid.appendChild(el);
+    });
+
+    room.appendChild(grid);
+    area.appendChild(room);
+
+    // Navigation
+    const nav = document.createElement('div');
+    nav.className = 'scene-nav animate-in';
+
+    if (scene.skipLabel) {
+        const skipBtn = document.createElement('button');
+        skipBtn.className = 'btn-nav skip';
+        skipBtn.textContent = scene.skipLabel;
+        skipBtn.onclick = () => skipScene(scene);
+        nav.appendChild(skipBtn);
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn-nav next';
+    nextBtn.id = 'btn-next-scene';
+    nextBtn.textContent = scene.nextLabel || 'Continuar →';
+    nextBtn.onclick = () => advanceScene(scene);
+    nav.appendChild(nextBtn);
+
+    area.appendChild(nav);
+
+    // Action log
+    const logDiv = document.createElement('div');
+    logDiv.className = 'action-log animate-in';
+    logDiv.innerHTML = '<h4>Lo que hiciste</h4>';
+    const logList = document.createElement('div');
+    logList.id = 'action-log-list';
+
+    // Show actions already done in this scene
+    const doneInScene = state.actionLog.filter(a => a.sceneId === scene.id);
+    doneInScene.forEach(a => {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const item = scene.items.find(it => it.id === a.itemId);
+        entry.innerHTML = '<span class="log-icon">' + (a.correct ? '✓' : a.warning ? '⚠' : '✗') + '</span> ' + (item ? item.label : a.itemId);
+        logList.appendChild(entry);
+    });
+
+    if (doneInScene.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'log-entry';
+        empty.textContent = 'Todavía no hiciste nada...';
+        empty.id = 'log-empty';
+        logList.appendChild(empty);
+    }
+
+    logDiv.appendChild(logList);
+    area.appendChild(logDiv);
+}
+
+// ================================================================
+// ACTION HANDLER
+// ================================================================
+function handleAction(scene, item) {
+    const done = state.sceneActions[scene.id];
+    if (done.has(item.id)) return; // Already done
+
     const now = Date.now();
     if (state.lastActionTime && now - state.lastActionTime > 5000) state.hesitations++;
     state.lastActionTime = now;
 
-    const selecting = !state.selected.has(id);
+    let correct = true;
+    let warning = null;
 
+    // Check requires
+    if (item.requires && item.requires.length > 0) {
+        const missing = item.requires.filter(req => !done.has(req));
+        if (missing.length > 0) {
+            // Check for sequence warnings
+            const warnKey = item.id;
+            if (scene.sequenceWarnings && scene.sequenceWarnings[warnKey]) {
+                const sw = scene.sequenceWarnings[warnKey];
+                if (!done.has(sw.without)) {
+                    warning = sw.msg;
+                }
+            }
+            if (!warning) {
+                const missingItem = scene.items.find(it => it.id === missing[0]);
+                warning = 'Primero deberías: ' + (missingItem ? missingItem.label : missing[0]);
+            }
+            state.sequenceErrors++;
+            correct = false;
+            showFeedback(warning, 'warn');
+
+            // Still allow the action (tracks the error)
+        }
+    }
+
+    // Check distractor
+    if (item.type === 'distractor') {
+        correct = false;
+        showFeedback(item.feedback, 'warn');
+    } else if (warning) {
+        // Already showed warning
+    } else {
+        showFeedback(item.feedback, 'good');
+    }
+
+    // Mark done
+    done.add(item.id);
+    state.totalPoints += item.points;
+
+    // Visual update
+    const el = document.getElementById('item-' + item.id);
+    if (el) {
+        el.classList.add(correct ? 'done' : (warning ? 'warning' : 'error'));
+        const orderEl = document.getElementById('order-' + item.id);
+        if (orderEl) {
+            orderEl.textContent = done.size;
+            orderEl.style.opacity = '1';
+            if (!correct) orderEl.style.background = warning ? 'var(--yellow)' : 'var(--red)';
+        }
+        setTimeout(() => {
+            el.classList.add('done');
+            el.classList.remove('warning', 'error');
+        }, 800);
+    }
+
+    // Log action
+    const logEntry = {
+        sceneId: scene.id,
+        itemId: item.id,
+        timestamp: now - state.startTime,
+        correct: correct,
+        warning: warning,
+        points: item.points,
+    };
+    state.actionLog.push(logEntry);
+
+    // Update action log display
+    const logList = document.getElementById('action-log-list');
+    if (logList) {
+        const emptyEl = document.getElementById('log-empty');
+        if (emptyEl) emptyEl.remove();
+
+        const entry = document.createElement('div');
+        entry.className = 'log-entry animate-in';
+        entry.innerHTML = '<span class="log-icon">' + (correct ? '✓' : '⚠') + '</span> ' + item.label;
+        logList.appendChild(entry);
+    }
+
+    // Biomet tracking
     if (typeof biomet !== 'undefined') {
         biomet.recordAction({
-            type: selecting ? 'select_habit' : 'deselect_habit',
-            target_id: id,
-            correct: h.healthy ? selecting : !selecting,  // seleccionar saludable = correcto
-            is_comision: !h.healthy && selecting,          // seleccionar no-saludable = comisión
-            achieved_objective: null,  // se evalúa al finalizar fase
-            plan_correct: null,        // no hay plan secuencial en fase 1
+            type: 'scene_action',
+            target_id: scene.id + '/' + item.id,
+            correct: correct,
+            is_comision: item.type === 'distractor',
+            achieved_objective: null,
+            plan_correct: !warning,
         });
     }
 
-    if (state.selected.has(id)) {
-        state.selected.delete(id);
-        card.classList.remove('selected');
-    } else {
-        state.selected.add(id);
-        card.classList.add('selected');
+    // Special: vestibulo control_remoto changes nav
+    if (scene.id === 'vestibulo' && item.id === 'control_remoto') {
+        state.visitedSillon = true;
+        const nextBtn = document.getElementById('btn-next-scene');
+        if (nextBtn && scene.nextAlt) {
+            nextBtn.textContent = scene.nextAlt.label;
+        }
     }
-    updatePhase1UI();
 }
 
-function updatePhase1UI() {
-    const healthyCount = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
-    const total = state.selected.size;
+function showFeedback(msg, type) {
+    const fb = document.getElementById('scene-feedback');
+    if (!fb) return;
+    fb.innerHTML = '<div class="feedback ' + type + ' animate-in">' + msg + '</div>';
+    setTimeout(() => { if (fb.firstChild) fb.firstChild.style.opacity = '0.5'; }, 2500);
+}
 
-    const label = document.getElementById('progress-label');
-    const fill = document.getElementById('progress-fill');
-    const btn = document.getElementById('btn-to-phase2');
+// ================================================================
+// NAVIGATION
+// ================================================================
+function skipScene(scene) {
+    state.skippedScenes.push(scene.id);
+    if (scene.skipFlag) {
+        state.clinicalFlags.push(scene.skipFlag);
+    }
+    showFeedback(scene.skipFlag || 'Escena salteada', 'bad');
+    setTimeout(() => advanceToNext(scene), 600);
+}
 
-    label.textContent = `${healthyCount} saludables seleccionadas`;
-    const pct = Math.min(100, (healthyCount / HEALTHY_REQUIRED) * 100);
-    fill.style.width = pct + '%';
+function advanceScene(scene) {
+    // Check for missed essentials (vestibulo)
+    if (scene.id === 'vestibulo') {
+        const done = state.sceneActions[scene.id] || new Set();
+        const essentials = scene.items.filter(it => it.type === 'essential');
+        const missed = essentials.filter(it => !done.has(it.id));
+        if (missed.length > 0) {
+            state.missedEssentials = missed.map(it => it.label);
+            state.clinicalFlags.push('Salió sin: ' + missed.map(it => it.label).join(', '));
+        }
 
-    if (healthyCount >= HEALTHY_REQUIRED) {
-        btn.disabled = false;
-        btn.classList.add('ready');
-        btn.textContent = 'Organizar el día \u2192';
+        // If grabbed control remoto, go to sillon
+        if (state.visitedSillon) {
+            renderScene(SCENES.findIndex(s => s.id === 'sillon'));
+            return;
+        }
+    }
+
+    // Check if nothing was done in scene
+    const done = state.sceneActions[scene.id] || new Set();
+    if (done.size === 0 && scene.skipFlag) {
+        state.skippedScenes.push(scene.id);
+        state.clinicalFlags.push(scene.skipFlag);
+    }
+
+    advanceToNext(scene);
+}
+
+function advanceToNext(scene) {
+    const currentIdx = SCENES.findIndex(s => s.id === scene.id);
+    let nextIdx = currentIdx + 1;
+
+    // Skip sillon if not triggered
+    if (nextIdx < SCENES.length && SCENES[nextIdx].id === 'sillon' && !state.visitedSillon) {
+        nextIdx++;
+    }
+
+    if (nextIdx >= SCENES.length) {
+        finishGame();
     } else {
-        const faltan = HEALTHY_REQUIRED - healthyCount;
-        btn.disabled = true;
-        btn.classList.remove('ready');
-        btn.textContent = 'Seleccion\u00e1 ' + faltan + ' m\u00e1s';
+        renderScene(nextIdx);
     }
 }
 
 // ================================================================
-// PHASE 2: TIMELINE
-// ================================================================
-const SLOT_CONFIG = {
-    morning: [
-        {id:'m1', label:'1°'}, {id:'m2', label:'2°'}, {id:'m3', label:'3°'}
-    ],
-    afternoon: [
-        {id:'a1', label:'1°'}, {id:'a2', label:'2°'}, {id:'a3', label:'3°'}
-    ],
-    evening: [
-        {id:'e1', label:'1°'}, {id:'e2', label:'2°'}, {id:'e3', label:'3°'}
-    ]
-};
-
-function goToPhase2() {
-    document.getElementById('phase1').style.display = 'none';
-    document.getElementById('phase2').style.display = 'block';
-    renderPhase2();
-}
-
-function renderPhase2() {
-    // Pool: selected healthy habits
-    const pool = document.getElementById('selected-pool');
-    pool.innerHTML = '';
-    const selectedHealthy = [...state.selected]
-        .map(id => HABITS.find(h=>h.id===id))
-        .filter(h => h && h.healthy);
-
-    selectedHealthy.forEach(h => {
-        const card = document.createElement('div');
-        card.className = 'pool-card animate-in';
-        card.id = 'pool-' + h.id;
-        card.draggable = true;
-        card.dataset.habitId = h.id;
-        card.onclick = () => placeNextAvailable(h.id);
-        card.ondragstart = e => { state.draggingId = h.id; e.dataTransfer.effectAllowed = 'move'; };
-
-        const img = document.createElement('img');
-        img.src = h.photo;
-        img.alt = h.label;
-        img.onerror = function() {
-            this.style.display = 'none';
-            const fb = document.createElement('div');
-            fb.className = 'pool-emoji';
-            fb.textContent = h.emoji;
-            card.appendChild(fb);
-        };
-        card.appendChild(img);
-        pool.appendChild(card);
-    });
-
-    // Slots
-    ['morning','afternoon','evening'].forEach(phase => {
-        const container = document.getElementById('slots-' + phase);
-        container.innerHTML = '';
-        SLOT_CONFIG[phase].forEach(s => {
-            const slot = document.createElement('div');
-            slot.className = 'timeline-slot';
-            slot.id = 'slot-' + s.id;
-            slot.dataset.slotId = s.id;
-            slot.dataset.phase = phase;
-
-            const order = document.createElement('div');
-            order.className = 'slot-order';
-            order.textContent = s.label;
-            slot.appendChild(order);
-
-            slot.ondragover = e => { e.preventDefault(); slot.classList.add('drop-over'); };
-            slot.ondragleave = () => slot.classList.remove('drop-over');
-            slot.ondrop = e => { e.preventDefault(); slot.classList.remove('drop-over'); if (state.draggingId) placeHabitInSlot(state.draggingId, s.id); state.draggingId = null; };
-            slot.onclick = () => { if (!slot.classList.contains('filled')) placeNextUnplaced(s.id); };
-
-            container.appendChild(slot);
-        });
-    });
-}
-
-function placeNextAvailable(habitId) {
-    // Find first empty slot
-    const allSlots = [...document.querySelectorAll('.timeline-slot:not(.filled)')];
-    if (allSlots.length === 0) return;
-    placeHabitInSlot(habitId, allSlots[0].dataset.slotId);
-}
-
-function placeNextUnplaced(slotId) {
-    // Click on an empty slot → place the first unplaced pool habit
-    const poolCards = [...document.querySelectorAll('.pool-card:not(.placed)')];
-    if (poolCards.length === 0) return;
-    const habitId = poolCards[0].dataset.habitId;
-    if (habitId) placeHabitInSlot(habitId, slotId);
-}
-
-function placeHabitInSlot(habitId, slotId) {
-    // If habit already placed somewhere, remove from that slot
-    const existing = Object.keys(state.placements).find(k => state.placements[k] === habitId);
-    if (existing) removeFromSlot(existing);
-
-    // Fill slot
-    const slot = document.getElementById('slot-' + slotId);
-    if (!slot || slot.classList.contains('filled')) return;
-
-    state.placements[slotId] = habitId;
-    const h = HABITS.find(x => x.id === habitId);
-    if (!h) return;
-
-    slot.classList.add('filled');
-
-    const img = document.createElement('img');
-    img.src = h.photo;
-    img.alt = h.label;
-    img.onerror = function() {
-        this.style.display = 'none';
-        const fe = document.createElement('div');
-        fe.className = 'slot-emoji';
-        fe.textContent = h.emoji;
-        slot.appendChild(fe);
-    };
-    slot.appendChild(img);
-
-    const lbl = document.createElement('div');
-    lbl.className = 'slot-label';
-    lbl.textContent = h.label;
-    slot.appendChild(lbl);
-
-    const rmBtn = document.createElement('button');
-    rmBtn.className = 'slot-remove';
-    rmBtn.textContent = '✕';
-    rmBtn.onclick = e => { e.stopPropagation(); removeFromSlot(slotId); };
-    slot.appendChild(rmBtn);
-
-    // Mark pool card as placed
-    const poolCard = document.getElementById('pool-' + habitId);
-    if (poolCard) poolCard.classList.add('placed');
-
-    updatePhase2UI();
-}
-
-function removeFromSlot(slotId) {
-    const slot = document.getElementById('slot-' + slotId);
-    if (!slot) return;
-    const habitId = state.placements[slotId];
-    delete state.placements[slotId];
-    slot.classList.remove('filled');
-    // Remove everything except slot-order
-    [...slot.children].forEach(c => { if (!c.classList.contains('slot-order')) c.remove(); });
-
-    if (habitId) {
-        const poolCard = document.getElementById('pool-' + habitId);
-        if (poolCard) poolCard.classList.remove('placed');
-    }
-    updatePhase2UI();
-}
-
-function updatePhase2UI() {
-    const placed = Object.keys(state.placements).length;
-    const total = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
-    const btn = document.getElementById('btn-finish');
-    const label = document.getElementById('progress-label');
-    label.textContent = placed + ' de ' + total + ' organizadas';
-    const pct = total > 0 ? Math.min(100, (placed / total) * 100) : 0;
-    document.getElementById('progress-fill').style.width = pct + '%';
-    if (placed >= Math.min(total, 4)) {
-        btn.disabled = false;
-        btn.classList.add('ready');
-    } else {
-        btn.disabled = true;
-        btn.classList.remove('ready');
-    }
-}
-
-// ================================================================
-// FINISH & SCORE
+// SCORING & RESULTS
 // ================================================================
 function finishGame() {
     clearInterval(state.timerInterval);
-    document.getElementById('phase2').style.display = 'none';
+    document.getElementById('game-area').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
     document.getElementById('results').style.display = 'block';
 
     const totalTime = Math.floor((Date.now() - state.startTime) / 1000);
-    const healthySelected = [...state.selected].filter(id => HABITS.find(h=>h.id===id)?.healthy).length;
-    const unhealthySelected = [...state.selected].filter(id => !HABITS.find(h=>h.id===id)?.healthy).length;
-    const placedCount = Object.keys(state.placements).length;
+    const totalActions = state.actionLog.length;
+    const correctActions = state.actionLog.filter(a => a.correct).length;
 
-    // Score (9 healthy total, 9 slots)
-    const healthyTotal = HABITS.filter(h => h.healthy).length;
-    const selScore = Math.min(40, (healthySelected / healthyTotal) * 40);
-    const placedScore = Math.min(35, (placedCount / Math.max(1, healthySelected)) * 35);
-    const penaltyScore = Math.max(0, 25 - (unhealthySelected * 8));
-    const total = Math.round(selScore + placedScore + penaltyScore);
-
-    // Clinical vectors
-    const sequenceScore = calcSequenceCoherence();
-
-    // ── Cognitive domain metrics ──
-    const totalHabits = HABITS.length;
-    const totalSelected = state.selected.size;
-    const categories = new Set();
-    [...state.selected].forEach(id => {
-        const h = HABITS.find(x => x.id === id);
-        if (h && h.phase) categories.add(h.phase);
+    // Scene-by-scene analysis
+    const sceneScores = {};
+    SCENES.forEach(scene => {
+        const done = state.sceneActions[scene.id] || new Set();
+        const possible = scene.items.filter(it => it.points > 0);
+        const completed = possible.filter(it => done.has(it.id));
+        sceneScores[scene.id] = {
+            name: scene.name,
+            done: completed.length,
+            total: possible.length,
+            pct: possible.length > 0 ? Math.round((completed.length / possible.length) * 100) : 0,
+            skipped: state.skippedScenes.includes(scene.id),
+        };
     });
 
-    // Memoria de fijación: cuántos hábitos reales identificó del total posible
-    const fijacion_ratio = healthyTotal > 0 ? +(healthySelected / healthyTotal).toFixed(3) : 0;
-    // Memoria de evocación: cuántos de los colocados están en la fase temporal correcta
-    const evocacion_ratio = placedCount > 0 ? +(sequenceScore / 100).toFixed(3) : 0;
-    // Memoria de trabajo: manipular múltiples ítems simultáneamente (seleccionar + ordenar)
-    const trabajo_ratio = totalSelected > 0 ? +(placedCount / totalSelected).toFixed(3) : 0;
-    // Planificación visuoespacial: distribución temporal (mañana/tarde/noche)
-    const planificacion_temporal = +(categories.size / 3).toFixed(3);
-    // Latencia de respuesta (tiempo promedio por acción)
-    const latencia_por_accion_ms = state.totalActions > 0 ? Math.round((totalTime * 1000) / state.totalActions) : 0;
+    // Overall score (0-100)
+    const completionScore = state.maxPossiblePoints > 0 ? (state.totalPoints / state.maxPossiblePoints) * 60 : 0;
+    const sequenceScore = totalActions > 0 ? ((correctActions / totalActions) * 25) : 25;
+    const flagPenalty = Math.min(15, state.clinicalFlags.length * 5);
+    const finalScore = Math.max(0, Math.min(100, Math.round(completionScore + sequenceScore - flagPenalty)));
 
+    // Cognitive domains
+    const secuenciacion = totalActions > 0 ? Math.round((correctActions / totalActions) * 100) : 0;
+    const planificacion = Math.round(100 - (state.skippedScenes.length / SCENES.length) * 100);
+    const juicio = Math.round(100 - (state.clinicalFlags.length * 15));
+    const autonomia = Math.round(Object.values(sceneScores).reduce((sum, s) => sum + s.pct, 0) / Object.keys(sceneScores).length);
+
+    // Build results HTML
+    let sceneSummary = '';
+    Object.values(sceneScores).forEach(s => {
+        if (s.total === 0) return;
+        const color = s.skipped ? '#f87171' : (s.pct >= 80 ? '#4ade80' : s.pct >= 50 ? '#fbbf24' : '#f87171');
+        sceneSummary += `<div class="result-row">
+            <span>${s.name}</span>
+            <span style="color:${color};font-weight:700">${s.skipped ? 'Salteada' : s.done + '/' + s.total}</span>
+        </div>`;
+    });
+
+    let flagsHTML = '';
+    if (state.clinicalFlags.length > 0) {
+        flagsHTML = '<div class="clinical-flag"><div class="flag-title">Observaciones clínicas</div>';
+        state.clinicalFlags.forEach(f => {
+            flagsHTML += '<div class="flag-item">• ' + f + '</div>';
+        });
+        flagsHTML += '</div>';
+    }
+
+    document.getElementById('results').innerHTML = `
+        <div class="results-card animate-in">
+            <div class="score-circle">${finalScore}</div>
+            <h2 style="margin-bottom:4px;">Día completado</h2>
+            <p style="color:var(--text-dim);font-size:0.8rem;margin-bottom:16px;">
+                ${totalActions} acciones en ${Math.floor(totalTime/60)}m ${totalTime%60}s
+            </p>
+
+            <div class="result-section">Por habitación</div>
+            ${sceneSummary}
+
+            <div class="result-section">Dominios cognitivos</div>
+            <div class="result-row"><span>Secuenciación</span><span style="color:#a78bfa;font-weight:700">${secuenciacion}%</span></div>
+            <div class="result-row"><span>Planificación</span><span style="color:#a78bfa;font-weight:700">${Math.max(0, planificacion)}%</span></div>
+            <div class="result-row"><span>Juicio</span><span style="color:#a78bfa;font-weight:700">${Math.max(0, juicio)}%</span></div>
+            <div class="result-row"><span>Autonomía (AVD)</span><span style="color:#a78bfa;font-weight:700">${autonomia}%</span></div>
+            <div class="result-row"><span>Errores de secuencia</span><span style="color:${state.sequenceErrors > 0 ? '#fbbf24' : '#4ade80'}">${state.sequenceErrors}</span></div>
+            <div class="result-row"><span>Hesitaciones (&gt;5s)</span><span style="color:var(--text-dim)">${state.hesitations}</span></div>
+
+            ${flagsHTML}
+
+            <button class="btn-replay" onclick="location.reload()">Jugar de nuevo</button>
+        </div>
+    `;
+
+    // Save metrics
     const metrics = {
-        healthy_selected: healthySelected,
-        unhealthy_selected: unhealthySelected,
-        placed_count: placedCount,
-        total_actions: state.totalActions,
+        final_score: finalScore,
+        total_actions: totalActions,
+        correct_actions: correctActions,
+        sequence_errors: state.sequenceErrors,
         hesitations: state.hesitations,
         duration_seconds: totalTime,
-        sequence_coherence: sequenceScore,
-        final_score: total,
-        // Dominios cognitivos
-        memoria_fijacion_ratio: fijacion_ratio,
-        memoria_evocacion_ratio: evocacion_ratio,
-        memoria_trabajo_ratio: trabajo_ratio,
-        planificacion_temporal: planificacion_temporal,
-        latencia_por_accion_ms: latencia_por_accion_ms,
-        diversidad_categorias: categories.size
+        skipped_scenes: state.skippedScenes,
+        clinical_flags: state.clinicalFlags,
+        missed_essentials: state.missedEssentials,
+        visited_sillon: state.visitedSillon,
+        scene_scores: sceneScores,
+        cognitive_domains: { secuenciacion, planificacion, juicio: Math.max(0, juicio), autonomia },
+        action_log: state.actionLog,
     };
 
-    // Biomet: guardar métricas psicomotoras capturadas durante el juego
     let biometData = {};
     if (typeof biomet !== 'undefined') {
-        biometData = biomet.save({
-            final_score: total,
-            selection_score: Math.round(selScore),
-            sequence_score: Math.round(sequenceScore)
-        });
+        biometData = biomet.save({ final_score: finalScore, sequence_score: secuenciacion });
     }
 
     saveResults(metrics, biometData);
-
-    document.getElementById('results-content').innerHTML = `
-        <div class="score-circle">${total}</div>
-        <h2 style="margin-bottom:20px;">Rutina completada</h2>
-        <div class="result-row">
-            <span>Hábitos saludables identificados</span>
-            <span style="color:#a78bfa;font-weight:700">${healthySelected} / ${HABITS.filter(h=>h.healthy).length}</span>
-        </div>
-        <div class="result-row">
-            <span>Actividades organizadas en el día</span>
-            <span style="color:#a78bfa;font-weight:700">${placedCount}</span>
-        </div>
-        <div class="result-row">
-            <span>Tiempo total</span>
-            <span style="color:#94a3b8">${Math.floor(totalTime/60)}m ${totalTime%60}s</span>
-        </div>
-        <div class="result-row">
-            <span>Coherencia de secuencia</span>
-            <span style="color:#a78bfa;font-weight:700">${sequenceScore}%</span>
-        </div>
-        <button class="btn-replay" onclick="location.reload()">Jugar de nuevo</button>
-    `;
-
     if (typeof showPostGameColorModal === 'function') showPostGameColorModal();
 }
 
-function calcSequenceCoherence() {
-    let correct = 0; let total = 0;
-    Object.entries(state.placements).forEach(([slotId, habitId]) => {
-        const h = HABITS.find(x => x.id === habitId);
-        if (!h || !h.phase) return;
-        total++;
-        const phase = slotId.startsWith('m') ? 'morning' : slotId.startsWith('a') ? 'afternoon' : 'evening';
-        if (h.phase === phase) correct++;
-    });
-    return total === 0 ? 0 : Math.round((correct / total) * 100);
-}
-
+// ================================================================
+// SAVE TO SUPABASE
+// ================================================================
 async function saveResults(metrics, biometData) {
     if (!sb) return;
     try {
-        // Get patient UUID from DNI first
         let dailyPatientId = null;
         try {
             const { data: pdata } = await sb.from('hdd_patients').select('id').eq('dni', state.patientDni).single();
@@ -923,6 +805,7 @@ async function saveResults(metrics, biometData) {
                 ...metrics,
                 biomet: biometData || {},
                 game_name: 'Mi Rutina Diaria',
+                version: 'v2-scenes',
                 input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
                 completed: true,
                 duration_ms: Date.now() - (state.startTime || Date.now()),
@@ -930,7 +813,6 @@ async function saveResults(metrics, biometData) {
             }
         }).then(()=>{}).catch(()=>{});
 
-        // Save full biometric data to Supabase Storage bucket 'biometricas'
         if (dailyPatientId) {
             fetch('/api/biometricas', {
                 method: 'POST',
