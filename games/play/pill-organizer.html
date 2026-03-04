@@ -872,6 +872,27 @@
                 // Keep selected for rapid multi-placement
             }
 
+            // ---- Prevent right-click context menu during game ----
+            document.addEventListener('contextmenu', function(e) {
+                if (sessionState.gameActive) {
+                    e.preventDefault();
+                    // If dragging, treat right-click as drop
+                    if (sessionState.currentDrag.active) {
+                        if (dragStarted) {
+                            onDrop(lastGoodX, lastGoodY);
+                        } else {
+                            sessionState.currentDrag.active = false;
+                            removeGhost();
+                            if (sessionState.activePill) {
+                                sessionState.activePill.style.opacity = '1';
+                                sessionState.activePill = null;
+                            }
+                        }
+                        dragStarted = false;
+                    }
+                }
+            });
+
             // ---- MOUSE events ----
             var dragStarted = false;
 
@@ -981,6 +1002,20 @@
                     deselectMed();
                 }
             });
+
+            // Expose a reset function for when game ends/retries
+            window.resetDragState = function() {
+                removeGhost();
+                clearHighlights();
+                deselectMed();
+                dragStarted = false;
+                touchMoved = false;
+                sessionState.currentDrag.active = false;
+                if (sessionState.activePill) {
+                    sessionState.activePill.style.opacity = '1';
+                    sessionState.activePill = null;
+                }
+            };
         }
 
         // ===========================================
@@ -1073,6 +1108,15 @@
 
             sessionState.endTime = Date.now();
             sessionState.gameActive = false;
+
+            // Stop the timer
+            if (sessionState.timerInterval) {
+                clearInterval(sessionState.timerInterval);
+                sessionState.timerInterval = null;
+            }
+
+            // Clean up any active drag/selection state
+            if (typeof resetDragState === 'function') resetDragState();
 
             // Pasar métricas al shared system
             if (typeof updateGameMetrics === 'function') {
@@ -1323,14 +1367,22 @@
 
         function goNextLevel() {
             document.getElementById('results-overlay').style.display = 'none';
+            if (typeof resetDragState === 'function') resetDragState();
             sessionState.gameActive = true;
+            sessionState.startTime = Date.now();
+            sessionState.endTime = null;
             loadLevel(sessionState.currentLevelIndex + 1);
+            startTimer();
         }
 
         function retryLevel() {
             document.getElementById('results-overlay').style.display = 'none';
+            if (typeof resetDragState === 'function') resetDragState();
             sessionState.gameActive = true;
+            sessionState.startTime = Date.now();
+            sessionState.endTime = null;
             loadLevel(sessionState.currentLevelIndex);
+            startTimer();
         }
 
         function goToPortal() {
