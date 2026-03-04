@@ -90,6 +90,30 @@
             transition: all 0.3s;
         }
 
+        .slot {
+            cursor: pointer;
+        }
+        .pill-source.selected-pill {
+            outline: 4px solid #fbbf24 !important;
+            outline-offset: 3px;
+            animation: pill-pulse 1s ease-in-out infinite;
+        }
+        @keyframes pill-pulse {
+            0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,0.6); }
+            50% { box-shadow: 0 0 20px rgba(251,191,36,0.9); }
+        }
+        #click-hint {
+            display: none;
+            text-align: center;
+            padding: 6px 12px;
+            background: rgba(251,191,36,0.15);
+            border: 1px solid rgba(251,191,36,0.4);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #92400e;
+            margin-top: 8px;
+        }
+
         .consigna-banner {
             background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
             border: 2px solid rgba(255,255,255,0.25);
@@ -236,6 +260,7 @@
                 <p class="text-sm text-gray-600 mb-6">Arrastrá cada medicación al casillero correcto</p>
 
                 <div id="dispensador-meds" class="space-y-6"></div>
+                <div id="click-hint">👆 Tocá un casillero para colocar la pastilla seleccionada</div>
 
                 <!-- PANEL DE MÉTRICAS EN TIEMPO REAL -->
                 <div class="mt-8 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 shadow-inner">
@@ -603,50 +628,68 @@
         }
 
         // ===========================================
-        // DRAG & DROP (FIXED)
-        // No draggable="true" — custom mouse+touch system
-        // Touch events on DOCUMENT to track finger moving off pill
+        // DRAG & DROP (v3 — robust rect collision + click fallback)
+        // Uses bounding-rect collision instead of elementFromPoint
+        // Supports: drag+drop, click-to-select then click-to-place
         // ===========================================
         function setupDragAndDrop() {
             let ghostEl = null;
+            let lastGoodX = 0, lastGoodY = 0;
+            let selectedMed = null; // for click-to-place fallback
 
             function createGhost(pill, x, y) {
+                removeGhost();
                 ghostEl = pill.cloneNode(true);
-                ghostEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;opacity:0.80;transform:scale(1.4) rotate(12deg);border-radius:50%;transition:none;';
+                ghostEl.classList.remove('pill-source');
+                ghostEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;opacity:0.85;transform:scale(1.4) rotate(12deg);border-radius:50%;transition:none;';
                 ghostEl.style.width = pill.offsetWidth + 'px';
                 ghostEl.style.height = pill.offsetHeight + 'px';
-                ghostEl.style.left = (x - pill.offsetWidth/2) + 'px';
-                ghostEl.style.top  = (y - pill.offsetHeight/2) + 'px';
+                ghostEl.style.left = (x - pill.offsetWidth / 2) + 'px';
+                ghostEl.style.top  = (y - pill.offsetHeight / 2) + 'px';
                 document.body.appendChild(ghostEl);
             }
             function moveGhost(x, y) {
                 if (!ghostEl) return;
-                ghostEl.style.left = (x - parseInt(ghostEl.style.width)/2) + 'px';
-                ghostEl.style.top  = (y - parseInt(ghostEl.style.height)/2) + 'px';
+                ghostEl.style.left = (x - parseInt(ghostEl.style.width) / 2) + 'px';
+                ghostEl.style.top  = (y - parseInt(ghostEl.style.height) / 2) + 'px';
             }
-            function removeGhost() { if (ghostEl) { ghostEl.remove(); ghostEl = null; } }
-
-            function getSlots() {
-                return document.querySelectorAll('.slot');
+            function removeGhost() {
+                if (ghostEl) { ghostEl.remove(); ghostEl = null; }
             }
 
-            function getSlotAtPoint(x, y) {
-                if (ghostEl) ghostEl.style.display = 'none';
-                const el = document.elementFromPoint(x, y);
-                if (ghostEl) ghostEl.style.display = '';
-                return el ? el.closest('.slot') : null;
+            // Robust slot detection via bounding rect collision
+            function findSlotAt(x, y) {
+                var slots = document.querySelectorAll('.slot');
+                for (var i = 0; i < slots.length; i++) {
+                    var r = slots[i].getBoundingClientRect();
+                    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                        return slots[i];
+                    }
+                }
+                return null;
+            }
+
+            function clearHighlights() {
+                document.querySelectorAll('.slot.drag-over').forEach(function(s) {
+                    s.classList.remove('drag-over');
+                });
             }
 
             // ---- Inicio drag ----
             function onDragBegin(pill, clientX, clientY, device) {
                 if (!sessionState.gameActive) return;
-                const cd = sessionState.currentDrag;
+                // Cancel any click-to-place selection
+                deselectMed();
+                var cd = sessionState.currentDrag;
                 cd.active = true;
                 cd.medType = pill.dataset.med;
-                cd.startX = clientX; cd.startY = clientY;
+                cd.startX = clientX;
+                cd.startY = clientY;
                 cd.startTime = Date.now();
                 cd.lastMoveTime = cd.startTime;
                 cd.pathPoints = [{ x: clientX, y: clientY, t: cd.startTime }];
+                lastGoodX = clientX;
+                lastGoodY = clientY;
                 if (!sessionState.inputDevice || sessionState.inputDevice === 'unknown') {
                     sessionState.inputDevice = device || 'mouse';
                 }
@@ -658,102 +701,87 @@
             // ---- Move ----
             function onDragMove(clientX, clientY) {
                 if (!sessionState.currentDrag.active) return;
-                const now = Date.now();
+                var now = Date.now();
                 sessionState.currentDrag.pathPoints.push({ x: clientX, y: clientY, t: now });
                 sessionState.currentDrag.lastMoveTime = now;
+                lastGoodX = clientX;
+                lastGoodY = clientY;
                 moveGhost(clientX, clientY);
-                getSlots().forEach(s => s.classList.remove('drag-over'));
-                const s = getSlotAtPoint(clientX, clientY);
+                clearHighlights();
+                var s = findSlotAt(clientX, clientY);
                 if (s) s.classList.add('drag-over');
             }
 
-            // ---- Soltar ----
-            async function onDrop(clientX, clientY) {
-                const cd = sessionState.currentDrag;
-                if (!cd.active) return;
-                cd.active = false;
-                try {
-                removeGhost();
-                getSlots().forEach(s => s.classList.remove('drag-over'));
-                if (sessionState.activePill) {
-                    sessionState.activePill.style.opacity = '1';
-                    sessionState.activePill = null;
-                }
+            // ---- Place pill in slot (shared by drag and click) ----
+            function placePill(slot, medType, cd) {
+                var endTime = Date.now();
+                var dropX = lastGoodX, dropY = lastGoodY;
 
-                const slot = getSlotAtPoint(clientX, clientY);
-                if (!slot) return;
-                const medType = cd.medType;
-
-                // === CÁLCULOS BIOMÉTRICOS ===
-                const endTime = Date.now();
-
-                const directDist = Math.sqrt(
-                    Math.pow(clientX - cd.startX, 2) +
-                    Math.pow(clientY - cd.startY, 2)
+                var directDist = Math.sqrt(
+                    Math.pow(dropX - cd.startX, 2) +
+                    Math.pow(dropY - cd.startY, 2)
                 );
 
-                let pathLength = 0;
-                for (let i = 1; i < cd.pathPoints.length; i++) {
-                    const p1 = cd.pathPoints[i-1];
-                    const p2 = cd.pathPoints[i];
+                var pathLength = 0;
+                for (var i = 1; i < cd.pathPoints.length; i++) {
+                    var p1 = cd.pathPoints[i - 1];
+                    var p2 = cd.pathPoints[i];
                     pathLength += Math.sqrt(
                         Math.pow(p2.x - p1.x, 2) +
                         Math.pow(p2.y - p1.y, 2)
                     );
                 }
 
-                const tremorIndex = pathLength / (directDist || 1);
+                var tremorIndex = pathLength / (directDist || 1);
 
-                let hesitationMs = 0;
-                let hesitationCount = 0;
-                for (let i = 1; i < cd.pathPoints.length; i++) {
-                    const gap = cd.pathPoints[i].t - cd.pathPoints[i-1].t;
+                var hesitationMs = 0, hesitationCount = 0;
+                for (var i = 1; i < cd.pathPoints.length; i++) {
+                    var gap = cd.pathPoints[i].t - cd.pathPoints[i - 1].t;
                     if (gap > 300) { hesitationMs += gap; hesitationCount++; }
                 }
 
-                let abruptRedirections = 0;
-                for (let i = 2; i < cd.pathPoints.length; i++) {
-                    const p0 = cd.pathPoints[i-2];
-                    const p1 = cd.pathPoints[i-1];
-                    const p2 = cd.pathPoints[i];
-                    const d1 = { x: p1.x - p0.x, y: p1.y - p0.y };
-                    const d2 = { x: p2.x - p1.x, y: p2.y - p1.y };
-                    const len1 = Math.sqrt(d1.x*d1.x + d1.y*d1.y);
-                    const len2 = Math.sqrt(d2.x*d2.x + d2.y*d2.y);
+                var abruptRedirections = 0;
+                for (var i = 2; i < cd.pathPoints.length; i++) {
+                    var p0 = cd.pathPoints[i - 2];
+                    var pp1 = cd.pathPoints[i - 1];
+                    var pp2 = cd.pathPoints[i];
+                    var d1 = { x: pp1.x - p0.x, y: pp1.y - p0.y };
+                    var d2 = { x: pp2.x - pp1.x, y: pp2.y - pp1.y };
+                    var len1 = Math.sqrt(d1.x * d1.x + d1.y * d1.y);
+                    var len2 = Math.sqrt(d2.x * d2.x + d2.y * d2.y);
                     if (len1 < 3 || len2 < 3) continue;
-                    const cos = (d1.x*d2.x + d1.y*d2.y) / (len1 * len2);
-                    const angle = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+                    var cos = (d1.x * d2.x + d1.y * d2.y) / (len1 * len2);
+                    var angle = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
                     if (angle > 60) abruptRedirections++;
                 }
 
-                const durationMs = endTime - cd.startTime;
-                const avgSpeed = durationMs > 0 ? pathLength / durationMs : 0;
+                var durationMs = endTime - cd.startTime;
+                var avgSpeed = durationMs > 0 ? pathLength / durationMs : 0;
 
-                const isCorrect = validatePlacement(medType, slot.dataset.day, slot.dataset.time);
+                var isCorrect = validatePlacement(medType, slot.dataset.day, slot.dataset.time);
                 if (!isCorrect) sessionState.totalErrors++;
                 else sessionState.correctPlacements++;
                 sessionState.totalMoves++;
 
-                const movement = {
+                var movement = {
                     med: medType,
-                    targetSlot: `day${slot.dataset.day}-${slot.dataset.time}`,
-                    durationMs,
+                    targetSlot: 'day' + slot.dataset.day + '-' + slot.dataset.time,
+                    durationMs: durationMs,
                     tremorIndex: parseFloat(tremorIndex.toFixed(3)),
                     pathLength: Math.round(pathLength),
                     directDistance: Math.round(directDist),
                     pathEfficiency: pathLength > 0 ? parseFloat((directDist / pathLength).toFixed(3)) : 1,
-                    hesitationMs,
-                    hesitationCount,
-                    abruptRedirections,
+                    hesitationMs: hesitationMs,
+                    hesitationCount: hesitationCount,
+                    abruptRedirections: abruptRedirections,
                     avgSpeed: parseFloat(avgSpeed.toFixed(3)),
-                    isCorrect,
+                    isCorrect: isCorrect,
                     input_device: sessionState.inputDevice || 'mouse',
                     timestamp: new Date().toISOString()
                 };
 
                 sessionState.movements.push(movement);
 
-                // Guardar métrica granular en Supabase
                 if (sb) {
                     sb.from('hdd_game_metrics').insert({
                         patient_id: sessionState.patientId,
@@ -762,59 +790,197 @@
                         metric_type: 'pill_placement',
                         metric_value: tremorIndex,
                         metric_data: movement
-                    }).catch(e => console.warn('Metric save:', e.message));
+                    }).catch(function(e) { console.warn('Metric save:', e.message); });
                 }
 
                 renderPillInSlot(slot, medType, isCorrect);
                 updateRealTimeMetrics();
-                } catch(err) {
+            }
+
+            // ---- Soltar (drag drop) ----
+            function onDrop(clientX, clientY) {
+                var cd = sessionState.currentDrag;
+                if (!cd.active) return;
+                cd.active = false;
+
+                // Use provided coords, fallback to last known good position
+                var dropX = clientX || lastGoodX;
+                var dropY = clientY || lastGoodY;
+
+                try {
+                    removeGhost();
+                    clearHighlights();
+
+                    if (sessionState.activePill) {
+                        sessionState.activePill.style.opacity = '1';
+                        sessionState.activePill = null;
+                    }
+
+                    var slot = findSlotAt(dropX, dropY);
+                    if (!slot) return;
+
+                    placePill(slot, cd.medType, cd);
+                } catch (err) {
                     console.error('[pill-organizer] onDrop error:', err);
                     removeGhost();
-                    if (sessionState.activePill) { sessionState.activePill.style.opacity = '1'; sessionState.activePill = null; }
+                    if (sessionState.activePill) {
+                        sessionState.activePill.style.opacity = '1';
+                        sessionState.activePill = null;
+                    }
                 }
             }
 
-            // ---- MOUSE: event delegation ----
-            document.addEventListener('mousedown', (e) => {
+            // ---- Click-to-place fallback ----
+            function deselectMed() {
+                if (selectedMed) {
+                    document.querySelectorAll('.pill-source').forEach(function(p) {
+                        p.classList.remove('selected-pill');
+                    });
+                    selectedMed = null;
+                    var hint = document.getElementById('click-hint');
+                    if (hint) hint.style.display = 'none';
+                }
+            }
+
+            function selectMed(pill) {
+                deselectMed();
+                selectedMed = pill.dataset.med;
+                pill.classList.add('selected-pill');
+                var hint = document.getElementById('click-hint');
+                if (hint) hint.style.display = 'block';
+                // Start tracking for click-to-place (minimal biometrics)
+                var cd = sessionState.currentDrag;
+                cd.medType = pill.dataset.med;
+                cd.startX = 0; cd.startY = 0;
+                cd.startTime = Date.now();
+                cd.lastMoveTime = cd.startTime;
+                cd.pathPoints = [{ x: 0, y: 0, t: cd.startTime }];
+                if (!sessionState.inputDevice || sessionState.inputDevice === 'unknown') {
+                    sessionState.inputDevice = 'click';
+                }
+            }
+
+            function onSlotClick(slot) {
+                if (!sessionState.gameActive || !selectedMed) return;
+                var cd = sessionState.currentDrag;
+                // Add endpoint to path
+                var r = slot.getBoundingClientRect();
+                lastGoodX = r.left + r.width / 2;
+                lastGoodY = r.top + r.height / 2;
+                cd.pathPoints.push({ x: lastGoodX, y: lastGoodY, t: Date.now() });
+                placePill(slot, selectedMed, cd);
+                // Keep selected for rapid multi-placement
+            }
+
+            // ---- MOUSE events ----
+            var dragStarted = false;
+
+            document.addEventListener('mousedown', function(e) {
                 if (e.button !== 0) return;
-                const pill = e.target.closest('.pill-source');
+                var pill = e.target.closest('.pill-source');
                 if (!pill) return;
                 e.preventDefault();
+                dragStarted = false;
                 onDragBegin(pill, e.clientX, e.clientY, 'mouse');
             });
 
-            document.addEventListener('mousemove', (e) => {
+            document.addEventListener('mousemove', function(e) {
+                if (!sessionState.currentDrag.active) return;
+                dragStarted = true;
                 onDragMove(e.clientX, e.clientY);
             });
 
-            document.addEventListener('mouseup', async (e) => {
-                if (!sessionState.currentDrag.active) return;
+            document.addEventListener('mouseup', function(e) {
                 if (e.button !== 0) return;
-                await onDrop(e.clientX, e.clientY);
+
+                if (sessionState.currentDrag.active) {
+                    if (dragStarted) {
+                        // Real drag — drop it
+                        onDrop(e.clientX, e.clientY);
+                    } else {
+                        // Click without move — select for click-to-place
+                        sessionState.currentDrag.active = false;
+                        removeGhost();
+                        if (sessionState.activePill) {
+                            sessionState.activePill.style.opacity = '1';
+                            var pill = sessionState.activePill;
+                            sessionState.activePill = null;
+                            selectMed(pill);
+                        }
+                    }
+                    dragStarted = false;
+                    return;
+                }
+
+                // If a med is selected, check if we clicked a slot
+                if (selectedMed && sessionState.gameActive) {
+                    var slot = e.target.closest('.slot');
+                    if (slot) {
+                        onSlotClick(slot);
+                        return;
+                    }
+                    // Clicked elsewhere — deselect
+                    if (!e.target.closest('.pill-source')) {
+                        deselectMed();
+                    }
+                }
             });
 
-            // ---- TOUCH: all on document for reliable tracking ----
-            document.addEventListener('touchstart', (e) => {
-                const pill = e.target.closest('.pill-source');
+            // ---- TOUCH events ----
+            var touchMoved = false;
+
+            document.addEventListener('touchstart', function(e) {
+                var pill = e.target.closest('.pill-source');
                 if (!pill) return;
                 e.preventDefault();
-                const t = e.touches[0];
+                touchMoved = false;
+                var t = e.touches[0];
                 onDragBegin(pill, t.clientX, t.clientY, 'touch');
             }, { passive: false });
 
-            document.addEventListener('touchmove', (e) => {
+            document.addEventListener('touchmove', function(e) {
                 if (!sessionState.currentDrag.active) return;
                 e.preventDefault();
-                const t = e.touches[0];
+                touchMoved = true;
+                var t = e.touches[0];
                 onDragMove(t.clientX, t.clientY);
             }, { passive: false });
 
-            document.addEventListener('touchend', async (e) => {
+            document.addEventListener('touchend', function(e) {
                 if (!sessionState.currentDrag.active) return;
                 e.preventDefault();
-                const t = e.changedTouches[0];
-                await onDrop(t.clientX, t.clientY);
+
+                if (touchMoved) {
+                    // Real drag — use last good position (more reliable than changedTouches)
+                    onDrop(lastGoodX, lastGoodY);
+                } else {
+                    // Tap without move — select for tap-to-place
+                    sessionState.currentDrag.active = false;
+                    removeGhost();
+                    if (sessionState.activePill) {
+                        sessionState.activePill.style.opacity = '1';
+                        var pill = sessionState.activePill;
+                        sessionState.activePill = null;
+                        selectMed(pill);
+                    }
+                }
+                touchMoved = false;
             }, { passive: false });
+
+            // Tap on slot for touch click-to-place
+            document.addEventListener('click', function(e) {
+                if (!selectedMed || !sessionState.gameActive) return;
+                var slot = e.target.closest('.slot');
+                if (slot) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSlotClick(slot);
+                    return;
+                }
+                if (!e.target.closest('.pill-source')) {
+                    deselectMed();
+                }
+            });
         }
 
         // ===========================================
