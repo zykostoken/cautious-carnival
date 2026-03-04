@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # ── Config ──────────────────────────────────────────────────────────────────
-API_KEY="27f0625d30c6d432009fb51d20fc88a4c9d296c97a6db946f92c88d3d0ce0e45"
+API_KEY="225983bb501287086abed9c9c5ce5e6c8fbea077e77d057221c7da8bda3ca4fe"
 DAILY_API="https://api.daily.co/v1"
 
 # ── Colores ─────────────────────────────────────────────────────────────────
