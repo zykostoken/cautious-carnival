@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # ── Config ──────────────────────────────────────────────────────────────────
-API_KEY="4f445b633af78c2b797b01be09ac28dabe32824cb5509741d99c192932397887"
+API_KEY="${DAILY_API_KEY:?Error: Variable de entorno DAILY_API_KEY no definida. Ejecutá: export DAILY_API_KEY='tu-api-key'}"
 DAILY_API="https://api.daily.co/v1"
 
 # ── Colores ─────────────────────────────────────────────────────────────────
