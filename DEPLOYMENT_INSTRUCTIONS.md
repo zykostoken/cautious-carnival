@@ -129,7 +129,7 @@ SELECT * FROM hdd_game_sessions LIMIT 1;   -- Verifica que existe
 
 1. Ir a: https://app.netlify.com/sites/joseingenieros/configuration/env
 2. Buscar variable: `ZOHO_SMTP_PASS`
-3. Editar y cambiar valor a: `Npemb5ZNuFA8`
+3. Editar y cambiar valor a: `(obtener de Zoho App Passwords - NO commitear)`
 4. Save
 5. Trigger redeploy
 

@@ -9,7 +9,7 @@
 ### 1. ZOHO SMTP (Email)
 ```
 ZOHO_SMTP_USER = direccionmedica@clinicajoseingenieros.ar
-ZOHO_SMTP_PASS = Npemb5ZNuFA8
+ZOHO_SMTP_PASS = (obtener de Zoho App Passwords)
 ZOHO_SMTP_HOST = smtp.zoho.com
 ZOHO_SMTP_PORT = 465
 ```

@@ -7,11 +7,8 @@
 
 2. **Buscar la variable:** `ZOHO_SMTP_PASS`
 
-3. **Actualizar el valor a:**
-   ```
-   Npemb5ZNuFA8
-   ```
-   (Sin espacios - esta es la app password de Zoho Mail)
+3. **Actualizar el valor a:** la app password generada en Zoho
+   (Sin espacios - obtener desde https://accounts.zoho.com/home#security/2fa/app-passwords)
 
 4. **Scopes:**
    - Context: All
@@ -35,7 +32,7 @@ Verificar en Netlify Functions logs:
 
 ## App Password Backup
 
-La contraseña de aplicación de Zoho es:
+La contraseña de aplicación de Zoho:
 - Nombre: "jose ingenieros web"
-- Valor: Npemb5ZNuFA8
+- Valor: (obtener desde Zoho - NUNCA commitear en el repo)
 - Generada en: https://accounts.zoho.com/home#security/2fa/app-passwords
