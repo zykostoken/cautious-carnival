@@ -72,7 +72,7 @@ const ALIMENTOS = {
     jamon: {
         id: 'jamon',
         nombre: 'Jamón Cocido',
-        imagen: 'https://images.unsplash.com/photo-1562158147-f8bc83c0e99b?w=300',
+        imagen: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=300',
         categoria: 'proteina_procesada',
         zona_heladera: 'fria',
         temperatura: 4,
@@ -137,7 +137,7 @@ const ALIMENTOS = {
     crema: {
         id: 'crema',
         nombre: 'Crema de Leche',
-        imagen: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=300',
+        imagen: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300',
         categoria: 'lacteo',
         zona_heladera: 'fria',
         temperatura: 4,
@@ -160,7 +160,7 @@ const ALIMENTOS = {
         imagen: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300',
         categoria: 'verdura',
         zona_heladera: 'verduras',
-        temperatura: 8,
+        temperatura: 6,
         duracion_dias: 7
     },
     cebolla: {
@@ -249,7 +249,7 @@ const ALIMENTOS = {
     ketchup: {
         id: 'ketchup',
         nombre: 'Ketchup',
-        imagen: 'https://images.unsplash.com/photo-1628289876359-26c7e89d1e40?w=300',
+        imagen: 'https://images.unsplash.com/photo-1472476443507-c7a5948772fc?w=300',
         categoria: 'aderezo',
         zona_heladera: 'fria',
         temperatura: 4,
@@ -350,6 +350,109 @@ const ALIMENTOS = {
         zona_heladera: 'afuera',
         temperatura: 20,
         duracion_dias: 365
+    },
+
+    // EXTRAS para recetas
+    arroz: {
+        id: 'arroz',
+        nombre: 'Arroz',
+        imagen: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300',
+        categoria: 'cereal',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 365
+    },
+    harina: {
+        id: 'harina',
+        nombre: 'Harina',
+        imagen: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300',
+        categoria: 'cereal',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
+    pasas_uva: {
+        id: 'pasas_uva',
+        nombre: 'Pasas de Uva',
+        imagen: 'https://images.unsplash.com/photo-1596273501691-9dba1b5f5337?w=300',
+        categoria: 'fruto_seco',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
+    canela: {
+        id: 'canela',
+        nombre: 'Canela',
+        imagen: 'https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=300',
+        categoria: 'condimento',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 365
+    },
+    frutas_secas: {
+        id: 'frutas_secas',
+        nombre: 'Frutas Secas',
+        imagen: 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=300',
+        categoria: 'fruto_seco',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
+    vinagre: {
+        id: 'vinagre',
+        nombre: 'Vinagre',
+        imagen: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=300',
+        categoria: 'aderezo',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 365
+    },
+    limon: {
+        id: 'limon',
+        nombre: 'Limón',
+        imagen: 'https://images.unsplash.com/photo-1590502593747-42a996133562?w=300',
+        categoria: 'fruta',
+        zona_heladera: 'verduras',
+        temperatura: 6,
+        duracion_dias: 14
+    },
+
+    // FRUTAS para licuados
+    banana: {
+        id: 'banana',
+        nombre: 'Banana',
+        imagen: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300',
+        categoria: 'fruta',
+        zona_heladera: 'afuera',
+        temperatura: 18,
+        duracion_dias: 5
+    },
+    frutilla: {
+        id: 'frutilla',
+        nombre: 'Frutilla',
+        imagen: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300',
+        categoria: 'fruta',
+        zona_heladera: 'verduras',
+        temperatura: 4,
+        duracion_dias: 5
+    },
+    mango: {
+        id: 'mango',
+        nombre: 'Mango',
+        imagen: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=300',
+        categoria: 'fruta',
+        zona_heladera: 'verduras',
+        temperatura: 6,
+        duracion_dias: 7
+    },
+    jugo_naranja: {
+        id: 'jugo_naranja',
+        nombre: 'Jugo de Naranja',
+        imagen: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=300',
+        categoria: 'bebida',
+        zona_heladera: 'fria',
+        temperatura: 4,
+        duracion_dias: 7
     }
 };
 
@@ -359,8 +462,8 @@ const RECETAS = {
         id: 'pastel_papas',
         nombre: 'Pastel de Papas',
         ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos'],
-        ingredientes_opcionales: ['aceitunas', 'sal'],
-        distractores: ['tomate', 'lechuga', 'pan', 'azucar', 'pescado'],
+        ingredientes_opcionales: ['aceitunas', 'sal', 'pasas_uva'],
+        distractores: ['pescado', 'lechuga', 'azucar', 'arroz', 'canela'],
         pasos: [
             'Hervir las papas con piel en agua con sal',
             'Hacer un sofrito de cebolla hasta transparentar',
@@ -369,14 +472,19 @@ const RECETAS = {
             'En una fuente, poner la carne abajo y el puré arriba',
             'Pintar con huevo batido',
             'Gratinar en el horno a 200°C por 15 minutos'
-        ]
+        ],
+        tips_receta: {
+            consejo_clave: 'Las papas se hierven CON piel para que no absorban agua. El puré queda más seco y firme.',
+            error_comun: 'Si el puré queda aguado, el pastel no se sostiene. Escurrí bien las papas.',
+            logica: 'Las aceitunas y pasas de uva son extras clásicos del pastel. La canela y el arroz NO van en este plato salado.'
+        }
     },
     lasagna: {
         id: 'lasagna',
         nombre: 'Lasaña',
         ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche'],
-        ingredientes_opcionales: ['sal', 'aceite'],
-        distractores: ['papa', 'lechuga', 'arroz', 'azucar', 'pescado'],
+        ingredientes_opcionales: ['sal', 'aceite', 'queso_rallado'],
+        distractores: ['pescado', 'lechuga', 'arroz', 'azucar', 'banana'],
         pasos: [
             'Hacer la salsa bolognesa con carne, cebolla y tomate',
             'Preparar la salsa blanca con leche, manteca y harina',
@@ -384,14 +492,19 @@ const RECETAS = {
             'En una fuente, alternar capas: salsa, pasta, queso',
             'Terminar con salsa blanca y queso rallado',
             'Hornear a 180°C por 30 minutos hasta gratinar'
-        ]
+        ],
+        tips_receta: {
+            consejo_clave: 'La salsa blanca se hace con leche, manteca y harina. Si se forman grumos, batir enérgicamente.',
+            error_comun: 'Las capas deben alternarse: bolognesa, pasta, blanca, queso. Si ponés todo junto, no se arma.',
+            logica: 'El queso rallado es extra para gratinar. El arroz y la banana NO tienen nada que ver con la lasaña.'
+        }
     },
     budin_ingles: {
         id: 'budin_ingles',
         nombre: 'Budín Inglés',
         ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche'],
-        ingredientes_opcionales: ['sal'],
-        distractores: ['carne_picada', 'lechuga', 'papa', 'pollo', 'pescado'],
+        ingredientes_opcionales: ['sal', 'pasas_uva', 'frutas_secas', 'canela'],
+        distractores: ['carne_picada', 'lechuga', 'papa', 'pollo', 'tomate'],
         pasos: [
             'Batir la manteca pomada con el azúcar hasta cremar',
             'Agregar los huevos de a uno, batiendo bien',
@@ -399,14 +512,19 @@ const RECETAS = {
             'Agregar frutas secas y pasas enharinadas',
             'Volcar en molde de budín enmantecado y enharinado',
             'Hornear a 170°C por 45 minutos'
-        ]
+        ],
+        tips_receta: {
+            consejo_clave: 'Las pasas y frutas secas se enharinan ANTES de mezclarlas para que no se hundan al fondo.',
+            error_comun: 'Si la manteca no está a temperatura ambiente, no crema bien con el azúcar.',
+            logica: 'Pasas de uva, frutas secas y canela son extras clásicos de budín. La carne y el pollo son ingredientes salados que NO van.'
+        }
     },
     ensalada_completa: {
         id: 'ensalada_completa',
         nombre: 'Ensalada Completa',
         ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'zanahoria'],
-        ingredientes_opcionales: ['aceitunas', 'aceite', 'sal'],
-        distractores: ['carne_picada', 'azucar', 'leche', 'pan', 'arroz'],
+        ingredientes_opcionales: ['aceitunas', 'aceite', 'sal', 'vinagre', 'limon'],
+        distractores: ['carne_picada', 'azucar', 'arroz', 'canela', 'helado'],
         pasos: [
             'Lavar bien la lechuga hoja por hoja',
             'Hervir los huevos durante 10 minutos',
@@ -414,14 +532,19 @@ const RECETAS = {
             'Cortar el tomate en gajos',
             'Cortar la cebolla en aros finos',
             'Mezclar todo en un bol grande y condimentar'
-        ]
+        ],
+        tips_receta: {
+            consejo_clave: 'Lavar CADA hoja de lechuga individualmente elimina tierra y posibles insectos.',
+            error_comun: 'Si cortás la lechuga con cuchillo de metal, se oxida más rápido. Mejor trozar con las manos.',
+            logica: 'El aceite, vinagre y limón son aderezos clásicos de ensalada. El azúcar y la canela son para postres, NO van acá.'
+        }
     },
     milanesas: {
         id: 'milanesas',
         nombre: 'Milanesas',
         ingredientes_base: ['bife', 'huevos', 'pan'],
-        ingredientes_opcionales: ['sal', 'aceite'],
-        distractores: ['leche', 'azucar', 'lechuga', 'arroz', 'manteca'],
+        ingredientes_opcionales: ['sal', 'aceite', 'ajo'],
+        distractores: ['leche', 'azucar', 'arroz', 'banana', 'helado'],
         pasos: [
             'Golpear los bifes con un martillo hasta aplanar',
             'Salar los bifes por ambos lados',
@@ -429,7 +552,12 @@ const RECETAS = {
             'Pasar cada bife por huevo',
             'Pasar por pan rallado presionando bien',
             'Freír en aceite caliente o cocinar al horno'
-        ]
+        ],
+        tips_receta: {
+            consejo_clave: 'Aplanar el bife asegura cocción pareja. El pan rallado debe presionarse bien para que no se despegue.',
+            error_comun: 'Si el aceite no está bien caliente, la milanesa absorbe grasa y queda pesada.',
+            logica: 'El ajo es un extra válido para saborizar el huevo batido. La leche y el azúcar NO se usan en milanesas.'
+        }
     }
 };
 

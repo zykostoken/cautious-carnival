@@ -7,43 +7,57 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>window.onerror=function(m,s,l,c,e){document.title='ERROR';var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:16px;z-index:99999;font-size:14px';d.textContent='JS Error: '+m+' (line '+l+')';document.body.appendChild(d);console.error('[pill-organizer]',m,s,l,e);};</script>
-    
+
     <style>
-        body { 
+        body {
             background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
-            font-family: 'Segoe UI', system-ui, sans-serif; 
+            font-family: 'Segoe UI', system-ui, sans-serif;
             color: #1e293b;
         }
-        
-        .pill-source { 
-            cursor: grab; 
+
+        .pill-source {
+            cursor: grab;
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
         }
-        .pill-source:active { 
-            cursor: grabbing; 
+        .pill-source:active {
+            cursor: grabbing;
             transform: scale(1.15) rotate(8deg);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35);
         }
-        
-        .slot { 
+
+        .slot {
             background: rgba(255, 255, 255, 0.12);
             border: 3px dashed rgba(255, 255, 255, 0.35);
             backdrop-filter: blur(12px);
             transition: all 0.25s ease;
             min-height: 70px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 4px;
         }
-        .slot.drag-over { 
+        .slot.drag-over {
             background: rgba(16, 185, 129, 0.25);
             border-color: #10b981;
             border-style: solid;
             transform: scale(1.08);
             box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
         }
-        .slot.filled { 
+        .slot.filled {
             border-style: solid;
             border-color: #10b981;
             background: rgba(16, 185, 129, 0.15);
+        }
+        .slot.error-slot {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.15);
         }
 
         .modal-overlay {
@@ -75,6 +89,77 @@
         .tremor-indicator {
             transition: all 0.3s;
         }
+
+        .consigna-banner {
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
+            border: 2px solid rgba(255,255,255,0.25);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+        .consigna-banner h4 {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .consigna-banner .med-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.15);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            margin: 2px 4px;
+        }
+        .consigna-banner .med-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        #results-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(12px);
+        }
+        .results-card {
+            background: white;
+            border-radius: 1.5rem;
+            max-width: 520px;
+            width: 92%;
+            padding: 2.5rem;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            text-align: center;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .results-card .score-ring {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
     </style>
   <!-- mood-modals.js se carga desde mood-modals.html (shared) -->
 </head>
@@ -90,6 +175,7 @@
             </div>
             <div class="text-right">
                 <div id="patient-display" class="text-sm opacity-90 mb-1">Paciente: --</div>
+                <div id="level-badge" class="text-xs font-bold bg-white/20 rounded-full px-3 py-1 mb-1 inline-block" style="display:none;">Nivel 1</div>
                 <div id="timer-display" class="text-3xl font-mono font-bold">00:00</div>
                 <div id="tremor-badge" class="text-xs opacity-75 mt-1">Precisión: --</div>
             </div>
@@ -104,27 +190,16 @@
             <div class="text-7xl mb-4">💊</div>
             <h2 class="text-3xl font-bold text-gray-800 mb-2">Organizador de Medicación</h2>
             <p class="text-gray-500 text-sm mb-6">Evaluación de Motricidad Fina · Planificación · Precisión</p>
-            
+
             <div class="bg-teal-50 border-2 border-teal-200 rounded-2xl p-5 mb-6 text-left">
-                <h3 class="font-bold text-teal-800 mb-3 text-sm">📋 CONSIGNA</h3>
-                <p class="text-gray-700 text-sm mb-3">El paciente tiene recetados <strong>dos medicamentos</strong>:</p>
-                <div class="space-y-2 mb-3">
-                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-red-200">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex-shrink-0"></div>
-                        <div>
-                            <span class="font-bold text-gray-800 text-sm">Risperidona</span>
-                            <span class="text-xs text-gray-500 block">1 comp. Mañana (08:00) + 1 comp. Noche (20:00)</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-200">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
-                        <div>
-                            <span class="font-bold text-gray-800 text-sm">Clonazepam</span>
-                            <span class="text-xs text-gray-500 block">1 comp. solo Noche (20:00)</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-gray-600 text-sm"><strong>Tarea:</strong> Arrastrá cada pastilla al casillero correcto del organizador semanal (Lunes a Domingo, Mañana/Noche).</p>
+                <h3 class="font-bold text-teal-800 mb-3 text-sm">📋 CONSIGNA GENERAL</h3>
+                <p class="text-gray-700 text-sm mb-3">Organizá la medicación semanal arrastrando cada pastilla al casillero correcto (día y horario).</p>
+                <p class="text-gray-700 text-sm mb-2"><strong>3 niveles de dificultad:</strong></p>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4 list-disc">
+                    <li><strong>Nivel 1:</strong> 2 medicamentos, esquema simple</li>
+                    <li><strong>Nivel 2:</strong> 3 medicamentos, uno solo días hábiles</li>
+                    <li><strong>Nivel 3:</strong> 4 medicamentos, algunos solo ciertos días</li>
+                </ul>
             </div>
 
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 text-sm text-blue-800 font-medium">
@@ -136,9 +211,9 @@
                 <strong>🔬 Se evaluará:</strong> Precisión motora (temblor durante la presión sostenida), redireccionamientos, hesitaciones, errores de ubicación y tiempo total.
             </div>
 
-            <button id="btn-start" onclick="startGame()" 
+            <button id="btn-start" onclick="startGame()"
                     class="w-full py-4 bg-gradient-to-r from-teal-500 to-cyan-600 text-white text-xl font-bold rounded-2xl hover:shadow-2xl hover:scale-105 transition-all">
-                ▶ COMENZAR
+                ▶ COMENZAR NIVEL 1
             </button>
         </div>
     </div>
@@ -147,41 +222,20 @@
     <!-- MAIN GAME INTERFACE -->
     <!-- ========================================= -->
     <main id="game-container" class="flex-grow p-6 max-w-7xl mx-auto w-full" style="display:none;">
+
+        <!-- CONSIGNA DEL NIVEL (visible durante gameplay) -->
+        <div id="level-consigna" class="consigna-banner"></div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- DISPENSADOR DE MEDICACIÓN -->
+
+            <!-- DISPENSADOR DE MEDICACIÓN (dinámico) -->
             <div class="bg-white/95 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border-t-6 border-teal-600">
                 <h3 class="text-2xl font-bold text-gray-700 mb-2 flex items-center gap-2">
                     <span>💊</span> Dispensador
                 </h3>
-                <p class="text-sm text-gray-600 mb-8">Arrastrá cada medicación al casillero correcto</p>
-                
-                <div class="space-y-8">
-                    <!-- Risperidona -->
-                    <div class="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl border-3 border-red-300 shadow-md">
-                        <div class="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-xl">
-                            <div class="pill-source w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-red-600 border-3 border-red-700" 
-                                 draggable="true" data-med="risperidona"></div>
-                        </div>
-                        <div class="text-center">
-                            <span class="font-bold text-lg text-gray-800 block">Risperidona</span>
-                            <span class="text-xs text-gray-600 block mt-1">1 comp. Mañana (08:00)</span>
-                            <span class="text-xs text-gray-600 block">1 comp. Noche (20:00)</span>
-                        </div>
-                    </div>
+                <p class="text-sm text-gray-600 mb-6">Arrastrá cada medicación al casillero correcto</p>
 
-                    <!-- Clonazepam -->
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border-3 border-blue-300 shadow-md">
-                        <div class="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-4 shadow-xl">
-                            <div class="pill-source w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-3 border-blue-700" 
-                                 draggable="true" data-med="clonazepam"></div>
-                        </div>
-                        <div class="text-center">
-                            <span class="font-bold text-lg text-gray-800 block">Clonazepam</span>
-                            <span class="text-xs text-gray-600 block mt-1">1 comp. Noche (20:00)</span>
-                        </div>
-                    </div>
-                </div>
+                <div id="dispensador-meds" class="space-y-6"></div>
 
                 <!-- PANEL DE MÉTRICAS EN TIEMPO REAL -->
                 <div class="mt-8 p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 shadow-inner">
@@ -211,7 +265,7 @@
                     <h3 class="text-2xl font-bold text-gray-700 flex items-center gap-2">
                         <span>📅</span> Organizador Semanal
                     </h3>
-                    <button id="finish-btn" 
+                    <button id="finish-btn"
                             class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-8 py-3 rounded-2xl font-bold text-lg hover:shadow-2xl transition-all glow-animation">
                         ✓ FINALIZAR
                     </button>
@@ -264,6 +318,13 @@
         </div>
     </main>
 
+    <!-- ========================================= -->
+    <!-- MODAL DE RESULTADOS -->
+    <!-- ========================================= -->
+    <div id="results-overlay" style="display:none;">
+        <div class="results-card" id="results-card"></div>
+    </div>
+
     <script>
         // ===========================================
         // CONFIGURACIÓN SUPABASE
@@ -278,10 +339,105 @@
         } catch(e) { console.warn('[pill-organizer] Supabase init failed:', e.message); }
 
         // ===========================================
-        // PALETAS PROYECTIVAS POR INTENSIDAD
+        // CONFIGURACIÓN DE NIVELES
         // ===========================================
-        // Paleta de colores: usa el sistema compartido en /games/shared/mood-modals.js
-        // 12 colores proyectivos con fundamento en psicología del color
+        const LEVELS = [
+            {
+                id: 1,
+                name: 'Nivel 1 — Básico',
+                consigna: 'Organizá la medicación semanal con 2 medicamentos.',
+                medications: [
+                    {
+                        id: 'risperidona', name: 'Risperidona',
+                        colorFrom: 'from-red-400', colorTo: 'to-red-600', borderColor: 'border-red-700',
+                        bgFrom: 'from-red-50', bgTo: 'to-red-100', borderCard: 'border-red-300',
+                        dotColor: '#ef4444',
+                        schedule: { am: true, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. Mañana + 1 comp. Noche (todos los días)'
+                    },
+                    {
+                        id: 'clonazepam', name: 'Clonazepam',
+                        colorFrom: 'from-blue-400', colorTo: 'to-blue-600', borderColor: 'border-blue-700',
+                        bgFrom: 'from-blue-50', bgTo: 'to-blue-100', borderCard: 'border-blue-300',
+                        dotColor: '#3b82f6',
+                        schedule: { am: false, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. solo Noche (todos los días)'
+                    }
+                ]
+            },
+            {
+                id: 2,
+                name: 'Nivel 2 — Intermedio',
+                consigna: 'Ahora con 3 medicamentos. Sertralina solo se toma de Lunes a Viernes.',
+                medications: [
+                    {
+                        id: 'risperidona', name: 'Risperidona',
+                        colorFrom: 'from-red-400', colorTo: 'to-red-600', borderColor: 'border-red-700',
+                        bgFrom: 'from-red-50', bgTo: 'to-red-100', borderCard: 'border-red-300',
+                        dotColor: '#ef4444',
+                        schedule: { am: true, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. Mañana + 1 comp. Noche (todos los días)'
+                    },
+                    {
+                        id: 'clonazepam', name: 'Clonazepam',
+                        colorFrom: 'from-blue-400', colorTo: 'to-blue-600', borderColor: 'border-blue-700',
+                        bgFrom: 'from-blue-50', bgTo: 'to-blue-100', borderCard: 'border-blue-300',
+                        dotColor: '#3b82f6',
+                        schedule: { am: false, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. solo Noche (todos los días)'
+                    },
+                    {
+                        id: 'sertralina', name: 'Sertralina',
+                        colorFrom: 'from-green-400', colorTo: 'to-green-600', borderColor: 'border-green-700',
+                        bgFrom: 'from-green-50', bgTo: 'to-green-100', borderCard: 'border-green-300',
+                        dotColor: '#22c55e',
+                        schedule: { am: true, pm: false, days: [1,2,3,4,5] },
+                        dosisDesc: '1 comp. Mañana (Lunes a Viernes solamente)'
+                    }
+                ]
+            },
+            {
+                id: 3,
+                name: 'Nivel 3 — Avanzado',
+                consigna: 'Esquema completo con 4 medicamentos. Melatonina solo Miércoles y Viernes por la noche.',
+                medications: [
+                    {
+                        id: 'risperidona', name: 'Risperidona',
+                        colorFrom: 'from-red-400', colorTo: 'to-red-600', borderColor: 'border-red-700',
+                        bgFrom: 'from-red-50', bgTo: 'to-red-100', borderCard: 'border-red-300',
+                        dotColor: '#ef4444',
+                        schedule: { am: true, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. Mañana + 1 comp. Noche (todos los días)'
+                    },
+                    {
+                        id: 'clonazepam', name: 'Clonazepam',
+                        colorFrom: 'from-blue-400', colorTo: 'to-blue-600', borderColor: 'border-blue-700',
+                        bgFrom: 'from-blue-50', bgTo: 'to-blue-100', borderCard: 'border-blue-300',
+                        dotColor: '#3b82f6',
+                        schedule: { am: false, pm: true, days: [1,2,3,4,5,6,7] },
+                        dosisDesc: '1 comp. solo Noche (todos los días)'
+                    },
+                    {
+                        id: 'sertralina', name: 'Sertralina',
+                        colorFrom: 'from-green-400', colorTo: 'to-green-600', borderColor: 'border-green-700',
+                        bgFrom: 'from-green-50', bgTo: 'to-green-100', borderCard: 'border-green-300',
+                        dotColor: '#22c55e',
+                        schedule: { am: true, pm: false, days: [1,2,3,4,5] },
+                        dosisDesc: '1 comp. Mañana (Lunes a Viernes)'
+                    },
+                    {
+                        id: 'melatonina', name: 'Melatonina',
+                        colorFrom: 'from-purple-400', colorTo: 'to-purple-600', borderColor: 'border-purple-700',
+                        bgFrom: 'from-purple-50', bgTo: 'to-purple-100', borderCard: 'border-purple-300',
+                        dotColor: '#a855f7',
+                        schedule: { am: false, pm: true, days: [3,5] },
+                        dosisDesc: '1 comp. Noche (solo Miércoles y Viernes)'
+                    }
+                ]
+            }
+        ];
+
+        const DAY_NAMES = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
         // ===========================================
         // ESTADO DE LA SESIÓN
@@ -291,16 +447,18 @@
             patientDni: null,
             sessionId: null,
             gameId: null,
-            level: 1,
+            currentLevelIndex: 0,
             startTime: null,
+            levelStartTime: null,
             endTime: null,
-            
+            timerInterval: null,
+
             // Biomarcadores mood
             moodPre: null,
             moodPost: null,
             emotionalIntensity: null,
             selectedColor: null,
-            
+
             // Tracking biométrico de movimientos
             movements: [],
             currentDrag: {
@@ -312,16 +470,17 @@
                 pathPoints: [],
                 lastMoveTime: 0
             },
-            
-            // Métricas de gameplay
+
+            // Métricas de gameplay (por nivel)
             correctPlacements: 0,
             totalErrors: 0,
             totalMoves: 0,
 
-            // Contexto de hardware (mouse | touch | keyboard)
-            // Nota: teclado NO es válido para métricas motoras finas
+            // Contexto de hardware
             inputDevice: 'unknown',
-            gameActive: false
+            gameActive: false,
+            dragSetup: false,
+            activePill: null
         };
 
         // ===========================================
@@ -329,17 +488,15 @@
         // ===========================================
         async function initGame() {
             try {
-                // Get patient from portal session or URL
                 var urlParams = new URLSearchParams(window.location.search);
                 sessionState.patientDni = urlParams.get('dni') || urlParams.get('patient_id') || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})() || 'HDD-DEMO';
                 document.getElementById('patient-display').textContent = 'Paciente: ' + sessionState.patientDni;
-                
-                // Supabase calls in background - don't block start screen
+
                 if (sb) {
                     getOrCreatePatient(sessionState.patientDni)
                         .then(id => { sessionState.patientId = id; })
                         .catch(e => { console.warn('[pill-organizer] Patient lookup failed:', e.message); });
-                    
+
                     sb.from('hdd_games').select('id').eq('slug', 'pill-organizer').single()
                         .then(({ data }) => { sessionState.gameId = data?.id || null; })
                         .catch(e => { console.warn('[pill-organizer] Game lookup failed:', e.message); });
@@ -349,13 +506,20 @@
             }
         }
 
-        // Called by COMENZAR button
+        // ===========================================
+        // START GAME
+        // ===========================================
         function startGame() {
             try {
                 console.log('[pill-organizer] startGame() called');
                 document.getElementById('start-screen').style.display = 'none';
                 document.getElementById('game-container').style.display = 'block';
-                setupDragAndDrop();
+                document.getElementById('results-overlay').style.display = 'none';
+                loadLevel(0);
+                if (!sessionState.dragSetup) {
+                    setupDragAndDrop();
+                    sessionState.dragSetup = true;
+                }
                 startGameSession();
                 console.log('[pill-organizer] startGame() completed');
             } catch(e) {
@@ -364,84 +528,72 @@
             }
         }
 
-        async function getOrCreatePatient(dni) {
-            if (!sb) return null;
-            const { data: existing } = await sb
-                .from('hdd_patients')
-                .select('id')
-                .eq('dni', dni)
-                .single();
-            
-            if (existing) return existing.id;
-            
-            // Crear paciente demo
-            const { data: newPatient } = await sb
-                .from('hdd_patients')
-                .insert({ 
-                    dni: dni,
-                    full_name: 'Paciente Demo HDD',
-                    admission_date: new Date().toISOString().split('T')[0]
-                })
-                .select('id')
-                .single();
-            
-            return newPatient?.id;
+        // ===========================================
+        // LOAD LEVEL — Renders dispensador + consigna
+        // ===========================================
+        function loadLevel(levelIndex) {
+            const level = LEVELS[levelIndex];
+            if (!level) return;
+            sessionState.currentLevelIndex = levelIndex;
+            sessionState.levelStartTime = Date.now();
+
+            // Reset level counters
+            sessionState.correctPlacements = 0;
+            sessionState.totalErrors = 0;
+            sessionState.totalMoves = 0;
+            sessionState.movements = [];
+
+            // Level badge
+            const badge = document.getElementById('level-badge');
+            badge.textContent = level.name;
+            badge.style.display = 'inline-block';
+
+            // Clear slots
+            document.querySelectorAll('.slot').forEach(s => {
+                s.innerHTML = '';
+                s.classList.remove('filled', 'error-slot');
+            });
+
+            // Render consigna banner
+            const consignaEl = document.getElementById('level-consigna');
+            let medsHtml = level.medications.map(m =>
+                `<span class="med-badge"><span class="med-dot" style="background:${m.dotColor}"></span>${m.name}: ${m.dosisDesc}</span>`
+            ).join(' ');
+            consignaEl.innerHTML = `
+                <h4>📋 ${level.name} — ${level.consigna}</h4>
+                <div style="margin-top:6px;">${medsHtml}</div>
+            `;
+
+            // Render dispensador
+            const dispEl = document.getElementById('dispensador-meds');
+            dispEl.innerHTML = level.medications.map(m => `
+                <div class="bg-gradient-to-br ${m.bgFrom} ${m.bgTo} p-5 rounded-2xl border-3 ${m.borderCard} shadow-md">
+                    <div class="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center mb-3 shadow-xl">
+                        <div class="pill-source w-12 h-12 rounded-full bg-gradient-to-br ${m.colorFrom} ${m.colorTo} border-3 ${m.borderColor}"
+                             data-med="${m.id}"></div>
+                    </div>
+                    <div class="text-center">
+                        <span class="font-bold text-gray-800 block">${m.name}</span>
+                        <span class="text-xs text-gray-600 block mt-1">${m.dosisDesc}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Reset metrics display
+            document.getElementById('tremor-display').textContent = '--';
+            document.getElementById('moves-count').textContent = '0';
+            document.getElementById('accuracy-display').textContent = '0%';
+            document.getElementById('tremor-badge').textContent = 'Precisión: --';
         }
 
         // ===========================================
-        // MOOD CHECK: Now handled by shared mood-modals.js overlay
-        // ===========================================
-
-        async function startGameSession() {
-            sessionState.startTime = Date.now();
-            sessionState.gameActive = true;
-            
-            // Crear sesión en Supabase (non-blocking)
-            if (sb) {
-                try {
-                    const { data: session } = await sb
-                        .from('hdd_game_sessions')
-                        .insert({
-                            patient_id: sessionState.patientId,
-                            game_id: sessionState.gameId,
-                            level: sessionState.level,
-                            started_at: new Date().toISOString()
-                        })
-                        .select('id')
-                        .single();
-                    sessionState.sessionId = session?.id;
-                } catch(e) {
-                    console.warn('[pill-organizer] Session create failed:', e.message);
-                    sessionState.sessionId = null;
-                }
-            }
-            startTimer();
-        }
-
-        function startTimer() {
-            const display = document.getElementById('timer-display');
-            setInterval(() => {
-                const elapsed = Math.floor((Date.now() - sessionState.startTime) / 1000);
-                const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
-                const s = (elapsed % 60).toString().padStart(2, '0');
-                display.textContent = `${m}:${s}`;
-            }, 1000);
-        }
-
-        // ===========================================
-        // DRAG & DROP + TRACKING BIOMÉTRICO
-        // Interacción: mantener BOTÓN DERECHO apretado para sostener
-        // y arrastrar la pastilla. Soltar = colocar.
-        // Esto captura temblor continuo durante la "presión sostenida",
-        // redireccionamientos bruscos, hesitaciones y eficiencia motora real.
+        // DRAG & DROP (FIXED)
+        // No draggable="true" — custom mouse+touch system
+        // Touch events on DOCUMENT to track finger moving off pill
         // ===========================================
         function setupDragAndDrop() {
-            const draggables = document.querySelectorAll('.pill-source');
-            const slots = document.querySelectorAll('.slot');
-            let activePill = null;
-
-            // ---- GHOST PILL (sigue al cursor mientras se arrastra) ----
             let ghostEl = null;
+
             function createGhost(pill, x, y) {
                 ghostEl = pill.cloneNode(true);
                 ghostEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;opacity:0.80;transform:scale(1.4) rotate(12deg);border-radius:50%;transition:none;';
@@ -458,6 +610,10 @@
             }
             function removeGhost() { if (ghostEl) { ghostEl.remove(); ghostEl = null; } }
 
+            function getSlots() {
+                return document.querySelectorAll('.slot');
+            }
+
             function getSlotAtPoint(x, y) {
                 if (ghostEl) ghostEl.style.display = 'none';
                 const el = document.elementFromPoint(x, y);
@@ -467,6 +623,7 @@
 
             // ---- Inicio drag ----
             function onDragBegin(pill, clientX, clientY, device) {
+                if (!sessionState.gameActive) return;
                 const cd = sessionState.currentDrag;
                 cd.active = true;
                 cd.medType = pill.dataset.med;
@@ -477,8 +634,21 @@
                 if (!sessionState.inputDevice || sessionState.inputDevice === 'unknown') {
                     sessionState.inputDevice = device || 'mouse';
                 }
+                sessionState.activePill = pill;
                 pill.style.opacity = '0.4';
                 createGhost(pill, clientX, clientY);
+            }
+
+            // ---- Move ----
+            function onDragMove(clientX, clientY) {
+                if (!sessionState.currentDrag.active) return;
+                const now = Date.now();
+                sessionState.currentDrag.pathPoints.push({ x: clientX, y: clientY, t: now });
+                sessionState.currentDrag.lastMoveTime = now;
+                moveGhost(clientX, clientY);
+                getSlots().forEach(s => s.classList.remove('drag-over'));
+                const s = getSlotAtPoint(clientX, clientY);
+                if (s) s.classList.add('drag-over');
             }
 
             // ---- Soltar ----
@@ -487,8 +657,11 @@
                 if (!cd.active) return;
                 cd.active = false;
                 removeGhost();
-                slots.forEach(s => s.classList.remove('drag-over'));
-                if (activePill) { activePill.style.opacity = '1'; activePill = null; }
+                getSlots().forEach(s => s.classList.remove('drag-over'));
+                if (sessionState.activePill) {
+                    sessionState.activePill.style.opacity = '1';
+                    sessionState.activePill = null;
+                }
 
                 const slot = getSlotAtPoint(clientX, clientY);
                 if (!slot) return;
@@ -497,13 +670,11 @@
                 // === CÁLCULOS BIOMÉTRICOS ===
                 const endTime = Date.now();
 
-                // 1. Distancia ideal (línea recta)
                 const directDist = Math.sqrt(
                     Math.pow(clientX - cd.startX, 2) +
                     Math.pow(clientY - cd.startY, 2)
                 );
 
-                // 2. Distancia real recorrida (suma de segmentos)
                 let pathLength = 0;
                 for (let i = 1; i < cd.pathPoints.length; i++) {
                     const p1 = cd.pathPoints[i-1];
@@ -514,10 +685,8 @@
                     );
                 }
 
-                // 3. Índice de temblor (1.0 = perfecto, >1.5 = temblor significativo)
                 const tremorIndex = pathLength / (directDist || 1);
 
-                // 4. Hesitaciones: pausas >300ms sin movimiento durante el arrastre
                 let hesitationMs = 0;
                 let hesitationCount = 0;
                 for (let i = 1; i < cd.pathPoints.length; i++) {
@@ -525,8 +694,6 @@
                     if (gap > 300) { hesitationMs += gap; hesitationCount++; }
                 }
 
-                // 5. Redireccionamientos bruscos: cambio de dirección > 60°
-                //    Relevante clínicamente: temblor intencional, ataxia, impulsividad motora
                 let abruptRedirections = 0;
                 for (let i = 2; i < cd.pathPoints.length; i++) {
                     const p0 = cd.pathPoints[i-2];
@@ -542,7 +709,6 @@
                     if (angle > 60) abruptRedirections++;
                 }
 
-                // 6. Velocidad media (px/ms)
                 const durationMs = endTime - cd.startTime;
                 const avgSpeed = durationMs > 0 ? pathLength / durationMs : 0;
 
@@ -572,7 +738,7 @@
 
                 // Guardar métrica granular en Supabase
                 if (sb) {
-                    await sb.from('hdd_game_metrics').insert({
+                    sb.from('hdd_game_metrics').insert({
                         patient_id: sessionState.patientId,
                         game_session_id: sessionState.sessionId,
                         game_slug: 'pill-organizer',
@@ -586,128 +752,128 @@
                 updateRealTimeMetrics();
             }
 
-            // ---- MOUSE: click izquierdo para arrastrar ----
-            draggables.forEach(pill => {
-                pill.addEventListener('mousedown', (e) => {
-                    if (e.button !== 0) return; // botón izquierdo
-                    e.preventDefault();
-                    activePill = pill;
-                    onDragBegin(pill, e.clientX, e.clientY, 'mouse');
-                });
+            // ---- MOUSE: event delegation ----
+            document.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                const pill = e.target.closest('.pill-source');
+                if (!pill) return;
+                e.preventDefault();
+                onDragBegin(pill, e.clientX, e.clientY, 'mouse');
             });
 
-            // Seguimiento de path mientras se arrastra
             document.addEventListener('mousemove', (e) => {
-                if (!sessionState.currentDrag.active) return;
-                const now = Date.now();
-                sessionState.currentDrag.pathPoints.push({ x: e.clientX, y: e.clientY, t: now });
-                sessionState.currentDrag.lastMoveTime = now;
-                moveGhost(e.clientX, e.clientY);
-                slots.forEach(s => s.classList.remove('drag-over'));
-                const s = getSlotAtPoint(e.clientX, e.clientY);
-                if (s) s.classList.add('drag-over');
+                onDragMove(e.clientX, e.clientY);
             });
 
-            // Soltar = colocar pastilla
             document.addEventListener('mouseup', async (e) => {
                 if (!sessionState.currentDrag.active) return;
                 if (e.button !== 0) return;
                 await onDrop(e.clientX, e.clientY);
             });
 
-            // ---- TOUCH (tablet): mantener dedo para arrastrar ----
-            draggables.forEach(pill => {
-                pill.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    const t = e.touches[0];
-                    onDragBegin(pill, t.clientX, t.clientY, 'touch');
-                }, { passive: false });
+            // ---- TOUCH: all on document for reliable tracking ----
+            document.addEventListener('touchstart', (e) => {
+                const pill = e.target.closest('.pill-source');
+                if (!pill) return;
+                e.preventDefault();
+                const t = e.touches[0];
+                onDragBegin(pill, t.clientX, t.clientY, 'touch');
+            }, { passive: false });
 
-                pill.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    if (!sessionState.currentDrag.active) return;
-                    const t = e.touches[0];
-                    const now = Date.now();
-                    sessionState.currentDrag.pathPoints.push({ x: t.clientX, y: t.clientY, t: now });
-                    moveGhost(t.clientX, t.clientY);
-                    slots.forEach(s => s.classList.remove('drag-over'));
-                    const s = getSlotAtPoint(t.clientX, t.clientY);
-                    if (s) s.classList.add('drag-over');
-                }, { passive: false });
+            document.addEventListener('touchmove', (e) => {
+                if (!sessionState.currentDrag.active) return;
+                e.preventDefault();
+                const t = e.touches[0];
+                onDragMove(t.clientX, t.clientY);
+            }, { passive: false });
 
-                pill.addEventListener('touchend', async (e) => {
-                    e.preventDefault();
-                    if (activePill) { activePill.style.opacity = '1'; activePill = null; }
-                    const t = e.changedTouches[0];
-                    await onDrop(t.clientX, t.clientY);
-                }, { passive: false });
-            });
+            document.addEventListener('touchend', async (e) => {
+                if (!sessionState.currentDrag.active) return;
+                e.preventDefault();
+                const t = e.changedTouches[0];
+                await onDrop(t.clientX, t.clientY);
+            }, { passive: false });
         }
 
+        // ===========================================
+        // VALIDACIÓN — usa config del nivel actual
+        // ===========================================
         function validatePlacement(medType, day, time) {
-            // Risperidona: MAÑANA (am) y NOCHE (pm) todos los días
-            // Clonazepam: solo NOCHE (pm)
-            if (medType === 'risperidona') return true;
-            if (medType === 'clonazepam' && time === 'pm') return true;
-            return false;
+            const level = LEVELS[sessionState.currentLevelIndex];
+            const med = level.medications.find(m => m.id === medType);
+            if (!med) return false;
+            const dayNum = parseInt(day);
+            if (time === 'am' && !med.schedule.am) return false;
+            if (time === 'pm' && !med.schedule.pm) return false;
+            if (!med.schedule.days.includes(dayNum)) return false;
+            return true;
+        }
+
+        // Calcula cuántas pastillas correctas se esperan en total
+        function getExpectedPlacements() {
+            const level = LEVELS[sessionState.currentLevelIndex];
+            let total = 0;
+            level.medications.forEach(m => {
+                if (m.schedule.am) total += m.schedule.days.length;
+                if (m.schedule.pm) total += m.schedule.days.length;
+            });
+            return total;
         }
 
         function renderPillInSlot(slot, medType, isCorrect) {
+            const level = LEVELS[sessionState.currentLevelIndex];
+            const med = level.medications.find(m => m.id === medType);
             const pill = document.createElement('div');
-            const colorClass = medType === 'risperidona' 
-                ? 'bg-gradient-to-br from-red-400 to-red-600 border-red-700' 
-                : 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-700';
-            
+
+            const colorClass = med
+                ? `bg-gradient-to-br ${med.colorFrom} ${med.colorTo}`
+                : 'bg-gray-400';
+
             const errorClass = isCorrect ? '' : 'ring-4 ring-yellow-400 animate-pulse';
-            
-            pill.className = `w-10 h-10 rounded-full ${colorClass} inline-block m-1 shadow-lg border-3 border-white ${errorClass}`;
+
+            pill.className = `w-9 h-9 rounded-full ${colorClass} inline-block shadow-lg border-2 border-white/80 ${errorClass}`;
+            pill.title = med ? med.name : medType;
             slot.appendChild(pill);
-            slot.classList.add('filled');
+            slot.classList.add(isCorrect ? 'filled' : 'error-slot');
         }
 
         function updateRealTimeMetrics() {
             if (sessionState.movements.length === 0) return;
-            
-            // Tremor Index promedio
+
             const avgTremor = sessionState.movements.reduce((sum, m) => sum + m.tremorIndex, 0) / sessionState.movements.length;
             const tremorDisplay = document.getElementById('tremor-display');
             const tremorBadge = document.getElementById('tremor-badge');
-            
+
             let tremorLabel, tremorClass;
-            if (avgTremor < 1.2) {
-                tremorLabel = 'Excelente';
-                tremorClass = 'text-green-600';
-            } else if (avgTremor < 1.5) {
-                tremorLabel = 'Bueno';
-                tremorClass = 'text-yellow-600';
-            } else if (avgTremor < 2.0) {
-                tremorLabel = 'Aceptable';
-                tremorClass = 'text-orange-600';
-            } else {
-                tremorLabel = 'Revisar';
-                tremorClass = 'text-red-600';
-            }
-            
+            if (avgTremor < 1.2) { tremorLabel = 'Excelente'; tremorClass = 'text-green-600'; }
+            else if (avgTremor < 1.5) { tremorLabel = 'Bueno'; tremorClass = 'text-yellow-600'; }
+            else if (avgTremor < 2.0) { tremorLabel = 'Aceptable'; tremorClass = 'text-orange-600'; }
+            else { tremorLabel = 'Revisar'; tremorClass = 'text-red-600'; }
+
             tremorDisplay.textContent = `${avgTremor.toFixed(2)} (${tremorLabel})`;
             tremorDisplay.className = `font-bold tremor-indicator ${tremorClass}`;
             tremorBadge.textContent = `Precisión: ${tremorLabel}`;
-            
-            // Accuracy
-            const accuracy = sessionState.totalMoves > 0 
-                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 
-                : 0;
+
+            const accuracy = sessionState.totalMoves > 0
+                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 : 0;
             document.getElementById('accuracy-display').textContent = `${accuracy.toFixed(0)}%`;
-            
-            // Moves count
             document.getElementById('moves-count').textContent = sessionState.totalMoves;
         }
 
         // ===========================================
-        // FINALIZACIÓN → Usa modal compartido de 12 colores
+        // FINALIZACIÓN
         // ===========================================
         document.getElementById('finish-btn').addEventListener('click', () => {
+            // Check if any pills placed
+            if (sessionState.totalMoves === 0) {
+                alert('Todavía no colocaste ninguna pastilla. Arrastrá las pastillas a los casilleros antes de finalizar.');
+                return;
+            }
+
             sessionState.endTime = Date.now();
-            // Pasar métricas al shared system antes de mostrar modal
+            sessionState.gameActive = false;
+
+            // Pasar métricas al shared system
             if (typeof updateGameMetrics === 'function') {
                 updateGameMetrics({
                     total_placements: sessionState.totalMoves,
@@ -716,9 +882,12 @@
                     movements: sessionState.movements
                 });
             }
-            // Mostrar modal de 12 colores (shared)
+            // Mostrar modal de colores (shared) → luego muestra resultados
             if (typeof showPostGameColorModal === 'function') {
                 showPostGameColorModal();
+            } else {
+                // Si no hay modal de colores, ir directo a resultados
+                completeSession();
             }
         });
 
@@ -728,41 +897,43 @@
         };
 
         async function completeSession() {
-            const duration = Math.floor((sessionState.endTime - sessionState.startTime) / 1000);
-            
-            // Calcular métricas finales
-            const avgTremor = sessionState.movements.reduce((sum, m) => sum + m.tremorIndex, 0) / (sessionState.movements.length || 1);
-            const avgHesitation = sessionState.movements.reduce((sum, m) => sum + m.hesitationMs, 0) / (sessionState.movements.length || 1);
-            const accuracy = sessionState.totalMoves > 0 
-                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 
-                : 0;
-            
+            const duration = Math.floor(((sessionState.endTime || Date.now()) - (sessionState.levelStartTime || sessionState.startTime)) / 1000);
+
+            const avgTremor = sessionState.movements.length > 0
+                ? sessionState.movements.reduce((sum, m) => sum + m.tremorIndex, 0) / sessionState.movements.length : 0;
+            const avgHesitation = sessionState.movements.length > 0
+                ? sessionState.movements.reduce((sum, m) => sum + m.hesitationMs, 0) / sessionState.movements.length : 0;
+            const accuracy = sessionState.totalMoves > 0
+                ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 : 0;
+            const avgPathEff = sessionState.movements.length > 0
+                ? sessionState.movements.reduce((sum, m) => sum + m.pathEfficiency, 0) / sessionState.movements.length : 0;
+
+            const expected = getExpectedPlacements();
+            const completeness = expected > 0 ? Math.min(100, (sessionState.correctPlacements / expected) * 100) : 0;
+
             const finalMetrics = {
+                level: LEVELS[sessionState.currentLevelIndex].id,
+                level_name: LEVELS[sessionState.currentLevelIndex].name,
                 total_placements: sessionState.totalMoves,
                 correct_placements: sessionState.correctPlacements,
+                expected_placements: expected,
+                completeness_pct: Math.round(completeness),
                 errors: sessionState.totalErrors,
                 accuracy_percentage: Math.round(accuracy),
-                
-                // Métricas motoras
                 avg_tremor_index: parseFloat(avgTremor.toFixed(3)),
                 avg_hesitation_ms: Math.round(avgHesitation),
-                avg_path_efficiency: parseFloat((sessionState.movements.reduce((sum, m) => sum + m.pathEfficiency, 0) / sessionState.movements.length).toFixed(3)),
-                
-                // Duración
+                avg_path_efficiency: parseFloat(avgPathEff.toFixed(3)),
                 total_duration_sec: duration,
-                
-                // Data completa
                 movements: sessionState.movements
             };
-            
-            // Calcular score
+
             const baseScore = sessionState.correctPlacements * 100;
             const tremorBonus = avgTremor < 1.2 ? 300 : avgTremor < 1.5 ? 150 : avgTremor < 2.0 ? 50 : 0;
             const timeBonus = Math.max(0, 400 - duration);
             const errorPenalty = sessionState.totalErrors * 75;
             const finalScore = Math.max(0, baseScore + tremorBonus + timeBonus - errorPenalty);
-            
-            // === GUARDAR EN hdd_game_metrics (longitudinal) ===
+
+            // === GUARDAR EN SUPABASE ===
             const _dni = sessionState.patientDni && sessionState.patientDni !== 'HDD-DEMO' ? sessionState.patientDni : null;
             if (sb && _dni) {
                 await sb.from('hdd_game_metrics').insert({
@@ -773,34 +944,33 @@
                     metric_data: {
                         game_name: 'Organizador de Medicación',
                         score: finalScore,
-                        max_score: 1500,
+                        max_score: expected * 100 + 700,
                         accuracy_pct: accuracy,
+                        completeness_pct: completeness,
                         errors: sessionState.totalErrors,
                         correct_placements: sessionState.correctPlacements,
+                        expected_placements: expected,
                         duration_sec: duration,
                         tremor_index: avgTremor,
-                        hesitation_count: finalMetrics.high_hesitation_count,
                         mean_rt_ms: finalMetrics.avg_hesitation_ms,
-                        movement_efficiency: finalMetrics.avg_path_efficiency,
-                        // Métricas nuevas de la interacción hold-drag
+                        movement_efficiency: avgPathEff,
                         avg_abrupt_redirections: sessionState.movements.length > 0
                             ? parseFloat((sessionState.movements.reduce((s, m) => s + (m.abruptRedirections||0), 0) / sessionState.movements.length).toFixed(2))
                             : 0,
                         input_device: sessionState.inputDevice || 'unknown',
+                        level: LEVELS[sessionState.currentLevelIndex].id,
                         completed: true
                     }
                 }).catch(e => console.warn('Longitudinal metric save:', e.message));
             }
 
-            // Actualizar sesión en Supabase
             if (sb && sessionState.sessionId) {
-                await sb
-                    .from('hdd_game_sessions')
+                await sb.from('hdd_game_sessions')
                     .update({
                         completed_at: new Date().toISOString(),
                         completed: true,
                         score: finalScore,
-                        max_score: 1500,
+                        max_score: expected * 100 + 700,
                         duration_seconds: duration,
                         metrics: finalMetrics
                     })
@@ -808,7 +978,6 @@
                     .catch(e => console.warn('Session update:', e.message));
             }
 
-            // Save full biometric data (including all movements) to Supabase Storage bucket 'biometricas'
             if (sessionState.patientId) {
                 fetch('/api/biometricas', {
                     method: 'POST',
@@ -817,48 +986,183 @@
                         patient_id: sessionState.patientId,
                         session_id: sessionState.sessionId || ('pill-' + Date.now()),
                         game_slug: 'pill-organizer',
-                        biometric_data: {
-                            ...finalMetrics,
-                            score: finalScore,
-                            accuracy_pct: accuracy,
-                            duration_sec: duration,
-                            movements: sessionState.movements
-                        }
+                        biometric_data: { ...finalMetrics, score: finalScore }
                     })
                 }).catch(e => console.warn('[pill-organizer] Bucket save fail:', e.message));
             }
-            
-            // Mostrar resultados
-            alert(`
-✅ ¡Sesión Completada y Guardada en Supabase!
 
-📊 RESULTADOS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Score Final: ${finalScore} / 1500
-Precisión: ${accuracy.toFixed(1)}%
-Errores: ${sessionState.totalErrors}
+            // === MOSTRAR MODAL DE RESULTADOS ===
+            showResultsModal(finalScore, accuracy, completeness, avgTremor, avgHesitation, avgPathEff, duration, expected);
+        }
 
-🔬 MÉTRICAS BIOMÉTRICAS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Índice Temblor: ${avgTremor.toFixed(2)} ${avgTremor < 1.2 ? '(Excelente)' : avgTremor < 1.5 ? '(Bueno)' : '(Revisar)'}
-Hesitación Promedio: ${Math.round(avgHesitation)}ms
-Eficiencia Motora: ${(finalMetrics.avg_path_efficiency * 100).toFixed(0)}%
+        // ===========================================
+        // RESULTADOS — Modal visual
+        // ===========================================
+        function showResultsModal(score, accuracy, completeness, tremor, hesitation, pathEff, duration, expected) {
+            const level = LEVELS[sessionState.currentLevelIndex];
+            const hasNextLevel = sessionState.currentLevelIndex < LEVELS.length - 1;
+            const passed = accuracy >= 60 && completeness >= 50;
 
-⏱️ TIEMPO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Duración: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}
+            let tremorLabel;
+            if (tremor < 1.2) tremorLabel = 'Excelente';
+            else if (tremor < 1.5) tremorLabel = 'Bueno';
+            else if (tremor < 2.0) tremorLabel = 'Aceptable';
+            else tremorLabel = 'Revisar';
 
-Todos los datos están guardados en:
-- hdd_game_sessions
-- hdd_game_metrics
-- hdd_mood_checkins
-- hdd_game_color_selections
-            `);
-            
-            console.log('=== SESIÓN COMPLETADA ===');
-            console.log('Session ID:', sessionState.sessionId);
-            console.log('Métricas Finales:', finalMetrics);
-            console.log('Movimientos:', sessionState.movements);
+            const scoreColor = passed ? 'bg-gradient-to-br from-green-400 to-emerald-600 text-white' : 'bg-gradient-to-br from-orange-400 to-red-500 text-white';
+            const mins = Math.floor(duration / 60);
+            const secs = (duration % 60).toString().padStart(2, '0');
+
+            const card = document.getElementById('results-card');
+            card.innerHTML = `
+                <div class="text-5xl mb-3">${passed ? '🎉' : '💪'}</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-1">${passed ? '¡Nivel Completado!' : 'Nivel Finalizado'}</h2>
+                <p class="text-sm text-gray-500 mb-4">${level.name}</p>
+
+                <div class="score-ring ${scoreColor}">
+                    ${Math.round(accuracy)}%
+                </div>
+                <p class="text-xs text-gray-500 mb-6">Precisión de ubicación</p>
+
+                <div class="text-left mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2 text-sm">📊 Resultados</h4>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Score</span>
+                        <span class="font-bold">${score}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Pastillas correctas</span>
+                        <span class="font-bold">${sessionState.correctPlacements} / ${expected}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Completitud</span>
+                        <span class="font-bold">${Math.round(completeness)}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Errores</span>
+                        <span class="font-bold ${sessionState.totalErrors > 0 ? 'text-red-600' : 'text-green-600'}">${sessionState.totalErrors}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Tiempo</span>
+                        <span class="font-bold">${mins}:${secs}</span>
+                    </div>
+                </div>
+
+                <div class="text-left mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2 text-sm">🔬 Biometría Motora</h4>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Índice de Temblor</span>
+                        <span class="font-bold">${tremor.toFixed(2)} (${tremorLabel})</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Hesitación promedio</span>
+                        <span class="font-bold">${Math.round(hesitation)}ms</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Eficiencia motora</span>
+                        <span class="font-bold">${(pathEff * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    ${hasNextLevel && passed ? `
+                        <button onclick="goNextLevel()" class="w-full py-3 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-bold rounded-2xl hover:shadow-xl transition-all text-lg">
+                            ▶ Siguiente Nivel (${LEVELS[sessionState.currentLevelIndex + 1].name})
+                        </button>
+                    ` : ''}
+                    <button onclick="retryLevel()" class="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-2xl hover:shadow-xl transition-all">
+                        🔄 Reintentar ${level.name}
+                    </button>
+                    <button onclick="goToPortal()" class="w-full py-2 bg-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-300 transition-all text-sm">
+                        ← Volver al Portal
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-400 mt-4">Datos guardados en Supabase</p>
+            `;
+
+            document.getElementById('results-overlay').style.display = 'flex';
+        }
+
+        function goNextLevel() {
+            document.getElementById('results-overlay').style.display = 'none';
+            sessionState.gameActive = true;
+            loadLevel(sessionState.currentLevelIndex + 1);
+        }
+
+        function retryLevel() {
+            document.getElementById('results-overlay').style.display = 'none';
+            sessionState.gameActive = true;
+            loadLevel(sessionState.currentLevelIndex);
+        }
+
+        function goToPortal() {
+            const portalUrl = localStorage.getItem('games_session') ? '/games/portal/' : '/hdd/portal/';
+            window.location.href = portalUrl;
+        }
+
+        // ===========================================
+        // SUPABASE HELPERS
+        // ===========================================
+        async function getOrCreatePatient(dni) {
+            if (!sb) return null;
+            const { data: existing } = await sb
+                .from('hdd_patients')
+                .select('id')
+                .eq('dni', dni)
+                .single();
+
+            if (existing) return existing.id;
+
+            const { data: newPatient } = await sb
+                .from('hdd_patients')
+                .insert({
+                    dni: dni,
+                    full_name: 'Paciente Demo HDD',
+                    admission_date: new Date().toISOString().split('T')[0]
+                })
+                .select('id')
+                .single();
+
+            return newPatient?.id;
+        }
+
+        async function startGameSession() {
+            sessionState.startTime = Date.now();
+            sessionState.levelStartTime = Date.now();
+            sessionState.gameActive = true;
+
+            if (sb) {
+                try {
+                    const { data: session } = await sb
+                        .from('hdd_game_sessions')
+                        .insert({
+                            patient_id: sessionState.patientId,
+                            game_id: sessionState.gameId,
+                            level: LEVELS[sessionState.currentLevelIndex].id,
+                            started_at: new Date().toISOString()
+                        })
+                        .select('id')
+                        .single();
+                    sessionState.sessionId = session?.id;
+                } catch(e) {
+                    console.warn('[pill-organizer] Session create failed:', e.message);
+                    sessionState.sessionId = null;
+                }
+            }
+            startTimer();
+        }
+
+        function startTimer() {
+            if (sessionState.timerInterval) clearInterval(sessionState.timerInterval);
+            const display = document.getElementById('timer-display');
+            sessionState.timerInterval = setInterval(() => {
+                if (!sessionState.startTime) return;
+                const elapsed = Math.floor((Date.now() - sessionState.startTime) / 1000);
+                const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const s = (elapsed % 60).toString().padStart(2, '0');
+                display.textContent = `${m}:${s}`;
+            }, 1000);
         }
 
         // ===========================================

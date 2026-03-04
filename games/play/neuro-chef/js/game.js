@@ -333,7 +333,7 @@ function verifyLevel1() {
     const m = { level:1, level_name:'supermercado', score, correct:hits, errors:misses+falseAlarms, missing, wrong, biometrics:bio, timestamp:new Date().toISOString() };
     gameState.levelMetrics.push(m); gameState.biometricData.push(bio);
     updateMetrics(hits, misses+falseAlarms); saveLevelMetrics(m); saveBiometrics(bio);
-    showEducationalModal('nivel_1_supermercado', score, { missing_ingredients:missing, wrong_items:wrong });
+    showEducationalModal('nivel_1_supermercado', score, { missing_ingredients:missing, wrong_items:wrong, recetaKey:recetaKey });
 }
 
 // ========== NIVEL 2: HELADERA ==========
@@ -344,14 +344,14 @@ function loadLevel2_Heladera() {
     const selected = shuffleArray(Object.values(ALIMENTOS)).slice(0, 20);
     
     gameArea.innerHTML = `<div class="heladera-container">
-        <div class="bolsa-compras"><h3>Bolsa de Compras</h3><div class="bolsa-grid" id="bolsa">
+        <div class="bolsa-compras"><h3>🛍️ Bolsa de Compras</h3><div class="bolsa-grid" id="bolsa">
             ${selected.map(f=>`<div class="food-item" draggable="true" data-id="${f.id}"><img src="${f.imagen}" alt="${f.nombre}" loading="lazy"><div class="label">${f.nombre}</div></div>`).join('')}
         </div></div>
         <div class="heladera">
-            <div class="heladera-zone"><h4>FREEZER (-18°C)</h4><div class="zone-grid" id="zone-freezer" data-zone="freezer">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone"><h4>ZONA FRÍA (2-4°C)</h4><div class="zone-grid" id="zone-fria" data-zone="fria">${Array(8).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone"><h4>CAJÓN VERDURAS (5-8°C)</h4><div class="zone-grid" id="zone-verduras" data-zone="verduras">${Array(6).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone"><h4>ALACENA (no heladera)</h4><div class="zone-grid" id="zone-afuera" data-zone="afuera">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
+            <div class="heladera-zone" data-zone="freezer"><h4>FREEZER (-18°C)</h4><div class="zone-grid" id="zone-freezer" data-zone="freezer">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
+            <div class="heladera-zone" data-zone="fria"><h4>ZONA FRÍA (2-4°C) — Lácteos, carnes, huevos</h4><div class="zone-grid" id="zone-fria" data-zone="fria">${Array(8).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
+            <div class="heladera-zone" data-zone="verduras"><h4>CAJÓN VERDURAS (5-8°C)</h4><div class="zone-grid" id="zone-verduras" data-zone="verduras">${Array(6).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
+            <div class="heladera-zone" data-zone="afuera"><h4>ALACENA — No va en heladera</h4><div class="zone-grid" id="zone-afuera" data-zone="afuera">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
         </div></div>`;
     setupDragAndDrop();
     document.getElementById('btn-verify').onclick = () => { Biometrics.logVerify(); verifyLevel2(); };
@@ -393,6 +393,7 @@ function loadLevel3_Cocina() {
         </div></div></div>`;
     gameArea.dataset.correctOrder = JSON.stringify(receta.pasos);
     gameArea.dataset.recetaNombre = receta.nombre;
+    gameArea.dataset.recetaKey = receta.id;
     setupPasosDragDrop();
     document.getElementById('btn-verify').onclick = () => { Biometrics.logVerify(); verifyLevel3(); };
 }
@@ -443,7 +444,7 @@ function verifyLevel3() {
     const bio=Biometrics.getLevelBiometrics(3,{correct:hits,omissions,commissions:errors,correct_rejects:0});
     const m={level:3,level_name:'cocina',score,correct:hits,errors,omissions,receta:document.getElementById('game-area').dataset.recetaNombre,biometrics:bio,timestamp:new Date().toISOString()};
     gameState.levelMetrics.push(m);gameState.biometricData.push(bio);updateMetrics(hits,errors);saveLevelMetrics(m);saveBiometrics(bio);
-    showEducationalModal('nivel_3_cocina',score,{receta:m.receta});
+    showEducationalModal('nivel_3_cocina',score,{receta:m.receta, recetaKey:document.getElementById('game-area').dataset.recetaKey});
 }
 
 // ========== NIVEL 4: LICUADORA ==========
@@ -482,7 +483,7 @@ function verifyLevel4() {
     const bio=Biometrics.getLevelBiometrics(4,{correct:hits,omissions:cs.length-hits-errors,commissions:du,correct_rejects:td-du});
     const m={level:4,level_name:'licuadora',score,correct:hits,errors,biometrics:bio,timestamp:new Date().toISOString()};
     gameState.levelMetrics.push(m);gameState.biometricData.push(bio);updateMetrics(hits,errors);saveLevelMetrics(m);saveBiometrics(bio);
-    showEducationalModal('nivel_4_licuadora',score,{explicacion:document.getElementById('game-area').dataset.explicacion});
+    showEducationalModal('nivel_4_licuadora',score,{explicacion:document.getElementById('game-area').dataset.explicacion||''});
 }
 
 // ========== NIVEL 5: MESA ==========
@@ -621,12 +622,148 @@ function showEducationalModal(levelId, score, errors={}) {
     const content = document.getElementById('educational-content');
     document.getElementById('score-value').textContent = score;
     content.innerHTML = generateEducationalHTML(levelId, score, errors);
+
+    // Add logic/reasoning question
+    const logicQ = getLogicQuestion(levelId, errors);
+    if (logicQ) {
+        const qDiv = document.createElement('div');
+        qDiv.className = 'educational-box info';
+        qDiv.style.marginTop = '1rem';
+        qDiv.innerHTML = `
+            <h4>🧠 Pregunta de Razonamiento</h4>
+            <p style="margin:0.5rem 0;font-weight:600">${logicQ.question}</p>
+            <div id="logic-options" style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.5rem;">
+                ${logicQ.options.map((opt, i) => `
+                    <button class="logic-opt-btn" data-idx="${i}" style="text-align:left;padding:0.5rem 0.75rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;cursor:pointer;font-size:0.85rem;transition:all 0.2s;">
+                        ${String.fromCharCode(65 + i)}) ${opt}
+                    </button>
+                `).join('')}
+            </div>
+            <div id="logic-feedback" style="margin-top:0.5rem;display:none;"></div>
+        `;
+        content.appendChild(qDiv);
+
+        setTimeout(() => {
+            document.querySelectorAll('.logic-opt-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.idx);
+                    const fb = document.getElementById('logic-feedback');
+                    const isCorrect = idx === logicQ.correctIndex;
+
+                    document.querySelectorAll('.logic-opt-btn').forEach(b => {
+                        b.style.pointerEvents = 'none';
+                        if (parseInt(b.dataset.idx) === logicQ.correctIndex) {
+                            b.style.borderColor = 'var(--green)';
+                            b.style.background = 'rgba(74,222,128,0.15)';
+                        } else if (parseInt(b.dataset.idx) === idx && !isCorrect) {
+                            b.style.borderColor = 'var(--red)';
+                            b.style.background = 'rgba(248,113,113,0.15)';
+                        }
+                    });
+
+                    fb.style.display = 'block';
+                    fb.innerHTML = isCorrect
+                        ? `<p style="color:var(--green)">✅ ¡Correcto! ${logicQ.explanation}</p>`
+                        : `<p style="color:var(--red)">❌ Incorrecto. ${logicQ.explanation}</p>`;
+
+                    // Track logic answer
+                    if (!gameState.logicAnswers) gameState.logicAnswers = [];
+                    gameState.logicAnswers.push({ level: levelId, correct: isCorrect, question: logicQ.question, answer: idx, timestamp: new Date().toISOString() });
+                    if (isCorrect) updateMetrics(1, 0); else updateMetrics(0, 1);
+                    Biometrics.logClick('logic_answer_' + (isCorrect ? 'correct' : 'wrong'), levelId);
+                });
+            });
+        }, 100);
+    }
+
     modal.classList.remove('hidden');
     document.getElementById('btn-continue').onclick = () => {
         modal.classList.add('hidden');
         if (gameState.currentLevel < gameState.totalLevels) loadLevel(gameState.currentLevel + 1);
         else showPostGameModal();
     };
+}
+
+// ========== LOGIC QUESTIONS ==========
+function getLogicQuestion(levelId, errors) {
+    const questions = {
+        nivel_1_supermercado: [
+            {
+                question: 'Si una receta lleva huevos y carne picada, ¿cuál es la razón principal para NO agregar azúcar?',
+                options: ['El azúcar es muy caro', 'Es un plato salado, el azúcar cambiaría el sabor', 'El azúcar se derrite con el calor', 'No hay ninguna razón'],
+                correctIndex: 1,
+                explanation: 'Los platos salados como el pastel de papas o milanesas no llevan azúcar porque alteraría completamente el perfil de sabor.'
+            },
+            {
+                question: 'Si tenés que elegir entre 10 ingredientes y solo 4 son correctos, ¿qué porcentaje de las opciones son distractores?',
+                options: ['40%', '50%', '60%', '30%'],
+                correctIndex: 2,
+                explanation: 'Si 4 de 10 son correctos, 6 de 10 son distractores = 60%. Reconocer proporciones ayuda a tomar mejores decisiones.'
+            },
+            {
+                question: '¿Por qué los ingredientes opcionales suman puntos pero no restan si no los elegís?',
+                options: ['Porque son más caros', 'Porque la receta funciona sin ellos pero mejoran el plato', 'Porque no existen realmente', 'Porque el juego es fácil'],
+                correctIndex: 1,
+                explanation: 'Los ingredientes opcionales enriquecen la receta pero no son imprescindibles. Es la diferencia entre "necesario" y "deseable".'
+            }
+        ],
+        nivel_2_heladera: [
+            {
+                question: 'Si la carne cruda va en la zona fría (abajo) y la lechuga en el cajón de verduras, ¿por qué NO ponerlas juntas?',
+                options: ['Ocupan mucho espacio', 'Los jugos de la carne cruda pueden contaminar la lechuga con bacterias', 'No hay razón, es lo mismo', 'La lechuga enfría la carne'],
+                correctIndex: 1,
+                explanation: 'La carne cruda puede gotear líquidos con bacterias peligrosas (Salmonella, E.coli). La contaminación cruzada es un riesgo real de salud.'
+            },
+            {
+                question: 'El pan va afuera de la heladera. ¿Cuál es la razón lógica?',
+                options: ['Es más rico caliente', 'El frío y humedad aceleran que se ponga duro (retrogradación del almidón)', 'No entra en la heladera', 'Es más caro guardarlo'],
+                correctIndex: 1,
+                explanation: 'El frío provoca la cristalización del almidón (retrogradación), haciendo que el pan se ponga duro más rápido que a temperatura ambiente.'
+            }
+        ],
+        nivel_3_cocina: [
+            {
+                question: 'Si hervir papas tarda 20 minutos y picar cebolla 5 minutos, ¿cuál es la estrategia más eficiente?',
+                options: ['Primero picar, después hervir', 'Poner a hervir y mientras se hierven, picar la cebolla', 'Hacer todo al mismo tiempo', 'No importa el orden'],
+                correctIndex: 1,
+                explanation: 'Aprovechar tiempos muertos es clave en la cocina. Mientras las papas hierven solas, usás esos 20 min para preparar otros ingredientes.'
+            },
+            {
+                question: 'Si un paso dice "agregar los huevos de a uno batiendo bien", ¿por qué no agregarlos todos juntos?',
+                options: ['Para que se vea más bonito', 'Porque se emulsionan mejor uno a uno, evitando que la mezcla se corte', 'No hay diferencia real', 'Para gastar más tiempo'],
+                correctIndex: 1,
+                explanation: 'Agregar huevos de a uno permite que la grasa y el agua se emulsionen correctamente. Si se agregan todos juntos, la mezcla puede cortarse.'
+            }
+        ],
+        nivel_4_licuadora: [
+            {
+                question: '¿Por qué el líquido va PRIMERO en la licuadora y el hielo al FINAL?',
+                options: ['Es más fácil de servir', 'El líquido permite que las cuchillas giren, y el peso del hielo empuja todo hacia abajo', 'No importa el orden', 'El hielo se derrite primero si va abajo'],
+                correctIndex: 1,
+                explanation: 'Sin líquido, las cuchillas giran en vacío y no licúan. El hielo arriba empuja los ingredientes hacia las cuchillas por gravedad.'
+            }
+        ],
+        nivel_5_mesa: [
+            {
+                question: 'El tenedor va a la izquierda y el cuchillo a la derecha. ¿Cuál es la lógica detrás de esto?',
+                options: ['Es solo tradición sin razón', 'La mayoría usa el cuchillo con la mano derecha para cortar, y el tenedor con la izquierda para sostener', 'Queda más bonito así', 'Para que no se toquen'],
+                correctIndex: 1,
+                explanation: 'La disposición sigue la ergonomía: la mano dominante (derecha en la mayoría) corta con el cuchillo, y la otra sostiene con el tenedor.'
+            }
+        ],
+        nivel_6_habitacion: [
+            {
+                question: 'Si una prenda se arruga fácilmente (camisa), ¿es mejor colgarla o doblarla?',
+                options: ['Da igual', 'Colgarla, porque la gravedad estira la tela y evita arrugas', 'Doblarla bien apretada', 'Dejarla en la cama'],
+                correctIndex: 1,
+                explanation: 'Colgar prendas que se arrugan (camisas, pantalones de vestir) evita marcas de doblado. Las remeras y medias no lo necesitan.'
+            }
+        ]
+    };
+
+    const pool = questions[levelId];
+    if (!pool || pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // ========== POST-GAME MODAL ==========
