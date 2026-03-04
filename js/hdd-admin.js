@@ -1793,7 +1793,7 @@ function renderMoodHistoryTable(moodHistory, crisisAlerts) {
 // =====================================
 // ROOMS FUNCTIONS (Daily.co)
 // =====================================
-const DAILY_DOMAIN = 'hdd-jose-ingenieros';
+const DAILY_DOMAIN = 'zykos';
 let customRooms = JSON.parse(localStorage.getItem('hdd_custom_rooms') || '[]');
 
 function renderCustomRooms() {

@@ -255,6 +255,18 @@
                             <span class="text-gray-700">Precisión:</span>
                             <span id="accuracy-display" class="font-bold text-teal-700">0%</span>
                         </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Efic. trayecto:</span>
+                            <span id="efficiency-display" class="font-bold text-indigo-700">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Vel. promedio:</span>
+                            <span id="speed-display" class="font-bold text-gray-700">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Redirecciones:</span>
+                            <span id="redirections-display" class="font-bold text-gray-700">--</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -510,6 +522,7 @@
         // START GAME
         // ===========================================
         function startGame() {
+            if (sessionState.gameActive) return;
             try {
                 console.log('[pill-organizer] startGame() called');
                 document.getElementById('start-screen').style.display = 'none';
@@ -584,6 +597,9 @@
             document.getElementById('moves-count').textContent = '0';
             document.getElementById('accuracy-display').textContent = '0%';
             document.getElementById('tremor-badge').textContent = 'Precisión: --';
+            document.getElementById('efficiency-display').textContent = '--';
+            document.getElementById('speed-display').textContent = '--';
+            document.getElementById('redirections-display').textContent = '--';
         }
 
         // ===========================================
@@ -656,6 +672,7 @@
                 const cd = sessionState.currentDrag;
                 if (!cd.active) return;
                 cd.active = false;
+                try {
                 removeGhost();
                 getSlots().forEach(s => s.classList.remove('drag-over'));
                 if (sessionState.activePill) {
@@ -750,6 +767,11 @@
 
                 renderPillInSlot(slot, medType, isCorrect);
                 updateRealTimeMetrics();
+                } catch(err) {
+                    console.error('[pill-organizer] onDrop error:', err);
+                    removeGhost();
+                    if (sessionState.activePill) { sessionState.activePill.style.opacity = '1'; sessionState.activePill = null; }
+                }
             }
 
             // ---- MOUSE: event delegation ----
@@ -858,6 +880,19 @@
                 ? (sessionState.correctPlacements / sessionState.totalMoves) * 100 : 0;
             document.getElementById('accuracy-display').textContent = `${accuracy.toFixed(0)}%`;
             document.getElementById('moves-count').textContent = sessionState.totalMoves;
+
+            // Eficiencia de movimientos
+            const avgEff = sessionState.movements.reduce((s, m) => s + m.pathEfficiency, 0) / sessionState.movements.length;
+            const avgSpeed = sessionState.movements.reduce((s, m) => s + m.avgSpeed, 0) / sessionState.movements.length;
+            const avgRedirs = sessionState.movements.reduce((s, m) => s + m.abruptRedirections, 0) / sessionState.movements.length;
+
+            const effEl = document.getElementById('efficiency-display');
+            const effPct = (avgEff * 100).toFixed(0);
+            effEl.textContent = `${effPct}%`;
+            effEl.className = 'font-bold ' + (avgEff > 0.7 ? 'text-green-600' : avgEff > 0.4 ? 'text-yellow-600' : 'text-red-600');
+
+            document.getElementById('speed-display').textContent = `${avgSpeed.toFixed(1)} px/ms`;
+            document.getElementById('redirections-display').textContent = avgRedirs.toFixed(1);
         }
 
         // ===========================================
@@ -911,6 +946,13 @@
             const expected = getExpectedPlacements();
             const completeness = expected > 0 ? Math.min(100, (sessionState.correctPlacements / expected) * 100) : 0;
 
+            const avgSpeed = sessionState.movements.length > 0
+                ? sessionState.movements.reduce((s, m) => s + m.avgSpeed, 0) / sessionState.movements.length : 0;
+            const avgRedirections = sessionState.movements.length > 0
+                ? sessionState.movements.reduce((s, m) => s + m.abruptRedirections, 0) / sessionState.movements.length : 0;
+            const totalPathLength = sessionState.movements.reduce((s, m) => s + m.pathLength, 0);
+            const totalDirectDist = sessionState.movements.reduce((s, m) => s + m.directDistance, 0);
+
             const finalMetrics = {
                 level: LEVELS[sessionState.currentLevelIndex].id,
                 level_name: LEVELS[sessionState.currentLevelIndex].name,
@@ -923,6 +965,11 @@
                 avg_tremor_index: parseFloat(avgTremor.toFixed(3)),
                 avg_hesitation_ms: Math.round(avgHesitation),
                 avg_path_efficiency: parseFloat(avgPathEff.toFixed(3)),
+                avg_speed: parseFloat(avgSpeed.toFixed(3)),
+                avg_abrupt_redirections: parseFloat(avgRedirections.toFixed(2)),
+                total_path_length: totalPathLength,
+                total_direct_distance: totalDirectDist,
+                movement_overhead_pct: avgPathEff > 0 ? parseFloat(((1/avgPathEff - 1) * 100).toFixed(1)) : 0,
                 total_duration_sec: duration,
                 movements: sessionState.movements
             };
@@ -1059,8 +1106,32 @@
                         <span class="font-bold">${Math.round(hesitation)}ms</span>
                     </div>
                     <div class="metric-row">
-                        <span class="text-gray-600">Eficiencia motora</span>
+                        <span class="text-gray-600">Eficiencia de trayecto</span>
                         <span class="font-bold">${(pathEff * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+
+                <div class="text-left mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2 text-sm">🏃 Eficiencia de Movimientos</h4>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Velocidad promedio</span>
+                        <span class="font-bold">${sessionState.movements.length > 0 ? (sessionState.movements.reduce((s,m)=>s+m.avgSpeed,0)/sessionState.movements.length).toFixed(1) : '0'} px/ms</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Redirecciones abruptas</span>
+                        <span class="font-bold">${sessionState.movements.length > 0 ? (sessionState.movements.reduce((s,m)=>s+m.abruptRedirections,0)/sessionState.movements.length).toFixed(1) : '0'} /mov</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Distancia total recorrida</span>
+                        <span class="font-bold">${sessionState.movements.reduce((s,m)=>s+m.pathLength,0).toLocaleString()} px</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Distancia directa total</span>
+                        <span class="font-bold">${sessionState.movements.reduce((s,m)=>s+m.directDistance,0).toLocaleString()} px</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="text-gray-600">Exceso de recorrido</span>
+                        <span class="font-bold ${pathEff > 0.7 ? 'text-green-600' : pathEff > 0.4 ? 'text-yellow-600' : 'text-red-600'}">${pathEff > 0 ? ((1/pathEff - 1) * 100).toFixed(0) : 0}% extra</span>
                     </div>
                 </div>
 
