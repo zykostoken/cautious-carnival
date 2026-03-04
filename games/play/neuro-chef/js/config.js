@@ -324,6 +324,15 @@ const ALIMENTOS = {
         temperatura: 20,
         duracion_dias: 3
     },
+    pan_rallado: {
+        id: 'pan_rallado',
+        nombre: 'Pan Rallado',
+        imagen: 'https://images.unsplash.com/photo-1586444248879-bc604bc77bdd?w=300',
+        categoria: 'cereal',
+        zona_heladera: 'afuera',
+        temperatura: 20,
+        duracion_dias: 180
+    },
     sal: {
         id: 'sal',
         nombre: 'Sal',
@@ -416,6 +425,15 @@ const ALIMENTOS = {
         temperatura: 6,
         duracion_dias: 14
     },
+    perejil: {
+        id: 'perejil',
+        nombre: 'Perejil',
+        imagen: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300',
+        categoria: 'verdura',
+        zona_heladera: 'verduras',
+        temperatura: 6,
+        duracion_dias: 7
+    },
 
     // FRUTAS para licuados
     banana: {
@@ -461,8 +479,8 @@ const RECETAS = {
     pastel_papas: {
         id: 'pastel_papas',
         nombre: 'Pastel de Papas',
-        ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos'],
-        ingredientes_opcionales: ['aceitunas', 'sal', 'pasas_uva'],
+        ingredientes_base: ['papa', 'carne_picada', 'cebolla', 'huevos', 'aceite', 'sal'],
+        ingredientes_opcionales: ['aceitunas', 'pasas_uva', 'leche', 'manteca'],
         distractores: ['pescado', 'lechuga', 'azucar', 'arroz', 'canela'],
         pasos: [
             'Hervir las papas con piel en agua con sal',
@@ -482,8 +500,8 @@ const RECETAS = {
     lasagna: {
         id: 'lasagna',
         nombre: 'Lasaña',
-        ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche'],
-        ingredientes_opcionales: ['sal', 'aceite', 'queso_rallado'],
+        ingredientes_base: ['carne_picada', 'cebolla', 'tomate', 'queso', 'leche', 'sal'],
+        ingredientes_opcionales: ['aceite', 'queso_rallado', 'manteca', 'harina'],
         distractores: ['pescado', 'lechuga', 'arroz', 'azucar', 'banana'],
         pasos: [
             'Hacer la salsa bolognesa con carne, cebolla y tomate',
@@ -502,7 +520,7 @@ const RECETAS = {
     budin_ingles: {
         id: 'budin_ingles',
         nombre: 'Budín Inglés',
-        ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche'],
+        ingredientes_base: ['huevos', 'azucar', 'manteca', 'leche', 'harina'],
         ingredientes_opcionales: ['sal', 'pasas_uva', 'frutas_secas', 'canela'],
         distractores: ['carne_picada', 'lechuga', 'papa', 'pollo', 'tomate'],
         pasos: [
@@ -522,8 +540,8 @@ const RECETAS = {
     ensalada_completa: {
         id: 'ensalada_completa',
         nombre: 'Ensalada Completa',
-        ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'zanahoria'],
-        ingredientes_opcionales: ['aceitunas', 'aceite', 'sal', 'vinagre', 'limon'],
+        ingredientes_base: ['lechuga', 'tomate', 'cebolla', 'huevos', 'aceite', 'sal'],
+        ingredientes_opcionales: ['aceitunas', 'zanahoria', 'vinagre', 'limon'],
         distractores: ['carne_picada', 'azucar', 'arroz', 'canela', 'helado'],
         pasos: [
             'Lavar bien la lechuga hoja por hoja',
@@ -542,8 +560,8 @@ const RECETAS = {
     milanesas: {
         id: 'milanesas',
         nombre: 'Milanesas',
-        ingredientes_base: ['bife', 'huevos', 'pan'],
-        ingredientes_opcionales: ['sal', 'aceite', 'ajo'],
+        ingredientes_base: ['bife', 'huevos', 'pan_rallado', 'aceite', 'sal'],
+        ingredientes_opcionales: ['ajo', 'limon', 'perejil'],
         distractores: ['leche', 'azucar', 'arroz', 'banana', 'helado'],
         pasos: [
             'Golpear los bifes con un martillo hasta aplanar',

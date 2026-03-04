@@ -64,6 +64,8 @@ body {
 .food-item { position: relative; width: 110px; border-radius: var(--radius); overflow: hidden; cursor: grab; transition: transform 0.2s, box-shadow 0.2s; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0; }
 .food-item:hover { transform: scale(1.08); box-shadow: 0 8px 25px rgba(0,0,0,0.5); border-color: var(--accent); z-index: 5; }
 .food-item:active { cursor: grabbing; }
+.food-item.selected { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); transform: scale(1.1); z-index: 6; }
+.mesa-item.selected, .ropa-item.selected { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); transform: scale(1.08); }
 .food-item img { width: 100%; height: 80px; object-fit: cover; display: block; }
 .food-item .label { padding: 0.35rem 0.4rem; font-size: 0.7rem; font-weight: 600; color: #fff; text-align: center; line-height: 1.2; background: rgba(0,0,0,0.7); }
 
