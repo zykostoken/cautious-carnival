@@ -1,28 +1,10 @@
-// ========== CONSEJOS EDUCATIVOS POST-NIVEL ==========
+// ========== CONSEJOS EDUCATIVOS POST-NIVEL (DINÁMICOS) ==========
 
-const EDUCATIONAL_TIPS = {
+// Tips genéricos por nivel (siempre se muestran)
+const EDUCATIONAL_TIPS_BASE = {
     nivel_1_supermercado: {
         title: '🛒 Selección de Ingredientes',
         tips: [
-            {
-                type: 'success',
-                icon: '🥔',
-                title: 'PASTEL DE PAPAS - Ingredientes',
-                content: `
-                    <p><strong>BASE (imprescindibles):</strong></p>
-                    <ul>
-                        <li>✅ Papas, carne picada, cebolla, huevos</li>
-                    </ul>
-                    <p><strong>EXTRAS (opcionales):</strong></p>
-                    <ul>
-                        <li>✅ Aceitunas, pasas de uva, huevo duro</li>
-                    </ul>
-                    <p><strong>CONDIMENTOS:</strong></p>
-                    <ul>
-                        <li>✅ Sal, pimienta, orégano, pimentón</li>
-                    </ul>
-                `
-            },
             {
                 type: 'info',
                 icon: '🛒',
@@ -47,7 +29,7 @@ const EDUCATIONAL_TIPS = {
             }
         ]
     },
-    
+
     nivel_2_heladera: {
         title: '🧊 Organización de la Heladera',
         tips: [
@@ -59,90 +41,53 @@ const EDUCATIONAL_TIPS = {
                     <p><strong>⚠️ NUNCA</strong> pongas carne cruda junto a alimentos que se comen sin cocinar (lechuga, tomate)</p>
                     <p><strong>✅ Correcto:</strong></p>
                     <ul>
-                        <li>Carne cruda → Estante INFERIOR (abajo)</li>
-                        <li>Verduras → Cajón separado</li>
-                        <li>Alimentos cocidos → Estante SUPERIOR</li>
+                        <li>🔴 Carne cruda → Estante INFERIOR (zona fría, abajo)</li>
+                        <li>🟢 Verduras → Cajón SEPARADO (zona verduras)</li>
+                        <li>🔵 Alimentos cocidos → Estante SUPERIOR (zona fría, arriba)</li>
+                        <li>🟡 Lácteos → Zona fría (no en la puerta)</li>
                     </ul>
-                    <p><strong>⚠️ Riesgo:</strong> Las bacterias de la carne cruda gotean sobre las verduras</p>
+                    <p><strong>⚠️ Riesgo:</strong> Las bacterias de la carne cruda gotean y contaminan lo de abajo</p>
                 `
             },
             {
                 type: 'info',
                 icon: '❄️',
-                title: 'TEMPERATURA Y CONSERVACIÓN',
+                title: 'ZONAS DE LA HELADERA',
                 content: `
-                    <p><strong>FREEZER (-18°C):</strong></p>
+                    <p><strong>FREEZER (-18°C):</strong> Helado, hielo, congelados</p>
+                    <p><strong>ZONA FRÍA (2-4°C):</strong> Lácteos, carnes, huevos, aderezos abiertos</p>
+                    <p><strong>CAJÓN VERDURAS (5-8°C):</strong> Verduras y frutas frescas</p>
+                    <p><strong>ALACENA (ambiente):</strong> Pan, papas, cebolla, ajo, sal, azúcar, aceite</p>
                     <ul>
-                        <li>✅ Carnes congeladas, helado, hielo</li>
-                        <li>⏱️ Duran: 3-6 meses</li>
+                        <li>❌ Pan en heladera → se endurece más rápido</li>
+                        <li>❌ Papas en heladera → se pudren con humedad</li>
+                        <li>❌ Cebollas en heladera → ablandan y pierden sabor</li>
                     </ul>
-                    <p><strong>ZONA FRÍA (2-4°C):</strong></p>
-                    <ul>
-                        <li>✅ Lácteos, carnes frescas, huevos</li>
-                        <li>⏱️ Duran: 3-7 días</li>
-                    </ul>
-                    <p><strong>CAJÓN VERDURAS (5-8°C):</strong></p>
-                    <ul>
-                        <li>✅ Frutas, verduras</li>
-                        <li>⏱️ Duran: 5-10 días</li>
-                    </ul>
-                `
-            },
-            {
-                type: 'warning',
-                icon: '🧊',
-                title: 'QUÉ NO VA EN HELADERA',
-                content: `
-                    <p><strong>❌ Pan</strong> → se pone duro más rápido</p>
-                    <p>✅ Va en: panera a temperatura ambiente</p>
-                    <p><strong>❌ Papas/Cebollas</strong> → se pudren con humedad</p>
-                    <p>✅ Va en: lugar seco y oscuro</p>
-                    <p><strong>❌ Tomate</strong> → pierde sabor en frío</p>
-                    <p>✅ Va en: frutera (salvo muy maduro)</p>
                 `
             }
         ]
     },
-    
+
     nivel_3_cocina: {
         title: '🍳 Secuencia de Preparación',
         tips: [
-            {
-                type: 'success',
-                icon: '🔪',
-                title: 'ORDEN CORRECTO (Pastel de Papas)',
-                content: `
-                    <ol>
-                        <li>🧈 Engrasar fuente (evita que pegue)</li>
-                        <li>🥔 Pelar papas (antes de hervir)</li>
-                        <li>🥔 Hervir papas (20-25 min)</li>
-                        <li>🧅 Picar cebolla (mientras hierven papas)</li>
-                        <li>🥩 Dorar carne con cebolla</li>
-                        <li>🥔 Hacer puré de papas</li>
-                        <li>📦 Armar capas (puré, carne, puré)</li>
-                        <li>🥚 Pintar con huevo batido</li>
-                        <li>🔥 Horno 180°C por 30 minutos</li>
-                    </ol>
-                `
-            },
             {
                 type: 'info',
                 icon: '⏱️',
                 title: 'OPTIMIZACIÓN DE TIEMPO',
                 content: `
-                    <p><strong>✅ MIENTRAS hierven las papas (20 min):</strong></p>
+                    <p><strong>✅ Aprovechá los tiempos de cocción:</strong></p>
                     <ul>
-                        <li>→ Picar cebolla</li>
-                        <li>→ Dorar la carne</li>
-                        <li>→ Preparar otros ingredientes</li>
+                        <li>→ Mientras hierve el agua, picá verduras</li>
+                        <li>→ Mientras se cocina algo en el horno, prepará guarnición</li>
+                        <li>→ Prepará todos los ingredientes ANTES de cocinar</li>
                     </ul>
-                    <p><strong>❌ NUNCA esperes con las manos vacías:</strong></p>
-                    <p>Aprovechá tiempos muertos</p>
+                    <p><strong>❌ Error común:</strong> No planificar y tener que esperar entre pasos</p>
                 `
             }
         ]
     },
-    
+
     nivel_4_licuadora: {
         title: '🥤 Uso Correcto de Licuadora',
         tips: [
@@ -154,48 +99,23 @@ const EDUCATIONAL_TIPS = {
                     <p><strong>1° LÍQUIDOS (abajo):</strong></p>
                     <ul>
                         <li>🥛 Leche, agua, jugo</li>
-                        <li>💡 Ayuda a que las cuchillas giren</li>
+                        <li>💡 Ayuda a que las cuchillas giren libremente</li>
                     </ul>
                     <p><strong>2° BLANDOS (medio):</strong></p>
                     <ul>
                         <li>🍌 Banana, frutillas, yogur</li>
-                        <li>💡 Se licúan fácil</li>
+                        <li>💡 Se licúan fácil con el líquido</li>
                     </ul>
-                    <p><strong>3° DUROS (arriba):</strong></p>
+                    <p><strong>3° DUROS/HIELO (arriba):</strong></p>
                     <ul>
                         <li>🧊 Hielo, frutas congeladas</li>
-                        <li>💡 El peso ayuda a empujar hacia abajo</li>
-                    </ul>
-                `
-            },
-            {
-                type: 'info',
-                icon: '🍓',
-                title: 'LICUADOS SALUDABLES',
-                content: `
-                    <p><strong>BASE LÍQUIDA (elegir 1):</strong></p>
-                    <ul>
-                        <li>Leche común</li>
-                        <li>Leche vegetal (almendras, avena)</li>
-                        <li>Agua o yogur natural</li>
-                    </ul>
-                    <p><strong>FRUTAS (2-3 tipos):</strong></p>
-                    <ul>
-                        <li>Banana (da cremosidad)</li>
-                        <li>Frutillas, arándanos</li>
-                        <li>Durazno, manzana</li>
-                    </ul>
-                    <p><strong>EXTRAS OPCIONALES:</strong></p>
-                    <ul>
-                        <li>Avena (energía)</li>
-                        <li>Miel (dulzor natural)</li>
-                        <li>Semillas de chía</li>
+                        <li>💡 El peso empuja todo hacia las cuchillas</li>
                     </ul>
                 `
             }
         ]
     },
-    
+
     nivel_5_mesa: {
         title: '🍽️ Poner la Mesa Correctamente',
         tips: [
@@ -206,36 +126,25 @@ const EDUCATIONAL_TIPS = {
                 content: `
                     <p><strong>BÁSICO:</strong></p>
                     <ul>
-                        <li>Plato al centro</li>
-                        <li>Tenedor a la IZQUIERDA</li>
-                        <li>Cuchillo a la DERECHA (filo hacia dentro)</li>
-                        <li>Vaso arriba a la derecha</li>
+                        <li>🍽️ Plato al centro</li>
+                        <li>🍴 Tenedor a la IZQUIERDA</li>
+                        <li>🔪 Cuchillo a la DERECHA (filo hacia el plato)</li>
+                        <li>🥛 Vaso arriba a la derecha</li>
                     </ul>
                     <p><strong>EXTRAS:</strong></p>
                     <ul>
-                        <li>Cuchara a la derecha del cuchillo</li>
-                        <li>Servilleta sobre o a la izquierda del plato</li>
-                        <li>Pan a la izquierda arriba</li>
+                        <li>🥄 Cuchara a la derecha del cuchillo</li>
+                        <li>🧻 Servilleta a la izquierda del tenedor</li>
                     </ul>
-                `
-            },
-            {
-                type: 'info',
-                icon: '🧂',
-                title: 'ELEMENTOS COMPARTIDOS',
-                content: `
-                    <p><strong>AL CENTRO DE LA MESA:</strong></p>
+                    <p><strong>NO VA EN LA MESA:</strong></p>
                     <ul>
-                        <li>Sal y pimienta</li>
-                        <li>Manteca (si hay pan)</li>
-                        <li>Jarra de agua o jugo</li>
-                        <li>Fuente de comida principal</li>
+                        <li>🍳 Sartén, 🫕 Olla, 🧽 Esponja, 🪵 Tabla</li>
                     </ul>
                 `
             }
         ]
     },
-    
+
     nivel_6_habitacion: {
         title: '👕 Organización de la Ropa',
         tips: [
@@ -244,23 +153,10 @@ const EDUCATIONAL_TIPS = {
                 icon: '👕',
                 title: 'CATEGORIZACIÓN CORRECTA',
                 content: `
-                    <p><strong>PLACARD (colgar):</strong></p>
-                    <ul>
-                        <li>Camisas, pantalones de vestir</li>
-                        <li>Camperas, abrigos</li>
-                        <li>Vestidos</li>
-                    </ul>
-                    <p><strong>CAJÓN (doblar):</strong></p>
-                    <ul>
-                        <li>Remeras, sweaters</li>
-                        <li>Medias, ropa interior</li>
-                        <li>Pijamas</li>
-                    </ul>
-                    <p><strong>ZAPATERA:</strong></p>
-                    <ul>
-                        <li>Zapatos, zapatillas</li>
-                        <li>Botas</li>
-                    </ul>
+                    <p><strong>PLACARD (colgar):</strong> Camisas, pantalones, camperas, vestidos</p>
+                    <p><strong>CAJÓN (doblar):</strong> Remeras, medias, ropa interior, pijamas</p>
+                    <p><strong>ZAPATERA:</strong> Zapatos, zapatillas, ojotas, botas</p>
+                    <p><strong>NO VA:</strong> Paraguas (perchero), Toalla (baño)</p>
                 `
             },
             {
@@ -270,14 +166,9 @@ const EDUCATIONAL_TIPS = {
                 content: `
                     <p><strong>ANTES DE GUARDAR:</strong></p>
                     <ul>
-                        <li>✅ Revisar que esté limpia</li>
+                        <li>✅ Revisar que esté limpia y seca</li>
                         <li>✅ Doblar o colgar sin arrugas</li>
                         <li>✅ Agrupar por tipo o color</li>
-                    </ul>
-                    <p><strong>ORDEN:</strong></p>
-                    <ul>
-                        <li>Ropa de temporada → adelante</li>
-                        <li>Ropa fuera de temporada → atrás</li>
                     </ul>
                 `
             }
@@ -285,59 +176,158 @@ const EDUCATIONAL_TIPS = {
     }
 };
 
-// Función para generar HTML de consejos
+// Genera tips DINÁMICOS para Nivel 1, específicos de la receta seleccionada
+function generateRecipeTip(recetaKey) {
+    const receta = RECETAS[recetaKey];
+    if (!receta) return null;
+
+    const baseNames = receta.ingredientes_base.map(id => ALIMENTOS[id]?.nombre || id).join(', ');
+    const optNames = receta.ingredientes_opcionales.map(id => ALIMENTOS[id]?.nombre || id).join(', ');
+    const distNames = receta.distractores.map(id => ALIMENTOS[id]?.nombre || id).join(', ');
+    const tipReceta = receta.tips_receta || {};
+
+    return {
+        type: 'success',
+        icon: '🍽️',
+        title: `${receta.nombre.toUpperCase()} — Ingredientes`,
+        content: `
+            <p><strong>BASE (imprescindibles):</strong></p>
+            <ul><li>✅ ${baseNames}</li></ul>
+            <p><strong>EXTRAS (opcionales válidos):</strong></p>
+            <ul><li>✅ ${optNames}</li></ul>
+            <p><strong>DISTRACTORES (NO van en esta receta):</strong></p>
+            <ul><li>❌ ${distNames}</li></ul>
+            ${tipReceta.consejo_clave ? `<p><strong>💡 Consejo:</strong> ${tipReceta.consejo_clave}</p>` : ''}
+            ${tipReceta.logica ? `<p><strong>🧠 Lógica:</strong> ${tipReceta.logica}</p>` : ''}
+        `
+    };
+}
+
+// Genera tips DINÁMICOS para Nivel 3, específicos de la receta de cocina
+function generateCookingTip(recetaKey) {
+    const receta = RECETAS[recetaKey];
+    if (!receta) return null;
+
+    const tipReceta = receta.tips_receta || {};
+
+    return {
+        type: 'success',
+        icon: '🔪',
+        title: `ORDEN CORRECTO — ${receta.nombre}`,
+        content: `
+            <ol>
+                ${receta.pasos.map((p, i) => `<li>${p}</li>`).join('')}
+            </ol>
+            ${tipReceta.error_comun ? `<p><strong>⚠️ Error frecuente:</strong> ${tipReceta.error_comun}</p>` : ''}
+            ${tipReceta.consejo_clave ? `<p><strong>💡 Consejo:</strong> ${tipReceta.consejo_clave}</p>` : ''}
+        `
+    };
+}
+
+// Función principal para generar HTML de consejos
 function generateEducationalHTML(levelId, score, errors = {}) {
-    const tips = EDUCATIONAL_TIPS[levelId];
-    if (!tips) return '<p>¡Buen trabajo!</p>';
-    
-    let html = `<h2 class="text-center mb-4">${tips.title}</h2>`;
-    
-    // Agregar errores específicos si los hay
+    const baseTips = EDUCATIONAL_TIPS_BASE[levelId];
+    if (!baseTips) return '<p>¡Buen trabajo!</p>';
+
+    let html = `<h2 class="text-center mb-4">${baseTips.title}</h2>`;
+
+    // Score display
+    html += `<div style="text-align:center;margin-bottom:1rem;">
+        <span style="font-size:2rem;font-weight:700;color:${score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--accent)' : 'var(--red)'}">${score}%</span>
+        <span style="color:rgba(255,255,255,0.6);font-size:0.9rem;display:block;margin-top:0.25rem;">Puntaje del nivel</span>
+    </div>`;
+
+    // Agregar feedback específico de errores
     if (errors && Object.keys(errors).length > 0) {
         html += `
             <div class="educational-box warning">
-                <h3>❌ Errores encontrados</h3>
+                <h4>❌ Revisemos los errores</h4>
                 ${generateErrorFeedback(errors)}
             </div>
         `;
     }
-    
-    // Agregar consejos educativos
-    tips.tips.forEach(tip => {
+
+    // Para Nivel 1: agregar tip dinámico de receta
+    if (levelId === 'nivel_1_supermercado' && errors.recetaKey) {
+        const recipeTip = generateRecipeTip(errors.recetaKey);
+        if (recipeTip) {
+            html += `
+                <div class="educational-box ${recipeTip.type}">
+                    <h4>${recipeTip.icon} ${recipeTip.title}</h4>
+                    ${recipeTip.content}
+                </div>
+            `;
+        }
+    }
+
+    // Para Nivel 3: agregar tip dinámico de cocina
+    if (levelId === 'nivel_3_cocina' && errors.recetaKey) {
+        const cookingTip = generateCookingTip(errors.recetaKey);
+        if (cookingTip) {
+            html += `
+                <div class="educational-box ${cookingTip.type}">
+                    <h4>${cookingTip.icon} ${cookingTip.title}</h4>
+                    ${cookingTip.content}
+                </div>
+            `;
+        }
+    }
+
+    // Agregar consejos educativos genéricos
+    baseTips.tips.forEach(tip => {
         html += `
             <div class="educational-box ${tip.type}">
-                <h3>${tip.icon} ${tip.title}</h3>
+                <h4>${tip.icon} ${tip.title}</h4>
                 ${tip.content}
             </div>
         `;
     });
-    
+
     return html;
 }
 
 // Generar feedback específico de errores
 function generateErrorFeedback(errors) {
-    let html = '<ul>';
-    
+    let html = '<ul style="list-style:none;padding:0;">';
+
     for (const [key, value] of Object.entries(errors)) {
         switch (key) {
             case 'wrong_zone':
-                html += `<li><strong>Ubicación incorrecta:</strong> ${value.item} no va en ${value.zone}</li>`;
-                break;
-            case 'contamination_risk':
-                html += `<li><strong>⚠️ Riesgo de contaminación:</strong> ${value.message}</li>`;
+                if (Array.isArray(value)) {
+                    value.forEach(v => {
+                        const correctZoneName = {freezer:'Freezer',fria:'Zona Fría',verduras:'Cajón Verduras',afuera:'Alacena'}[v.correct_zone] || v.correct_zone;
+                        const placedZoneName = {freezer:'Freezer',fria:'Zona Fría',verduras:'Cajón Verduras',afuera:'Alacena'}[v.zone] || v.zone;
+                        html += `<li style="margin-bottom:0.3rem">📍 <strong>${v.item}</strong> → lo pusiste en <em>${placedZoneName}</em>, pero va en <strong>${correctZoneName}</strong></li>`;
+                    });
+                }
                 break;
             case 'missing_ingredients':
-                html += `<li><strong>Ingredientes olvidados:</strong> ${value.join(', ')}</li>`;
+                if (Array.isArray(value) && value.length > 0) {
+                    html += `<li style="margin-bottom:0.3rem">🔍 <strong>Te faltaron:</strong> ${value.join(', ')}</li>`;
+                }
+                break;
+            case 'wrong_items':
+                if (Array.isArray(value) && value.length > 0) {
+                    html += `<li style="margin-bottom:0.3rem">🚫 <strong>No van en esta receta:</strong> ${value.join(', ')}</li>`;
+                }
                 break;
             case 'wrong_sequence':
-                html += `<li><strong>Orden incorrecto:</strong> ${value.message}</li>`;
+                html += `<li style="margin-bottom:0.3rem">🔄 <strong>Orden incorrecto:</strong> ${value.message || value}</li>`;
+                break;
+            case 'explicacion':
+                html += `<li style="margin-bottom:0.3rem">💡 <strong>Explicación:</strong> ${value}</li>`;
+                break;
+            case 'recetaKey':
+            case 'receta':
+                // Skip internal keys
                 break;
             default:
-                html += `<li>${value}</li>`;
+                if (typeof value === 'string') {
+                    html += `<li style="margin-bottom:0.3rem">${value}</li>`;
+                }
         }
     }
-    
+
     html += '</ul>';
     return html;
 }
