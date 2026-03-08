@@ -459,6 +459,18 @@ export default async (req: Request, context: Context) => {
             headers: { "Content-Type": "application/json" }
           });
         }
+
+        // Payment not yet approved - return current status
+        return new Response(JSON.stringify({
+          success: true,
+          paymentStatus: payment?.status || 'pending',
+          message: payment?.status === 'rejected'
+            ? "El pago fue rechazado. Por favor intente nuevamente."
+            : "Esperando confirmación del pago..."
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
       }
 
       // Expire unattended sessions (called by scheduled job or patient polling)
@@ -546,19 +558,6 @@ export default async (req: Request, context: Context) => {
             ? "Sesión cancelada. El reembolso requiere gestión manual."
             : "Sesión cancelada. El reembolso fue solicitado a MercadoPago."
         }), { status: 200, headers: { "Content-Type": "application/json" } });
-      }
-
-      // H-058: Fixed dead code - moved closing brace for check_payment_status
-      return new Response(JSON.stringify({
-        success: true,
-        paymentStatus: payment?.status || 'pending',
-        message: payment?.status === 'rejected'
-          ? "El pago fue rechazado. Por favor intente nuevamente."
-          : "Esperando confirmación del pago..."
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      });
       }
 
       if (action === "complete_call") {
