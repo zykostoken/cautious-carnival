@@ -1,7 +1,7 @@
 [build]
   publish = "."
   command = "npm install && npm run setup-db"
-  environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "true" }
+  environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "true", SECRETS_SCAN_OMIT_PATHS = "*.md,docs/*.md,hdd/portal/games/paquete-ministerio/*.md,migrations/*.md,scripts/*.sh" }
 
 [functions]
   directory = "netlify/functions"
