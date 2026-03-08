@@ -201,6 +201,9 @@ CREATE TABLE IF NOT EXISTS notification_log (
     sent_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Ensure notification_log has all columns from both schemas
+ALTER TABLE notification_log ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+
 -- Bulletin board / announcements
 CREATE TABLE IF NOT EXISTS announcements (
     id SERIAL PRIMARY KEY,
@@ -251,6 +254,14 @@ CREATE TABLE IF NOT EXISTS consultations (
     archived_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Ensure consultations has all columns (setup-db.mjs may have created with different schema)
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS response TEXT;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS subject VARCHAR(255) DEFAULT 'Consulta General';
+
 -- Telemedicine interest / pre-registration
 CREATE TABLE IF NOT EXISTS telemedicine_interest (
     id SERIAL PRIMARY KEY,
@@ -259,6 +270,13 @@ CREATE TABLE IF NOT EXISTS telemedicine_interest (
     source VARCHAR(64) DEFAULT 'modal',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- Ensure telemedicine_interest has all columns (setup-db.mjs has more columns)
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS session_id VARCHAR(64);
 
 -- Hospital de Día (HDD) patients
 CREATE TABLE IF NOT EXISTS hdd_patients (
@@ -291,6 +309,8 @@ ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP
 ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS username VARCHAR(100);
 ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS session_token VARCHAR(255);
 
 -- HDD Community posts
 CREATE TABLE IF NOT EXISTS hdd_community_posts (
@@ -304,6 +324,9 @@ CREATE TABLE IF NOT EXISTS hdd_community_posts (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Ensure hdd_community_posts has all columns (setup-db.mjs has is_pinned)
+ALTER TABLE hdd_community_posts ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;
 
 -- HDD Post comments
 CREATE TABLE IF NOT EXISTS hdd_post_comments (
@@ -345,6 +368,10 @@ CREATE TABLE IF NOT EXISTS hdd_login_tracking (
     interactions JSONB DEFAULT '{}',
     user_agent TEXT
 );
+
+-- Ensure hdd_login_tracking has all columns (setup-db.mjs has ip_address, created_at)
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS ip_address VARCHAR(50);
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- Telemedicine plans (pricing tiers)
 CREATE TABLE IF NOT EXISTS telemedicine_plans (

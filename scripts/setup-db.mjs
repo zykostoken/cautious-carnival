@@ -413,6 +413,9 @@ VALUES
     ('Consulta Nocturna (20-09hs)', 'Videoconsulta on-demand 20:00-09:00 hs', 200000.00, 30)
 ON CONFLICT DO NOTHING;
 
+-- Ensure video_sessions has payment_reference (added by migrate.mts)
+ALTER TABLE video_sessions ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+
 -- Indexes for payment tables
 CREATE INDEX IF NOT EXISTS idx_mp_payments_user ON mp_payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_mp_payments_status ON mp_payments(status);
@@ -440,6 +443,14 @@ CREATE TABLE IF NOT EXISTS consultations (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+-- Ensure consultations has columns from migrate.mts schema
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS response TEXT;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS subject VARCHAR(255) DEFAULT 'Consulta General';
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS notes TEXT;
+
 -- Telemedicine interest / pre-registration for service launch notifications
 CREATE TABLE IF NOT EXISTS telemedicine_interest (
     id SERIAL PRIMARY KEY,
@@ -452,6 +463,13 @@ CREATE TABLE IF NOT EXISTS telemedicine_interest (
     notified_at TIMESTAMP WITH TIME ZONE,
     notes TEXT
 );
+
+-- Ensure telemedicine_interest has all columns (migrate.mts creates with fewer columns)
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS session_id VARCHAR(64);
 
 -- Indexes for consultations
 CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
