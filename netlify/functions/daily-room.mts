@@ -40,10 +40,13 @@ export default async (req: Request, context: Context) => {
       }
       const { getDatabase: getDb } = await import("./lib/db.mts");
       const sql = getDb();
-      const [prof] = await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+      const [prof] = await sql`SELECT id, email FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
       if (!prof) {
         return new Response(JSON.stringify({ error: "Sesion profesional invalida" }), { status: 403, headers: corsHeaders });
       }
+
+      // Audit log: video session creation
+      const { logProfessionalAction } = await import("./lib/audit.mts");
 
       // Crear sala nueva para una consulta
       if (action === "create_room") {
@@ -101,6 +104,19 @@ export default async (req: Request, context: Context) => {
             user_name: patientName || "Paciente",
             exp: expiresAt,
           },
+        });
+
+        // Audit: log video session creation
+        logProfessionalAction(sql, {
+          professionalId: prof.id,
+          professionalEmail: prof.email,
+          actionType: 'video_session',
+          resourceType: 'video',
+          patientName: patientName || null,
+          details: { roomName, durationMinutes },
+          durationSeconds: durationMinutes * 60,
+          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+          userAgent: req.headers.get('user-agent'),
         });
 
         return new Response(

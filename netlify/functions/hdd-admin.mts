@@ -2,6 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { CORS_HEADERS, getCorsHeaders } from "./lib/auth.mts";
 import { getAdminRole, isAdminSession, isSuperAdminSession, type AdminRole, SUPER_ADMIN_EMAILS, LIMITED_ADMIN_EMAILS, ALL_ADMIN_EMAILS } from "./lib/admin-roles.mts";
+import { logProfessionalAction, getProfessionalFromToken } from "./lib/audit.mts";
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
@@ -25,6 +26,26 @@ export default async (req: Request, context: Context) => {
       if (!(await isAdminSession(sql, sessionToken))) {
         return new Response(JSON.stringify({ error: "No autorizado" }),
           { status: 403, headers: corsHeaders });
+      }
+
+      // Audit: log professional action (non-blocking)
+      const prof = await getProfessionalFromToken(sql, sessionToken);
+      if (prof) {
+        const auditResourceType = ['add_patient', 'update_patient', 'discharge_patient', 'readmit_patient', 'reset_password', 'bulk_import'].includes(action) ? 'patient'
+          : ['add_activity', 'update_activity', 'delete_activity'].includes(action) ? 'activity'
+          : ['add_resource', 'update_resource', 'delete_resource'].includes(action) ? 'resource'
+          : 'admin';
+        logProfessionalAction(sql, {
+          professionalId: prof.id,
+          professionalEmail: prof.email,
+          actionType: action,
+          resourceType: auditResourceType,
+          patientId: body.patientId || body.id || null,
+          patientName: body.fullName || null,
+          details: { action },
+          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+          userAgent: req.headers.get('user-agent'),
+        });
       }
 
       // Define actions that require SUPER_ADMIN role
@@ -531,6 +552,28 @@ export default async (req: Request, context: Context) => {
 
     // Get current admin role info
     const { role, email } = await getAdminRole(sql, sessionToken);
+
+    // Audit: log professional read actions (non-blocking)
+    if (action && action !== 'my_role') {
+      const prof = await getProfessionalFromToken(sql, sessionToken);
+      if (prof) {
+        const auditResourceType = ['detail', 'patient_metrics'].includes(action) ? 'patient'
+          : action === 'game_stats' ? 'game_stats'
+          : action === 'resources' ? 'resource'
+          : action === 'activities' ? 'activity'
+          : 'admin';
+        const patientId = url.searchParams.get('patientId') || url.searchParams.get('id');
+        logProfessionalAction(sql, {
+          professionalId: prof.id,
+          professionalEmail: prof.email,
+          actionType: `view_${action}`,
+          resourceType: auditResourceType,
+          patientId: patientId ? parseInt(patientId) : null,
+          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+          userAgent: req.headers.get('user-agent'),
+        });
+      }
+    }
 
     try {
       // Get current admin's role and permissions
@@ -1169,6 +1212,66 @@ export default async (req: Request, context: Context) => {
             recentActivity: [],
             interactions: [],
             monthlySummary: []
+          }), { status: 200, headers: corsHeaders });
+        }
+      }
+
+      // Professional usage audit log (super_admin only)
+      if (action === "professional_usage") {
+        if (role !== 'super_admin') {
+          return new Response(JSON.stringify({ error: "Solo Dirección Médica puede ver el audit log" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        const professionalId = url.searchParams.get("professionalId");
+        const days = parseInt(url.searchParams.get("days") || "30");
+
+        try {
+          // Summary per professional
+          const summary = await sql`
+            SELECT * FROM v_professional_usage_summary
+            ORDER BY actions_last_7d DESC
+          `;
+
+          // Detailed log (optionally filtered by professional)
+          let logs;
+          if (professionalId) {
+            logs = await sql`
+              SELECT id, professional_email, action_type, resource_type,
+                     patient_id, patient_name, details, duration_seconds, created_at
+              FROM professional_audit_log
+              WHERE professional_id = ${parseInt(professionalId)}
+                AND created_at >= NOW() - ${days + ' days'}::interval
+              ORDER BY created_at DESC
+              LIMIT 500
+            `;
+          } else {
+            logs = await sql`
+              SELECT id, professional_email, action_type, resource_type,
+                     patient_id, patient_name, details, duration_seconds, created_at
+              FROM professional_audit_log
+              WHERE created_at >= NOW() - ${days + ' days'}::interval
+              ORDER BY created_at DESC
+              LIMIT 500
+            `;
+          }
+
+          // Per-professional patient interactions
+          const interactions = await sql`
+            SELECT * FROM v_professional_patient_interactions
+            LIMIT 200
+          `;
+
+          return new Response(JSON.stringify({
+            summary,
+            logs,
+            interactions
+          }), { status: 200, headers: corsHeaders });
+        } catch (e) {
+          console.error("Audit log query error:", e);
+          return new Response(JSON.stringify({
+            summary: [], logs: [], interactions: [],
+            note: "Audit log tables may not exist yet. Run migration 018."
           }), { status: 200, headers: corsHeaders });
         }
       }
