@@ -1,21 +1,57 @@
-# Security Policy
+# Política de Seguridad — Plataforma Digital de Salud Mental
 
-## Supported Versions
+## Alcance
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Esta política aplica a la plataforma web de la Clínica José Ingenieros, incluyendo:
+- Portal de pacientes HDD (Hospital de Día)
+- Panel de administración profesional
+- Sistema de telemedicina (Daily.co + MercadoPago)
+- Juegos terapéuticos con métricas cognitivas
+- Historia Clínica Electrónica (HCE)
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Controles de seguridad implementados
 
-## Reporting a Vulnerability
+### Autenticación
+- Hashing PBKDF2-like: SHA-256 × 10.000 iteraciones + salt por entorno
+- Rate limiting: 5 intentos / 15 minutos por identificador
+- Tokens de sesión criptográficos (UUID v4 + timestamp)
+- TTL granular: paciente 60min, profesional 2h inactividad, gaming 1h/día
+- Verificación de email con código de 6 dígitos
 
-Use this section to tell people how to report a vulnerability.
+### Autorización
+- Roles: SUPER_ADMIN / LIMITED_ADMIN / PROFESSIONAL (via env vars)
+- RLS (Row Level Security) habilitado en 100% de las tablas
+- Tablas HCE: REVOKE ALL FROM anon/authenticated, solo service_role
+- Funciones HCE con triggers de inmutabilidad y auditoría
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+### Protección de datos
+- TLS 1.3 en tránsito (Netlify + Supabase)
+- Consultas parametrizadas (anti SQL injection)
+- Escape HTML en templates de email (anti XSS)
+- CORS restrictivo con whitelist de orígenes
+- Headers de seguridad: HSTS, X-Frame-Options DENY, X-Content-Type-Options
+- Sin almacenamiento de datos de pago (PCI compliance)
+- Secrets Scanner habilitado en build (Netlify)
+
+### Cumplimiento normativo
+- Ley 26.529 (Derechos del Paciente — Historia Clínica)
+- Ley 25.326 (Protección de Datos Personales)
+- Ley 26.657 (Salud Mental)
+
+## Reportar una vulnerabilidad
+
+Si descubre una vulnerabilidad de seguridad en esta plataforma:
+
+1. **No** la divulgue públicamente
+2. Contacte al titular: **Dr. Gonzalo J. Perez Cortizo**
+3. Dominio: clinicajoseingenieros.ar
+4. Tiempo de respuesta estimado: 48 horas hábiles
+
+Se evaluará cada reporte y se comunicará la resolución o mitigación aplicada.
+
+## Versiones soportadas
+
+| Versión | Soportada |
+|---------|-----------|
+| Producción (main) | Sí |
+| Branches de desarrollo | No |
