@@ -351,6 +351,15 @@ CREATE TABLE IF NOT EXISTS hdd_login_tracking (
 CREATE INDEX IF NOT EXISTS idx_hdd_login_patient ON hdd_login_tracking(patient_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_login_date ON hdd_login_tracking(login_at);
 
+-- Ensure hdd_activities has the weekly schedule columns
+-- (migrate.mts may have created this table with a different schema as an activity log)
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS name VARCHAR(100);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS day_of_week INTEGER;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS start_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS end_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
 -- Insert default HDD activities
 INSERT INTO hdd_activities (name, description, day_of_week, start_time, end_time)
 VALUES

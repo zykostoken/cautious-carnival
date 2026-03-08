@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { sendEmailNotification } from "./lib/notifications.mts";
 
-const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 
 interface FormPayload {
   form_name: string;
