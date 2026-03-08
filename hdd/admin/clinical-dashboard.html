@@ -90,7 +90,8 @@
 <script>
 const SB_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let sb = null;
+try { if (window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e) { console.warn('[dashboard] Supabase init failed:', e); }
 
 const GAMES = {
     'lawn-mower':        { name:'Cortadora de Césped',  color:'#22c55e' },
@@ -281,6 +282,20 @@ function renderDashboard() {
     /* ── Dominios Neurocognitivos ── */
     html += buildDomainPanels(bm, ses);
 
+    /* ── Biomarcadores estructurados con rangos de referencia clínica (FDA-aligned) ── */
+    html += `<div class="section-title">Biomarcadores Clínicos Estructurados — Rangos de Referencia (FDA DHT / Lezak / Betta)</div>
+    <div id="biomarkerSection"><div class="loading" style="padding:1.5rem;">Cargando biomarcadores estructurados...</div></div>`;
+
+    /* ── Nota regulatoria ── */
+    html += `<div style="margin:1.5rem 0;padding:1rem;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;font-size:0.72rem;color:rgba(255,255,255,0.4);line-height:1.6;">
+      <strong style="color:rgba(96,165,250,0.7);">Nota regulatoria y metodológica:</strong>
+      Las mediciones biométricas digitales capturadas por los juegos terapéuticos son <strong>complementarias</strong> a la evaluación clínica presencial.
+      Conforme a la guía FDA sobre Digital Health Technologies (DHT, 2024) y la EMA Guideline on Computerised Systems (2023),
+      estos datos no constituyen diagnóstico autónomo. Los rangos de referencia se basan en normas publicadas
+      (Lezak 2012, Betta 2014, UPDRS Motor Scale, Cambridge Neuropsychological Test Battery).
+      La interpretación requiere siempre contexto clínico: medicación actual, estado anímico, hora del día, y comorbilidades.
+      <strong>Datos almacenados longitudinalmente</strong> a lo largo de toda la vida del paciente en el sistema.</div>`;
+
     /* ── Tabla detalle ── */
     const sorted = ses.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     html += `<div class="section-title">Detalle de sesiones (${sorted.length})</div>
@@ -336,6 +351,122 @@ function renderDashboard() {
 
     document.getElementById('dashContent').innerHTML = html;
     requestAnimationFrame(() => buildCharts(bm));
+
+    // Load structured biomarker data asynchronously
+    if (state.dni) loadBiomarkerSection(state.dni);
+}
+
+/* ── BIOMARCADORES ESTRUCTURADOS ────────────────────────────────────── */
+async function loadBiomarkerSection(dni) {
+    const sec = document.getElementById('biomarkerSection');
+    if (!sec) return;
+    try {
+        const res = await fetch('/api/biometricas?action=clinical_summary&patient_id=' + encodeURIComponent(dni));
+        const data = await res.json();
+        if (!data.latest || !data.latest.length) {
+            sec.innerHTML = '<div class="no-data" style="padding:1.5rem;">Sin biomarcadores estructurados aún. Se poblarán automáticamente cuando el paciente complete sesiones de juego.</div>';
+            return;
+        }
+        renderBiomarkerPanel(sec, data);
+    } catch (err) {
+        sec.innerHTML = '<div class="no-data" style="padding:1rem;">No se pudieron cargar biomarcadores: ' + err.message + '</div>';
+    }
+}
+
+function renderBiomarkerPanel(container, data) {
+    const domainNames = {
+        'motor_tremor': { name: 'Motor: Temblor', icon: '🫨', refs: 'UPDRS ítems 20-21, Betta Semiología' },
+        'motor_praxis': { name: 'Motor: Praxis', icon: '✋', refs: 'Luria Higher Cortical Functions, Goldar Cerebro Límbico' },
+        'motor_rigidity': { name: 'Motor: Rigidez/Rueda Dentada', icon: '⚙️', refs: 'Simpson-Angus Scale, UPDRS Motor' },
+        'motor_bradykinesia': { name: 'Motor: Bradicinesia', icon: '🐢', refs: 'UPDRS Motor Section' },
+        'cognitive_reaction_time': { name: 'Cognición: Tiempo de Reacción', icon: '⚡', refs: 'Cambridge NTB, FDA DHT 2024' },
+        'cognitive_memory': { name: 'Cognición: Memoria', icon: '🧠', refs: 'Buschke Selective Reminding, Lezak 2012' },
+        'cognitive_attention': { name: 'Cognición: Atención', icon: '👁️', refs: 'Castellanos et al. 2005, CPT norms' },
+        'cognitive_planning': { name: 'Cognición: Planificación/Categorización', icon: '📋', refs: 'Shallice 1982, Rosch Natural Categories' },
+        'emotional_color_psychology': { name: 'Emocional: Psicología del Color', icon: '🎨', refs: 'Lüscher 1969, Heller 2004 (complementario, no diagnóstico)' },
+        'avd_autonomy': { name: 'AVD: Autonomía', icon: '🏠', refs: 'Barthel Index, Lawton IADL Scale' }
+    };
+
+    const sigColors = { normal: '#34d399', borderline: '#fbbf24', abnormal: '#f87171' };
+    const sigLabels = { normal: 'Normal', borderline: 'Borderline', abnormal: 'Alterado' };
+
+    // Group latest readings by domain
+    const byDomain = {};
+    for (const r of data.latest) {
+        if (!byDomain[r.domain]) byDomain[r.domain] = [];
+        byDomain[r.domain].push(r);
+    }
+
+    let html = '<div class="domain-grid">';
+    for (const [domain, readings] of Object.entries(byDomain)) {
+        const dm = domainNames[domain] || { name: domain, icon: '📊', refs: '' };
+        html += `<div class="domain-card" style="border-left:3px solid ${sigColors[readings[0]?.clinical_significance] || '#6b7280'};">
+            <h4>${dm.icon} ${dm.name}</h4>
+            <div style="font-size:0.6rem;color:rgba(255,255,255,0.25);margin-bottom:0.5rem;">Ref: ${dm.refs}</div>`;
+
+        for (const r of readings) {
+            const sigColor = sigColors[r.clinical_significance] || '#6b7280';
+            const sigLabel = sigLabels[r.clinical_significance] || '?';
+            const val = r.value_numeric != null ? (r.biomarker_unit === 'ratio' ? r.value_numeric.toFixed(3) : r.biomarker_unit === 'ms' ? Math.round(r.value_numeric) : r.value_numeric.toFixed(2)) : '—';
+            const unit = r.biomarker_unit === 'score_0_100' ? '%' : r.biomarker_unit === 'score_neg1_pos1' ? '' : (r.biomarker_unit || '');
+            const rangeStr = (r.normal_low != null && r.normal_high != null) ? `[${r.normal_low}–${r.normal_high}]` : '';
+
+            html += `<div class="domain-metric" style="padding:0.4rem 0;">
+                <div>
+                    <span class="dm-label">${r.biomarker_name.replace(/_/g, ' ')}</span>
+                    <span style="font-size:0.58rem;color:rgba(255,255,255,0.2);margin-left:4px;">${rangeStr} ${unit}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="dm-val" style="color:${sigColor}">${val} ${unit}</span>
+                    <span style="font-size:0.55rem;padding:1px 5px;border-radius:3px;background:${sigColor}20;color:${sigColor}">${sigLabel}</span>
+                </div>
+            </div>`;
+
+            // Show interpretation if abnormal or borderline
+            if (r.clinical_significance !== 'normal' && (r.interpretation_high || r.interpretation_low)) {
+                const interp = r.value_numeric > (r.normal_high || 0) ? r.interpretation_high : r.interpretation_low;
+                if (interp) {
+                    html += `<div style="font-size:0.62rem;color:rgba(255,255,255,0.35);padding:0.2rem 0 0.4rem 0.5rem;border-left:2px solid ${sigColor}40;margin-left:0.5rem;line-height:1.4;">
+                        ${interp}</div>`;
+                }
+            }
+        }
+
+        // Trend mini-info
+        const trendKeys = readings.map(r => `${r.domain}::${r.biomarker_name}`);
+        for (const key of trendKeys) {
+            const trend = data.trends[key];
+            if (trend && trend.length >= 3) {
+                const vals = trend.map(t => t.value_numeric).filter(v => v != null).reverse();
+                if (vals.length >= 3) {
+                    const recent = vals.slice(-3);
+                    const older = vals.slice(0, -3);
+                    if (older.length > 0) {
+                        const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+                        const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+                        const change = olderAvg !== 0 ? ((recentAvg - olderAvg) / Math.abs(olderAvg) * 100) : 0;
+                        const arrow = change > 5 ? '↗' : change < -5 ? '↘' : '→';
+                        const arrowColor = domain.includes('tremor') || domain.includes('rigidity') ?
+                            (change < -5 ? '#34d399' : change > 5 ? '#f87171' : '#6b7280') :
+                            (change > 5 ? '#34d399' : change < -5 ? '#f87171' : '#6b7280');
+                        html += `<div style="font-size:0.6rem;color:${arrowColor};text-align:right;margin-top:2px;">${arrow} ${change > 0 ? '+' : ''}${change.toFixed(1)}% (${trend.length} mediciones)</div>`;
+                    }
+                }
+            }
+        }
+
+        html += '</div>';
+    }
+    html += '</div>';
+
+    // Overall summary
+    html += `<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;font-size:0.7rem;">
+        <span style="color:rgba(255,255,255,0.3);">Total: ${data.total_readings} mediciones</span>
+        <span style="color:rgba(255,255,255,0.3);">Dominios: ${data.domains_covered.length}</span>
+        <span style="color:rgba(255,255,255,0.3);">Datos almacenados de por vida — cada sesión suma al perfil longitudinal</span>
+    </div>`;
+
+    container.innerHTML = html;
 }
 
 /* ── DOMINIOS NEUROCOGNITIVOS ─────────────────────────────────────────── */

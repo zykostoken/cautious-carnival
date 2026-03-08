@@ -123,7 +123,7 @@
             <strong>🔬 Se evaluará:</strong> Ubicación correcta, categorización, salubridad, tiempo de respuesta y hesitaciones.
         </div>
 
-        <button onclick="beginGame()" style="width: 100%; padding: 16px; border-radius: 14px; border: none; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(59,130,246,0.3); transition: all 0.2s;">
+        <button id="btn-start" type="button" style="width: 100%; padding: 16px; border-radius: 14px; border: none; background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; font-size: 1.2rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(59,130,246,0.3); transition: all 0.2s;">
             ▶ COMENZAR
         </button>
     </div>
@@ -239,6 +239,19 @@ function beginGame() {
     document.getElementById('consigna').style.display = 'block';
     document.getElementById('game-area').style.display = 'block';
     initGame();
+}
+
+// Robust wrapper: ensure start always advances even if init throws
+function safeBeginGame() {
+    try {
+        beginGame();
+    } catch (err) {
+        console.error('[fridge-logic] beginGame failed:', err);
+        try { document.getElementById('start-screen').style.display = 'none'; } catch(e) {}
+        try { document.getElementById('consigna').style.display = 'block'; } catch(e) {}
+        try { document.getElementById('game-area').style.display = 'block'; } catch(e) {}
+        try { initGame(); } catch(e) {}
+    }
 }
 
 // ========== INIT ==========
@@ -699,6 +712,34 @@ async function saveResults(metrics) {
     } catch (err) {
         console.error('Save error:', err);
     }
+}
+
+// ========== START BUTTON BINDING (CSP-safe, touch-safe) ==========
+function bindStartButton() {
+    const btn = document.getElementById('btn-start');
+    if (!btn) return;
+    btn.onclick = null;
+
+    const handler = (e) => {
+        if (e) e.preventDefault();
+        if (typeof safeBeginGame === 'function') {
+            safeBeginGame();
+        } else if (typeof beginGame === 'function') {
+            beginGame();
+        }
+    };
+
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') handler(e);
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindStartButton);
+} else {
+    bindStartButton();
 }
 
 // ========== SMART BACK LINK ==========

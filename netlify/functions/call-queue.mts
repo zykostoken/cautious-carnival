@@ -398,6 +398,9 @@ export default async (req: Request, context: Context) => {
             cq.assigned_professional_id,
             vs.status as video_status,
             vs.session_token,
+            vs.daily_room_name,
+            vs.daily_room_url,
+            vs.daily_patient_url,
             vs.payment_reference,
             hp.full_name as professional_name,
             mp.status as payment_status,
@@ -417,6 +420,12 @@ export default async (req: Request, context: Context) => {
         const paymentConfirmed = callStatus.payment_status === 'approved';
         const professionalJoined = callStatus.video_status === 'in_progress' ||
           (callStatus.status === 'assigned' && callStatus.assigned_professional_id);
+        const roomName = callStatus.daily_room_name || `cji-${callStatus.session_token.substring(0, 12)}`;
+        const room = (callStatus.daily_patient_url || callStatus.daily_room_url) ? {
+          patientUrl: callStatus.daily_patient_url || null,
+          roomUrl: callStatus.daily_room_url || null,
+          roomName
+        } : null;
 
         return new Response(JSON.stringify({
           status: callStatus.status || 'awaiting_payment',
@@ -425,7 +434,8 @@ export default async (req: Request, context: Context) => {
           paymentConfirmed,
           professionalJoined,
           professionalName: callStatus.professional_name,
-          roomName: `ClinicaJoseIngenieros_${callStatus.session_token.substring(0, 12)}`
+          roomName,
+          room
         }), { status: 200, headers: corsHeaders });
       }
 

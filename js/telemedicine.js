@@ -8,6 +8,9 @@ let telemedTimerInterval = null;
 let telemedPaymentTimerInterval = null;
 let telemedCallDurationInterval = null;
 let telemedPaymentCheckInterval = null;
+let telemedRoomUrl = null;
+let telemedRoomName = null;
+let telemedRoomPatientUrl = null;
 
 async function checkTelemedicineUser() {
     // Show the appropriate step based on user state
@@ -89,6 +92,9 @@ async function telemedRegister(event) {
 function telemedLogout() {
     telemedCurrentUser = null;
     telemedSessionToken = null;
+    telemedRoomUrl = null;
+    telemedRoomName = null;
+    telemedRoomPatientUrl = null;
     localStorage.removeItem('telemedUser');
     localStorage.removeItem('telemedUserId');
     telemedUserId = null;
@@ -129,6 +135,10 @@ async function telemedSelectService(type) {
         return;
     }
 
+    telemedRoomUrl = null;
+    telemedRoomName = null;
+    telemedRoomPatientUrl = null;
+
     if (type) {
         const allowedTypes = new Set(['queue', 'priority', 'vip']);
         const callType = allowedTypes.has(type) ? type : 'queue';
@@ -149,20 +159,20 @@ async function telemedSelectService(type) {
 
             const data = await res.json();
 
-            if (data.success) {
+            const requestOk = res.ok && (data.sessionToken || data.sessionId);
+            if (requestOk) {
                 telemedSessionToken = data.sessionToken;
                 telemedCurrentPrice = data.priceInfo;
+                const mpLink = document.getElementById('telemed-mp-link');
 
                 // Check if payment is required
-                if (data.requiresPayment && data.paymentInfo && data.paymentInfo.mercadoPagoLink) {
+                if (data.paymentInfo && data.paymentInfo.mercadoPagoLink) {
                     // Store payment reference for verification
                     telemedPaymentReference = data.paymentInfo.externalReference;
 
                     // Update payment step UI
                     const payPrice = document.getElementById('telemed-pay-price');
                     const payTimeslot = document.getElementById('telemed-pay-timeslot');
-                    const mpLink = document.getElementById('telemed-mp-link');
-
                     if (payPrice && data.priceInfo) {
                         payPrice.textContent = data.priceInfo.formattedPrice;
                     }
@@ -171,13 +181,22 @@ async function telemedSelectService(type) {
                     }
                     if (mpLink && data.paymentInfo.mercadoPagoLink) {
                         mpLink.href = data.paymentInfo.mercadoPagoLink;
+                        mpLink.style.pointerEvents = 'auto';
+                        mpLink.style.opacity = '1';
+                        mpLink.setAttribute('aria-disabled', 'false');
                     }
 
                     // Show payment step
                     telemedShowStep('payment');
                     telemedStartPaymentTimer(data.expiresAt);
-                } else if (!data.requiresPayment || !data.paymentInfo?.mercadoPagoLink) {
+                } else {
                     // MercadoPago not configured - show contact info
+                    if (mpLink) {
+                        mpLink.href = '#';
+                        mpLink.style.pointerEvents = 'none';
+                        mpLink.style.opacity = '0.6';
+                        mpLink.setAttribute('aria-disabled', 'true');
+                    }
                     alert(data.message || 'Sistema de pagos no disponible. Por favor contacte a administración para coordinar su consulta.');
                     telemedBackToServices();
                 }
@@ -249,6 +268,12 @@ async function telemedVerifyPayment() {
             // Stop payment timer
             if (telemedPaymentTimerInterval) clearInterval(telemedPaymentTimerInterval);
 
+            if (data.room) {
+                telemedRoomPatientUrl = data.room.patientUrl || null;
+                telemedRoomUrl = data.room.patientUrl || data.room.roomUrl || null;
+                telemedRoomName = data.room.roomName || null;
+            }
+
             // Update waiting room with price info
             const waitingPrice = document.getElementById('telemed-waiting-price');
             if (waitingPrice && telemedCurrentPrice) {
@@ -295,6 +320,9 @@ async function telemedCancelPayment() {
 
     telemedSessionToken = null;
     telemedPaymentReference = null;
+    telemedRoomUrl = null;
+    telemedRoomName = null;
+    telemedRoomPatientUrl = null;
     telemedBackToServices();
 }
 
@@ -338,6 +366,14 @@ async function telemedPollForProfessional() {
             const res = await fetch(`/api/call-queue?videoSessionToken=${telemedSessionToken}`);
             const data = await res.json();
 
+            if (data.room) {
+                telemedRoomPatientUrl = data.room.patientUrl || telemedRoomPatientUrl;
+                telemedRoomUrl = data.room.patientUrl || data.room.roomUrl || telemedRoomUrl;
+                telemedRoomName = data.room.roomName || telemedRoomName;
+            } else if (data.roomName) {
+                telemedRoomName = data.roomName;
+            }
+
             // Check if payment is confirmed and professional joined
             if (data.paymentConfirmed && (data.videoStatus === 'in_progress' || data.professionalJoined)) {
                 clearInterval(checkInterval);
@@ -369,6 +405,9 @@ async function telemedCancelCall() {
     }
 
     telemedSessionToken = null;
+    telemedRoomUrl = null;
+    telemedRoomName = null;
+    telemedRoomPatientUrl = null;
     telemedBackToServices();
 }
 
@@ -392,13 +431,13 @@ function telemedStartVideoCall() {
     }, 1000);
 
     // Initialize Daily.co video call in the container
-    const roomName = `ClinicaJoseIngenieros-${telemedSessionToken.substring(0, 12)}`;
     const container = document.getElementById('telemed-jitsi-container');
     if (!container) return;
 
     // Embed Daily.co prebuilt UI via iframe
     const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
-    const roomUrl = `https://${dailyDomain}.daily.co/${roomName}`;
+    const roomName = telemedRoomName || `cji-${telemedSessionToken.substring(0, 12)}`;
+    const roomUrl = telemedRoomPatientUrl || telemedRoomUrl || `https://${dailyDomain}.daily.co/${roomName}`;
     container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
     window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
@@ -429,6 +468,9 @@ async function telemedEndCall() {
     }
 
     telemedSessionToken = null;
+    telemedRoomUrl = null;
+    telemedRoomName = null;
+    telemedRoomPatientUrl = null;
     alert('¡Gracias por tu consulta! Esperamos haberte ayudado.');
     telemedBackToServices();
 }

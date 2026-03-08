@@ -279,7 +279,7 @@
     <div class="start-card">
         <h2>Mi Rutina Diaria</h2>
         <p>Seleccioná las actividades que forman parte de una rutina saludable, y luego ordenálas en el día.</p>
-        <button class="btn-start" onclick="beginGame()">Comenzar</button>
+        <button class="btn-start" id="btn-start" type="button">Comenzar</button>
     </div>
 </div>
 
@@ -555,6 +555,19 @@ function beginGame() {
         biomet.start({ patientId: state.patientDni, gameSlug: 'daily-routine' });
     }
 
+}
+
+// Robust wrapper: ensure start always advances even if init throws
+function safeBeginGame() {
+    try {
+        beginGame();
+    } catch (err) {
+        console.error('[daily-routine] beginGame failed:', err);
+        try { document.getElementById('start-screen').style.display = 'none'; } catch(e) {}
+        try { document.getElementById('phase1').style.display = 'block'; } catch(e) {}
+        try { document.getElementById('progress-bar-wrap').style.display = 'flex'; } catch(e) {}
+        try { renderPhase1(); } catch(e) {}
+    }
 }
 
 function updateTimer() {
@@ -1000,6 +1013,34 @@ async function saveResults(metrics, biometData) {
             }).catch(e => console.warn('[daily-routine] Bucket save fail:', e.message));
         }
     } catch(e) {}
+}
+
+// Start button binding (CSP-safe, touch-safe)
+function bindStartButton() {
+    const btn = document.getElementById('btn-start');
+    if (!btn) return;
+    btn.onclick = null;
+
+    const handler = (e) => {
+        if (e) e.preventDefault();
+        if (typeof safeBeginGame === 'function') {
+            safeBeginGame();
+        } else if (typeof beginGame === 'function') {
+            beginGame();
+        }
+    };
+
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') handler(e);
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindStartButton);
+} else {
+    bindStartButton();
 }
 
 // Back link

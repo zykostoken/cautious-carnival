@@ -3,477 +3,668 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Métricas por Paciente - HDD | Clínica José Ingenieros</title>
+    <title>Perfil Clínico del Paciente - HDD | Clínica José Ingenieros</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .metric-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            margin-bottom: 24px;
-        }
-        
-        .color-dot {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            border: 2px solid #333;
-        }
-        
-        .stat-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        
-        .stat-label {
-            font-size: 0.875rem;
-            opacity: 0.9;
-            margin-top: 4px;
-        }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .card-white { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-value { font-size: 1.8rem; font-weight: bold; }
+        .stat-label { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
+        .domain-card { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); }
+        .domain-card h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; color: rgba(255,255,255,0.6); }
+        .biomarker-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .biomarker-row:last-child { border-bottom: none; }
+        .bio-name { color: rgba(255,255,255,0.55); font-size: 0.82rem; }
+        .bio-val { font-weight: 700; font-size: 0.9rem; min-width: 60px; text-align: right; }
+        .bio-range { font-size: 0.62rem; color: rgba(255,255,255,0.25); margin-left: 6px; }
+        .sig-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.58rem; font-weight: 700; margin-left: 6px; }
+        .sig-normal { background: rgba(52,211,153,0.15); color: #34d399; }
+        .sig-borderline { background: rgba(251,191,36,0.15); color: #fbbf24; }
+        .sig-abnormal { background: rgba(248,113,113,0.15); color: #f87171; }
+        .val-normal { color: #34d399; } .val-borderline { color: #fbbf24; } .val-abnormal { color: #f87171; } .val-neutral { color: rgba(255,255,255,0.6); }
+        .trend-arrow { font-size: 0.7rem; margin-left: 4px; }
+        .chart-box { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05); }
+        .chart-box h4 { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .chart-box canvas { max-height: 200px; }
+        .color-dot { width: 22px; height: 22px; border-radius: 50%; display: inline-block; border: 2px solid rgba(255,255,255,0.15); cursor: pointer; transition: transform 0.15s; position: relative; }
+        .color-dot:hover { transform: scale(1.3); z-index: 5; }
+        .section-title { font-size: 0.78rem; color: rgba(255,255,255,0.4); font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; border-left: 3px solid rgba(96,165,250,0.4); padding-left: 10px; margin: 24px 0 12px; }
+        .interpretation-note { font-size: 0.65rem; color: rgba(255,255,255,0.3); padding: 4px 0 8px 12px; border-left: 2px solid rgba(255,255,255,0.08); margin-left: 8px; line-height: 1.5; }
+        .tab { padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: rgba(255,255,255,0.4); border: 1px solid transparent; transition: all 0.2s; background: rgba(255,255,255,0.04); }
+        .tab.active { background: rgba(96,165,250,0.15); color: #60a5fa; border-color: rgba(96,165,250,0.3); font-weight: 600; }
+        .loading { text-align: center; padding: 3rem; color: rgba(255,255,255,0.35); }
+        .no-data { text-align: center; padding: 2rem; color: rgba(255,255,255,0.2); font-style: italic; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr !important; } }
     </style>
 </head>
-<body>
+<body class="text-white">
 
-<div class="container mx-auto px-4 py-8 max-w-7xl">
-    
+<div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Header -->
-    <div class="bg-white rounded-2xl shadow-2xl p-6 mb-8">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">📊 Dashboard de Métricas Individuales</h1>
-                <p class="text-gray-600 mt-2">Hospital de Día - Clínica José Ingenieros</p>
-            </div>
-            <a href="/hdd/portal" class="bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition">
-                ← Volver al Portal
-            </a>
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div>
+            <h1 class="text-2xl font-bold" style="color:#60a5fa;">Perfil Clinico del Paciente</h1>
+            <p class="text-sm" style="color:rgba(255,255,255,0.35);">Hospital de Dia - Clinica Jose Ingenieros | Datos longitudinales de por vida</p>
         </div>
+        <a href="/hdd/portal" class="px-4 py-2 rounded-lg text-sm" style="color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.15);">← Volver al Portal</a>
     </div>
 
     <!-- Patient Selector -->
-    <div class="metric-card">
-        <label class="block text-lg font-semibold text-gray-700 mb-3">Seleccionar Paciente</label>
-        <select id="patient-selector" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:outline-none text-lg">
-            <option value="">Cargando pacientes...</option>
-        </select>
-    </div>
-
-    <!-- Stats Overview -->
-    <div id="stats-overview" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 hidden">
-        <div class="stat-box">
-            <div class="stat-value" id="stat-total-sessions">-</div>
-            <div class="stat-label">Sesiones Totales</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="stat-most-played">-</div>
-            <div class="stat-label">Juego Favorito</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="stat-most-color">-</div>
-            <div class="stat-label">Color Frecuente</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value" id="stat-avg-duration">-</div>
-            <div class="stat-label">Duración Promedio</div>
+    <div class="card" style="padding:16px 24px;">
+        <div class="flex items-center gap-4 flex-wrap">
+            <label class="text-sm font-semibold" style="color:rgba(255,255,255,0.5);">Paciente:</label>
+            <select id="patientSelector" class="px-4 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);min-width:300px;">
+                <option value="">Cargando pacientes...</option>
+            </select>
+            <span id="patientInfo" class="text-xs" style="color:rgba(255,255,255,0.3);"></span>
         </div>
     </div>
 
-    <!-- Charts Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        
-        <!-- Mood Timeline Chart -->
-        <div class="metric-card">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">📈 Intensidad Emocional (Timeline)</h2>
-            <canvas id="mood-timeline-chart"></canvas>
-        </div>
-
-        <!-- Color Frequency Chart -->
-        <div class="metric-card">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">🎨 Colores Seleccionados (Frecuencia)</h2>
-            <canvas id="color-frequency-chart"></canvas>
-        </div>
-
+    <!-- Main content -->
+    <div id="mainContent">
+        <div class="no-data">Seleccione un paciente para ver su perfil clinico.</div>
     </div>
-
-    <!-- Charts Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        
-        <!-- Game Performance Chart -->
-        <div class="metric-card">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">🎮 Rendimiento por Juego</h2>
-            <canvas id="game-performance-chart"></canvas>
-        </div>
-
-        <!-- Intensity Distribution -->
-        <div class="metric-card">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">⚡ Distribución de Intensidades</h2>
-            <canvas id="intensity-distribution-chart"></canvas>
-        </div>
-
-    </div>
-
-    <!-- Sessions Table -->
-    <div class="metric-card">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold text-gray-800">📋 Historial de Sesiones</h2>
-            <button onclick="exportToCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                📥 Exportar CSV
-            </button>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full" id="sessions-table">
-                <thead>
-                    <tr class="bg-gray-100 text-left">
-                        <th class="px-4 py-3 rounded-tl-lg">Fecha</th>
-                        <th class="px-4 py-3">Juego</th>
-                        <th class="px-4 py-3">Intensidad</th>
-                        <th class="px-4 py-3">Color</th>
-                        <th class="px-4 py-3">Duración</th>
-                        <th class="px-4 py-3 rounded-tr-lg">Tags Psicológicos</th>
-                    </tr>
-                </thead>
-                <tbody id="sessions-tbody">
-                    <tr><td colspan="6" class="text-center py-8 text-gray-500">Seleccione un paciente</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
 </div>
 
 <script>
-// Supabase client
-const supabaseUrl = 'https://buzblnkpfydeheingzgn.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+const SB_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
+let sb = null;
+try { if (window.supabase && window.supabase.createClient) sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e) { console.warn('[metrics-dashboard] Supabase init failed:', e); }
 
-let currentPatientId = null;
-let charts = {};
-let sessionsData = [];
+let state = { patients: [], currentPatient: null, sessions: [], biomarkers: null, charts: {}, activeTab: 'overview' };
 
-// ============================================================================
-// LOAD PATIENTS
-// ============================================================================
+const GAMES = {
+    'lawn-mower':        { name:'Cortadora de Cesped',  color:'#22c55e' },
+    'medication-memory': { name:'Memoria Medicacion',   color:'#3b82f6' },
+    'pill-organizer':    { name:'Organizador Pastillas',color:'#f59e0b' },
+    'daily-routine':     { name:'Rutina Diaria',        color:'#06b6d4' },
+    'fridge-logic':      { name:'Logica Heladera',      color:'#8b5cf6' },
+    'super-market':      { name:'Supermercado',          color:'#ec4899' },
+    'neuro-chef':        { name:'Neuro-Chef',            color:'#a855f7' },
+};
+const GN = s => GAMES[s]?.name || s;
+const GC = s => GAMES[s]?.color || '#6b7280';
 
-async function loadPatients() {
-    try {
-        const { data, error } = await supabase
-            .from('hdd_patients')
-            .select('id, full_name, dni, status')
-            .eq('status', 'active')
-            .order('full_name');
-        
-        if (error) throw error;
-        
-        const selector = document.getElementById('patient-selector');
-        selector.innerHTML = '<option value="">-- Seleccionar paciente --</option>';
-        
-        data.forEach(patient => {
-            const option = document.createElement('option');
-            option.value = patient.id;
-            option.textContent = `${patient.full_name} (DNI: ${patient.dni})`;
-            selector.appendChild(option);
-        });
-        
-        console.log('✅ Loaded', data.length, 'patients');
-    } catch (error) {
-        console.error('❌ Error loading patients:', error);
-        alert('Error al cargar pacientes');
-    }
-}
-
-// ============================================================================
-// LOAD PATIENT METRICS
-// ============================================================================
-
-async function loadPatientMetrics(patientId) {
-    if (!patientId) {
-        document.getElementById('stats-overview').classList.add('hidden');
-        return;
-    }
-    
-    currentPatientId = patientId;
-    
-    try {
-        // Load sessions from v_hdd_session_analysis
-        const { data: sessions, error } = await supabase
-            .from('v_hdd_session_analysis')
-            .select('*')
-            .eq('patient_id', patientId)
-            .order('completed_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        sessionsData = sessions;
-        
-        // Update stats
-        updateStats(sessions);
-        
-        // Update charts
-        updateMoodTimeline(sessions);
-        updateColorFrequency(sessions);
-        updateGamePerformance(sessions);
-        updateIntensityDistribution(sessions);
-        
-        // Update table
-        updateSessionsTable(sessions);
-        
-        document.getElementById('stats-overview').classList.remove('hidden');
-        
-        console.log('✅ Loaded', sessions.length, 'sessions for patient', patientId);
-    } catch (error) {
-        console.error('❌ Error loading metrics:', error);
-        alert('Error al cargar métricas');
-    }
-}
-
-// ============================================================================
-// UPDATE STATS
-// ============================================================================
-
-function updateStats(sessions) {
-    document.getElementById('stat-total-sessions').textContent = sessions.length;
-    
-    // Most played game
-    const gameCounts = {};
-    sessions.forEach(s => {
-        gameCounts[s.game_type] = (gameCounts[s.game_type] || 0) + 1;
-    });
-    const mostPlayed = Object.keys(gameCounts).reduce((a, b) => 
-        gameCounts[a] > gameCounts[b] ? a : b, 'N/A');
-    document.getElementById('stat-most-played').textContent = 
-        mostPlayed.replace('_', ' ').replace('pill', 'Pill').replace('lawn', 'Lawn').replace('medication', 'Med');
-    
-    // Most frequent color
-    const colorCounts = {};
-    sessions.forEach(s => {
-        if (s.color_family) {
-            colorCounts[s.color_family] = (colorCounts[s.color_family] || 0) + 1;
-        }
-    });
-    const mostColor = Object.keys(colorCounts).reduce((a, b) => 
-        colorCounts[a] > colorCounts[b] ? a : b, 'N/A');
-    document.getElementById('stat-most-color').textContent = mostColor;
-    
-    // Average duration
-    const avgDuration = sessions.reduce((sum, s) => sum + (s.session_duration_seconds || 0), 0) / sessions.length;
-    document.getElementById('stat-avg-duration').textContent = 
-        Math.round(avgDuration / 60) + ' min';
-}
-
-// ============================================================================
-// UPDATE CHARTS
-// ============================================================================
-
-function updateMoodTimeline(sessions) {
-    const ctx = document.getElementById('mood-timeline-chart');
-    
-    if (charts.moodTimeline) charts.moodTimeline.destroy();
-    
-    const labels = sessions.slice().reverse().map(s => 
-        new Date(s.completed_at).toLocaleDateString('es-AR')
-    );
-    
-    const intensityValues = sessions.slice().reverse().map(s => {
-        const intensityMap = { vivid: 5, soft: 4, pastel: 3, dark: 2, muted: 1 };
-        return intensityMap[s.post_intensity] || 0;
-    });
-    
-    charts.moodTimeline = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Intensidad Emocional',
-                data: intensityValues,
-                borderColor: 'rgb(102, 126, 234)',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { min: 0, max: 5, ticks: { stepSize: 1 } }
-            }
-        }
-    });
-}
-
-function updateColorFrequency(sessions) {
-    const ctx = document.getElementById('color-frequency-chart');
-    
-    if (charts.colorFrequency) charts.colorFrequency.destroy();
-    
-    const colorCounts = {};
-    sessions.forEach(s => {
-        if (s.post_color_hex) {
-            colorCounts[s.post_color_hex] = (colorCounts[s.post_color_hex] || 0) + 1;
-        }
-    });
-    
-    const colors = Object.keys(colorCounts);
-    const counts = Object.values(colorCounts);
-    
-    charts.colorFrequency = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: colors,
-            datasets: [{
-                label: 'Frecuencia',
-                data: counts,
-                backgroundColor: colors
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
-}
-
-function updateGamePerformance(sessions) {
-    const ctx = document.getElementById('game-performance-chart');
-    
-    if (charts.gamePerformance) charts.gamePerformance.destroy();
-    
-    const gameData = {};
-    sessions.forEach(s => {
-        if (!gameData[s.game_type]) gameData[s.game_type] = [];
-        gameData[s.game_type].push(s.session_duration_seconds / 60);
-    });
-    
-    const datasets = Object.keys(gameData).map((game, i) => ({
-        label: game.replace('_', ' '),
-        data: [gameData[game].reduce((a, b) => a + b, 0) / gameData[game].length],
-        backgroundColor: ['#667eea', '#764ba2', '#f093fb'][i]
-    }));
-    
-    charts.gamePerformance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Duración Promedio (min)'],
-            datasets: datasets
-        },
-        options: { responsive: true }
-    });
-}
-
-function updateIntensityDistribution(sessions) {
-    const ctx = document.getElementById('intensity-distribution-chart');
-    
-    if (charts.intensityDist) charts.intensityDist.destroy();
-    
-    const intensityCounts = { vivid: 0, soft: 0, pastel: 0, dark: 0, muted: 0 };
-    sessions.forEach(s => {
-        if (s.post_intensity) intensityCounts[s.post_intensity]++;
-    });
-    
-    charts.intensityDist = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(intensityCounts),
-            datasets: [{
-                data: Object.values(intensityCounts),
-                backgroundColor: ['#ff6b6b', '#4ecdc4', '#ffd3b6', '#2d3436', '#95a5a6']
-            }]
-        },
-        options: { responsive: true }
-    });
-}
-
-// ============================================================================
-// UPDATE TABLE
-// ============================================================================
-
-function updateSessionsTable(sessions) {
-    const tbody = document.getElementById('sessions-tbody');
-    tbody.innerHTML = '';
-    
-    sessions.forEach(session => {
-        const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-gray-50';
-        row.innerHTML = `
-            <td class="px-4 py-3">${new Date(session.completed_at).toLocaleString('es-AR')}</td>
-            <td class="px-4 py-3">${session.game_type.replace('_', ' ')}</td>
-            <td class="px-4 py-3">${session.post_intensity || 'N/A'}</td>
-            <td class="px-4 py-3">
-                ${session.post_color_hex ? 
-                    `<span class="color-dot" style="background: ${session.post_color_hex}"></span>${session.post_color_hex}` 
-                    : 'N/A'}
-            </td>
-            <td class="px-4 py-3">${Math.round(session.session_duration_seconds / 60)} min</td>
-            <td class="px-4 py-3 text-sm">${session.psychological_tags ? session.psychological_tags.join(', ') : 'N/A'}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// ============================================================================
-// EXPORT TO CSV
-// ============================================================================
-
-function exportToCSV() {
-    if (!sessionsData.length) {
-        alert('No hay datos para exportar');
-        return;
-    }
-    
-    const csv = [
-        ['Fecha', 'Juego', 'Intensidad', 'Color', 'Duración (min)', 'Tags Psicológicos'].join(','),
-        ...sessionsData.map(s => [
-            new Date(s.completed_at).toLocaleString('es-AR'),
-            s.game_type,
-            s.post_intensity || '',
-            s.post_color_hex || '',
-            Math.round(s.session_duration_seconds / 60),
-            (s.psychological_tags || []).join('; ')
-        ].join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `metricas_paciente_${currentPatientId}_${Date.now()}.csv`;
-    a.click();
-}
-
-// ============================================================================
-// EVENT LISTENERS
-// ============================================================================
-
-document.getElementById('patient-selector').addEventListener('change', (e) => {
-    loadPatientMetrics(e.target.value);
-});
+const DOMAINS = {
+    'motor_tremor':              { name: 'Motor: Temblor',         icon: 'M', color: '#f87171', refs: 'UPDRS items 20-21' },
+    'motor_praxis':              { name: 'Motor: Praxis',          icon: 'P', color: '#fb923c', refs: 'Luria HCF' },
+    'motor_rigidity':            { name: 'Motor: Rigidez',         icon: 'R', color: '#f97316', refs: 'Simpson-Angus Scale' },
+    'cognitive_reaction_time':   { name: 'Tiempo de Reaccion',     icon: 'T', color: '#60a5fa', refs: 'Cambridge NTB' },
+    'cognitive_attention':       { name: 'Atencion',               icon: 'A', color: '#38bdf8', refs: 'CPT norms' },
+    'cognitive_memory':          { name: 'Memoria',                icon: 'M', color: '#a78bfa', refs: 'Buschke, Lezak 2012' },
+    'cognitive_planning':        { name: 'Planificacion',          icon: 'E', color: '#34d399', refs: 'Shallice 1982' },
+    'emotional_color_psychology':{ name: 'Psicologia del Color',   icon: 'C', color: '#e879f9', refs: 'Luscher 1969' },
+    'avd_autonomy':              { name: 'AVD: Autonomia',         icon: 'V', color: '#22d3ee', refs: 'Barthel/Lawton' }
+};
 
 // ============================================================================
 // INIT
 // ============================================================================
+(async function init() {
+    if (!sb) {
+        document.getElementById('mainContent').innerHTML = '<div class="no-data">Error: No se pudo conectar con la base de datos.</div>';
+        return;
+    }
+    await loadPatients();
+})();
 
-loadPatients();
+async function loadPatients() {
+    try {
+        const { data, error } = await sb.from('hdd_patients').select('id, full_name, dni, admission_date, created_at').order('full_name');
+        if (error) throw error;
+        state.patients = data || [];
+        const sel = document.getElementById('patientSelector');
+        sel.innerHTML = '<option value="">-- Seleccionar paciente --</option>';
+        state.patients.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = `${p.full_name || 'Sin nombre'} (DNI: ${p.dni || '?'})`;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', e => { if (e.target.value) loadPatientProfile(e.target.value); });
+
+        // Check URL param
+        const urlPid = new URLSearchParams(window.location.search).get('patient_id');
+        if (urlPid) {
+            const match = state.patients.find(p => p.id === urlPid || p.dni === urlPid);
+            if (match) { sel.value = match.id; loadPatientProfile(match.id); }
+        }
+    } catch (err) {
+        console.error('Error loading patients:', err);
+    }
+}
+
+// ============================================================================
+// LOAD PATIENT PROFILE
+// ============================================================================
+async function loadPatientProfile(patientId) {
+    destroyCharts();
+    document.getElementById('mainContent').innerHTML = '<div class="loading">Cargando perfil clinico completo...</div>';
+    const pat = state.patients.find(p => p.id === patientId);
+    state.currentPatient = pat;
+    const dni = pat?.dni;
+    if (!dni) { document.getElementById('mainContent').innerHTML = '<div class="no-data">Paciente sin DNI.</div>'; return; }
+
+    const admDate = pat.admission_date || pat.created_at;
+    document.getElementById('patientInfo').textContent = `DNI: ${dni} | Ingreso: ${admDate ? new Date(admDate).toLocaleDateString('es-AR') : '?'}`;
+
+    // Load data in parallel
+    const [sessRes, bioRes] = await Promise.all([
+        sb.from('hdd_game_metrics').select('*').eq('patient_dni', dni).order('created_at', { ascending: true }),
+        fetch('/api/biometricas?action=clinical_summary&patient_id=' + encodeURIComponent(dni)).then(r => r.json()).catch(() => null)
+    ]);
+
+    state.sessions = sessRes.data || [];
+    state.biomarkers = bioRes;
+    renderProfile();
+}
+
+// ============================================================================
+// RENDER PROFILE
+// ============================================================================
+function renderProfile() {
+    destroyCharts();
+    const { sessions, biomarkers, currentPatient } = state;
+    const biomet = sessions.filter(m => m.metric_type === 'session_biomet');
+    const summ = sessions.filter(m => m.metric_type === 'session_summary' || m.metric_type === 'session_complete');
+    const colors = sessions.filter(m => m.metric_type === 'color_eleccion');
+
+    const hasBiomarkers = biomarkers?.latest?.length > 0;
+    const totalSessions = Math.max(biomet.length, summ.length);
+    const uniqueGames = new Set([...biomet.map(m => m.game_slug), ...summ.map(m => m.game_slug)].filter(Boolean)).size;
+    const activeDays = new Set(sessions.map(s => (s.session_date || s.created_at || '').slice(0, 10)).filter(Boolean)).size;
+    const totalBioReadings = biomarkers?.total_readings || 0;
+    const domainsCovered = biomarkers?.domains_covered?.length || 0;
+
+    // Avg RT
+    const rtVals = biomet.map(m => m.metric_data?.rt_mean_ms).filter(x => x > 0);
+    const avgRT = rtVals.length ? Math.round(rtVals.reduce((a,b)=>a+b,0)/rtVals.length) : null;
+
+    let html = '';
+
+    // ── TABS ──
+    html += `<div class="flex gap-2 mb-5 flex-wrap">
+        <div class="tab ${state.activeTab==='overview'?'active':''}" onclick="setTab('overview')">Resumen General</div>
+        <div class="tab ${state.activeTab==='biomarkers'?'active':''}" onclick="setTab('biomarkers')">Biomarcadores Clinicos</div>
+        <div class="tab ${state.activeTab==='longitudinal'?'active':''}" onclick="setTab('longitudinal')">Evolucion Longitudinal</div>
+        <div class="tab ${state.activeTab==='sessions'?'active':''}" onclick="setTab('sessions')">Historial Sesiones</div>
+    </div>`;
+
+    // ── KPI CARDS ──
+    html += `<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
+        <div class="stat-box"><div class="stat-value">${totalSessions}</div><div class="stat-label">Sesiones</div></div>
+        <div class="stat-box"><div class="stat-value">${uniqueGames}</div><div class="stat-label">Juegos</div></div>
+        <div class="stat-box"><div class="stat-value">${activeDays}</div><div class="stat-label">Dias activos</div></div>
+        <div class="stat-box"><div class="stat-value">${avgRT || '—'}</div><div class="stat-label">RT media (ms)</div></div>
+        <div class="stat-box"><div class="stat-value">${totalBioReadings}</div><div class="stat-label">Biomarcadores</div></div>
+        <div class="stat-box"><div class="stat-value">${domainsCovered}</div><div class="stat-label">Dominios</div></div>
+    </div>`;
+
+    // ── TAB CONTENT ──
+    if (state.activeTab === 'overview') {
+        html += renderOverviewTab(biomet, summ, colors, biomarkers);
+    } else if (state.activeTab === 'biomarkers') {
+        html += renderBiomarkersTab(biomarkers);
+    } else if (state.activeTab === 'longitudinal') {
+        html += renderLongitudinalTab(biomet, summ);
+    } else if (state.activeTab === 'sessions') {
+        html += renderSessionsTab(biomet, summ);
+    }
+
+    document.getElementById('mainContent').innerHTML = html;
+    requestAnimationFrame(() => {
+        if (state.activeTab === 'overview') buildOverviewCharts(biomet, colors);
+        if (state.activeTab === 'longitudinal') buildLongitudinalCharts(biomet, summ);
+    });
+}
+
+function setTab(tab) { state.activeTab = tab; renderProfile(); }
+
+// ============================================================================
+// OVERVIEW TAB
+// ============================================================================
+function renderOverviewTab(biomet, summ, colors, biomarkers) {
+    let html = '';
+
+    // Color timeline
+    const allColors = colors.map(m => ({ hex: m.metric_data?.color_hex, date: m.created_at, game: m.game_slug })).filter(c => c.hex);
+    html += `<div class="section-title">Seleccion de color — linea temporal (${allColors.length} registros)</div>
+    <div class="card" style="padding:16px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:48px;">`;
+    if (allColors.length) {
+        allColors.forEach(c => {
+            const d = new Date(c.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' });
+            html += `<div class="color-dot" style="background:${c.hex}" title="${d} - ${GN(c.game)}"></div>`;
+        });
+    } else {
+        html += '<span style="color:rgba(255,255,255,0.2);font-size:0.8rem;">Sin registros de color aun</span>';
+    }
+    html += '</div>';
+
+    // Quick domain overview
+    if (biomarkers?.latest?.length) {
+        html += `<div class="section-title">Estado actual por dominio clinico</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 grid-2 mb-5">`;
+
+        const byDomain = {};
+        for (const r of biomarkers.latest) {
+            if (!byDomain[r.domain]) byDomain[r.domain] = [];
+            byDomain[r.domain].push(r);
+        }
+
+        for (const [domain, readings] of Object.entries(byDomain)) {
+            const dm = DOMAINS[domain] || { name: domain, color: '#6b7280', refs: '' };
+            const worstSig = readings.some(r => r.clinical_significance === 'abnormal') ? 'abnormal' :
+                             readings.some(r => r.clinical_significance === 'borderline') ? 'borderline' : 'normal';
+            const sigColor = worstSig === 'normal' ? '#34d399' : worstSig === 'borderline' ? '#fbbf24' : '#f87171';
+
+            html += `<div class="domain-card" style="border-left:3px solid ${sigColor};">
+                <h3 style="color:${dm.color};">${dm.name}</h3>
+                <div style="font-size:0.6rem;color:rgba(255,255,255,0.2);margin-bottom:8px;">Ref: ${dm.refs}</div>`;
+
+            readings.forEach(r => {
+                const val = fmtBioVal(r);
+                const unit = fmtUnit(r.biomarker_unit);
+                const rangeStr = (r.normal_low != null && r.normal_high != null) ? `[${r.normal_low}-${r.normal_high}]` : '';
+                const cls = `val-${r.clinical_significance || 'neutral'}`;
+                const badge = r.clinical_significance ? `<span class="sig-badge sig-${r.clinical_significance}">${r.clinical_significance === 'normal' ? 'Normal' : r.clinical_significance === 'borderline' ? 'Borde' : 'Alterado'}</span>` : '';
+
+                html += `<div class="biomarker-row">
+                    <div>
+                        <span class="bio-name">${r.biomarker_name.replace(/_/g, ' ')}</span>
+                        <span class="bio-range">${rangeStr} ${unit}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;">
+                        <span class="bio-val ${cls}">${val}</span>${badge}
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+
+    // Charts row
+    html += `<div class="section-title">Graficos de resumen</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-2 mb-5">
+        <div class="chart-box"><h4>Tiempo de Reaccion (ms) — ultimas sesiones</h4><canvas id="ovRT"></canvas></div>
+        <div class="chart-box"><h4>Distribucion de colores seleccionados</h4><canvas id="ovColor"></canvas></div>
+    </div>`;
+
+    // Regulatory note
+    html += `<div class="card" style="padding:14px;font-size:0.7rem;color:rgba(255,255,255,0.3);line-height:1.6;">
+        <strong style="color:rgba(96,165,250,0.6);">Nota clinica:</strong>
+        Los biomarcadores digitales capturados durante las sesiones de juego terapeutico se almacenan de forma <strong>longitudinal a lo largo de toda la vida</strong> del paciente.
+        Conforme a la guia FDA sobre Digital Health Technologies (DHT, 2024) y normas EMA (2023), estos datos son complementarios a la evaluacion clinica presencial.
+        Los rangos de referencia utilizan normas publicadas (Lezak 2012, Betta 2014, UPDRS, Cambridge NTB). La interpretacion requiere siempre contexto clinico.</div>`;
+
+    return html;
+}
+
+function buildOverviewCharts(biomet, colors) {
+    const sorted = biomet.slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const last20 = sorted.slice(-20);
+    const labels = last20.map(m => new Date(m.session_date || m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' }));
+
+    // RT chart
+    const rtEl = document.getElementById('ovRT');
+    if (rtEl && last20.length) {
+        state.charts.ovRT = new Chart(rtEl, {
+            type: 'line',
+            data: { labels, datasets: [{
+                label: 'RT media (ms)', data: last20.map(m => m.metric_data?.rt_mean_ms || null),
+                borderColor: '#60a5fa', tension: 0.3, spanGaps: true, pointRadius: 4,
+                fill: true, backgroundColor: 'rgba(96,165,250,0.07)'
+            }]},
+            options: chartOpts()
+        });
+    }
+
+    // Color chart
+    const colorEl = document.getElementById('ovColor');
+    if (colorEl) {
+        const cc = {};
+        colors.forEach(m => { const h = m.metric_data?.color_hex; if (h) cc[h] = (cc[h]||0)+1; });
+        const hexes = Object.keys(cc);
+        if (hexes.length) {
+            state.charts.ovColor = new Chart(colorEl, {
+                type: 'doughnut',
+                data: { labels: hexes, datasets: [{ data: Object.values(cc), backgroundColor: hexes, borderWidth: 0 }] },
+                options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: 'rgba(255,255,255,0.4)', font: { size: 9 } } } } }
+            });
+        }
+    }
+}
+
+// ============================================================================
+// BIOMARKERS TAB
+// ============================================================================
+function renderBiomarkersTab(biomarkers) {
+    if (!biomarkers?.latest?.length) {
+        return '<div class="no-data">Sin biomarcadores estructurados aun.<br><span style="font-size:0.75rem;color:rgba(255,255,255,0.15);">Se generan automaticamente cada vez que el paciente completa una sesion de juego.</span></div>';
+    }
+
+    const byDomain = {};
+    for (const r of biomarkers.latest) {
+        if (!byDomain[r.domain]) byDomain[r.domain] = [];
+        byDomain[r.domain].push(r);
+    }
+
+    let html = `<div class="section-title">Biomarcadores Clinicos Estructurados — Ultima lectura por dominio</div>`;
+    html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-2 mb-5">';
+
+    for (const [domain, readings] of Object.entries(byDomain)) {
+        const dm = DOMAINS[domain] || { name: domain, color: '#6b7280', refs: '' };
+        const worstSig = readings.some(r => r.clinical_significance === 'abnormal') ? 'abnormal' :
+                         readings.some(r => r.clinical_significance === 'borderline') ? 'borderline' : 'normal';
+        const borderColor = worstSig === 'normal' ? '#34d399' : worstSig === 'borderline' ? '#fbbf24' : '#f87171';
+
+        html += `<div class="domain-card" style="border-left:3px solid ${borderColor};">
+            <h3 style="color:${dm.color};">${dm.name}</h3>
+            <div style="font-size:0.58rem;color:rgba(255,255,255,0.2);margin-bottom:10px;">Referencia: ${dm.refs}</div>`;
+
+        for (const r of readings) {
+            const val = fmtBioVal(r);
+            const unit = fmtUnit(r.biomarker_unit);
+            const rangeStr = (r.normal_low != null && r.normal_high != null) ? `[${r.normal_low}–${r.normal_high}]` : '';
+            const cls = `val-${r.clinical_significance || 'neutral'}`;
+            const sigLabel = r.clinical_significance === 'normal' ? 'Normal' : r.clinical_significance === 'borderline' ? 'Borderline' : 'Alterado';
+            const badge = r.clinical_significance ? `<span class="sig-badge sig-${r.clinical_significance}">${sigLabel}</span>` : '';
+
+            html += `<div class="biomarker-row">
+                <div>
+                    <span class="bio-name">${r.biomarker_name.replace(/_/g, ' ')}</span>
+                    <span class="bio-range">${rangeStr} ${unit}</span>
+                </div>
+                <div style="display:flex;align-items:center;">
+                    <span class="bio-val ${cls}">${val} ${unit}</span>${badge}
+                </div>
+            </div>`;
+
+            // Interpretation for non-normal
+            if (r.clinical_significance !== 'normal') {
+                const interp = r.value_numeric > (r.normal_high || 0) ? r.interpretation_high : r.interpretation_low;
+                if (interp) {
+                    html += `<div class="interpretation-note" style="border-left-color:${borderColor}40;">${interp}</div>`;
+                }
+            }
+
+            // Trend
+            const trendKey = `${r.domain}::${r.biomarker_name}`;
+            const trend = biomarkers.trends?.[trendKey];
+            if (trend && trend.length >= 3) {
+                const vals = trend.map(t => t.value_numeric).filter(v => v != null).reverse();
+                if (vals.length >= 3) {
+                    const recent = vals.slice(-3);
+                    const older = vals.slice(0, -3);
+                    if (older.length > 0) {
+                        const recentAvg = recent.reduce((a,b)=>a+b,0) / recent.length;
+                        const olderAvg = older.reduce((a,b)=>a+b,0) / older.length;
+                        const change = olderAvg !== 0 ? ((recentAvg - olderAvg) / Math.abs(olderAvg) * 100) : 0;
+                        const arrow = change > 5 ? '↗' : change < -5 ? '↘' : '→';
+                        // For motor domains, decrease = improvement
+                        const isMotor = domain.includes('motor') || domain.includes('tremor') || domain.includes('rigidity');
+                        const arrowColor = isMotor ?
+                            (change < -5 ? '#34d399' : change > 5 ? '#f87171' : '#6b7280') :
+                            (change > 5 ? '#34d399' : change < -5 ? '#f87171' : '#6b7280');
+                        html += `<div style="font-size:0.6rem;color:${arrowColor};text-align:right;margin:2px 0 6px;">${arrow} ${change > 0 ? '+' : ''}${change.toFixed(1)}% (${trend.length} mediciones)</div>`;
+                    }
+                }
+            }
+        }
+
+        // Session ordinal info
+        const maxOrd = Math.max(...readings.map(r => r.session_ordinal || 0));
+        const dayTreat = readings[0]?.day_of_treatment;
+        html += `<div style="font-size:0.58rem;color:rgba(255,255,255,0.2);margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.04);">
+            Sesion #${maxOrd}${dayTreat != null ? ` | Dia ${dayTreat} de tratamiento` : ''} | ${new Date(readings[0]?.created_at).toLocaleDateString('es-AR')}</div>`;
+
+        html += '</div>';
+    }
+    html += '</div>';
+
+    // Summary
+    html += `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.7rem;margin-top:8px;">
+        <span style="color:rgba(255,255,255,0.3);">Total: ${biomarkers.total_readings} mediciones almacenadas</span>
+        <span style="color:rgba(255,255,255,0.3);">Dominios: ${biomarkers.domains_covered.length}</span>
+        <span style="color:rgba(255,255,255,0.3);">Almacenamiento longitudinal de por vida</span>
+    </div>`;
+
+    return html;
+}
+
+// ============================================================================
+// LONGITUDINAL TAB
+// ============================================================================
+function renderLongitudinalTab(biomet, summ) {
+    if (!biomet.length && !summ.length) {
+        return '<div class="no-data">Sin datos longitudinales aun.</div>';
+    }
+
+    let html = `<div class="section-title">Evolucion biometrica entre sesiones</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-2 mb-5">
+        <div class="chart-box"><h4>Tiempo de Reaccion — media ± SD (ms)</h4><canvas id="longRT"></canvas></div>
+        <div class="chart-box"><h4>CV del TR (variabilidad atencional)</h4><canvas id="longCV"></canvas></div>
+        <div class="chart-box"><h4>Tremor: reposo / accion / distal (px)</h4><canvas id="longTremor"></canvas></div>
+        <div class="chart-box"><h4>Eficiencia de trayectoria (0-1)</h4><canvas id="longEfic"></canvas></div>
+        <div class="chart-box"><h4>Hesitaciones y Rectificaciones (count)</h4><canvas id="longHes"></canvas></div>
+        <div class="chart-box"><h4>Errores: Omision / Comision</h4><canvas id="longErr"></canvas></div>
+        <div class="chart-box"><h4>Impulsividad / Inhibicion motora</h4><canvas id="longImp"></canvas></div>
+        <div class="chart-box"><h4>Economia cognitiva</h4><canvas id="longEcon"></canvas></div>
+    </div>`;
+
+    // Game-specific scores
+    const gameScores = {};
+    summ.forEach(s => {
+        const slug = s.game_slug;
+        if (!slug) return;
+        if (!gameScores[slug]) gameScores[slug] = [];
+        gameScores[slug].push({ date: s.created_at, score: s.metric_value ?? s.score });
+    });
+
+    if (Object.keys(gameScores).length > 0) {
+        html += `<div class="section-title">Puntaje por juego — evolucion longitudinal</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 grid-2 mb-5">`;
+        let idx = 0;
+        for (const [slug, scores] of Object.entries(gameScores)) {
+            html += `<div class="chart-box"><h4>${GN(slug)} — Score</h4><canvas id="gameScore${idx}"></canvas></div>`;
+            idx++;
+        }
+        html += '</div>';
+    }
+
+    return html;
+}
+
+function buildLongitudinalCharts(biomet, summ) {
+    const sorted = biomet.slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    const labels = sorted.map(m => new Date(m.session_date || m.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short' }));
+    const d = (m, k) => m.metric_data?.[k] ?? null;
+    const opts = chartOpts;
+
+    mkLine('longRT', labels, [
+        { label:'RT media', data: sorted.map(m=>d(m,'rt_mean_ms')), borderColor:'#60a5fa', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'±SD', data: sorted.map(m=>d(m,'rt_sd_ms')), borderColor:'rgba(96,165,250,0.3)', tension:0.3, spanGaps:true, pointRadius:2, borderDash:[4,3] }
+    ]);
+    mkLine('longCV', labels, [
+        { label:'CV-TR', data: sorted.map(m=>d(m,'rt_cv')), borderColor:'#f59e0b', tension:0.3, spanGaps:true, pointRadius:3 }
+    ]);
+    mkLine('longTremor', labels, [
+        { label:'Reposo', data: sorted.map(m=>d(m,'tremor_reposo_px')), borderColor:'#f87171', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Accion', data: sorted.map(m=>d(m,'tremor_inicio_px')), borderColor:'#fb923c', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Distal', data: sorted.map(m=>d(m,'tremor_terminal_px')), borderColor:'#fbbf24', tension:0.3, spanGaps:true, pointRadius:3 }
+    ]);
+    mkLine('longEfic', labels, [
+        { label:'Ef. trayectoria', data: sorted.map(m=>d(m,'eficiencia_trayectoria')), borderColor:'#34d399', tension:0.3, spanGaps:true, pointRadius:3, fill:true, backgroundColor:'rgba(52,211,153,0.05)' }
+    ], { scales:{ x: chartOpts().scales.x, y: { ...chartOpts().scales.y, min:0, max:1 } } });
+    mkBar('longHes', labels, [
+        { label:'Hesitaciones', data: sorted.map(m=>d(m,'hesitaciones_count')), backgroundColor:'rgba(251,191,36,0.75)', borderRadius:3 },
+        { label:'Rectificaciones', data: sorted.map(m=>d(m,'rectificaciones_count')), backgroundColor:'rgba(168,85,247,0.7)', borderRadius:3 }
+    ]);
+    mkBar('longErr', labels, [
+        { label:'Omision', data: sorted.map(m=>d(m,'errores_omision')), backgroundColor:'rgba(239,68,68,0.8)', borderRadius:3 },
+        { label:'Comision', data: sorted.map(m=>d(m,'errores_comision')), backgroundColor:'rgba(245,158,11,0.75)', borderRadius:3 }
+    ]);
+    mkLine('longImp', labels, [
+        { label:'Impulsividad', data: sorted.map(m=>d(m,'impulsividad_ratio')), borderColor:'#f87171', tension:0.3, spanGaps:true, pointRadius:3 },
+        { label:'Inhib.motor', data: sorted.map(m=>d(m,'inhibicion_motor')), borderColor:'#a78bfa', tension:0.3, spanGaps:true, pointRadius:3 }
+    ], { scales:{ x: chartOpts().scales.x, y: { ...chartOpts().scales.y, min:0, max:1 } } });
+    mkLine('longEcon', labels, [
+        { label:'Economia cog.', data: sorted.map(m=>d(m,'economia_cognitiva')), borderColor:'#06b6d4', tension:0.3, spanGaps:true, pointRadius:3, fill:true, backgroundColor:'rgba(6,182,212,0.05)' }
+    ], { scales:{ x: chartOpts().scales.x, y: { ...chartOpts().scales.y, min:0, max:1 } } });
+
+    // Game score charts
+    const gameScores = {};
+    summ.forEach(s => {
+        const slug = s.game_slug;
+        if (!slug) return;
+        if (!gameScores[slug]) gameScores[slug] = [];
+        gameScores[slug].push({ date: s.created_at, score: s.metric_value ?? s.score });
+    });
+
+    let idx = 0;
+    for (const [slug, scores] of Object.entries(gameScores)) {
+        const ss = scores.sort((a,b) => new Date(a.date) - new Date(b.date));
+        const sl = ss.map(s => new Date(s.date).toLocaleDateString('es-AR', { day:'2-digit', month:'short' }));
+        mkLine('gameScore'+idx, sl, [
+            { label: GN(slug), data: ss.map(s => s.score), borderColor: GC(slug), tension: 0.3, spanGaps: true, pointRadius: 3, fill: true, backgroundColor: GC(slug) + '10' }
+        ]);
+        idx++;
+    }
+}
+
+// ============================================================================
+// SESSIONS TAB
+// ============================================================================
+function renderSessionsTab(biomet, summ) {
+    const all = [...biomet, ...summ].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    // Deduplicate by session_id or timestamp proximity
+    const seen = new Set();
+    const unique = all.filter(s => {
+        const key = s.session_id || (s.game_slug + ':' + (s.created_at || '').slice(0, 16));
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    if (!unique.length) return '<div class="no-data">Sin sesiones registradas aun.</div>';
+
+    let html = `<div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+        <div class="section-title" style="margin:0;">Historial de sesiones (${unique.length})</div>
+        <button onclick="exportCSV()" style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);padding:6px 14px;border-radius:8px;font-size:0.78rem;cursor:pointer;">Exportar CSV</button>
+    </div>`;
+
+    html += '<div style="overflow-x:auto;border-radius:10px;border:1px solid rgba(255,255,255,0.06);">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.75rem;">';
+    html += `<thead><tr style="background:rgba(255,255,255,0.03);">
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.4px;">Fecha</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">Juego</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">Score</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">RT ms</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">Tremor</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">Ef.Tray</th>
+        <th style="text-align:left;padding:10px 8px;color:rgba(255,255,255,0.3);font-size:0.62rem;text-transform:uppercase;">Errores</th>
+    </tr></thead><tbody>`;
+
+    unique.forEach(s => {
+        const bd = s.metric_data || {};
+        const dt = new Date(s.session_date || s.created_at).toLocaleString('es-AR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+        const rt = bd.rt_mean_ms ? Math.round(bd.rt_mean_ms) : '—';
+        const tr = bd.tremor_reposo_px != null ? bd.tremor_reposo_px.toFixed(1) : '—';
+        const ef = bd.eficiencia_trayectoria != null ? (bd.eficiencia_trayectoria * 100).toFixed(0) + '%' : '—';
+        const errs = (bd.errores_omision || 0) + (bd.errores_comision || 0);
+
+        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+            <td style="padding:8px;color:rgba(255,255,255,0.5);">${dt}</td>
+            <td style="padding:8px;color:${GC(s.game_slug)};">${GN(s.game_slug)}</td>
+            <td style="padding:8px;color:rgba(255,255,255,0.6);font-weight:600;">${s.score ?? s.metric_value ?? '—'}</td>
+            <td style="padding:8px;color:${rt!=='—' && rt<600?'#34d399':rt<1200?'#fbbf24':'#f87171'};">${rt}</td>
+            <td style="padding:8px;color:${tr!=='—' && parseFloat(tr)<2?'#34d399':parseFloat(tr)<5?'#fbbf24':'#f87171'};">${tr}</td>
+            <td style="padding:8px;color:rgba(255,255,255,0.5);">${ef}</td>
+            <td style="padding:8px;color:${errs>3?'#f87171':errs>0?'#fbbf24':'#34d399'};">${errs}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    return html;
+}
+
+// ============================================================================
+// CHART HELPERS
+// ============================================================================
+function chartOpts(extra) {
+    return {
+        responsive: true, animation: { duration: 250 },
+        plugins: { legend: { labels: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, boxWidth: 10, padding: 6 } } },
+        scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.28)', font: { size: 8 }, maxRotation: 30 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: { ticks: { color: 'rgba(255,255,255,0.28)', font: { size: 8 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        },
+        ...(extra || {})
+    };
+}
+
+function mkLine(id, labels, datasets, extraOpts) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    state.charts[id] = new Chart(el, { type: 'line', data: { labels, datasets }, options: chartOpts(extraOpts) });
+}
+
+function mkBar(id, labels, datasets, extraOpts) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    state.charts[id] = new Chart(el, { type: 'bar', data: { labels, datasets }, options: chartOpts(extraOpts) });
+}
+
+function destroyCharts() {
+    Object.values(state.charts).forEach(c => { try { c.destroy(); } catch {} });
+    state.charts = {};
+}
+
+function fmtBioVal(r) {
+    if (r.value_numeric == null) return '—';
+    if (r.biomarker_unit === 'ratio') return r.value_numeric.toFixed(3);
+    if (r.biomarker_unit === 'ms') return Math.round(r.value_numeric);
+    if (r.biomarker_unit === 'score_0_100') return r.value_numeric.toFixed(0);
+    if (r.biomarker_unit === 'count') return r.value_numeric;
+    return r.value_numeric.toFixed(2);
+}
+
+function fmtUnit(u) {
+    if (!u) return '';
+    if (u === 'score_0_100') return '%';
+    if (u === 'score_neg1_pos1') return '';
+    return u;
+}
+
+// ============================================================================
+// EXPORT CSV
+// ============================================================================
+function exportCSV() {
+    const { sessions } = state;
+    if (!sessions.length) return alert('Sin datos para exportar');
+    const rows = [['Fecha','Juego','Tipo','Score','RT_ms','Tremor_px','Eficiencia','Omisiones','Comisiones'].join(',')];
+    sessions.forEach(s => {
+        const bd = s.metric_data || {};
+        rows.push([
+            s.created_at || '', s.game_slug || '', s.metric_type || '',
+            s.metric_value ?? s.score ?? '',
+            bd.rt_mean_ms || '', bd.tremor_reposo_px || '',
+            bd.eficiencia_trayectoria || '',
+            bd.errores_omision || 0, bd.errores_comision || 0
+        ].join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `perfil_paciente_${state.currentPatient?.dni || 'unknown'}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+}
 </script>
-
 </body>
 </html>
