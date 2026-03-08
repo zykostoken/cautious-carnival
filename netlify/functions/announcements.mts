@@ -1,17 +1,12 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { getCorsHeaders, escapeHtml } from "./lib/auth.mts";
 
 // Announcements / Bulletin board management
-// Supports both admin announcements and public community blackboard messages
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -34,7 +29,7 @@ export default async (req: Request, context: Context) => {
         }
       }
 
-      // Create new announcement (supports both admin and public community messages)
+      // Create new announcement (requires authentication - H-032)
       if (action === "create") {
         const { title, content, type, authorName, color, showFrom, showUntil, isPinned, imageUrl } = body;
 
@@ -44,18 +39,14 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
-        // Community messages (blackboard) can be posted by anyone
-        const isCommunityMessage = type === 'community';
-
-        // For non-community messages, require professional session
-        if (!isCommunityMessage && !professionalId) {
-          // Still allow if title is provided (basic announcement)
-          if (!title) {
-            return new Response(JSON.stringify({
-              error: "Título es requerido para anuncios"
-            }), { status: 400, headers: corsHeaders });
-          }
+        // All announcement creation requires authentication
+        if (!professionalId) {
+          return new Response(JSON.stringify({
+            error: "Se requiere autenticación para publicar"
+          }), { status: 401, headers: corsHeaders });
         }
+
+        const isCommunityMessage = type === 'community';
 
         // If there's an image, append it to content with a marker
         let finalContent = content;

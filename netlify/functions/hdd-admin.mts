@@ -1,16 +1,11 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { CORS_HEADERS } from "./lib/auth.mts";
+import { CORS_HEADERS, getCorsHeaders } from "./lib/auth.mts";
 import { getAdminRole, isAdminSession, isSuperAdminSession, type AdminRole, SUPER_ADMIN_EMAILS, LIMITED_ADMIN_EMAILS, ALL_ADMIN_EMAILS } from "./lib/admin-roles.mts";
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });

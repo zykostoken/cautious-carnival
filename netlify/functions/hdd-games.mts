@@ -2,26 +2,25 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
 import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
+import { getCorsHeaders, isSessionExpired, escapeHtml } from "./lib/auth.mts";
 
-const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
   const [patient] = await sql`
-    SELECT id, dni, full_name, status
+    SELECT id, dni, full_name, status, last_login
     FROM hdd_patients
     WHERE session_token = ${sessionToken} AND status = 'active'
   `;
+  if (!patient) return null;
+  // Enforce session expiry (H-005)
+  if (isSessionExpired(patient.last_login)) return null;
   return patient;
 }
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -167,7 +166,7 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ sessions }), { headers: corsHeaders });
       } catch (err: any) {
         console.error("Metrics query error:", err);
-        return new Response(JSON.stringify({ sessions: [], error: err.message }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ sessions: [], error: "Error al cargar métricas" }), { headers: corsHeaders });
       }
     }
 
@@ -432,10 +431,10 @@ export default async (req: Request, context: Context) => {
               ADMIN_EMAIL,
               `[HDD ALERTA] ${alertReason} - Paciente ${patient.full_name}`,
               `<h2>Alerta de Protocolo de Crisis - Hospital de Dia</h2>
-              <p><strong>Paciente:</strong> ${patient.full_name} (DNI: ${patient.dni})</p>
-              <p><strong>Razon:</strong> ${alertReason}</p>
+              <p><strong>Paciente:</strong> ${escapeHtml(patient.full_name)} (DNI: ${escapeHtml(patient.dni)})</p>
+              <p><strong>Razon:</strong> ${escapeHtml(alertReason)}</p>
               <p><strong>Estado de animo reportado:</strong> ${mood}/5</p>
-              ${note ? `<p><strong>Nota del paciente:</strong> ${note}</p>` : ''}
+              ${note ? `<p><strong>Nota del paciente:</strong> ${escapeHtml(note)}</p>` : ''}
               <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</p>
               <hr>
               <p style="color: #666;">Este es un mensaje automatico del sistema HDD. Ingrese al <a href="https://clinicajoseingenieros.ar/hdd/admin">Panel de Administracion</a> para revisar.</p>`
@@ -502,7 +501,7 @@ export default async (req: Request, context: Context) => {
 
     } catch (err: any) {
       console.error("HDD Games error:", err);
-      return new Response(JSON.stringify({ error: "Error interno del servidor", details: err.message }), {
+      return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
         status: 500,
         headers: corsHeaders,
       });

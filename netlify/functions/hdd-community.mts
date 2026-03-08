@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { getCorsHeaders } from "./lib/auth.mts";
 
 // Helper to verify patient session
 async function verifyPatientSession(sql: any, sessionToken: string): Promise<{ id: number; fullName: string } | null> {
@@ -12,12 +13,7 @@ async function verifyPatientSession(sql: any, sessionToken: string): Promise<{ i
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });

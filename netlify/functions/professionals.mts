@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, checkRateLimit, isSessionExpired } from "./lib/auth.mts";
 import { isAdminEmail, isValidProfessionalEmail } from "./lib/admin-roles.mts";
 
 // Flag to track if migration has been run
@@ -302,6 +302,13 @@ export default async (req: Request, context: Context) => {
       if (action === "reset_password") {
         const { email, dniLast4, newPassword } = body;
 
+        // Rate limit password reset attempts - critical! Only 10k combinations (H-022)
+        if (!checkRateLimit(`pwd_reset:${email}`, 3, 30 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiados intentos. Intente nuevamente en 30 minutos."
+          }), { status: 429, headers: corsHeaders });
+        }
+
         if (!email || !dniLast4 || !newPassword) {
           return new Response(JSON.stringify({
             error: "Email, últimos 4 dígitos del DNI y nueva contraseña son requeridos"
@@ -436,6 +443,13 @@ export default async (req: Request, context: Context) => {
           return new Response(JSON.stringify({
             error: "Email y contraseña requeridos"
           }), { status: 400, headers: corsHeaders });
+        }
+
+        // Rate limit login attempts (H-006)
+        if (!checkRateLimit(`prof_login:${email}`, 5, 15 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiados intentos. Intente nuevamente en 15 minutos."
+          }), { status: 429, headers: corsHeaders });
         }
 
         const [professional] = await sql`

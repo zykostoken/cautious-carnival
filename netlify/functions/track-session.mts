@@ -117,7 +117,7 @@ export default async (req: Request, context: Context) => {
     console.error("Session tracking error:", error);
     return new Response(JSON.stringify({
       error: "Internal server error",
-      details: error instanceof Error ? error.message : "Unknown error"
+      
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" }

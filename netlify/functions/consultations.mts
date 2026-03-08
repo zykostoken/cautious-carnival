@@ -1,21 +1,17 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
+import { getCorsHeaders, escapeHtml, checkRateLimit } from "./lib/auth.mts";
 
 // Admin email for consultation notifications
-const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
 
 // Consultations/Inquiries management endpoint
 // Allows visitors to submit questions and inquiries about the clinic's services
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -41,6 +37,14 @@ export default async (req: Request, context: Context) => {
           return new Response(JSON.stringify({
             error: "Por favor proporcione un email o teléfono para contactarlo"
           }), { status: 400, headers: corsHeaders });
+        }
+
+        // Rate limit submissions by IP/session (H-006)
+        const clientKey = sessionId || req.headers.get('x-forwarded-for') || 'unknown';
+        if (!checkRateLimit(`consultation:${clientKey}`, 3, 60 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiadas consultas enviadas. Intente nuevamente más tarde."
+          }), { status: 429, headers: corsHeaders });
         }
 
         // Insert the consultation
@@ -79,14 +83,14 @@ export default async (req: Request, context: Context) => {
               <h1 style="color:white;margin:0">Nueva Consulta</h1>
             </div>
             <div style="padding:30px;background:#f5f5f5">
-              <p><strong>Tipo:</strong> ${typeLabel}</p>
-              <p><strong>Nombre:</strong> ${name}</p>
-              <p><strong>Email:</strong> ${email || 'No proporcionado'}</p>
-              <p><strong>Teléfono:</strong> ${phone || 'No proporcionado'}</p>
-              <p><strong>Asunto:</strong> ${subject || 'Sin asunto'}</p>
+              <p><strong>Tipo:</strong> ${escapeHtml(typeLabel)}</p>
+              <p><strong>Nombre:</strong> ${escapeHtml(name)}</p>
+              <p><strong>Email:</strong> ${escapeHtml(email || 'No proporcionado')}</p>
+              <p><strong>Teléfono:</strong> ${escapeHtml(phone || 'No proporcionado')}</p>
+              <p><strong>Asunto:</strong> ${escapeHtml(subject || 'Sin asunto')}</p>
               <div style="margin-top:15px;padding:15px;background:#fff;border-radius:8px;border-left:4px solid #1a5f2a;">
                 <strong>Mensaje:</strong>
-                <p style="white-space:pre-wrap;margin-top:8px">${message}</p>
+                <p style="white-space:pre-wrap;margin-top:8px">${escapeHtml(message)}</p>
               </div>
               <p style="margin-top:15px;padding:10px;background:#e7f3ff;border-radius:8px;border-left:4px solid #2196F3;">
                 <strong>ID de consulta:</strong> #${consultation.id}
@@ -135,7 +139,7 @@ export default async (req: Request, context: Context) => {
         // Verify professional session
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -164,7 +168,7 @@ export default async (req: Request, context: Context) => {
 
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -197,7 +201,7 @@ export default async (req: Request, context: Context) => {
 
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -221,8 +225,7 @@ export default async (req: Request, context: Context) => {
     } catch (error) {
       console.error("Consultation error:", error);
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: error instanceof Error ? error.message : "Unknown error"
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }
@@ -240,7 +243,7 @@ export default async (req: Request, context: Context) => {
       if (sessionToken) {
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
 
         if (!professional) {
