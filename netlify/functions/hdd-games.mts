@@ -4,7 +4,7 @@ import { sendEmailNotification } from "./lib/notifications.mts";
 import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
 import { getCorsHeaders, isSessionExpired, escapeHtml, SESSION_TTL, checkDailyGamingLimit } from "./lib/auth.mts";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
   const [patient] = await sql`

@@ -1,15 +1,14 @@
 // Shared admin role utilities for serverless functions
 
 // Super Admin - Only direccionmedica has full control
-export const SUPER_ADMIN_EMAILS = [
-  'direccionmedica@clinicajoseingenieros.ar'
-];
+// Configured via SUPER_ADMIN_EMAILS env var (comma-separated)
+export const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || "")
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 // Limited Admin - Can login, view data, authorize patients, but restricted actions
-export const LIMITED_ADMIN_EMAILS = [
-  'gerencia@clinicajoseingenieros.ar',
-  'rrhh@clinicajoseingenieros.ar'
-];
+// Configured via LIMITED_ADMIN_EMAILS env var (comma-separated)
+export const LIMITED_ADMIN_EMAILS = (process.env.LIMITED_ADMIN_EMAILS || "")
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 // All admin emails (combined for authentication)
 export const ALL_ADMIN_EMAILS = [...SUPER_ADMIN_EMAILS, ...LIMITED_ADMIN_EMAILS];

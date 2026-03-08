@@ -4,7 +4,7 @@ import { sendEmailNotification } from "./lib/notifications.mts";
 import { getCorsHeaders, escapeHtml, checkRateLimit } from "./lib/auth.mts";
 
 // Admin email for consultation notifications
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 
 // Consultations/Inquiries management endpoint
 // Allows visitors to submit questions and inquiries about the clinic's services
