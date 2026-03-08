@@ -8,13 +8,21 @@
 
 ### 1. ZOHO SMTP (Email)
 ```
-ZOHO_SMTP_USER = direccionmedica@clinicajoseingenieros.ar
-ZOHO_SMTP_PASS = Npemb5ZNuFA8
+ZOHO_SMTP_USER = (tu email SMTP)
+ZOHO_SMTP_PASS = (tu contraseña SMTP - NUNCA commitear)
 ZOHO_SMTP_HOST = smtp.zoho.com
 ZOHO_SMTP_PORT = 465
 ```
-**Estado:** ✅ Configuradas
+**Estado:** ✅ Configuradas en Netlify env vars
 **Función:** Envío de notificaciones por email
+
+### 1b. Nuevas variables de seguridad (H-003, H-051)
+```
+PASSWORD_SALT = (salt aleatorio largo para hashing - NUNCA commitear)
+ADMIN_EMAIL = (email del admin para notificaciones)
+ADMIN_PHONE = (telefono del admin para WhatsApp)
+ADMIN_EMAILS = email1@dominio.ar,email2@dominio.ar (emails admin separados por coma)
+```
 
 ---
 

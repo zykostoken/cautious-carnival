@@ -3,14 +3,11 @@ import { getStore } from "@netlify/blobs";
 
 // Image upload function for HDD community posts and pizarra
 // Supports up to 5MB images
+// H-053: Now requires authentication
 
 export default async (req: Request, context: Context) => {
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -19,6 +16,28 @@ export default async (req: Request, context: Context) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Método no permitido" }),
       { status: 405, headers: corsHeaders });
+  }
+
+  // H-053: Auth guard - require valid session
+  const authHeader = req.headers.get('Authorization');
+  const sessionToken = authHeader?.replace('Bearer ', '');
+  if (!sessionToken) {
+    return new Response(JSON.stringify({ error: "Autenticacion requerida" }),
+      { status: 401, headers: corsHeaders });
+  }
+  try {
+    const { getDatabase } = await import("./lib/db.mts");
+    const sql = getDatabase();
+    const [patient] = await sql`SELECT id FROM hdd_patients WHERE session_token = ${sessionToken} AND status = 'active'`;
+    const [prof] = patient ? [null] : await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+    if (!patient && !prof) {
+      return new Response(JSON.stringify({ error: "Sesion invalida" }),
+        { status: 403, headers: corsHeaders });
+    }
+  } catch (authErr) {
+    console.error("Upload auth error:", authErr);
+    return new Response(JSON.stringify({ error: "Error de autenticacion" }),
+      { status: 500, headers: corsHeaders });
   }
 
   try {
@@ -147,8 +166,7 @@ export default async (req: Request, context: Context) => {
   } catch (error) {
     console.error("Upload error:", error);
     return new Response(JSON.stringify({
-      error: "Error al subir la imagen",
-      details: error instanceof Error ? error.message : String(error)
+      error: "Error al subir la imagen"
     }), { status: 500, headers: corsHeaders });
   }
 };

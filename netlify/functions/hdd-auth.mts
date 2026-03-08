@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, getCorsHeaders, checkRateLimit, isSessionExpired, escapeHtml } from "./lib/auth.mts";
 
 // Fetch patient plan info for login responses
 async function getPatientPlanInfo(sql: ReturnType<typeof import("postgres")>, patientId: number) {
@@ -48,12 +48,8 @@ async function getPatientPlanInfo(sql: ReturnType<typeof import("postgres")>, pa
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -74,21 +70,29 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Rate limit login attempts by DNI (H-006)
+        if (!checkRateLimit(`login:${dni}`, 5, 15 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiados intentos. Intente nuevamente en 15 minutos."
+          }), { status: 429, headers: corsHeaders });
+        }
+
         const [patient] = await sql`
           SELECT id, dni, full_name, email, phone, password_hash, status, photo_url
           FROM hdd_patients
           WHERE dni = ${dni}
         `;
 
+        // Unified error message to prevent account enumeration (H-008)
         if (!patient) {
           return new Response(JSON.stringify({
-            error: "DNI no registrado. Contacte a la administración."
+            error: "Credenciales inválidas"
           }), { status: 401, headers: corsHeaders });
         }
 
         if (patient.status !== 'active') {
           return new Response(JSON.stringify({
-            error: "Su cuenta no está activa. Contacte a la administración."
+            error: "Credenciales inválidas"
           }), { status: 401, headers: corsHeaders });
         }
 
@@ -286,15 +290,16 @@ export default async (req: Request, context: Context) => {
         }
 
         // Update the latest login tracking record with interaction data
+        // Use subquery since PostgreSQL UPDATE does not support ORDER BY/LIMIT
         await sql`
           UPDATE hdd_login_tracking
-          SET interactions = COALESCE(interactions, '{}'::jsonb) ||
-              jsonb_build_object(${activityType || 'general'}, COALESCE(interactions->${activityType || 'general'}, '0'::jsonb)::int + 1),
-              activities_completed = activities_completed + 1
-          WHERE patient_id = ${patient.id}
-            AND logout_at IS NULL
-          ORDER BY login_at DESC
-          LIMIT 1
+          SET activities_completed = activities_completed + 1
+          WHERE id = (
+            SELECT id FROM hdd_login_tracking
+            WHERE patient_id = ${patient.id} AND logout_at IS NULL
+            ORDER BY login_at DESC
+            LIMIT 1
+          )
         `.catch(e => console.log('Activity tracking error:', e));
 
         return new Response(JSON.stringify({
@@ -438,11 +443,8 @@ export default async (req: Request, context: Context) => {
 
     } catch (error) {
       console.error("HDD Auth error:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      // Return more details in development to help debug
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: errorMessage
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }
@@ -456,7 +458,7 @@ export default async (req: Request, context: Context) => {
     if (action === "verify" && sessionToken) {
       try {
         const [patient] = await sql`
-          SELECT id, dni, full_name, email, phone, photo_url, status, patient_type
+          SELECT id, dni, full_name, email, phone, photo_url, status, patient_type, last_login
           FROM hdd_patients
           WHERE session_token = ${sessionToken} AND status = 'active'
         `;
@@ -465,6 +467,17 @@ export default async (req: Request, context: Context) => {
           return new Response(JSON.stringify({
             valid: false,
             error: "Sesión inválida o expirada"
+          }), { status: 401, headers: corsHeaders });
+        }
+
+        // Check session expiry (H-005: 60min therapy session TTL)
+        const { SESSION_TTL } = await import("./lib/auth.mts");
+        if (isSessionExpired(patient.last_login, SESSION_TTL.PATIENT)) {
+          // Invalidate expired token
+          await sql`UPDATE hdd_patients SET session_token = NULL WHERE id = ${patient.id}`;
+          return new Response(JSON.stringify({
+            valid: false,
+            error: "Sesión expirada. Inicie sesión nuevamente."
           }), { status: 401, headers: corsHeaders });
         }
 

@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
+import { getCorsHeaders } from "./lib/auth.mts";
 
 // Serve images from Netlify Blobs storage
 
@@ -7,11 +8,7 @@ export default async (req: Request, context: Context) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
+      headers: getCorsHeaders(req.headers.get('origin'))
     });
   }
 

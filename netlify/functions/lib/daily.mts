@@ -36,7 +36,7 @@ export async function createDailyRoom(roomName: string, expiryMinutes: number = 
 
   const config: DailyRoomConfig = {
     name: roomName,
-    privacy: "public",
+    privacy: "private",
     properties: {
       exp,
       max_participants: 4,

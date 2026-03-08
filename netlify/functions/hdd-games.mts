@@ -2,26 +2,25 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
 import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
+import { getCorsHeaders, isSessionExpired, escapeHtml, SESSION_TTL, checkDailyGamingLimit } from "./lib/auth.mts";
 
-const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
   const [patient] = await sql`
-    SELECT id, dni, full_name, status
+    SELECT id, dni, full_name, status, last_login
     FROM hdd_patients
     WHERE session_token = ${sessionToken} AND status = 'active'
   `;
+  if (!patient) return null;
+  // Enforce session expiry (H-005: 60min therapy TTL)
+  if (isSessionExpired(patient.last_login, SESSION_TTL.PATIENT)) return null;
   return patient;
 }
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -167,7 +166,7 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ sessions }), { headers: corsHeaders });
       } catch (err: any) {
         console.error("Metrics query error:", err);
-        return new Response(JSON.stringify({ sessions: [], error: err.message }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ sessions: [], error: "Error al cargar métricas" }), { headers: corsHeaders });
       }
     }
 
@@ -223,6 +222,17 @@ export default async (req: Request, context: Context) => {
       if (action === "start_session") {
         const { gameSlug, level } = body;
 
+        // Enforce daily gaming limit: 1hr/day across all games
+        const gamingLimit = await checkDailyGamingLimit(sql, patient.id);
+        if (!gamingLimit.allowed) {
+          return new Response(JSON.stringify({
+            error: "Límite diario alcanzado",
+            message: "Has alcanzado el límite de 1 hora de juego por día. Volvé mañana.",
+            dailyLimitReached: true,
+            usedMinutes: Math.round(gamingLimit.usedMs / 60000)
+          }), { status: 429, headers: corsHeaders });
+        }
+
         const [game] = await sql`SELECT id FROM hdd_games WHERE slug = ${gameSlug} AND is_active = TRUE`;
         if (!game) {
           return new Response(JSON.stringify({ error: "Juego no encontrado" }), { status: 404, headers: corsHeaders });
@@ -237,7 +247,12 @@ export default async (req: Request, context: Context) => {
         // Record service usage for entitlement tracking
         recordUsage(sql, patient.id, 'gaming', `game_session:${session.id}`).catch(() => {});
 
-        return new Response(JSON.stringify({ success: true, sessionId: session.id, startedAt: session.started_at }), { headers: corsHeaders });
+        return new Response(JSON.stringify({
+          success: true,
+          sessionId: session.id,
+          startedAt: session.started_at,
+          dailyRemainingMinutes: Math.round(gamingLimit.remainingMs / 60000)
+        }), { headers: corsHeaders });
       }
 
       // Save game result
@@ -432,10 +447,10 @@ export default async (req: Request, context: Context) => {
               ADMIN_EMAIL,
               `[HDD ALERTA] ${alertReason} - Paciente ${patient.full_name}`,
               `<h2>Alerta de Protocolo de Crisis - Hospital de Dia</h2>
-              <p><strong>Paciente:</strong> ${patient.full_name} (DNI: ${patient.dni})</p>
-              <p><strong>Razon:</strong> ${alertReason}</p>
+              <p><strong>Paciente:</strong> ${escapeHtml(patient.full_name)} (DNI: ${escapeHtml(patient.dni)})</p>
+              <p><strong>Razon:</strong> ${escapeHtml(alertReason)}</p>
               <p><strong>Estado de animo reportado:</strong> ${mood}/5</p>
-              ${note ? `<p><strong>Nota del paciente:</strong> ${note}</p>` : ''}
+              ${note ? `<p><strong>Nota del paciente:</strong> ${escapeHtml(note)}</p>` : ''}
               <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}</p>
               <hr>
               <p style="color: #666;">Este es un mensaje automatico del sistema HDD. Ingrese al <a href="https://clinicajoseingenieros.ar/hdd/admin">Panel de Administracion</a> para revisar.</p>`
@@ -500,9 +515,12 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
+      // No matching action found
+      return new Response(JSON.stringify({ error: "Acción inválida" }), { status: 400, headers: corsHeaders });
+
     } catch (err: any) {
       console.error("HDD Games error:", err);
-      return new Response(JSON.stringify({ error: "Error interno del servidor", details: err.message }), {
+      return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
         status: 500,
         headers: corsHeaders,
       });

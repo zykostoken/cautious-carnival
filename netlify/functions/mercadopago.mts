@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
+import { getCorsHeaders } from "./lib/auth.mts";
 
 // Mercado Pago API configuration
 const MP_API_URL = "https://api.mercadopago.com";
@@ -63,12 +64,7 @@ async function getPaymentInfo(paymentId: string, accessToken: string) {
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   // Get Mercado Pago access token from environment
   const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -440,8 +436,7 @@ export default async (req: Request, context: Context) => {
     } catch (error) {
       console.error("Mercado Pago error:", error);
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: error instanceof Error ? error.message : "Unknown error"
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }

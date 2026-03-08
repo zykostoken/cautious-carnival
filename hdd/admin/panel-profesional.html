@@ -459,7 +459,6 @@ function buildGameSection(slug, data, colors) {
       .sort((a, b) => a.t - b.t);
     return candidates.length ? candidates[0].c : null;
   }
-  const sorted = [...data].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
   const baseline = sorted[0]?.metric_value || 0;
   const latest = sorted[sorted.length-1]?.metric_value || 0;
   const avg = Math.round(data.reduce((s,m) => s + (m.metric_value || 0), 0) / data.length);
@@ -709,7 +708,11 @@ async function startVideoConsult(patientId, patientName) {
   document.getElementById('vm-error').style.display = 'none';
 
   try {
-    const sessionToken = crypto.randomUUID();
+    // Use the actual professional session token from admin login
+    const sessionToken = localStorage.getItem('hdd_admin_session');
+    if (!sessionToken) {
+      throw new Error('Sesión no encontrada. Inicie sesión en el panel admin primero.');
+    }
     const res = await fetch('/api/daily/room', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse } from "./lib/auth.mts";
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, checkRateLimit, isSessionExpired } from "./lib/auth.mts";
 import { isAdminEmail, isValidProfessionalEmail } from "./lib/admin-roles.mts";
 
 // Flag to track if migration has been run
@@ -43,17 +43,9 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
   }
 }
 
-// Admin emails - hardcoded defaults + env var additions
-const DEFAULT_ADMIN_EMAILS = [
-  'gonzaloperezcortizo@gmail.com',
-  'direccionmedica@clinicajoseingenieros.ar',
-  'gerencia@clinicajoseingenieros.ar'
-];
-
-const ADMIN_EMAILS = [
-  ...DEFAULT_ADMIN_EMAILS,
-  ...(process.env.ADDITIONAL_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [])
-];
+// H-003: Admin emails from env vars only - no hardcoded personal emails
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADDITIONAL_ADMIN_EMAILS || '')
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 // Helper to check if session belongs to admin
 async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
@@ -70,12 +62,8 @@ export default async (req: Request, context: Context) => {
   // Ensure verification columns exist before any operations
   await ensureVerificationColumns(sql);
 
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -126,7 +114,8 @@ export default async (req: Request, context: Context) => {
                   whatsapp = COALESCE(${whatsapp}, whatsapp),
                   dni = COALESCE(${dni || null}, dni),
                   session_token = ${sessionToken},
-                  last_login = NOW()
+                  last_login = NOW(),
+                  last_activity = NOW()
               WHERE id = ${existing.id}
             `;
 
@@ -151,7 +140,8 @@ export default async (req: Request, context: Context) => {
                   verification_code = NULL,
                   verification_expires = NULL,
                   session_token = ${sessionToken},
-                  last_login = NOW()
+                  last_login = NOW(),
+                  last_activity = NOW()
               WHERE id = ${existing.id}
             `;
 
@@ -314,6 +304,13 @@ export default async (req: Request, context: Context) => {
       if (action === "reset_password") {
         const { email, dniLast4, newPassword } = body;
 
+        // Rate limit password reset attempts - critical! Only 10k combinations (H-022)
+        if (!checkRateLimit(`pwd_reset:${email}`, 3, 30 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiados intentos. Intente nuevamente en 30 minutos."
+          }), { status: 429, headers: corsHeaders });
+        }
+
         if (!email || !dniLast4 || !newPassword) {
           return new Response(JSON.stringify({
             error: "Email, últimos 4 dígitos del DNI y nueva contraseña son requeridos"
@@ -369,7 +366,8 @@ export default async (req: Request, context: Context) => {
               email_verified = TRUE,
               is_active = TRUE,
               session_token = ${sessionToken},
-              last_login = NOW()
+              last_login = NOW(),
+              last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -429,7 +427,8 @@ export default async (req: Request, context: Context) => {
               verification_code = NULL,
               verification_expires = NULL,
               session_token = ${sessionToken},
-              last_login = NOW()
+              last_login = NOW(),
+              last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -448,6 +447,13 @@ export default async (req: Request, context: Context) => {
           return new Response(JSON.stringify({
             error: "Email y contraseña requeridos"
           }), { status: 400, headers: corsHeaders });
+        }
+
+        // Rate limit login attempts (H-006)
+        if (!checkRateLimit(`prof_login:${email}`, 5, 15 * 60 * 1000)) {
+          return new Response(JSON.stringify({
+            error: "Demasiados intentos. Intente nuevamente en 15 minutos."
+          }), { status: 429, headers: corsHeaders });
         }
 
         const [professional] = await sql`
@@ -487,7 +493,7 @@ export default async (req: Request, context: Context) => {
 
         await sql`
           UPDATE healthcare_professionals
-          SET session_token = ${sessionToken}, last_login = NOW()
+          SET session_token = ${sessionToken}, last_login = NOW(), last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -783,10 +789,8 @@ export default async (req: Request, context: Context) => {
 
     } catch (error) {
       console.error("Professional management error:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: errorMessage
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }
@@ -801,7 +805,7 @@ export default async (req: Request, context: Context) => {
       try {
         const [professional] = await sql`
           SELECT id, email, full_name, specialty, is_available,
-                 notify_email, notify_whatsapp, whatsapp
+                 notify_email, notify_whatsapp, whatsapp, last_activity, last_login
           FROM healthcare_professionals
           WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
@@ -812,6 +816,20 @@ export default async (req: Request, context: Context) => {
             error: "Sesión inválida o expirada"
           }), { status: 401, headers: corsHeaders });
         }
+
+        // Check 2hr inactivity timeout (H-005)
+        const { isProfessionalSessionExpired } = await import("./lib/auth.mts");
+        const lastActive = professional.last_activity || professional.last_login;
+        if (isProfessionalSessionExpired(lastActive)) {
+          await sql`UPDATE healthcare_professionals SET session_token = NULL WHERE id = ${professional.id}`;
+          return new Response(JSON.stringify({
+            valid: false,
+            error: "Sesión expirada por inactividad. Inicie sesión nuevamente."
+          }), { status: 401, headers: corsHeaders });
+        }
+
+        // Touch last_activity on verify (keeps session alive while active)
+        await sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE id = ${professional.id}`;
 
         return new Response(JSON.stringify({
           valid: true,

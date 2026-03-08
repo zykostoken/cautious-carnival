@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
+import { getCorsHeaders } from "./lib/auth.mts";
 
 // Image upload for community whiteboard
 // Uses Netlify Blobs to store images
@@ -8,12 +9,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB max
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 export default async (req: Request, context: Context) => {
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });

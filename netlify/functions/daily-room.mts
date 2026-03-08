@@ -20,12 +20,9 @@ async function callDaily(path: string, method = "GET", body?: object) {
 }
 
 export default async (req: Request, context: Context) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Content-Type": "application/json",
-  };
+  // Import CORS from auth module
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -36,9 +33,25 @@ export default async (req: Request, context: Context) => {
       const body = await req.json();
       const { action } = body;
 
+      // Auth check: require professional session (H-049)
+      const sessionToken = body.sessionToken || req.headers.get('Authorization')?.replace('Bearer ', '');
+      if (!sessionToken) {
+        return new Response(JSON.stringify({ error: "Autenticacion requerida" }), { status: 401, headers: corsHeaders });
+      }
+      const { getDatabase: getDb } = await import("./lib/db.mts");
+      const sql = getDb();
+      const [prof] = await sql`SELECT id, email FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+      if (!prof) {
+        return new Response(JSON.stringify({ error: "Sesion profesional invalida" }), { status: 403, headers: corsHeaders });
+      }
+
+      // Audit log: video session creation
+      const { logProfessionalAction } = await import("./lib/audit.mts");
+
       // Crear sala nueva para una consulta
       if (action === "create_room") {
-        const { sessionToken, patientName, professionalName, durationMinutes = 60 } = body;
+        // Default teleresource session: 30 min (H-005)
+        const { sessionToken, patientName, professionalName, durationMinutes = 30 } = body;
 
         if (!sessionToken) {
           return new Response(
@@ -91,6 +104,19 @@ export default async (req: Request, context: Context) => {
             user_name: patientName || "Paciente",
             exp: expiresAt,
           },
+        });
+
+        // Audit: log video session creation
+        logProfessionalAction(sql, {
+          professionalId: prof.id,
+          professionalEmail: prof.email,
+          actionType: 'video_session',
+          resourceType: 'video',
+          patientName: patientName || null,
+          details: { roomName, durationMinutes },
+          durationSeconds: durationMinutes * 60,
+          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+          userAgent: req.headers.get('user-agent'),
         });
 
         return new Response(
@@ -177,7 +203,7 @@ export default async (req: Request, context: Context) => {
     } catch (error) {
       console.error("Daily room error:", error);
       return new Response(
-        JSON.stringify({ error: "Internal error", detail: String(error) }),
+        JSON.stringify({ error: "Error interno" }),
         { status: 500, headers: corsHeaders }
       );
     }
