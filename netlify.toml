@@ -1,7 +1,10 @@
 [build]
   publish = "."
   command = "npm install && npm run setup-db"
-  environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "true" }
+
+[build.environment]
+  SECRETS_SCAN_SMART_DETECTION_ENABLED = "true"
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_ANON_KEY,ADMIN_EMAIL,ADMIN_PHONE,SUPER_ADMIN_EMAILS,LIMITED_ADMIN_EMAILS"
 
 [functions]
   directory = "netlify/functions"

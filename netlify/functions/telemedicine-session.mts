@@ -326,6 +326,9 @@ export default async (req: Request, context: Context) => {
 
         if (payment && payment.status === 'approved') {
           // Payment confirmed! Create Daily.co room and activate session
+          let dailyRoomUrl = '';
+          let dailyPatientUrl = '';
+
           if (sessionToken) {
             const [session] = await sql`
               SELECT id, user_id, call_type, daily_room_name, status
@@ -337,9 +340,7 @@ export default async (req: Request, context: Context) => {
               // Create Daily.co room now that payment is confirmed
               const DAILY_API_KEY = process.env.DAILY_API_KEY;
               let dailyRoomName = '';
-              let dailyRoomUrl = '';
               let dailyProfUrl = '';
-              let dailyPatientUrl = '';
 
               const [user] = await sql`
                 SELECT full_name, email FROM telemedicine_users WHERE id = ${session.user_id}

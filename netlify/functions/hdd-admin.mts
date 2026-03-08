@@ -403,7 +403,7 @@ export default async (req: Request, context: Context) => {
           VALUES (
             ${title}, ${description || null}, ${resourceType || 'link'},
             ${resourceUrl}, ${duration || null}, ${icon || null},
-            ${category || null}, TRUE, ${email}, NOW(), NOW()
+            ${category || null}, TRUE, ${prof?.email || 'admin'}, NOW(), NOW()
           )
           RETURNING id, title
         `;

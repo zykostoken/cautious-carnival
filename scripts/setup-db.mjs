@@ -351,6 +351,15 @@ CREATE TABLE IF NOT EXISTS hdd_login_tracking (
 CREATE INDEX IF NOT EXISTS idx_hdd_login_patient ON hdd_login_tracking(patient_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_login_date ON hdd_login_tracking(login_at);
 
+-- Ensure hdd_activities has the weekly schedule columns
+-- (migrate.mts may have created this table with a different schema as an activity log)
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS name VARCHAR(100);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS day_of_week INTEGER;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS start_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS end_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
 -- Insert default HDD activities
 INSERT INTO hdd_activities (name, description, day_of_week, start_time, end_time)
 VALUES
@@ -404,6 +413,9 @@ VALUES
     ('Consulta Nocturna (20-09hs)', 'Videoconsulta on-demand 20:00-09:00 hs', 200000.00, 30)
 ON CONFLICT DO NOTHING;
 
+-- Ensure video_sessions has payment_reference (added by migrate.mts)
+ALTER TABLE video_sessions ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(255);
+
 -- Indexes for payment tables
 CREATE INDEX IF NOT EXISTS idx_mp_payments_user ON mp_payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_mp_payments_status ON mp_payments(status);
@@ -431,6 +443,14 @@ CREATE TABLE IF NOT EXISTS consultations (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
+-- Ensure consultations has columns from migrate.mts schema
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS response TEXT;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS subject VARCHAR(255) DEFAULT 'Consulta General';
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE consultations ADD COLUMN IF NOT EXISTS notes TEXT;
+
 -- Telemedicine interest / pre-registration for service launch notifications
 CREATE TABLE IF NOT EXISTS telemedicine_interest (
     id SERIAL PRIMARY KEY,
@@ -443,6 +463,13 @@ CREATE TABLE IF NOT EXISTS telemedicine_interest (
     notified_at TIMESTAMP WITH TIME ZONE,
     notes TEXT
 );
+
+-- Ensure telemedicine_interest has all columns (migrate.mts creates with fewer columns)
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE telemedicine_interest ADD COLUMN IF NOT EXISTS session_id VARCHAR(64);
 
 -- Indexes for consultations
 CREATE INDEX IF NOT EXISTS idx_consultations_status ON consultations(status);
@@ -612,6 +639,109 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- =============================================
+-- HDD CLINICAL MONITORING TABLES
+-- =============================================
+
+-- Mood check-ins (mood_value nullable for 3-phase system)
+CREATE TABLE IF NOT EXISTS hdd_mood_checkins (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE CASCADE,
+    mood_value INTEGER,
+    note TEXT,
+    color_hex VARCHAR(7),
+    color_intensity VARCHAR(20),
+    context VARCHAR(50) DEFAULT 'daily_checkin',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Fix NOT NULL/CHECK constraint on mood_value if migration 010 created it
+DO $$ BEGIN
+  ALTER TABLE hdd_mood_checkins ALTER COLUMN mood_value DROP NOT NULL;
+EXCEPTION WHEN others THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE hdd_mood_checkins DROP CONSTRAINT IF EXISTS hdd_mood_checkins_mood_value_check;
+EXCEPTION WHEN others THEN NULL;
+END $$;
+ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS color_hex VARCHAR(7);
+ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS color_intensity VARCHAR(20);
+ALTER TABLE hdd_mood_checkins ADD COLUMN IF NOT EXISTS context VARCHAR(50) DEFAULT 'daily_checkin';
+
+-- Crisis alerts
+CREATE TABLE IF NOT EXISTS hdd_crisis_alerts (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE CASCADE,
+    alert_type VARCHAR(50) NOT NULL,
+    reason TEXT NOT NULL,
+    mood_value INTEGER,
+    note TEXT,
+    game_session_id INTEGER REFERENCES hdd_game_sessions(id),
+    status VARCHAR(20) DEFAULT 'pending',
+    reviewed_by INTEGER REFERENCES healthcare_professionals(id),
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    resolution_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Game color selections
+CREATE TABLE IF NOT EXISTS hdd_game_color_selections (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE CASCADE,
+    game_session_id INTEGER REFERENCES hdd_game_sessions(id),
+    color_hex VARCHAR(7) NOT NULL,
+    color_intensity VARCHAR(20) NOT NULL DEFAULT 'vivid',
+    context VARCHAR(50) NOT NULL DEFAULT 'during_game',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Patient monthly summaries
+CREATE TABLE IF NOT EXISTS hdd_patient_monthly_summaries (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE CASCADE,
+    month_year VARCHAR(7) NOT NULL,
+    total_logins INTEGER DEFAULT 0,
+    total_game_sessions INTEGER DEFAULT 0,
+    total_game_time_seconds INTEGER DEFAULT 0,
+    total_posts INTEGER DEFAULT 0,
+    avg_mood NUMERIC(3,1),
+    mood_trend VARCHAR(20),
+    color_distribution JSONB,
+    game_performance JSONB,
+    interaction_summary JSONB,
+    generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(patient_id, month_year)
+);
+
+-- Session interaction tracking
+CREATE TABLE IF NOT EXISTS hdd_interaction_log (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE CASCADE,
+    interaction_type VARCHAR(50) NOT NULL,
+    details JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Admin notifications
+CREATE TABLE IF NOT EXISTS hdd_admin_notifications (
+    id SERIAL PRIMARY KEY,
+    notification_type VARCHAR(50) NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT,
+    recipient_email VARCHAR(255) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    sent_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for clinical tables
+CREATE INDEX IF NOT EXISTS idx_mood_checkins_patient_date ON hdd_mood_checkins(patient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crisis_alerts_status ON hdd_crisis_alerts(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crisis_alerts_patient ON hdd_crisis_alerts(patient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_game_color_patient ON hdd_game_color_selections(patient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_interaction_log_patient ON hdd_interaction_log(patient_id, created_at DESC);
+
+-- =============================================
 -- HDD BIOMETRIC GAME METRICS (longitudinal)
 -- =============================================
 
@@ -632,6 +762,15 @@ CREATE TABLE IF NOT EXISTS hdd_game_metrics (
     level_reached INTEGER,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- Ensure hdd_game_metrics has all columns from both schemas
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS game_session_id INTEGER;
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS patient_dni VARCHAR(20);
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS session_date TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS duration_seconds INTEGER;
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS score INTEGER;
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE hdd_game_metrics ADD COLUMN IF NOT EXISTS level_reached INTEGER;
 
 -- Indexes for fast longitudinal queries
 CREATE INDEX IF NOT EXISTS idx_hdd_game_metrics_patient_id ON hdd_game_metrics(patient_id);
@@ -659,6 +798,11 @@ CREATE TABLE IF NOT EXISTS hdd_mood_entries (
     recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- Ensure hdd_mood_entries has all columns from migration 20260301000000
+ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS color_name VARCHAR(50);
+ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS entry_type VARCHAR(30) DEFAULT 'post_activity';
+ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS session_id VARCHAR(100);
 
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_dni ON hdd_mood_entries(patient_dni);
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_id ON hdd_mood_entries(patient_id);
@@ -738,8 +882,19 @@ async function runMigration() {
     await sql.end();
 
   } catch (error) {
-    console.error("Migration error:", error.message);
-    // Don't fail the build - just log the error
+    console.error("========================================");
+    console.error("⚠️  MIGRATION ERROR - REQUIRES ATTENTION");
+    console.error("========================================");
+    console.error("Error:", error.message);
+    if (error.detail) console.error("Detail:", error.detail);
+    if (error.hint) console.error("Hint:", error.hint);
+    if (error.where) console.error("Where:", error.where);
+    console.error("========================================");
+    console.error("The build will continue but database may be incomplete.");
+    console.error("Check Supabase dashboard or run migrations manually.");
+    console.error("========================================");
+    // Don't fail the build - DB might not be reachable during build
+    // but make the error impossible to miss in deploy logs
     process.exit(0);
   }
 }
