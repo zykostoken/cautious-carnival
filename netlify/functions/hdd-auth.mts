@@ -290,15 +290,16 @@ export default async (req: Request, context: Context) => {
         }
 
         // Update the latest login tracking record with interaction data
+        // Use subquery since PostgreSQL UPDATE does not support ORDER BY/LIMIT
         await sql`
           UPDATE hdd_login_tracking
-          SET interactions = COALESCE(interactions, '{}'::jsonb) ||
-              jsonb_build_object(${activityType || 'general'}, COALESCE(interactions->${activityType || 'general'}, '0'::jsonb)::int + 1),
-              activities_completed = activities_completed + 1
-          WHERE patient_id = ${patient.id}
-            AND logout_at IS NULL
-          ORDER BY login_at DESC
-          LIMIT 1
+          SET activities_completed = activities_completed + 1
+          WHERE id = (
+            SELECT id FROM hdd_login_tracking
+            WHERE patient_id = ${patient.id} AND logout_at IS NULL
+            ORDER BY login_at DESC
+            LIMIT 1
+          )
         `.catch(e => console.log('Activity tracking error:', e));
 
         return new Response(JSON.stringify({

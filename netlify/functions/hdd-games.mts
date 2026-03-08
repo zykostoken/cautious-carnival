@@ -499,6 +499,9 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
+      // No matching action found
+      return new Response(JSON.stringify({ error: "Acción inválida" }), { status: 400, headers: corsHeaders });
+
     } catch (err: any) {
       console.error("HDD Games error:", err);
       return new Response(JSON.stringify({ error: "Error interno del servidor" }), {
