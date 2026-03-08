@@ -14,9 +14,9 @@ UPDATE healthcare_professionals
   WHERE last_activity IS NULL AND last_login IS NOT NULL;
 
 -- Index for efficient daily gaming time queries
+-- Note: cannot use CURRENT_DATE in partial index (not IMMUTABLE), using regular composite index
 CREATE INDEX IF NOT EXISTS idx_game_sessions_patient_daily
-  ON hdd_game_sessions (patient_id, started_at)
-  WHERE started_at >= CURRENT_DATE;
+  ON hdd_game_sessions (patient_id, started_at);
 
 -- Index for professional inactivity checks
 CREATE INDEX IF NOT EXISTS idx_professionals_last_activity
