@@ -35,7 +35,7 @@ export default async (req: Request, context: Context) => {
       return new Response("Image not found", { status: 404 });
     }
 
-    const contentType = result.metadata?.contentType || 'image/jpeg';
+    const contentType: string = (result.metadata as any)?.contentType || 'image/jpeg';
 
     return new Response(result.data, {
       status: 200,

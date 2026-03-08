@@ -721,7 +721,7 @@ export default async (req: Request, context: Context) => {
       ORDER BY table_name
     `;
 
-    const tableNames = tables.map((t: { table_name: string }) => t.table_name);
+    const tableNames = tables.map((t: any) => t.table_name);
     results.push(`Tables in database: ${tableNames.join(", ")}`);
 
     return new Response(JSON.stringify({

@@ -87,7 +87,7 @@ export default async (req: Request, context: Context) => {
 
       // Store in Netlify Blobs
       const store = getStore("images");
-      await store.set(key, buffer, {
+      await store.set(key, buffer.buffer as ArrayBuffer, {
         metadata: {
           contentType: mimeType,
           uploadedAt: new Date().toISOString(),
