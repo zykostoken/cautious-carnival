@@ -11,13 +11,13 @@
 
 ## RESUMEN EJECUTIVO
 
-Se identificaron **63 hallazgos** clasificados por severidad:
+Se identificaron **71 hallazgos** clasificados por severidad:
 
 | Severidad | Cantidad | Descripcion |
 |-----------|----------|-------------|
-| CRITICO   | 14       | Riesgos que impiden habilitacion o exponen datos sensibles |
-| ALTO      | 18       | Incumplimientos normativos directos |
-| MEDIO     | 18       | Debilidades tecnicas o documentales |
+| CRITICO   | 17       | Riesgos que impiden habilitacion o exponen datos sensibles |
+| ALTO      | 20       | Incumplimientos normativos directos |
+| MEDIO     | 21       | Debilidades tecnicas o documentales |
 | BAJO      | 13       | Mejoras recomendadas |
 
 **Veredicto general:** El portal **NO cumple** con los requisitos minimos para operar como sistema de historia clinica digital ni como plataforma de telemedicina habilitada bajo la normativa argentina vigente. Requiere correcciones criticas antes de cualquier proceso de homologacion.
@@ -641,6 +641,73 @@ Los siguientes hallazgos se identificaron en el analisis exhaustivo de las 24 fu
 | `/api/announcements` (community) | Crear anuncios publicos | MEDIO |
 | `/api/analytics` | Estadisticas de uso | MEDIO |
 | `/api/track-survey` | Manipular respuestas de encuestas | MEDIO |
+
+---
+
+---
+
+## SECCION 17: HALLAZGOS ADICIONALES DE FRONTEND (Analisis profundo)
+
+### H-064: Clave anonima de Supabase expuesta en 6+ archivos del cliente (CRITICO)
+- **Archivos:** `games/shared/mood-modals.js:57-58`, `games/portal/dashboard.html:219-221`, `hdd/admin/clinical-dashboard.html:91-93`, `hdd/admin/panel-profesional.html:197-199`, `hdd/portal/metrics-dashboard.html`, `hdd/portal/metrics.html`
+- **Hallazgo:** La misma clave anonima de Supabase (`eyJhbGciOiJIUzI1NiIs...`) esta hardcodeada en multiples archivos JavaScript/HTML del frontend. Combinado con H-060 (GRANT ALL a anon), permite acceso directo a TODA la base de datos clinica desde cualquier navegador
+- **Impacto:** Cualquier persona puede consultar, insertar y modificar datos clinicos psiquiatricos directamente via la API REST de Supabase, sin pasar por el backend
+- **Normativa:** Ley 25.326 Art. 9, Ley 26.529 Art. 2, Ley 26.657 Art. 7
+
+### H-065: XSS almacenado en vistas de administracion (CRITICO)
+- **Archivo:** `js/core.js:570-591` (anuncios), `js/core.js:814-845` (consultas), `js/core.js:644-666` (profesionales)
+- **Hallazgo:** Los datos de anuncios, consultas de pacientes y profesionales se renderizan con `innerHTML` sin escapar. Los campos `title`, `content`, `name`, `message`, `email`, `phone`, `subject`, `notes` se insertan como HTML crudo
+- **Impacto:** Un atacante puede inyectar JavaScript persistente via el formulario de contacto o via un anuncio de comunidad (H-057, sin auth). El codigo se ejecuta cuando un admin visualiza la consulta
+- **Normativa:** OWASP Top 10 A7 - Cross-Site Scripting
+
+### H-066: Dashboard de biometria sin autenticacion en frontend (CRITICO)
+- **Archivo:** `games/portal/dashboard.html`
+- **Hallazgo:** La pagina no tiene gate de autenticacion. Consulta directamente Supabase para listar todos los pacientes (hasta 100) con nombre, DNI, sesiones de juego, datos biometricos, metricas de humor, y perfiles clinicos
+- **Impacto:** Brecha total de datos clinicos psiquiatricos accesible por URL
+
+### H-067: Datos psiquiatricos de pacientes en localStorage (ALTO)
+- **Archivo:** `js/hdd-portal.js:443`
+- **Hallazgo:** El objeto completo del paciente (`JSON.stringify(currentUser)`) incluyendo DNI, email, telefono, se almacena en `localStorage` (`hdd_user`). Tambien `hdd_session`, `hdd_patient_id`
+- **Impacto:** En dispositivos compartidos (comunes en entornos clinicos), otro usuario puede acceder a estos datos. `localStorage` no se borra al cerrar el navegador
+- **Normativa:** Ley 26.657 Art. 7 inc. d) - confidencialidad de la condicion de paciente
+
+### H-068: Patient ID spoofable via URL/localStorage (ALTO)
+- **Archivo:** `games/shared/mood-modals.js:115`
+- **Hallazgo:** `patient_id` se lee de parametros URL o localStorage. Un usuario puede suministrar cualquier `patient_id` para asociar datos clinicos (humor, colores proyectivos, biometria) con otro paciente
+- **Impacto:** Contaminacion de registros clinicos, falsos positivos en alertas de crisis
+
+### H-069: Sesiones de juegos nunca expiran realmente (MEDIO)
+- **Archivo:** `games/portal/index.html:362-378`, `games/index.html:303-316`
+- **Hallazgo:** Si la verificacion de sesion falla pero existe `games_user` en localStorage, el usuario sigue autenticado. Comentado como proteccion contra "cold starts" de serverless
+- **Impacto:** Las sesiones de acceso a juegos terapeuticos son efectivamente permanentes
+
+### H-070: Exportacion CSV/PDF de datos clinicos sin restriccion (MEDIO)
+- **Archivo:** `hdd/portal/metrics.html`, `hdd/portal/metrics-dashboard.html`
+- **Hallazgo:** Funcionalidad de exportar datos clinicos psiquiatricos (humor, biometria, rendimiento cognitivo) a CSV y PDF
+- **Impacto:** Datos clinicos sensibles pueden salir del entorno controlado
+- **Normativa:** Ley 25.326 - control sobre cesion de datos; requiere registro y consentimiento
+
+### H-071: Links de videoconsulta generados y mostrados en panel profesional (MEDIO)
+- **Archivo:** `hdd/admin/panel-profesional.html`
+- **Hallazgo:** El panel genera links de Daily.co para teleconsultas y los muestra en la interfaz. Si estos links son interceptados, dan acceso directo a la sesion de video
+- **Normativa:** Ley 26.529 Art. 2 - confidencialidad de la consulta medica
+
+---
+
+## ESTADISTICAS FINALES DE LA AUDITORIA
+
+| Categoria | Hallazgos |
+|-----------|-----------|
+| Credenciales expuestas | 5 (SMTP, Supabase key, admin emails, admin phone, access codes) |
+| Endpoints sin autenticacion | 12 |
+| Vulnerabilidades XSS | 3 (admin views, announcements, consultations) |
+| Datos clinicos accesibles sin auth | 4 (biometria, dashboard, vistas SQL, mood entries) |
+| Incumplimientos Ley 25.326 | 8 |
+| Incumplimientos Ley 26.529 | 6 |
+| Incumplimientos Ley 27.553 | 4 |
+| Incumplimientos Res. 1840/2018 | 7 |
+| Incumplimientos Res. 1959/2024 | 3 |
+| Total hallazgos | 71 |
 
 ---
 
