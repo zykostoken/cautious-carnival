@@ -28,7 +28,7 @@ Se identificaron **71 hallazgos** clasificados por severidad:
 
 ### H-001: Contrasena SMTP expuesta en repositorio Git
 - **Archivo:** `VARIABLES_ENTORNO_NECESARIAS.md:12-15`
-- **Hallazgo:** Contrasena real del servidor SMTP (`Npemb5ZNuFA8`) commiteada en texto plano
+- **Hallazgo:** Contrasena real del servidor SMTP commiteada en texto plano (ya redactada)
 - **Impacto:** Cualquier persona con acceso al repo puede enviar emails como `direccionmedica@clinicajoseingenieros.ar`
 - **Normativa:** Ley 25.326 (Proteccion de Datos Personales) Art. 9 - medidas de seguridad
 - **Accion:** ROTAR CREDENCIAL INMEDIATAMENTE. Eliminar del historial Git con `git filter-branch` o BFG Repo Cleaner

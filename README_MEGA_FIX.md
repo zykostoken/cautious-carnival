@@ -136,7 +136,7 @@ URL será: `https://deploy-preview-XX--joseingenieros.netlify.app`
 
 1. Ir a: https://app.netlify.com/sites/joseingenieros/configuration/env
 2. Buscar: `ZOHO_SMTP_PASS`
-3. Actualizar a: `Npemb5ZNuFA8`
+3. Actualizar al valor de la app password de Zoho (NO commitear)
 4. Save & Redeploy
 
 ### 6. Testing Checklist
