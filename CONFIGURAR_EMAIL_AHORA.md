@@ -29,7 +29,7 @@ Deploy contexts: All
 #### Variable 2: `ZOHO_SMTP_PASS`
 ```
 Key: ZOHO_SMTP_PASS
-Value: Npemb5ZNuFA8
+Value: [SET_IN_NETLIFY_ENV_VARS]
 Scopes: All scopes
 Deploy contexts: All
 ```
@@ -89,9 +89,9 @@ curl -X POST https://clinicajoseingenieros.ar/.netlify/functions/notifications \
 
 ## 🔐 Credenciales de Zoho Mail
 
-**Email:** direccionmedica@clinicajoseingenieros.ar  
-**App Password:** Npemb5ZNuFA8  
-**SMTP Host:** smtp.zoho.com  
+**Email:** direccionmedica@clinicajoseingenieros.ar
+**App Password:** [SET_IN_NETLIFY_ENV_VARS]
+**SMTP Host:** smtp.zoho.com
 **SMTP Port:** 465 (SSL) o 587 (TLS)
 
 ---
@@ -106,7 +106,7 @@ curl -X POST https://clinicajoseingenieros.ar/.netlify/functions/notifications \
 
 ### Error: "Authentication failed"  
 → La contraseña de app está mal. Verificar:
-- Contraseña exacta: `Npemb5ZNuFA8`
+- Contraseña exacta: `[SET_IN_NETLIFY_ENV_VARS]`
 - Es una "App Password" de Zoho, no la contraseña normal
 - Si expiró, generar nueva en: https://accounts.zoho.com/home#security/app-passwords
 

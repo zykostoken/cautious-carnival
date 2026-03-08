@@ -14,9 +14,12 @@ CREATE TABLE IF NOT EXISTS hdd_patients (
 
 CREATE TABLE IF NOT EXISTS hdd_activities (
     id SERIAL PRIMARY KEY,
-    patient_id INTEGER REFERENCES hdd_patients(id),
-    activity_type VARCHAR(50),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    day_of_week INTEGER,
+    start_time TIME,
+    end_time TIME,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE IF NOT EXISTS hdd_login_tracking (

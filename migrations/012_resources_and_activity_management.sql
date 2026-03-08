@@ -41,6 +41,9 @@ ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS max_capacity INTEGER;
 ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
+-- Ensure hdd_activities has expected columns before updates
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS name VARCHAR(100);
+
 -- Set default icons for existing activities
 UPDATE hdd_activities SET icon = '🎵' WHERE name ILIKE '%musica%' OR name ILIKE '%música%';
 UPDATE hdd_activities SET icon = '🌱' WHERE name ILIKE '%huerta%';

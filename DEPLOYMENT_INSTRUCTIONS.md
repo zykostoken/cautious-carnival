@@ -113,7 +113,7 @@ Conectar a Supabase:
 # - sql/02_game_sessions.sql
 
 # Opción 2: Desde psql (si tenés instalado)
-export SUPABASE_URL="postgresql://postgres.yqpqfzvgcmvxvqzvtajx:Mafalda401!@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
+export SUPABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
 psql $SUPABASE_URL -f sql/01_color_psychology.sql
 psql $SUPABASE_URL -f sql/02_game_sessions.sql
@@ -129,7 +129,7 @@ SELECT * FROM hdd_game_sessions LIMIT 1;   -- Verifica que existe
 
 1. Ir a: https://app.netlify.com/sites/joseingenieros/configuration/env
 2. Buscar variable: `ZOHO_SMTP_PASS`
-3. Editar y cambiar valor a: `Npemb5ZNuFA8`
+3. Editar y cambiar valor a: `[SET_IN_NETLIFY_ENV_VARS]`
 4. Save
 5. Trigger redeploy
 
