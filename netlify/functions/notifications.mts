@@ -3,9 +3,9 @@ import { getDatabase } from "./lib/db.mts";
 import { sendWhatsAppNotification, sendEmailNotification, type NotificationResult } from "./lib/notifications.mts";
 import { CORS_HEADERS } from "./lib/auth.mts";
 
-// Admin notification settings - hardcoded for reliability
-const ADMIN_PHONE = "+5492262656681";
-const ADMIN_EMAIL = "direccionmedica@clinicajoseingenieros.ar";
+// Admin notification settings from env vars (H-051)
+const ADMIN_PHONE = process.env.ADMIN_PHONE || "";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 
 async function logNotification(sql: any, recipientType: string, recipientId: number, channel: string, destination: string, messageType: string, messageContent: string, result: NotificationResult) {
   try {
@@ -27,13 +27,8 @@ Precio: ${priceStr} (${timeSlotStr})
 Sala: ${roomName}
 Acceder: https://clinicajoseingenieros.ar/#profesional`;
 
-  const emailSubject = `💳 PAGO CONFIRMADO — Videoconsulta ${patientName} — ${priceStr}`;
-  const profUrlBlock = body?.dailyProfUrl
-    ? `<div style="background:#dbeafe;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #2563eb;text-align:center">
-        <p style="color:#1e40af;font-weight:bold;margin:0 0 10px">Tu sala lista — entrá ahora</p>
-        <a href="${body.dailyProfUrl}" style="display:inline-block;background:#1e40af;color:white;padding:12px 28px;text-decoration:none;border-radius:8px;font-size:1em">📹 Entrar a la consulta</a>
-      </div>`
-    : '';
+  const emailSubject = `PAGO CONFIRMADO — Videoconsulta ${patientName} — ${priceStr}`;
+  const profUrlBlock = '';
   const emailHtml = `
     <div style="font-family:Arial;max-width:600px;margin:0 auto">
       <div style="background:#1a5f2a;padding:20px;text-align:center;border-radius:8px 8px 0 0">
@@ -128,21 +123,14 @@ Ref: ${paymentRef}`;
 
 export default async (req: Request, context: Context) => {
   const sql = getDatabase();
-  const corsHeaders = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization" };
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method === "POST") {
     try {
       const body = await req.json();
       const { action } = body;
-      if (action === "test") {
-        const { channel, destination, message } = body;
-        if (!destination) return new Response(JSON.stringify({ error: "destination requerido" }), { status: 400, headers: corsHeaders });
-        let result: NotificationResult;
-        if (channel === 'whatsapp') result = await sendWhatsAppNotification(destination, message || 'Test - Clinica Jose Ingenieros');
-        else if (channel === 'email') result = await sendEmailNotification(destination, 'Test - Clinica Jose Ingenieros', `<p>${message || 'Test del sistema de notificaciones'}</p>`);
-        else return new Response(JSON.stringify({ error: "Canal invalido" }), { status: 400, headers: corsHeaders });
-        return new Response(JSON.stringify({ success: result.success, channel, destination, messageId: result.externalId, error: result.error }), { status: 200, headers: corsHeaders });
-      }
+      // H-051: test action removed - was unauthenticated and allowed arbitrary message sending
       if (action === "notify_new_call") {
         const { callQueueId, patientName, roomName, price, timeSlot } = body;
         const result = await notifyAdminOfNewCall(sql, callQueueId, patientName, roomName, price, timeSlot);
@@ -207,8 +195,8 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
             host: process.env.ZOHO_SMTP_HOST || 'smtp.zoho.com'
           },
           whatsapp: { configured: !!process.env.CALLMEBOT_API_KEY, note: 'WhatsApp deshabilitado por ahora' },
-          adminPhone: ADMIN_PHONE,
-          adminEmail: ADMIN_EMAIL
+          adminPhone: ADMIN_PHONE ? '***' : 'not set',
+          adminEmail: ADMIN_EMAIL ? '***' : 'not set'
         }), { status: 200, headers: corsHeaders });
       }
 
@@ -501,7 +489,7 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
       return new Response(JSON.stringify({ error: "Accion invalida" }), { status: 400, headers: corsHeaders });
     } catch (error) {
       console.error("Notification error:", error);
-      return new Response(JSON.stringify({ error: "Error interno", details: error instanceof Error ? error.message : String(error) }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Error interno" }), { status: 500, headers: corsHeaders });
     }
   }
   if (req.method === "GET") {
@@ -517,8 +505,8 @@ Ver en: https://clinicajoseingenieros.ar/#profesional`;
           note: 'WhatsApp deshabilitado por ahora'
         },
         provider: 'zoho-smtp',
-        adminPhone: ADMIN_PHONE,
-        adminEmail: ADMIN_EMAIL
+        adminPhone: ADMIN_PHONE ? 'configured' : 'not set',
+        adminEmail: ADMIN_EMAIL ? 'configured' : 'not set'
       }), { status: 200, headers: corsHeaders });
     }
     return new Response(JSON.stringify({ error: "Use action=status" }), { status: 400, headers: corsHeaders });

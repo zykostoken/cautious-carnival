@@ -1,16 +1,30 @@
 [build]
   publish = "."
   command = "npm install && npm run setup-db"
-  environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "false" }
+  environment = { SECRETS_SCAN_SMART_DETECTION_ENABLED = "true" }
 
 [functions]
   directory = "netlify/functions"
 
 # =============================================
+# SECURITY HEADERS (H-011, H-044)
+# =============================================
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(self), geolocation=()"
+    X-XSS-Protection = "1; mode=block"
+
+# =============================================
 # CACHE HEADERS FOR STATIC ASSETS
 # =============================================
 
-# Cache CSS and JS files for 1 year (they are versioned by content)
+# Cache CSS and JS files
 [[headers]]
   for = "/css/*"
   [headers.values]
@@ -106,6 +120,12 @@
 [[redirects]]
   from = "/games/*"
   to = "/games/:splat"
+  status = 200
+
+# Privacy policy
+[[redirects]]
+  from = "/privacidad"
+  to = "/privacidad.html"
   status = 200
 
 # Main SPA fallback

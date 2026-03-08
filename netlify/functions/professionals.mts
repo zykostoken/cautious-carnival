@@ -43,17 +43,9 @@ async function ensureVerificationColumns(sql: ReturnType<typeof getDatabase>) {
   }
 }
 
-// Admin emails - hardcoded defaults + env var additions
-const DEFAULT_ADMIN_EMAILS = [
-  'gonzaloperezcortizo@gmail.com',
-  'direccionmedica@clinicajoseingenieros.ar',
-  'gerencia@clinicajoseingenieros.ar'
-];
-
-const ADMIN_EMAILS = [
-  ...DEFAULT_ADMIN_EMAILS,
-  ...(process.env.ADDITIONAL_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [])
-];
+// H-003: Admin emails from env vars only - no hardcoded personal emails
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADDITIONAL_ADMIN_EMAILS || '')
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 // Helper to check if session belongs to admin
 async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
@@ -70,12 +62,8 @@ export default async (req: Request, context: Context) => {
   // Ensure verification columns exist before any operations
   await ensureVerificationColumns(sql);
 
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -783,10 +771,8 @@ export default async (req: Request, context: Context) => {
 
     } catch (error) {
       console.error("Professional management error:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: errorMessage
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }

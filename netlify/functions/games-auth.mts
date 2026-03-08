@@ -5,24 +5,16 @@ function generateSessionToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
 }
 
-// Fallback access codes - used when database is unavailable
-// This ensures partners can always access games even during DB outages
-const FALLBACK_ACCESS_CODES: Record<string, { name: string; type: string }> = {
-  'DEMO2024': { name: 'Demo - Acceso de Prueba', type: 'demo' },
-  'PARTNER001': { name: 'Partner Externo - Codigo 1', type: 'partner' },
-  'RESEARCH001': { name: 'Investigador - Codigo 1', type: 'researcher' },
-};
+// H-050: Fallback access codes removed - hardcoded bypass codes are a security risk
+// Access codes must be managed exclusively through the database
+const FALLBACK_ACCESS_CODES: Record<string, { name: string; type: string }> = {};
 
 // In-memory session store for fallback mode
 const fallbackSessions = new Map<string, { codeName: string; codeType: string; displayName: string | null; createdAt: string }>();
 
 export default async (req: Request, context: Context) => {
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-  };
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -251,10 +243,8 @@ export default async (req: Request, context: Context) => {
 
     } catch (error) {
       console.error("Games Auth error:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
       return new Response(JSON.stringify({
-        error: "Error interno del servidor",
-        details: errorMessage
+        error: "Error interno del servidor"
       }), { status: 500, headers: corsHeaders });
     }
   }

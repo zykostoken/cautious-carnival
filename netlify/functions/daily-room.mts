@@ -20,12 +20,9 @@ async function callDaily(path: string, method = "GET", body?: object) {
 }
 
 export default async (req: Request, context: Context) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Content-Type": "application/json",
-  };
+  // Import CORS from auth module
+  const { getCorsHeaders } = await import("./lib/auth.mts");
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -35,6 +32,18 @@ export default async (req: Request, context: Context) => {
     try {
       const body = await req.json();
       const { action } = body;
+
+      // Auth check: require professional session (H-049)
+      const sessionToken = body.sessionToken || req.headers.get('Authorization')?.replace('Bearer ', '');
+      if (!sessionToken) {
+        return new Response(JSON.stringify({ error: "Autenticacion requerida" }), { status: 401, headers: corsHeaders });
+      }
+      const { getDatabase: getDb } = await import("./lib/db.mts");
+      const sql = getDb();
+      const [prof] = await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+      if (!prof) {
+        return new Response(JSON.stringify({ error: "Sesion profesional invalida" }), { status: 403, headers: corsHeaders });
+      }
 
       // Crear sala nueva para una consulta
       if (action === "create_room") {
@@ -177,7 +186,7 @@ export default async (req: Request, context: Context) => {
     } catch (error) {
       console.error("Daily room error:", error);
       return new Response(
-        JSON.stringify({ error: "Internal error", detail: String(error) }),
+        JSON.stringify({ error: "Error interno" }),
         { status: 500, headers: corsHeaders }
       );
     }

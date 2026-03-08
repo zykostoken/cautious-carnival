@@ -548,6 +548,7 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
 
+      // H-058: Fixed dead code - moved closing brace for check_payment_status
       return new Response(JSON.stringify({
         success: true,
         paymentStatus: payment?.status || 'pending',
@@ -558,17 +559,6 @@ export default async (req: Request, context: Context) => {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
-
-      // Scheduled appointments are disabled - on-demand only
-      if (action === "schedule_call") {
-        return new Response(JSON.stringify({
-          success: false,
-          error: "scheduling_disabled",
-          message: "El servicio de telemedicina es solo bajo demanda. No se pueden agendar turnos. Solicite una consulta inmediata."
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
       }
 
       if (action === "complete_call") {
