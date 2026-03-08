@@ -11,14 +11,14 @@
 
 ## RESUMEN EJECUTIVO
 
-Se identificaron **47 hallazgos** clasificados por severidad:
+Se identificaron **63 hallazgos** clasificados por severidad:
 
 | Severidad | Cantidad | Descripcion |
 |-----------|----------|-------------|
-| CRITICO   | 8        | Riesgos que impiden habilitacion o exponen datos sensibles |
-| ALTO      | 12       | Incumplimientos normativos directos |
-| MEDIO     | 15       | Debilidades tecnicas o documentales |
-| BAJO      | 12       | Mejoras recomendadas |
+| CRITICO   | 14       | Riesgos que impiden habilitacion o exponen datos sensibles |
+| ALTO      | 18       | Incumplimientos normativos directos |
+| MEDIO     | 18       | Debilidades tecnicas o documentales |
+| BAJO      | 13       | Mejoras recomendadas |
 
 **Veredicto general:** El portal **NO cumple** con los requisitos minimos para operar como sistema de historia clinica digital ni como plataforma de telemedicina habilitada bajo la normativa argentina vigente. Requiere correcciones criticas antes de cualquier proceso de homologacion.
 
@@ -533,6 +533,114 @@ El portal de la Clinica Jose Ingenieros tiene una base funcional solida para ser
 3. **Proteccion de datos**: Sin politica de privacidad, datos sensibles sin cifrar, logs con PII
 
 **El sistema NO esta listo para habilitacion ministerial** en su estado actual. Se requiere la implementacion del plan de remediacion propuesto, comenzando por las acciones de emergencia en la Fase 1.
+
+---
+
+---
+
+## SECCION 16: HALLAZGOS ADICIONALES DE BACKEND (Analisis profundo)
+
+Los siguientes hallazgos se identificaron en el analisis exhaustivo de las 24 funciones serverless:
+
+### H-048: Endpoint de biometria completamente sin autenticacion (CRITICO)
+- **Archivo:** `netlify/functions/biometricas.mts`
+- **Hallazgo:** POST y GET completamente sin autenticacion. Cualquiera puede subir o leer datos biometricos de cualquier paciente (tremor, patron de hesitacion, logs de acciones)
+- **Impacto:** Datos biometricos de salud mental accesibles publicamente. Se usa `SUPABASE_SERVICE_ROLE_KEY` que bypasea todo RLS
+- **Normativa:** Ley 25.326 Art. 2 (datos sensibles), Ley 26.529 Art. 2 (confidencialidad)
+
+### H-049: Creacion/eliminacion de salas de video sin autenticacion (CRITICO)
+- **Archivo:** `netlify/functions/daily-room.mts`
+- **Hallazgo:** Cualquiera puede crear salas (consumir cuota de Daily.co) o eliminar salas existentes (interrumpir consultas activas)
+- **Impacto:** Denegacion de servicio, interrupcion de teleconsultas en curso
+
+### H-050: Codigos de acceso a juegos hardcodeados y permanentes (CRITICO)
+- **Archivo:** `netlify/functions/games-auth.mts:11-14`
+- **Hallazgo:** `DEMO2024`, `PARTNER001`, `RESEARCH001` hardcodeados. Funcionan incluso sin base de datos y nunca expiran
+- **Impacto:** Acceso permanente no revocable a juegos terapeuticos
+
+### H-051: Endpoint de test de notificaciones sin autenticacion (ALTO)
+- **Archivo:** `netlify/functions/notifications.mts`
+- **Hallazgo:** La accion `test` permite a cualquiera enviar emails o WhatsApps arbitrarios a traves de las cuentas de la clinica
+- **Impacto:** Phishing, spam, o ingenieria social usando la identidad de la clinica
+- **Hallazgo adicional:** Telefono personal del admin (`+5492262656681`) hardcodeado en linea 8
+
+### H-052: Cancelacion de cola de llamadas sin autenticacion (ALTO)
+- **Archivo:** `netlify/functions/call-queue.mts`
+- **Hallazgo:** La accion `cancel` solo requiere `queueId` (entero secuencial). Cualquiera puede cancelar consultas de otros pacientes
+- **Impacto:** Interrupcion de servicio medico, denegacion de atencion
+
+### H-053: Upload de archivos completamente sin autenticacion (ALTO)
+- **Archivo:** `netlify/functions/upload.mts`
+- **Hallazgo:** POST acepta imagenes hasta 5MB sin verificar identidad. El parametro `folder` del body controla donde se almacenan
+- **Impacto:** Abuso de almacenamiento, potencial sobreescritura de imagenes de otros usuarios
+
+### H-054: Migracion de base de datos ejecutable sin autenticacion (ALTO)
+- **Archivo:** `netlify/functions/migrate.mts`
+- **Hallazgo:** Cualquier POST ejecuta la migracion completa de la base de datos
+- **Impacto:** Confirmacion de estructura interna del sistema, posible interferencia con esquema
+
+### H-055: Primer login permite cuenta takeover con DNI publico (ALTO)
+- **Archivo:** `netlify/functions/hdd-auth.mts:96-131`
+- **Hallazgo:** Si un paciente nunca inicio sesion, la primera persona que ingrese su DNI (informacion publica en Argentina) puede establecer la contrasena y tomar control de la cuenta
+- **Normativa:** Ley 25.326 - seguridad proporcional a sensibilidad de datos
+
+### H-056: Inyeccion HTML en templates de email (MEDIO)
+- **Archivos:** `netlify/functions/consultations.mts:76-99`, `netlify/functions/notifications.mts`, `netlify/functions/submission-created.mts`
+- **Hallazgo:** Datos provistos por usuarios (nombre, mensaje, asunto) se interpolan directamente en HTML de emails sin escapar
+- **Impacto:** Un atacante puede inyectar HTML/JavaScript en emails enviados a administradores
+
+### H-057: Anuncios de comunidad creados sin autenticacion (MEDIO)
+- **Archivo:** `netlify/functions/announcements.mts:48`
+- **Hallazgo:** Mensajes de tipo `community` se pueden crear sin autenticacion
+- **Impacto:** Spam, phishing, o contenido ofensivo en el tablero de la clinica
+
+### H-058: Codigo muerto bloquea acciones criticas de sesion (ALTO)
+- **Archivo:** `netlify/functions/telemedicine-session.mts:563-666`
+- **Hallazgo:** Las acciones `complete_call` y `cancel_call` son inalcanzables por un `return` en linea 551-560
+- **Impacto:** Las sesiones de telemedicina no pueden completarse ni cancelarse correctamente
+
+### H-059: Tracking de sesiones web sin consentimiento (MEDIO)
+- **Archivo:** `netlify/functions/track-session.mts`
+- **Hallazgo:** Recoleccion de datos de comportamiento de usuario (secciones visitadas, modales abiertos, clics) sin mecanismo de consentimiento
+- **Normativa:** Ley 25.326 Art. 5 - consentimiento previo para tratamiento de datos personales
+
+### H-060: GRANT ALL a rol `anon` en vistas clinicas (CRITICO)
+- **Archivo:** `migrations/013_unified_patient_profile.sql:332-336`, `sql/04_unified_metrics.sql`
+- **Hallazgo:** `GRANT ALL ON hdd_game_metrics TO anon` y `GRANT SELECT ON v_patient_clinical_profile TO anon` - usuarios no autenticados de Supabase pueden leer (y en algunos casos modificar) perfiles clinicos completos incluyendo DNI, nombre, datos biometricos, indices de tremor, y rendimiento cognitivo
+- **Impacto:** Acceso publico total a datos clinicos sensibles de salud mental
+
+### H-061: CASCADE DELETE en datos clinicos requeridos por ley (MEDIO)
+- **Archivos:** `migrations/010_mood_checkins_and_alerts.sql`, `migrations/011_color_mood_and_extended_metrics.sql`
+- **Hallazgo:** `ON DELETE CASCADE` desde `hdd_patients` hacia datos de humor, alertas de crisis, y prescripciones. Si se borra un paciente, se pierden todos sus registros clinicos
+- **Normativa:** Ley 26.529 Art. 18 - la HC debe conservarse por un minimo de 10 anios
+
+### H-062: Esquema inconsistente entre migraciones (MEDIO)
+- **Archivos:** Multiples migraciones definen `hdd_game_metrics` y `hdd_game_sessions` con esquemas diferentes e incompatibles
+- **Hallazgo:** Algunas usan SERIAL INTEGER, otras UUID. Algunas usan `full_name`, otras `name`. Migraciones 014 duplicadas
+- **Impacto:** Esquema de base de datos impredecible segun orden de ejecucion
+
+### H-063: Encabezados CORS inconsistentes (BAJO)
+- **Archivos:** `analytics.mts`, `telemedicine-session.mts`, `telemedicine-credits.mts`
+- **Hallazgo:** Algunos endpoints solo envian `Content-Type` sin headers CORS, otros usan wildcard. Comportamiento inconsistente
+
+---
+
+## RESUMEN CONSOLIDADO DE ENDPOINTS SIN AUTENTICACION
+
+| Endpoint | Datos expuestos | Severidad |
+|----------|----------------|-----------|
+| `/api/biometricas` | Datos biometricos de pacientes | CRITICO |
+| `/api/daily-room` | Crear/eliminar salas de video | CRITICO |
+| `/api/migrate` | Ejecutar migraciones de DB | ALTO |
+| `/api/upload` | Subir archivos al servidor | ALTO |
+| `/api/notifications` (test) | Enviar emails/WhatsApps como la clinica | ALTO |
+| `/api/mercadopago?history` | Historial de pagos de cualquier usuario | ALTO |
+| `/api/call-queue` (cancel) | Cancelar consultas de otros pacientes | ALTO |
+| `/api/telemedicine/session?userId` | Sesiones de teleconsulta | MEDIO |
+| `/api/track-session` | Registrar datos de tracking | MEDIO |
+| `/api/announcements` (community) | Crear anuncios publicos | MEDIO |
+| `/api/analytics` | Estadisticas de uso | MEDIO |
+| `/api/track-survey` | Manipular respuestas de encuestas | MEDIO |
 
 ---
 
