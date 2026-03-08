@@ -738,8 +738,19 @@ async function runMigration() {
     await sql.end();
 
   } catch (error) {
-    console.error("Migration error:", error.message);
-    // Don't fail the build - just log the error
+    console.error("========================================");
+    console.error("⚠️  MIGRATION ERROR - REQUIRES ATTENTION");
+    console.error("========================================");
+    console.error("Error:", error.message);
+    if (error.detail) console.error("Detail:", error.detail);
+    if (error.hint) console.error("Hint:", error.hint);
+    if (error.where) console.error("Where:", error.where);
+    console.error("========================================");
+    console.error("The build will continue but database may be incomplete.");
+    console.error("Check Supabase dashboard or run migrations manually.");
+    console.error("========================================");
+    // Don't fail the build - DB might not be reachable during build
+    // but make the error impossible to miss in deploy logs
     process.exit(0);
   }
 }
