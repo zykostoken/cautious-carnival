@@ -470,8 +470,9 @@ export default async (req: Request, context: Context) => {
           }), { status: 401, headers: corsHeaders });
         }
 
-        // Check session expiry (H-005: 24h TTL)
-        if (isSessionExpired(patient.last_login)) {
+        // Check session expiry (H-005: 60min therapy session TTL)
+        const { SESSION_TTL } = await import("./lib/auth.mts");
+        if (isSessionExpired(patient.last_login, SESSION_TTL.PATIENT)) {
           // Invalidate expired token
           await sql`UPDATE hdd_patients SET session_token = NULL WHERE id = ${patient.id}`;
           return new Response(JSON.stringify({

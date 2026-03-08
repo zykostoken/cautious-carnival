@@ -33,8 +33,16 @@ export const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization"
 };
 
-// Session expiry duration (H-005): 24 hours
-export const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+// Session expiry durations by context (H-005)
+export const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // legacy default fallback
+
+// Granular session TTLs
+export const SESSION_TTL = {
+  PATIENT: 60 * 60 * 1000,               // 60 min - therapy session
+  TELERESOURCE: 30 * 60 * 1000,          // 30 min - video/teleresource session
+  GAMING_DAILY_LIMIT_MS: 60 * 60 * 1000, // 1 hr/day total across all games
+  PROFESSIONAL_IDLE: 2 * 60 * 60 * 1000, // 2 hrs of inactivity
+} as const;
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = process.env.PASSWORD_SALT;
@@ -82,10 +90,32 @@ export function generateVerificationCode(): string {
 }
 
 // Check if a session token is expired (H-005)
-export function isSessionExpired(lastLogin: Date | string | null): boolean {
+// ttlMs: optional override for context-specific TTL
+export function isSessionExpired(lastLogin: Date | string | null, ttlMs?: number): boolean {
   if (!lastLogin) return true;
   const loginTime = new Date(lastLogin).getTime();
-  return Date.now() - loginTime > SESSION_EXPIRY_MS;
+  return Date.now() - loginTime > (ttlMs ?? SESSION_EXPIRY_MS);
+}
+
+// Check professional session expiry based on inactivity (2hr idle)
+export function isProfessionalSessionExpired(lastActivity: Date | string | null): boolean {
+  if (!lastActivity) return true;
+  const activityTime = new Date(lastActivity).getTime();
+  return Date.now() - activityTime > SESSION_TTL.PROFESSIONAL_IDLE;
+}
+
+// Check daily gaming time limit (1hr/day across all games)
+export async function checkDailyGamingLimit(sql: any, patientId: number): Promise<{ allowed: boolean; remainingMs: number; usedMs: number }> {
+  const [result] = await sql`
+    SELECT COALESCE(SUM(duration_seconds), 0)::int AS total_seconds
+    FROM hdd_game_sessions
+    WHERE patient_id = ${patientId}
+      AND started_at >= CURRENT_DATE
+      AND started_at < CURRENT_DATE + INTERVAL '1 day'
+  `;
+  const usedMs = (result?.total_seconds || 0) * 1000;
+  const remainingMs = Math.max(0, SESSION_TTL.GAMING_DAILY_LIMIT_MS - usedMs);
+  return { allowed: remainingMs > 0, remainingMs, usedMs };
 }
 
 export function corsResponse(requestOrigin?: string | null) {
@@ -141,7 +171,7 @@ export async function requireAdminSession(sql: any, req: Request): Promise<{ aut
   }
 
   const [professional] = await sql`
-    SELECT email, last_login FROM healthcare_professionals
+    SELECT email, last_login, last_activity FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
 
@@ -149,10 +179,16 @@ export async function requireAdminSession(sql: any, req: Request): Promise<{ aut
     return { authorized: false, error: 'Sesion invalida' };
   }
 
-  // Check session expiry
-  if (isSessionExpired(professional.last_login)) {
-    return { authorized: false, error: 'Sesion expirada. Inicie sesion nuevamente.' };
+  // Check 2hr inactivity timeout (H-005)
+  const lastActive = professional.last_activity || professional.last_login;
+  if (isProfessionalSessionExpired(lastActive)) {
+    return { authorized: false, error: 'Sesion expirada por inactividad. Inicie sesion nuevamente.' };
   }
+
+  // Touch last_activity to keep session alive
+  await sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE id = (
+    SELECT id FROM healthcare_professionals WHERE email = ${professional.email} LIMIT 1
+  )`;
 
   return { authorized: true, email: professional.email };
 }

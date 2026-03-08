@@ -114,7 +114,8 @@ export default async (req: Request, context: Context) => {
                   whatsapp = COALESCE(${whatsapp}, whatsapp),
                   dni = COALESCE(${dni || null}, dni),
                   session_token = ${sessionToken},
-                  last_login = NOW()
+                  last_login = NOW(),
+                  last_activity = NOW()
               WHERE id = ${existing.id}
             `;
 
@@ -139,7 +140,8 @@ export default async (req: Request, context: Context) => {
                   verification_code = NULL,
                   verification_expires = NULL,
                   session_token = ${sessionToken},
-                  last_login = NOW()
+                  last_login = NOW(),
+                  last_activity = NOW()
               WHERE id = ${existing.id}
             `;
 
@@ -364,7 +366,8 @@ export default async (req: Request, context: Context) => {
               email_verified = TRUE,
               is_active = TRUE,
               session_token = ${sessionToken},
-              last_login = NOW()
+              last_login = NOW(),
+              last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -424,7 +427,8 @@ export default async (req: Request, context: Context) => {
               verification_code = NULL,
               verification_expires = NULL,
               session_token = ${sessionToken},
-              last_login = NOW()
+              last_login = NOW(),
+              last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -489,7 +493,7 @@ export default async (req: Request, context: Context) => {
 
         await sql`
           UPDATE healthcare_professionals
-          SET session_token = ${sessionToken}, last_login = NOW()
+          SET session_token = ${sessionToken}, last_login = NOW(), last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -801,7 +805,7 @@ export default async (req: Request, context: Context) => {
       try {
         const [professional] = await sql`
           SELECT id, email, full_name, specialty, is_available,
-                 notify_email, notify_whatsapp, whatsapp
+                 notify_email, notify_whatsapp, whatsapp, last_activity, last_login
           FROM healthcare_professionals
           WHERE session_token = ${sessionToken} AND is_active = TRUE
         `;
@@ -812,6 +816,20 @@ export default async (req: Request, context: Context) => {
             error: "Sesión inválida o expirada"
           }), { status: 401, headers: corsHeaders });
         }
+
+        // Check 2hr inactivity timeout (H-005)
+        const { isProfessionalSessionExpired } = await import("./lib/auth.mts");
+        const lastActive = professional.last_activity || professional.last_login;
+        if (isProfessionalSessionExpired(lastActive)) {
+          await sql`UPDATE healthcare_professionals SET session_token = NULL WHERE id = ${professional.id}`;
+          return new Response(JSON.stringify({
+            valid: false,
+            error: "Sesión expirada por inactividad. Inicie sesión nuevamente."
+          }), { status: 401, headers: corsHeaders });
+        }
+
+        // Touch last_activity on verify (keeps session alive while active)
+        await sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE id = ${professional.id}`;
 
         return new Response(JSON.stringify({
           valid: true,

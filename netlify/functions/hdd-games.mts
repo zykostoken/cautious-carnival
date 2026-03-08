@@ -2,7 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
 import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
-import { getCorsHeaders, isSessionExpired, escapeHtml } from "./lib/auth.mts";
+import { getCorsHeaders, isSessionExpired, escapeHtml, SESSION_TTL, checkDailyGamingLimit } from "./lib/auth.mts";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "direccionmedica@clinicajoseingenieros.ar";
 
@@ -13,8 +13,8 @@ async function getPatientBySession(sql: any, sessionToken: string) {
     WHERE session_token = ${sessionToken} AND status = 'active'
   `;
   if (!patient) return null;
-  // Enforce session expiry (H-005)
-  if (isSessionExpired(patient.last_login)) return null;
+  // Enforce session expiry (H-005: 60min therapy TTL)
+  if (isSessionExpired(patient.last_login, SESSION_TTL.PATIENT)) return null;
   return patient;
 }
 
@@ -222,6 +222,17 @@ export default async (req: Request, context: Context) => {
       if (action === "start_session") {
         const { gameSlug, level } = body;
 
+        // Enforce daily gaming limit: 1hr/day across all games
+        const gamingLimit = await checkDailyGamingLimit(sql, patient.id);
+        if (!gamingLimit.allowed) {
+          return new Response(JSON.stringify({
+            error: "Límite diario alcanzado",
+            message: "Has alcanzado el límite de 1 hora de juego por día. Volvé mañana.",
+            dailyLimitReached: true,
+            usedMinutes: Math.round(gamingLimit.usedMs / 60000)
+          }), { status: 429, headers: corsHeaders });
+        }
+
         const [game] = await sql`SELECT id FROM hdd_games WHERE slug = ${gameSlug} AND is_active = TRUE`;
         if (!game) {
           return new Response(JSON.stringify({ error: "Juego no encontrado" }), { status: 404, headers: corsHeaders });
@@ -236,7 +247,12 @@ export default async (req: Request, context: Context) => {
         // Record service usage for entitlement tracking
         recordUsage(sql, patient.id, 'gaming', `game_session:${session.id}`).catch(() => {});
 
-        return new Response(JSON.stringify({ success: true, sessionId: session.id, startedAt: session.started_at }), { headers: corsHeaders });
+        return new Response(JSON.stringify({
+          success: true,
+          sessionId: session.id,
+          startedAt: session.started_at,
+          dailyRemainingMinutes: Math.round(gamingLimit.remainingMs / 60000)
+        }), { headers: corsHeaders });
       }
 
       // Save game result

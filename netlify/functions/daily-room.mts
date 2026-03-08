@@ -47,7 +47,8 @@ export default async (req: Request, context: Context) => {
 
       // Crear sala nueva para una consulta
       if (action === "create_room") {
-        const { sessionToken, patientName, professionalName, durationMinutes = 60 } = body;
+        // Default teleresource session: 30 min (H-005)
+        const { sessionToken, patientName, professionalName, durationMinutes = 30 } = body;
 
         if (!sessionToken) {
           return new Response(
