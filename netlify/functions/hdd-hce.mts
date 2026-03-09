@@ -390,6 +390,77 @@ export default async (req: Request, context: Context) => {
         { status: 201, headers: corsHeaders });
     }
 
+    // ── GET PATIENT METRICS (game + mood data) ──────────────────
+    if (action === "get_patient_metrics") {
+      const { patientId } = body;
+      if (!patientId) {
+        return new Response(JSON.stringify({ error: "patientId requerido" }),
+          { status: 400, headers: corsHeaders });
+      }
+
+      // Get patient DNI for cross-reference with game metrics
+      const [patient] = await sql`SELECT dni FROM hdd_patients WHERE id = ${patientId}`;
+      if (!patient) {
+        return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
+          { status: 404, headers: corsHeaders });
+      }
+
+      // Game session summaries (last 90 days)
+      const gameSessions = await sql`
+        SELECT game_slug, metric_type, metric_value, metric_data,
+               duration_seconds, score, completed, level_reached, session_date
+        FROM hdd_game_metrics
+        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+          AND session_date > NOW() - INTERVAL '90 days'
+        ORDER BY session_date DESC
+        LIMIT 100
+      `;
+
+      // Game progress aggregates
+      const gameProgress = await sql`
+        SELECT game_slug,
+               COUNT(*) AS total_sessions,
+               AVG(score) AS avg_score,
+               MAX(score) AS best_score,
+               MAX(level_reached) AS max_level,
+               SUM(duration_seconds) AS total_time_seconds,
+               MIN(session_date) AS first_session,
+               MAX(session_date) AS last_session
+        FROM hdd_game_metrics
+        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+          AND metric_type = 'session_summary'
+        GROUP BY game_slug
+      `;
+
+      // Mood entries (last 90 days)
+      const moodEntries = await sql`
+        SELECT color_hex, color_id, context_type, source_activity, recorded_at
+        FROM hdd_mood_entries
+        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+          AND recorded_at > NOW() - INTERVAL '90 days'
+        ORDER BY recorded_at DESC
+        LIMIT 100
+      `;
+
+      // Mood checkins (last 90 days)
+      const moodCheckins = await sql`
+        SELECT mood_value, color_hex, note, context, created_at
+        FROM hdd_mood_checkins
+        WHERE patient_id = ${patientId}
+          AND created_at > NOW() - INTERVAL '90 days'
+        ORDER BY created_at DESC
+        LIMIT 50
+      `;
+
+      return new Response(JSON.stringify({
+        success: true,
+        gameSessions,
+        gameProgress,
+        moodEntries,
+        moodCheckins
+      }), { status: 200, headers: corsHeaders });
+    }
+
     // ── LOAD MORE EVOLUTIONS ─────────────────────────────────────
     if (action === "load_more_evolutions") {
       const { patientId, offset } = body;

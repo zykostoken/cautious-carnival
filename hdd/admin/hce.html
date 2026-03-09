@@ -34,6 +34,7 @@
     <div class="hce-header-actions">
       <button onclick="openModal('vitals')">Signos Vitales</button>
       <button onclick="openModal('studies')">Estudios</button>
+      <button onclick="loadMetrics()">Metricas</button>
       <button onclick="window.print()">Imprimir</button>
       <span class="hce-prof-name" id="hce-prof-name"></span>
     </div>
@@ -485,6 +486,23 @@
       </div>
       <div class="hce-modal-body" id="hce-studies-list">
         <div class="hce-empty">Sin estudios registrados</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics Modal -->
+  <div class="hce-modal-overlay hidden" id="modal-metrics">
+    <div class="hce-modal" style="max-width:700px;">
+      <div class="hce-modal-header">
+        <h3>Metricas Terapeuticas</h3>
+        <button class="hce-modal-close" onclick="closeModal('metrics')">&times;</button>
+      </div>
+      <div class="hce-modal-body" id="hce-metrics-content">
+        <div class="hce-empty">Cargando metricas...</div>
+      </div>
+      <div class="hce-modal-footer">
+        <button class="hce-btn hce-btn-secondary" onclick="closeModal('metrics')">Cerrar</button>
+        <button class="hce-btn hce-btn-primary" onclick="insertMetricsInEvolution()">Insertar en Evolucion</button>
       </div>
     </div>
   </div>

@@ -717,6 +717,119 @@ async function saveAntecedente() {
   }
 }
 
+// ── Load & render metrics ─────────────────────────────────
+let lastMetricsData = null;
+
+async function loadMetrics() {
+  openModal('metrics');
+  const contentEl = document.getElementById('hce-metrics-content');
+  contentEl.innerHTML = '<div class="hce-empty">Cargando metricas...</div>';
+
+  const result = await apiCall('get_patient_metrics', {});
+  if (!result.success) {
+    contentEl.innerHTML = '<div class="hce-empty">No se pudieron cargar las metricas</div>';
+    return;
+  }
+
+  lastMetricsData = result;
+  const { gameProgress, gameSessions, moodCheckins, moodEntries } = result;
+
+  let html = '';
+
+  // Game progress summary
+  if (gameProgress && gameProgress.length > 0) {
+    html += '<div class="hce-metrics-section"><h4>Juegos Terapeuticos (ultimos 90 dias)</h4>';
+    html += '<div class="hce-metrics-grid">';
+    gameProgress.forEach(g => {
+      const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
+      const name = gameNames[g.game_slug] || g.game_slug;
+      const totalMin = Math.round((g.total_time_seconds || 0) / 60);
+      html += `
+        <div class="hce-metric-card">
+          <div class="hce-metric-title">${name}</div>
+          <div class="hce-metric-rows">
+            <div class="hce-metric-row"><span>Sesiones</span><strong>${g.total_sessions}</strong></div>
+            <div class="hce-metric-row"><span>Puntaje promedio</span><strong>${Math.round(g.avg_score || 0)}</strong></div>
+            <div class="hce-metric-row"><span>Mejor puntaje</span><strong>${g.best_score || 0}</strong></div>
+            <div class="hce-metric-row"><span>Nivel max</span><strong>${g.max_level || '-'}</strong></div>
+            <div class="hce-metric-row"><span>Tiempo total</span><strong>${totalMin} min</strong></div>
+            <div class="hce-metric-row"><span>Ultima sesion</span><strong>${g.last_session ? formatDateTime(g.last_session) : '-'}</strong></div>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div></div>';
+  } else {
+    html += '<div class="hce-metrics-section"><h4>Juegos Terapeuticos</h4><p style="color:var(--hce-muted);font-size:0.85rem;">Sin sesiones de juego registradas</p></div>';
+  }
+
+  // Mood timeline
+  if (moodCheckins && moodCheckins.length > 0) {
+    html += '<div class="hce-metrics-section"><h4>Estado de Animo (ultimos registros)</h4>';
+    html += '<div class="hce-mood-timeline">';
+    moodCheckins.slice(0, 20).forEach(m => {
+      const moodLabels = { 1: 'Muy mal', 2: 'Mal', 3: 'Regular', 4: 'Bien', 5: 'Muy bien' };
+      html += `
+        <div class="hce-mood-entry">
+          ${m.color_hex ? `<span class="hce-mood-dot" style="background:${m.color_hex}"></span>` : ''}
+          <span class="hce-mood-val">${moodLabels[m.mood_value] || m.mood_value || '-'}</span>
+          <span class="hce-mood-date">${formatDateTime(m.created_at)}</span>
+          ${m.note ? `<span class="hce-mood-note">${m.note}</span>` : ''}
+        </div>
+      `;
+    });
+    html += '</div></div>';
+  }
+
+  // Color entries
+  if (moodEntries && moodEntries.length > 0) {
+    html += '<div class="hce-metrics-section"><h4>Selecciones de Color</h4>';
+    html += '<div class="hce-color-timeline">';
+    moodEntries.slice(0, 30).forEach(e => {
+      html += `<span class="hce-color-dot" style="background:${e.color_hex}" title="${e.source_activity || e.context_type} — ${formatDateTime(e.recorded_at)}"></span>`;
+    });
+    html += '</div></div>';
+  }
+
+  if (!html) html = '<div class="hce-empty">Sin metricas disponibles para este paciente</div>';
+  contentEl.innerHTML = html;
+}
+
+// Insert metrics summary into evolution textarea
+function insertMetricsInEvolution() {
+  if (!lastMetricsData) return;
+  const { gameProgress, moodCheckins } = lastMetricsData;
+
+  let text = '=== METRICAS TERAPEUTICAS ===\n';
+  const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
+
+  if (gameProgress && gameProgress.length > 0) {
+    text += '\nJuegos terapeuticos (90 dias):\n';
+    gameProgress.forEach(g => {
+      const name = gameNames[g.game_slug] || g.game_slug;
+      text += `- ${name}: ${g.total_sessions} sesiones, puntaje prom ${Math.round(g.avg_score || 0)}, mejor ${g.best_score || 0}, nivel max ${g.max_level || '-'}\n`;
+    });
+  }
+
+  if (moodCheckins && moodCheckins.length > 0) {
+    const moodLabels = { 1: 'Muy mal', 2: 'Mal', 3: 'Regular', 4: 'Bien', 5: 'Muy bien' };
+    const recent = moodCheckins.slice(0, 5);
+    text += '\nEstado de animo reciente:\n';
+    recent.forEach(m => {
+      text += `- ${formatDateTime(m.created_at)}: ${moodLabels[m.mood_value] || m.mood_value}${m.note ? ' — ' + m.note : ''}\n`;
+    });
+  }
+
+  text += '=============================\n\n';
+
+  const textarea = document.getElementById('evo-contenido');
+  if (textarea) {
+    textarea.value = text + textarea.value;
+    textarea.focus();
+  }
+  closeModal('metrics');
+}
+
 // ── Save vitals ───────────────────────────────────────────
 async function saveVitals() {
   const result = await apiCall('add_vitals', {
