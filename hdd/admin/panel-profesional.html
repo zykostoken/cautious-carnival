@@ -122,6 +122,7 @@
   <h1>🏥 Panel Profesional HDD <span>BETA</span></h1>
   <div style="display:flex;gap:.75rem;align-items:center">
     <span id="sync-status" style="font-size:.75rem;color:var(--muted)">Conectando...</span>
+    <button onclick="showHCEApp()" style="padding:.45rem 1rem;border-radius:8px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#60a5fa;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .2s">📋 Historia Clinica</button>
     <a href="/hdd/admin/" class="back-btn">← Admin</a>
   </div>
 </div>
@@ -190,6 +191,20 @@
 
     <!-- Per-game sections (generated dynamically) -->
     <div id="game-sections"></div>
+  </div>
+
+  <!-- HCE App view -->
+  <div id="hce-app-view" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h2 style="font-size:1.1rem;color:var(--accent)">📋 Historia Clinica Electronica</h2>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <input type="text" id="hce-app-search" placeholder="Buscar por nombre o DNI..." style="width:240px" oninput="filterHCEApp(this.value)">
+        <button onclick="backFromHCE()" style="padding:.5rem 1rem;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);cursor:pointer;font-size:.82rem">← Volver</button>
+      </div>
+    </div>
+
+    <!-- HCE Groups -->
+    <div id="hce-app-groups" style="display:flex;flex-direction:column;gap:1.5rem;"></div>
   </div>
 </div>
 
@@ -760,6 +775,109 @@ function copyLink(elId) {
     btn.textContent = '✓ Copiado';
     setTimeout(() => btn.textContent = orig, 2000);
   });
+}
+
+// =================== HCE APP ===================
+let hceAppData = null;
+
+function showHCEApp() {
+  document.getElementById('patients-view').style.display = 'none';
+  document.getElementById('patient-dashboard').style.display = 'none';
+  document.getElementById('hce-app-view').style.display = 'block';
+  loadHCEApp();
+}
+
+function backFromHCE() {
+  document.getElementById('hce-app-view').style.display = 'none';
+  showAllPatients();
+}
+
+async function loadHCEApp() {
+  const container = document.getElementById('hce-app-groups');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando historias clinicas...</p></div>';
+
+  try {
+    const sessionToken = localStorage.getItem('hdd_admin_session');
+    const res = await fetch(`/api/hdd/admin?action=hce_patients&sessionToken=${sessionToken}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      container.innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>Error cargando pacientes</p></div>';
+      return;
+    }
+
+    hceAppData = data.groups;
+    renderHCEAppGroups(data.groups);
+  } catch(e) {
+    container.innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>Error de conexión</p></div>';
+  }
+}
+
+function renderHCEAppGroups(groups) {
+  const container = document.getElementById('hce-app-groups');
+  const sections = [
+    { key: 'internacion', label: 'Internación', icon: '🏥', color: '#f87171' },
+    { key: 'hospital_de_dia', label: 'Hospital de Día', icon: '🌅', color: '#60a5fa' },
+    { key: 'externo', label: 'Consultorios Externos', icon: '🚶', color: '#34d399' }
+  ];
+
+  container.innerHTML = sections.map(s => {
+    const patients = groups[s.key] || [];
+    return `
+      <div>
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:2px solid ${s.color}">
+          <span style="font-size:1.2rem">${s.icon}</span>
+          <h3 style="font-size:.95rem;color:${s.color};margin:0">${s.label}</h3>
+          <span style="font-size:.75rem;background:${s.color}20;color:${s.color};padding:2px 8px;border-radius:10px">${patients.length}</span>
+        </div>
+        <div class="patients-grid" id="hce-app-grid-${s.key}">
+          ${patients.length === 0 ? '<div style="color:var(--muted);font-size:.85rem;padding:.75rem">Sin pacientes en esta modalidad</div>' :
+            patients.map(p => renderHCEPatientCard(p)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHCEPatientCard(p) {
+  const lastEvo = p.ultimaEvolucion
+    ? new Date(p.ultimaEvolucion).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' })
+    : 'Sin evoluciones';
+  const daysSince = p.ultimaEvolucion ? Math.floor((Date.now() - new Date(p.ultimaEvolucion).getTime()) / 86400000) : null;
+  const dotColor = daysSince === null ? 'var(--muted)' : daysSince <= 7 ? 'var(--green)' : daysSince <= 30 ? 'var(--yellow)' : 'var(--red)';
+
+  return `
+    <div class="pat-card" onclick="openHCEFromPanel(${p.id})" style="position:relative">
+      <div class="pname">${p.fullName}</div>
+      <div class="pdni">DNI: ${p.dni}${p.hcNumber ? ' · ' + p.hcNumber : ''}</div>
+      <div class="pmeta">
+        <span><strong>${p.totalEvoluciones}</strong> evoluciones</span>
+        <span><strong>${p.diagnosticosActivos}</strong> dx activos</span>
+      </div>
+      <div class="last-act"><span class="activity-dot" style="background:${dotColor}"></span>${lastEvo}</div>
+    </div>
+  `;
+}
+
+function openHCEFromPanel(patientId) {
+  const sessionToken = localStorage.getItem('hdd_admin_session');
+  if (sessionToken) {
+    sessionStorage.setItem('adminSessionToken', sessionToken);
+  }
+  sessionStorage.setItem('adminProfName', '');
+  window.location.href = '/hdd/admin/hce?id=' + patientId;
+}
+
+function filterHCEApp(q) {
+  if (!hceAppData) return;
+  const lq = q.toLowerCase();
+  const filtered = {};
+  ['internacion', 'hospital_de_dia', 'externo'].forEach(key => {
+    filtered[key] = q
+      ? (hceAppData[key] || []).filter(p => (p.fullName || '').toLowerCase().includes(lq) || p.dni.includes(q))
+      : (hceAppData[key] || []);
+  });
+  renderHCEAppGroups(filtered);
 }
 
 // =================== START ===================

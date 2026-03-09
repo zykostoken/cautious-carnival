@@ -922,6 +922,9 @@ ALTER TABLE telemedicine_users ADD COLUMN IF NOT EXISTS hdd_patient_id INTEGER R
 -- Add patient_type for quick lookups
 ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS patient_type VARCHAR(32) DEFAULT 'obra_social';
 
+-- Add care modality: internacion, hospital_de_dia, externo
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS care_modality VARCHAR(30) DEFAULT 'hospital_de_dia';
+
 -- Seed plans
 INSERT INTO service_plans (name, code, plan_type, description, price_ars, billing_period) VALUES
     ('HDD Obra Social Completo', 'hdd_obra_social', 'obra_social', 'Plan completo obra social: terapia grupal 2/sem, telemedicina 1/mes, actividades HDD diarias, gaming diario.', 0, 'monthly'),
