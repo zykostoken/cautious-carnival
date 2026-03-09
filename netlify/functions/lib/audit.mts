@@ -24,13 +24,13 @@ export async function logProfessionalAction(sql: any, entry: AuditEntry): Promis
         ${entry.professionalId},
         ${entry.professionalEmail},
         ${entry.actionType},
-        ${entry.resourceType || null},
-        ${entry.patientId || null},
-        ${entry.patientName || null},
-        ${JSON.stringify(entry.details || {})},
-        ${entry.durationSeconds || null},
-        ${entry.ipAddress || null},
-        ${entry.userAgent || null}
+        ${entry.resourceType ?? null},
+        ${entry.patientId ?? null},
+        ${entry.patientName ?? null},
+        ${JSON.stringify(entry.details ?? {})},
+        ${entry.durationSeconds ?? null},
+        ${entry.ipAddress ?? null},
+        ${entry.userAgent ?? null}
       )
     `;
   } catch (err) {
