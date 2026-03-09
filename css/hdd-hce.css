@@ -329,6 +329,68 @@ body.hce-body {
   cursor: help;
 }
 
+/* ── Sparkline in metric cards ── */
+.hce-sparkline-wrap {
+  margin: 0.25rem 0 0.35rem;
+  text-align: center;
+}
+.hce-sparkline {
+  display: block;
+  width: 100%;
+  height: 32px;
+}
+
+/* ── Metric decline/improve alerts ── */
+.hce-metric-alert {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+.hce-metric-alert-decline {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.hce-metric-alert-improve {
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* ── Bibliographic evidence section ── */
+.hce-biblio-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.hce-biblio-arrow {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.hce-metrics-section.expanded .hce-biblio-arrow {
+  transform: rotate(180deg);
+}
+.hce-biblio-content {
+  display: none;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  padding: 0.5rem 0;
+  color: var(--hce-text, #374151);
+}
+.hce-metrics-section.expanded .hce-biblio-content {
+  display: block;
+}
+.hce-biblio-content ul {
+  margin: 0.3rem 0 0.3rem 1.2rem;
+  font-size: 0.78rem;
+}
+.hce-biblio-content li {
+  margin-bottom: 0.2rem;
+}
+
 .hce-alert-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
