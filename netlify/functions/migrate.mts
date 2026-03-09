@@ -924,6 +924,8 @@ ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS patient_type VARCHAR(32) DEFAU
 
 -- Add care modality: internacion, hospital_de_dia, externo
 ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS care_modality VARCHAR(30) DEFAULT 'hospital_de_dia';
+-- Paper HC number to link with existing physical records (~47K+ paper HCs)
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS numero_hc_papel VARCHAR(30);
 
 -- Seed plans
 INSERT INTO service_plans (name, code, plan_type, description, price_ars, billing_period) VALUES

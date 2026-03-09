@@ -2431,6 +2431,7 @@ async function submitHCEPatient(event) {
   const fullName = document.getElementById('hce-new-name').value.trim();
   const careModality = document.getElementById('hce-new-modality').value;
   const admissionDate = document.getElementById('hce-new-date').value;
+  const hcPapel = (document.getElementById('hce-new-hcpapel')?.value || '').trim();
   const phone = document.getElementById('hce-new-phone').value.trim();
 
   try {
@@ -2444,7 +2445,8 @@ async function submitHCEPatient(event) {
         fullName,
         admissionDate,
         phone: phone || null,
-        careModality
+        careModality,
+        hcPapel: hcPapel || null
       })
     });
 

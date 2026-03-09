@@ -68,7 +68,7 @@ export default async (req: Request, context: Context) => {
 
       // Add new HDD patient
       if (action === "add_patient") {
-        const { dni, fullName, email, phone, admissionDate, notes, careModality } = body;
+        const { dni, fullName, email, phone, admissionDate, notes, careModality, hcPapel } = body;
 
         if (!dni || !fullName || !admissionDate) {
           return new Response(JSON.stringify({
@@ -92,13 +92,15 @@ export default async (req: Request, context: Context) => {
 
         const [patient] = await sql`
           INSERT INTO hdd_patients (
-            dni, full_name, email, phone, admission_date, notes, status, care_modality, created_at
+            dni, full_name, email, phone, admission_date, notes,
+            status, care_modality, numero_hc_papel, created_at
           )
           VALUES (
             ${dni}, ${fullName}, ${email || null}, ${phone || null},
-            ${admissionDate}, ${notes || null}, 'active', ${modality}, NOW()
+            ${admissionDate}, ${notes || null}, 'active', ${modality},
+            ${hcPapel || null}, NOW()
           )
-          RETURNING id, dni, full_name, email, admission_date, status, care_modality
+          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel
         `;
 
         return new Response(JSON.stringify({
@@ -243,7 +245,7 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Bulk import patients (for initial setup or sync from external system)
+      // Bulk import patients (for initial setup, paper HC migration, or sync)
       if (action === "bulk_import") {
         const { patients } = body;
 
@@ -253,6 +255,14 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Limit batch size to prevent timeouts
+        if (patients.length > 500) {
+          return new Response(JSON.stringify({
+            error: "Máximo 500 pacientes por lote. Divida la importación en partes."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const validModalities = ['internacion', 'hospital_de_dia', 'externo'];
         let imported = 0;
         let skipped = 0;
         const errors: string[] = [];
@@ -264,19 +274,25 @@ export default async (req: Request, context: Context) => {
             continue;
           }
 
+          const modality = validModalities.includes(p.careModality) ? p.careModality : 'externo';
+
           try {
             await sql`
               INSERT INTO hdd_patients (
-                dni, full_name, email, phone, admission_date, notes, status, created_at
+                dni, full_name, email, phone, admission_date, notes,
+                status, care_modality, numero_hc_papel, created_at
               )
               VALUES (
                 ${p.dni}, ${p.fullName}, ${p.email || null}, ${p.phone || null},
-                ${p.admissionDate || sql`CURRENT_DATE`}, ${p.notes || null}, 'active', NOW()
+                ${p.admissionDate || sql`CURRENT_DATE`}, ${p.notes || null},
+                'active', ${modality}, ${p.hcPapel || null}, NOW()
               )
               ON CONFLICT (dni) DO UPDATE SET
                 full_name = ${p.fullName},
                 email = COALESCE(${p.email || null}, hdd_patients.email),
                 phone = COALESCE(${p.phone || null}, hdd_patients.phone),
+                care_modality = COALESCE(${modality}, hdd_patients.care_modality),
+                numero_hc_papel = COALESCE(${p.hcPapel || null}, hdd_patients.numero_hc_papel),
                 updated_at = NOW()
             `;
             imported++;
