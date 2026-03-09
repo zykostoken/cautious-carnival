@@ -62,16 +62,16 @@
   to = "/hdd/index.html"
   status = 200
 
-# HDDD - Hospital de Dia Digital (standalone portal)
+# HDDD - redirige al HDD actual
 [[redirects]]
   from = "/HDDD"
-  to = "/HDDD/index.html"
-  status = 200
+  to = "/hdd/index.html"
+  status = 301
 
 [[redirects]]
   from = "/hddd"
-  to = "/HDDD/index.html"
-  status = 200
+  to = "/hdd/index.html"
+  status = 301
 
 # HDD Patient Portal
 [[redirects]]
@@ -93,7 +93,8 @@
   status = 200
   force = true
 
-# HCE — Historia Clínica Electrónica (standalone, no depende de HDD)
+# HCE — Historia Clínica Electrónica
+# Un solo archivo: /hdd/admin/hce.html — ambas rutas apuntan al mismo
 [[redirects]]
   from = "/hce"
   to = "/hce/index.html"
@@ -102,7 +103,7 @@
 
 [[redirects]]
   from = "/hce/paciente"
-  to = "/hce/paciente.html"
+  to = "/hdd/admin/hce.html"
   status = 200
   force = true
 
