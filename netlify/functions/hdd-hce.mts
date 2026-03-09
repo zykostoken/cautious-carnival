@@ -190,8 +190,8 @@ export default async (req: Request, context: Context) => {
           ${contenido}, ${motivoConsulta ?? null}, ${examenMental ?? null},
           ${planTerapeutico ?? null}, ${indicaciones ?? null},
           ${esConfidencial ?? false},
-          ${prof.fullName}, ${prof.specialty || null},
-          ${firmaMatricula}, ${prof.role || 'profesional'}
+          ${prof.fullName}, ${prof.specialty ?? null},
+          ${firmaMatricula}, ${prof.role ?? 'profesional'}
         )
         RETURNING id, fecha, created_at, firma_nombre, firma_especialidad, firma_matricula, firma_role
       `;
@@ -276,6 +276,10 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ error: "medicationId y estado son requeridos" }),
           { status: 400, headers: corsHeaders });
       }
+      if (!['activo', 'suspendido', 'finalizado'].includes(estado)) {
+        return new Response(JSON.stringify({ error: "estado invalido" }),
+          { status: 400, headers: corsHeaders });
+      }
 
       await sql`
         UPDATE hce_medicacion SET
@@ -323,6 +327,10 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ error: "diagnosisId y estado son requeridos" }),
           { status: 400, headers: corsHeaders });
       }
+      if (!['activo', 'en_estudio', 'resuelto', 'descartado'].includes(estado)) {
+        return new Response(JSON.stringify({ error: "estado invalido" }),
+          { status: 400, headers: corsHeaders });
+      }
 
       await sql`
         UPDATE hce_diagnosticos SET
@@ -365,6 +373,29 @@ export default async (req: Request, context: Context) => {
 
       if (!patientId) {
         return new Response(JSON.stringify({ error: "patientId requerido" }),
+          { status: 400, headers: corsHeaders });
+      }
+
+      // Validate clinical ranges
+      const rangeCheck = (val: any, min: number, max: number, name: string) => {
+        if (val != null && (typeof val !== 'number' || val < min || val > max)) {
+          return `${name} fuera de rango (${min}-${max})`;
+        }
+        return null;
+      };
+      const rangeErrors = [
+        rangeCheck(taSistolica, 40, 300, 'TA sistolica'),
+        rangeCheck(taDiastolica, 20, 200, 'TA diastolica'),
+        rangeCheck(fc, 20, 300, 'FC'),
+        rangeCheck(fr, 4, 60, 'FR'),
+        rangeCheck(temperatura, 30, 45, 'Temperatura'),
+        rangeCheck(saturacion, 50, 100, 'Saturacion'),
+        rangeCheck(glucemia, 10, 800, 'Glucemia'),
+        rangeCheck(pesoKg, 0.5, 300, 'Peso'),
+        rangeCheck(tallaCm, 30, 250, 'Talla'),
+      ].filter(Boolean);
+      if (rangeErrors.length > 0) {
+        return new Response(JSON.stringify({ error: rangeErrors[0] }),
           { status: 400, headers: corsHeaders });
       }
 
