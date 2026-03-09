@@ -62,17 +62,6 @@
   to = "/hdd/index.html"
   status = 200
 
-# HDDD - redirige al HDD actual
-[[redirects]]
-  from = "/HDDD"
-  to = "/hdd/index.html"
-  status = 301
-
-[[redirects]]
-  from = "/hddd"
-  to = "/hdd/index.html"
-  status = 301
-
 # HDD Patient Portal
 [[redirects]]
   from = "/hdd/portal"
