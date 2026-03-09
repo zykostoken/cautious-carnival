@@ -736,7 +736,7 @@ async function loadMetrics() {
 
   let html = '';
 
-  // Game progress summary
+  // Game progress summary with sparklines and decline alerts
   if (gameProgress && gameProgress.length > 0) {
     html += '<div class="hce-metrics-section"><h4>Juegos Terapeuticos (ultimos 90 dias)</h4>';
     html += '<div class="hce-metrics-grid">';
@@ -744,9 +744,34 @@ async function loadMetrics() {
       const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
       const name = gameNames[g.game_slug] || g.game_slug;
       const totalMin = Math.round((g.total_time_seconds || 0) / 60);
+
+      // Build sparkline from session data
+      const sessions = (gameSessions || [])
+        .filter(s => s.game_slug === g.game_slug && s.score != null)
+        .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
+      const sparkSvg = buildSparkline(sessions.map(s => s.score));
+
+      // Detect decline: compare last 2 weeks vs prior
+      const twoWeeksAgo = Date.now() - 14 * 86400000;
+      const recent = sessions.filter(s => new Date(s.session_date).getTime() >= twoWeeksAgo);
+      const prior = sessions.filter(s => new Date(s.session_date).getTime() < twoWeeksAgo);
+      let declineHtml = '';
+      if (recent.length >= 2 && prior.length >= 2) {
+        const avgRecent = recent.reduce((s, x) => s + x.score, 0) / recent.length;
+        const avgPrior = prior.reduce((s, x) => s + x.score, 0) / prior.length;
+        const pctChange = ((avgRecent - avgPrior) / avgPrior) * 100;
+        if (pctChange <= -15) {
+          declineHtml = `<div class="hce-metric-alert hce-metric-alert-decline">Descenso ${Math.abs(Math.round(pctChange))}% vs periodo anterior</div>`;
+        } else if (pctChange >= 15) {
+          declineHtml = `<div class="hce-metric-alert hce-metric-alert-improve">Mejora ${Math.round(pctChange)}% vs periodo anterior</div>`;
+        }
+      }
+
       html += `
         <div class="hce-metric-card">
           <div class="hce-metric-title">${name}</div>
+          ${declineHtml}
+          ${sparkSvg ? `<div class="hce-sparkline-wrap">${sparkSvg}</div>` : ''}
           <div class="hce-metric-rows">
             <div class="hce-metric-row"><span>Sesiones</span><strong>${g.total_sessions}</strong></div>
             <div class="hce-metric-row"><span>Puntaje promedio</span><strong>${Math.round(g.avg_score || 0)}</strong></div>
@@ -791,6 +816,35 @@ async function loadMetrics() {
     html += '</div></div>';
   }
 
+  // Bibliographic evidence section
+  html += `
+    <div class="hce-metrics-section">
+      <h4 class="hce-biblio-toggle" onclick="this.parentElement.classList.toggle('expanded')">
+        Evidencia Bibliografica <span class="hce-biblio-arrow">&#9660;</span>
+      </h4>
+      <div class="hce-biblio-content">
+        <p>Las metricas de juegos terapeuticos se fundamentan en la evidencia de <strong>biomarcadores digitales basados en juegos</strong> (game-based digital biomarkers), clasificados en 6 categorias:</p>
+        <ul>
+          <li><strong>Temporales:</strong> tiempo de reaccion, latencia de respuesta, duracion de sesion</li>
+          <li><strong>De rendimiento:</strong> puntaje, precision, tasa de aciertos</li>
+          <li><strong>De errores:</strong> tipo y frecuencia de errores, perseveraciones</li>
+          <li><strong>De ejecucion:</strong> secuencia de acciones, estrategia de resolucion</li>
+          <li><strong>Auxiliares:</strong> patrones de interaccion, presion tactil, movimiento</li>
+          <li><strong>De resultado:</strong> nivel alcanzado, completitud, progresion longitudinal</li>
+        </ul>
+        <p style="margin-top:0.5rem;"><strong>Evidencia clave:</strong></p>
+        <ul>
+          <li>Meta-analisis de serious games en rehabilitacion psiquiatrica: efecto moderado en reduccion de sintomas (SMD 0.45-0.67)</li>
+          <li>Rendimiento cognitivo como mayor predictor diferencial en esquizofrenia (Hedges' g ≈ 1.20) — Dagum, 2018</li>
+          <li>Validacion de evaluaciones cognitivas basadas en juegos como proxy de tests neuropsicologicos tradicionales — Lumsden et al., 2016</li>
+          <li>VR + juegos cognitivos: mejora significativa (SMD 0.67) en funciones ejecutivas — Wiley, 2023</li>
+          <li>Fenotipado digital: datos pasivos + activos predicen estado clinico con AUC 0.75-0.85 — Torous et al., 2021</li>
+        </ul>
+        <p style="margin-top:0.5rem;font-size:0.75rem;color:var(--hce-muted);">Contexto: 40 pacientes internados + 40-50 ambulatorios/dia. Los datos longitudinales permiten deteccion temprana de deterioro cognitivo y ajuste de tratamiento.</p>
+      </div>
+    </div>
+  `;
+
   if (!html) html = '<div class="hce-empty">Sin metricas disponibles para este paciente</div>';
   contentEl.innerHTML = html;
 }
@@ -804,10 +858,24 @@ function insertMetricsInEvolution() {
   const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
 
   if (gameProgress && gameProgress.length > 0) {
+    const { gameSessions: gs } = lastMetricsData;
     text += '\nJuegos terapeuticos (90 dias):\n';
     gameProgress.forEach(g => {
       const name = gameNames[g.game_slug] || g.game_slug;
-      text += `- ${name}: ${g.total_sessions} sesiones, puntaje prom ${Math.round(g.avg_score || 0)}, mejor ${g.best_score || 0}, nivel max ${g.max_level || '-'}\n`;
+      // Calculate trend
+      const sessions = (gs || []).filter(s => s.game_slug === g.game_slug && s.score != null)
+        .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
+      let trend = '';
+      const twoWeeksAgo = Date.now() - 14 * 86400000;
+      const recent = sessions.filter(s => new Date(s.session_date).getTime() >= twoWeeksAgo);
+      const prior = sessions.filter(s => new Date(s.session_date).getTime() < twoWeeksAgo);
+      if (recent.length >= 2 && prior.length >= 2) {
+        const avgR = recent.reduce((s, x) => s + x.score, 0) / recent.length;
+        const avgP = prior.reduce((s, x) => s + x.score, 0) / prior.length;
+        const pct = ((avgR - avgP) / avgP) * 100;
+        if (Math.abs(pct) >= 15) trend = pct > 0 ? ` [MEJORA +${Math.round(pct)}%]` : ` [DESCENSO ${Math.round(pct)}%]`;
+      }
+      text += `- ${name}: ${g.total_sessions} sesiones, puntaje prom ${Math.round(g.avg_score || 0)}, mejor ${g.best_score || 0}, nivel max ${g.max_level || '-'}${trend}\n`;
     });
   }
 
@@ -828,6 +896,34 @@ function insertMetricsInEvolution() {
     textarea.focus();
   }
   closeModal('metrics');
+}
+
+// ── Build SVG sparkline from array of scores ──────────
+function buildSparkline(scores) {
+  if (!scores || scores.length < 2) return '';
+  const w = 160, h = 32, pad = 2;
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  const range = max - min || 1;
+  const step = (w - pad * 2) / (scores.length - 1);
+
+  const points = scores.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  // Determine color: green if trending up, red if trending down
+  const firstHalf = scores.slice(0, Math.floor(scores.length / 2));
+  const secondHalf = scores.slice(Math.floor(scores.length / 2));
+  const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+  const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+  const color = avgSecond >= avgFirst ? '#22c55e' : '#ef4444';
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" class="hce-sparkline">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${points.split(' ').pop().split(',')[0]}" cy="${points.split(' ').pop().split(',')[1]}" r="2.5" fill="${color}"/>
+  </svg>`;
 }
 
 // ── Save vitals ───────────────────────────────────────────
