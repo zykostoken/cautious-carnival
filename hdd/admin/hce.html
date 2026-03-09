@@ -55,6 +55,7 @@
 
       <div class="hce-sidebar-tabs">
         <button class="hce-sidebar-tab active" data-tab="meds">Medicacion</button>
+        <button class="hce-sidebar-tab" data-tab="sv">SV</button>
         <button class="hce-sidebar-tab" data-tab="diag">Diagnosticos</button>
         <button class="hce-sidebar-tab" data-tab="ant">Antecedentes</button>
         <button class="hce-sidebar-tab" data-tab="datos">Datos</button>
@@ -73,6 +74,18 @@
         <div class="hce-sidebar-section">
           <div class="hce-sidebar-title">Medicacion Suspendida / Anterior</div>
           <div id="hce-meds-inactive"></div>
+        </div>
+      </div>
+
+      <!-- Signos Vitales -->
+      <div class="hce-sidebar-content" id="sidebar-sv">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">
+            Signos Vitales
+            <button onclick="openModal('vitals')" title="Registrar signos vitales">+</button>
+          </div>
+          <div id="hce-sv-current"></div>
+          <div id="hce-sv-history" style="margin-top:0.5rem;"></div>
         </div>
       </div>
 

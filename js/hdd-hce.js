@@ -697,11 +697,16 @@ async function saveVitals() {
   }
 }
 
-// ── Render last vitals in patient header ──────────────────
+// ── Render vitals: header summary + sidebar tab ───────────
 function renderLastVitals(vitals) {
   const alertsEl = document.getElementById('hce-patient-alerts');
+  const svCurrentEl = document.getElementById('hce-sv-current');
+  const svHistoryEl = document.getElementById('hce-sv-history');
+
   if (!vitals || vitals.length === 0) {
     alertsEl.innerHTML = '<span class="hce-sv-alert hce-sv-missing">SV: Sin registro</span>';
+    if (svCurrentEl) svCurrentEl.innerHTML = '<div style="color:#9ca3af;font-size:0.82rem;padding:0.5rem 0;">Sin signos vitales registrados</div>';
+    if (svHistoryEl) svHistoryEl.innerHTML = '';
     return;
   }
 
@@ -710,6 +715,7 @@ function renderLastVitals(vitals) {
   const hoursAgo = Math.floor((Date.now() - lastTime.getTime()) / 3600000);
   const isStale = hoursAgo >= 6;
 
+  // Build values for header
   const parts = [];
   if (last.ta_sistolica && last.ta_diastolica) parts.push(`TA ${last.ta_sistolica}/${last.ta_diastolica}`);
   if (last.fc) parts.push(`FC ${last.fc}`);
@@ -722,12 +728,60 @@ function renderLastVitals(vitals) {
   const staleClass = isStale ? 'hce-sv-stale' : 'hce-sv-ok';
   const registradoPor = last.registrado_por ? ` — ${last.registrado_por}` : '';
 
+  // Header badge
   alertsEl.innerHTML = `
     <div class="hce-sv-summary ${staleClass}" title="Registrado: ${formatDateTime(last.fecha)}${registradoPor}">
       <span class="hce-sv-values">${parts.join(' | ') || 'Sin datos'}</span>
       <span class="hce-sv-time">${timeLabel}${isStale ? ' — VENCIDO' : ''}</span>
     </div>
   `;
+
+  // ── Sidebar: ultimo registro destacado ──
+  if (svCurrentEl) {
+    svCurrentEl.innerHTML = `
+      <div class="hce-sv-card ${staleClass}">
+        <div class="hce-sv-card-header">
+          <strong>Ultimo control</strong>
+          <span class="hce-sv-card-time">${formatDateTime(last.fecha)}${isStale ? ' — VENCIDO' : ''}</span>
+        </div>
+        <div class="hce-sv-card-values">
+          ${last.ta_sistolica && last.ta_diastolica ? `<div class="hce-sv-row"><span class="hce-sv-label">TA</span><span class="hce-sv-val">${last.ta_sistolica}/${last.ta_diastolica} mmHg</span></div>` : ''}
+          ${last.fc ? `<div class="hce-sv-row"><span class="hce-sv-label">FC</span><span class="hce-sv-val">${last.fc} lpm</span></div>` : ''}
+          ${last.fr ? `<div class="hce-sv-row"><span class="hce-sv-label">FR</span><span class="hce-sv-val">${last.fr} rpm</span></div>` : ''}
+          ${last.temperatura ? `<div class="hce-sv-row"><span class="hce-sv-label">Temp</span><span class="hce-sv-val">${last.temperatura} °C</span></div>` : ''}
+          ${last.saturacion ? `<div class="hce-sv-row"><span class="hce-sv-label">SatO2</span><span class="hce-sv-val">${last.saturacion}%</span></div>` : ''}
+          ${last.glucemia ? `<div class="hce-sv-row"><span class="hce-sv-label">Glucemia</span><span class="hce-sv-val">${last.glucemia} mg/dL</span></div>` : ''}
+          ${last.peso_kg ? `<div class="hce-sv-row"><span class="hce-sv-label">Peso</span><span class="hce-sv-val">${last.peso_kg} kg</span></div>` : ''}
+          ${last.talla_cm ? `<div class="hce-sv-row"><span class="hce-sv-label">Talla</span><span class="hce-sv-val">${last.talla_cm} cm</span></div>` : ''}
+        </div>
+        ${last.registrado_por ? `<div class="hce-sv-card-footer">${last.registrado_por}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // ── Sidebar: historial (registros anteriores) ──
+  if (svHistoryEl && vitals.length > 1) {
+    const historyHtml = vitals.slice(1).map(v => {
+      const vParts = [];
+      if (v.ta_sistolica && v.ta_diastolica) vParts.push(`TA ${v.ta_sistolica}/${v.ta_diastolica}`);
+      if (v.fc) vParts.push(`FC ${v.fc}`);
+      if (v.temperatura) vParts.push(`T ${v.temperatura}°`);
+      if (v.saturacion) vParts.push(`Sat ${v.saturacion}%`);
+      return `
+        <div class="hce-sv-hist-row">
+          <span class="hce-sv-hist-date">${formatDateTime(v.fecha)}</span>
+          <span class="hce-sv-hist-vals">${vParts.join(' | ')}</span>
+          ${v.registrado_por ? `<span class="hce-sv-hist-by">${v.registrado_por}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+    svHistoryEl.innerHTML = `
+      <div style="font-size:0.75rem;font-weight:600;color:var(--hce-muted,#6b7280);margin-bottom:0.3rem;">Historial</div>
+      ${historyHtml}
+    `;
+  } else if (svHistoryEl) {
+    svHistoryEl.innerHTML = '';
+  }
 }
 
 // ── Modal helpers ─────────────────────────────────────────

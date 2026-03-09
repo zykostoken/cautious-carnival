@@ -126,6 +126,78 @@ body.hce-body {
   opacity: 0.8;
 }
 
+/* ── Sidebar SV card ── */
+.hce-sv-card {
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+}
+.hce-sv-card.hce-sv-ok {
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+}
+.hce-sv-card.hce-sv-stale {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.hce-sv-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+}
+.hce-sv-card-time {
+  font-size: 0.72rem;
+  color: var(--hce-muted, #6b7280);
+}
+.hce-sv-card-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem 0.5rem;
+}
+.hce-sv-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.1rem 0;
+}
+.hce-sv-label {
+  color: var(--hce-muted, #6b7280);
+  font-size: 0.75rem;
+}
+.hce-sv-val {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.hce-sv-card-footer {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--hce-muted, #6b7280);
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding-top: 0.25rem;
+}
+
+/* ── Sidebar SV history rows ── */
+.hce-sv-hist-row {
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  font-size: 0.75rem;
+}
+.hce-sv-hist-date {
+  font-weight: 600;
+  color: var(--hce-text, #1f2937);
+  font-size: 0.72rem;
+}
+.hce-sv-hist-vals {
+  color: var(--hce-text, #374151);
+}
+.hce-sv-hist-by {
+  color: var(--hce-muted, #9ca3af);
+  font-size: 0.68rem;
+}
+
 .hce-alert-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
