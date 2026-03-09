@@ -42,12 +42,23 @@
   <!-- ═══ MAIN LAYOUT ═══ -->
   <div id="hce-main" class="hce-layout" style="display:none;">
 
-    <!-- LEFT SIDEBAR: Medication + Diagnoses + Antecedentes -->
+    <!-- LEFT SIDEBAR -->
     <aside class="hce-sidebar">
+      <!-- OS + Afiliado: siempre visible arriba del plan farmacologico -->
+      <div class="hce-sidebar-os" id="hce-sidebar-os" style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--hce-border, #e5e7eb);font-size:0.82rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span id="hce-os-name" style="font-weight:600;color:var(--hce-accent, #2563eb);"></span>
+          <span id="hce-os-numero" style="font-size:0.75rem;color:var(--hce-muted, #6b7280);"></span>
+        </div>
+        <div id="hce-os-modality" style="font-size:0.72rem;color:var(--hce-muted, #6b7280);margin-top:2px;"></div>
+      </div>
+
       <div class="hce-sidebar-tabs">
         <button class="hce-sidebar-tab active" data-tab="meds">Medicacion</button>
         <button class="hce-sidebar-tab" data-tab="diag">Diagnosticos</button>
         <button class="hce-sidebar-tab" data-tab="ant">Antecedentes</button>
+        <button class="hce-sidebar-tab" data-tab="datos">Datos</button>
+        <button class="hce-sidebar-tab" data-tab="consent">Consentim.</button>
       </div>
 
       <!-- Medications -->
@@ -84,6 +95,59 @@
             <button onclick="openModal('add-ant')" title="Agregar antecedente">+</button>
           </div>
           <div id="hce-antecedentes"></div>
+        </div>
+      </div>
+
+      <!-- Datos Personales / Generales -->
+      <div class="hce-sidebar-content" id="sidebar-datos">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">
+            Datos Personales
+            <button onclick="toggleEditDatos()" title="Editar datos" id="btn-edit-datos">✎</button>
+          </div>
+          <div id="hce-datos-personales" style="font-size:0.82rem;line-height:1.6;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">Familiar / Responsable</div>
+          <div id="hce-datos-familiar" style="font-size:0.82rem;line-height:1.6;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Consentimiento Informado -->
+      <div class="hce-sidebar-content" id="sidebar-consent">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">Consentimiento Informado</div>
+          <div id="hce-consentimiento" style="font-size:0.82rem;">
+            <div style="padding:0.75rem;background:var(--hce-bg-alt, #f9fafb);border-radius:6px;margin-bottom:0.75rem;">
+              <p style="margin-bottom:0.5rem;">De acuerdo con la Ley 26.529 de Derechos del Paciente, el paciente o su representante legal autoriza:</p>
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0.4rem 0;cursor:pointer;">
+                <input type="checkbox" id="consent-tratamiento" onchange="saveConsent()"> Tratamiento clinico
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0.4rem 0;cursor:pointer;">
+                <input type="checkbox" id="consent-hce" onchange="saveConsent()"> Registro en Historia Clinica Electronica
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0.4rem 0;cursor:pointer;">
+                <input type="checkbox" id="consent-medicacion" onchange="saveConsent()"> Administracion de medicacion
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0.4rem 0;cursor:pointer;">
+                <input type="checkbox" id="consent-estudios" onchange="saveConsent()"> Estudios complementarios
+              </label>
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0.4rem 0;cursor:pointer;">
+                <input type="checkbox" id="consent-internacion" onchange="saveConsent()"> Internacion (si aplica)
+              </label>
+            </div>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem;">
+              <span style="font-size:0.75rem;color:var(--hce-muted, #6b7280);" id="consent-status">Sin registrar</span>
+            </div>
+            <div style="margin-top:0.75rem;">
+              <div class="hce-sidebar-title">Observaciones</div>
+              <textarea id="consent-observaciones" rows="3" style="width:100%;font-size:0.82rem;padding:0.5rem;border:1px solid var(--hce-border, #e5e7eb);border-radius:6px;resize:vertical;" placeholder="Notas sobre el consentimiento..." onchange="saveConsent()"></textarea>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

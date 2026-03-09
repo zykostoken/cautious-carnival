@@ -96,11 +96,14 @@ async function loadPatientHCE() {
 
     hceData = result;
     renderPatientHeader(result.patient);
+    renderSidebarOS(result.patient);
+    renderDatosPersonales(result.patient);
     renderMedications(result.medications);
     renderDiagnoses(result.diagnoses);
     renderAntecedentes(result.antecedentes);
     renderEvolutions(result.evolutions);
     renderStudies(result.studies);
+    loadConsent();
 
     document.getElementById('hce-loading').style.display = 'none';
     document.getElementById('hce-patient-header').style.display = 'flex';
@@ -157,6 +160,111 @@ function renderPatientHeader(p) {
   }
 
   alertsEl.innerHTML += '<span class="hce-alert-badge hce-alert-status">' + esc(p.status || 'active') + '</span>';
+}
+
+// ── Render OS in sidebar (always visible above plan farmacologico) ──
+function renderSidebarOS(p) {
+  const nameEl = document.getElementById('hce-os-name');
+  const numEl = document.getElementById('hce-os-numero');
+  const modEl = document.getElementById('hce-os-modality');
+  if (!nameEl) return;
+
+  nameEl.textContent = p.obra_social || 'Sin obra social';
+  numEl.textContent = p.obra_social_numero ? 'N° ' + p.obra_social_numero : '';
+
+  const modalityLabels = {
+    'internacion': 'Internacion',
+    'hospital_de_dia': 'Hospital de Dia',
+    'externo': 'Consultorio Externo'
+  };
+  modEl.textContent = modalityLabels[p.care_modality] || p.care_modality || '';
+}
+
+// ── Render Datos Personales tab ──────────────────────────
+function renderDatosPersonales(p) {
+  const datosEl = document.getElementById('hce-datos-personales');
+  const familiarEl = document.getElementById('hce-datos-familiar');
+  if (!datosEl) return;
+
+  const field = (label, value) => value
+    ? `<div><strong style="color:var(--hce-muted,#6b7280);font-size:0.75rem;">${label}:</strong> ${esc(value)}</div>`
+    : '';
+
+  const birthDate = p.fecha_nacimiento
+    ? new Date(p.fecha_nacimiento).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : null;
+
+  datosEl.innerHTML =
+    field('Nombre', p.full_name) +
+    field('DNI', p.dni) +
+    field('Fecha Nac.', birthDate) +
+    field('Sexo', p.sexo) +
+    field('Genero', p.genero) +
+    field('Estado Civil', p.estado_civil) +
+    field('Nacionalidad', p.nacionalidad) +
+    field('Direccion', [p.direccion, p.localidad, p.provincia, p.codigo_postal].filter(Boolean).join(', ')) +
+    field('Telefono', p.phone) +
+    field('Email', p.email) +
+    field('Ocupacion', p.ocupacion) +
+    field('Nivel Educativo', p.nivel_educativo) +
+    field('Grupo Sanguineo', p.grupo_sanguineo) +
+    field('N° HC Papel', p.numero_hc_papel) +
+    field('N° HC Digital', p.numero_historia_clinica) +
+    field('Obra Social', p.obra_social) +
+    field('N° Afiliado', p.obra_social_numero) +
+    field('Ingreso', p.admission_date ? new Date(p.admission_date).toLocaleDateString('es-AR') : null)
+  || '<div style="color:var(--hce-muted,#6b7280);">Sin datos cargados</div>';
+
+  if (familiarEl) {
+    familiarEl.innerHTML =
+      field('Contacto', p.contacto_emergencia_nombre) +
+      field('Telefono', p.contacto_emergencia_telefono) +
+      field('Relacion', p.contacto_emergencia_relacion)
+    || '<div style="color:var(--hce-muted,#6b7280);">Sin familiar/responsable cargado</div>';
+  }
+}
+
+// ── Consentimiento Informado ─────────────────────────────
+function saveConsent() {
+  // Save consent state to localStorage (per patient) - will persist until backend supports it
+  const consentData = {
+    tratamiento: document.getElementById('consent-tratamiento')?.checked || false,
+    hce: document.getElementById('consent-hce')?.checked || false,
+    medicacion: document.getElementById('consent-medicacion')?.checked || false,
+    estudios: document.getElementById('consent-estudios')?.checked || false,
+    internacion: document.getElementById('consent-internacion')?.checked || false,
+    observaciones: document.getElementById('consent-observaciones')?.value || '',
+    savedAt: new Date().toISOString()
+  };
+  localStorage.setItem('hce_consent_' + patientId, JSON.stringify(consentData));
+
+  const statusEl = document.getElementById('consent-status');
+  if (statusEl) {
+    const anyChecked = Object.values(consentData).some(v => v === true);
+    statusEl.textContent = anyChecked
+      ? 'Registrado ' + new Date().toLocaleDateString('es-AR')
+      : 'Sin registrar';
+    statusEl.style.color = anyChecked ? '#22c55e' : '#6b7280';
+  }
+}
+
+function loadConsent() {
+  const saved = localStorage.getItem('hce_consent_' + patientId);
+  if (!saved) return;
+  try {
+    const data = JSON.parse(saved);
+    if (data.tratamiento) document.getElementById('consent-tratamiento').checked = true;
+    if (data.hce) document.getElementById('consent-hce').checked = true;
+    if (data.medicacion) document.getElementById('consent-medicacion').checked = true;
+    if (data.estudios) document.getElementById('consent-estudios').checked = true;
+    if (data.internacion) document.getElementById('consent-internacion').checked = true;
+    if (data.observaciones) document.getElementById('consent-observaciones').value = data.observaciones;
+    const statusEl = document.getElementById('consent-status');
+    if (statusEl && data.savedAt) {
+      statusEl.textContent = 'Registrado ' + new Date(data.savedAt).toLocaleDateString('es-AR');
+      statusEl.style.color = '#22c55e';
+    }
+  } catch(e) {}
 }
 
 // ── Render medications ────────────────────────────────────
