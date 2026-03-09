@@ -64,7 +64,8 @@ export default async (req: Request, context: Context) => {
                direccion, localidad, provincia, codigo_postal,
                ocupacion, nivel_educativo,
                contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_relacion,
-               grupo_sanguineo, numero_historia_clinica
+               grupo_sanguineo, numero_historia_clinica, numero_hc_papel,
+               obra_social, obra_social_numero, care_modality
         FROM hdd_patients WHERE id = ${patientId}
       `;
 

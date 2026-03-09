@@ -136,8 +136,8 @@ function renderPatientHeader(p) {
     document.getElementById('hce-patient-age').textContent = '';
   }
 
-  // Obra social from notes or other field
-  document.getElementById('hce-patient-os').textContent = '';
+  // Obra social
+  document.getElementById('hce-patient-os').textContent = p.obra_social || '';
 
   // Alerts
   const alertsEl = document.getElementById('hce-patient-alerts');

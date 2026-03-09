@@ -2386,10 +2386,11 @@ function renderHCEGroup(modality, patients) {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
             <div style="font-weight:600;font-size:0.95rem;">${p.fullName}</div>
-            <div style="font-size:0.8rem;color:var(--text-muted, #6b7280);">DNI: ${p.dni} ${p.hcNumber ? ' · ' + p.hcNumber : ''}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted, #6b7280);">DNI: ${p.dni} ${p.hcNumber ? ' · ' + p.hcNumber : ''}${p.hcPapel ? ' · HC:' + p.hcPapel : ''}</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:0.75rem;font-weight:600;color:${evoColor};">${lastEvo}</div>
+            ${p.obraSocial ? `<div style="font-size:0.7rem;color:var(--text-muted, #6b7280);margin-top:2px;">${p.obraSocial}</div>` : ''}
           </div>
         </div>
         <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.78rem;color:var(--text-muted, #6b7280);">
@@ -2418,8 +2419,17 @@ function filterHCEPatients() {
 function showAddHCEPatientModal() {
   document.getElementById('add-hce-patient-modal').classList.remove('hidden');
   document.getElementById('hce-new-error').classList.add('hidden');
-  // Set default date to today
   document.getElementById('hce-new-date').value = new Date().toISOString().split('T')[0];
+
+  // Toggle "otra" input for obra social
+  const osSelect = document.getElementById('hce-new-os');
+  const osOtra = document.getElementById('hce-new-os-otra');
+  if (osSelect && osOtra) {
+    osSelect.onchange = () => {
+      osOtra.style.display = osSelect.value === 'otra' ? 'block' : 'none';
+      if (osSelect.value !== 'otra') osOtra.value = '';
+    };
+  }
 }
 
 async function submitHCEPatient(event) {
@@ -2433,6 +2443,10 @@ async function submitHCEPatient(event) {
   const admissionDate = document.getElementById('hce-new-date').value;
   const hcPapel = (document.getElementById('hce-new-hcpapel')?.value || '').trim();
   const phone = document.getElementById('hce-new-phone').value.trim();
+  const osSelect = document.getElementById('hce-new-os');
+  const obraSocial = osSelect.value === 'otra'
+    ? (document.getElementById('hce-new-os-otra')?.value || '').trim()
+    : osSelect.value;
 
   try {
     const res = await fetch('/api/hdd/admin', {
@@ -2446,7 +2460,8 @@ async function submitHCEPatient(event) {
         admissionDate,
         phone: phone || null,
         careModality,
-        hcPapel: hcPapel || null
+        hcPapel: hcPapel || null,
+        obraSocial: obraSocial || null
       })
     });
 

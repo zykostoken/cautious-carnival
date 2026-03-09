@@ -11,8 +11,17 @@ ALTER TABLE hdd_patients
 ALTER TABLE hdd_patients
   ADD COLUMN IF NOT EXISTS numero_hc_papel VARCHAR(30);
 
+-- Obra social / cobertura - texto libre como en DOX (IOMA, PAMI, PARTICULAR, etc.)
+ALTER TABLE hdd_patients
+  ADD COLUMN IF NOT EXISTS obra_social VARCHAR(100);
+
+-- Numero de afiliado / credencial
+ALTER TABLE hdd_patients
+  ADD COLUMN IF NOT EXISTS obra_social_numero VARCHAR(64);
+
 COMMENT ON COLUMN hdd_patients.care_modality IS 'Modalidad de atención: internacion, hospital_de_dia, externo';
 COMMENT ON COLUMN hdd_patients.numero_hc_papel IS 'Número de HC en papel para vincular con registros físicos';
+COMMENT ON COLUMN hdd_patients.obra_social IS 'Obra social o cobertura del paciente';
 
 -- Update existing HDD seed patients to hospital_de_dia
 UPDATE hdd_patients

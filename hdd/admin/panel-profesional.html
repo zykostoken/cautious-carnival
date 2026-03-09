@@ -849,7 +849,8 @@ function renderHCEPatientCard(p) {
   return `
     <div class="pat-card" onclick="openHCEFromPanel(${p.id})" style="position:relative">
       <div class="pname">${p.fullName}</div>
-      <div class="pdni">DNI: ${p.dni}${p.hcNumber ? ' · ' + p.hcNumber : ''}</div>
+      <div class="pdni">DNI: ${p.dni}${p.hcNumber ? ' · ' + p.hcNumber : ''}${p.hcPapel ? ' · HC:' + p.hcPapel : ''}</div>
+      ${p.obraSocial ? `<div style="font-size:.72rem;color:var(--accent);margin-bottom:.25rem">${p.obraSocial}</div>` : ''}
       <div class="pmeta">
         <span><strong>${p.totalEvoluciones}</strong> evoluciones</span>
         <span><strong>${p.diagnosticosActivos}</strong> dx activos</span>

@@ -68,7 +68,7 @@ export default async (req: Request, context: Context) => {
 
       // Add new HDD patient
       if (action === "add_patient") {
-        const { dni, fullName, email, phone, admissionDate, notes, careModality, hcPapel } = body;
+        const { dni, fullName, email, phone, admissionDate, notes, careModality, hcPapel, obraSocial } = body;
 
         if (!dni || !fullName || !admissionDate) {
           return new Response(JSON.stringify({
@@ -93,14 +93,14 @@ export default async (req: Request, context: Context) => {
         const [patient] = await sql`
           INSERT INTO hdd_patients (
             dni, full_name, email, phone, admission_date, notes,
-            status, care_modality, numero_hc_papel, created_at
+            status, care_modality, numero_hc_papel, obra_social, created_at
           )
           VALUES (
             ${dni}, ${fullName}, ${email || null}, ${phone || null},
             ${admissionDate}, ${notes || null}, 'active', ${modality},
-            ${hcPapel || null}, NOW()
+            ${hcPapel || null}, ${obraSocial || null}, NOW()
           )
-          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel
+          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel, obra_social
         `;
 
         return new Response(JSON.stringify({
@@ -663,8 +663,8 @@ export default async (req: Request, context: Context) => {
         const patients = await sql`
           SELECT
             p.id, p.dni, p.full_name, p.admission_date, p.discharge_date,
-            p.status, p.care_modality, p.numero_historia_clinica,
-            p.fecha_nacimiento, p.sexo,
+            p.status, p.care_modality, p.numero_historia_clinica, p.numero_hc_papel,
+            p.fecha_nacimiento, p.sexo, p.obra_social,
             (SELECT COUNT(*) FROM hce_evoluciones e WHERE e.patient_id = p.id) AS total_evoluciones,
             (SELECT COUNT(*) FROM hce_diagnosticos d WHERE d.patient_id = p.id AND d.estado = 'activo') AS diagnosticos_activos,
             (SELECT fecha FROM hce_evoluciones e WHERE e.patient_id = p.id ORDER BY fecha DESC LIMIT 1) AS ultima_evolucion
@@ -687,8 +687,10 @@ export default async (req: Request, context: Context) => {
             fullName: p.full_name,
             admissionDate: p.admission_date,
             hcNumber: p.numero_historia_clinica,
+            hcPapel: p.numero_hc_papel,
             fechaNacimiento: p.fecha_nacimiento,
             sexo: p.sexo,
+            obraSocial: p.obra_social,
             totalEvoluciones: Number(p.total_evoluciones) || 0,
             diagnosticosActivos: Number(p.diagnosticos_activos) || 0,
             ultimaEvolucion: p.ultima_evolucion
