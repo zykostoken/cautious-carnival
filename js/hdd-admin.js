@@ -624,6 +624,10 @@ function switchTab(tabId) {
   if (tabId === 'activities') {
     loadActivities();
   }
+  // Load HCE patients when switching to hce tab
+  if (tabId === 'hce') {
+    loadHCEPatients();
+  }
 }
 
 // =====================================
@@ -2326,6 +2330,158 @@ document.getElementById('reset-form').addEventListener('submit', async function(
     errorEl.classList.remove('hidden');
   }
 });
+
+// =====================================
+// HCE - HISTORIA CLINICA ELECTRONICA
+// =====================================
+
+let hcePatientData = null;
+
+async function loadHCEPatients() {
+  try {
+    const res = await fetch(`/api/hdd/admin?action=hce_patients&sessionToken=${sessionToken}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      document.getElementById('hce-tab-body').innerHTML = '<div class="alert alert-danger">Error cargando pacientes</div>';
+      return;
+    }
+
+    hcePatientData = data.groups;
+
+    renderHCEGroup('internacion', data.groups.internacion);
+    renderHCEGroup('hospital_de_dia', data.groups.hospital_de_dia);
+    renderHCEGroup('externo', data.groups.externo);
+  } catch (e) {
+    console.error('Error loading HCE patients:', e);
+  }
+}
+
+function renderHCEGroup(modality, patients) {
+  const grid = document.getElementById(`hce-grid-${modality}`);
+  const count = document.getElementById(`hce-count-${modality}`);
+
+  if (!grid || !count) return;
+  count.textContent = patients.length;
+
+  if (patients.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="font-size:0.9rem;padding:1rem;">Sin pacientes en esta modalidad</div>';
+    return;
+  }
+
+  grid.innerHTML = patients.map(p => {
+    const lastEvo = p.ultimaEvolucion
+      ? new Date(p.ultimaEvolucion).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: '2-digit' })
+      : 'Sin evoluciones';
+    const daysSinceEvo = p.ultimaEvolucion
+      ? Math.floor((Date.now() - new Date(p.ultimaEvolucion).getTime()) / 86400000)
+      : null;
+    const evoColor = daysSinceEvo === null ? '#9ca3af'
+      : daysSinceEvo <= 7 ? '#22c55e'
+      : daysSinceEvo <= 30 ? '#f59e0b'
+      : '#ef4444';
+
+    return `
+      <div class="hce-patient-card" onclick="openHCE(${p.id})" style="background:var(--bg-tertiary, #f8f9fa);border:1px solid var(--border, #e5e7eb);border-radius:10px;padding:0.85rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary, #3b82f6)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--border, #e5e7eb)';this.style.transform='none'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-weight:600;font-size:0.95rem;">${p.fullName}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted, #6b7280);">DNI: ${p.dni} ${p.hcNumber ? ' · ' + p.hcNumber : ''}${p.hcPapel ? ' · HC:' + p.hcPapel : ''}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem;font-weight:600;color:${evoColor};">${lastEvo}</div>
+            ${p.obraSocial ? `<div style="font-size:0.7rem;color:var(--text-muted, #6b7280);margin-top:2px;">${p.obraSocial}</div>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:1rem;margin-top:0.5rem;font-size:0.78rem;color:var(--text-muted, #6b7280);">
+          <span>${p.totalEvoluciones} evoluciones</span>
+          <span>${p.diagnosticosActivos} dx activos</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterHCEPatients() {
+  const q = (document.getElementById('hce-search')?.value || '').toLowerCase();
+  if (!hcePatientData) return;
+
+  ['internacion', 'hospital_de_dia', 'externo'].forEach(modality => {
+    if (!hcePatientData[modality]) return;
+    const filtered = q
+      ? hcePatientData[modality].filter(p =>
+          p.fullName.toLowerCase().includes(q) || p.dni.includes(q))
+      : hcePatientData[modality];
+    renderHCEGroup(modality, filtered);
+  });
+}
+
+function showAddHCEPatientModal() {
+  document.getElementById('add-hce-patient-modal').classList.remove('hidden');
+  document.getElementById('hce-new-error').classList.add('hidden');
+  document.getElementById('hce-new-date').value = new Date().toISOString().split('T')[0];
+
+  // Toggle "otra" input for obra social
+  const osSelect = document.getElementById('hce-new-os');
+  const osOtra = document.getElementById('hce-new-os-otra');
+  if (osSelect && osOtra) {
+    osSelect.onchange = () => {
+      osOtra.style.display = osSelect.value === 'otra' ? 'block' : 'none';
+      if (osSelect.value !== 'otra') osOtra.value = '';
+    };
+  }
+}
+
+async function submitHCEPatient(event) {
+  event.preventDefault();
+  const errorEl = document.getElementById('hce-new-error');
+  errorEl.classList.add('hidden');
+
+  const dni = document.getElementById('hce-new-dni').value.trim();
+  const fullName = document.getElementById('hce-new-name').value.trim();
+  const careModality = document.getElementById('hce-new-modality').value;
+  const admissionDate = document.getElementById('hce-new-date').value;
+  const hcPapel = (document.getElementById('hce-new-hcpapel')?.value || '').trim();
+  const phone = document.getElementById('hce-new-phone').value.trim();
+  const osSelect = document.getElementById('hce-new-os');
+  const obraSocial = osSelect.value === 'otra'
+    ? (document.getElementById('hce-new-os-otra')?.value || '').trim()
+    : osSelect.value;
+
+  try {
+    const res = await fetch('/api/hdd/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_patient',
+        sessionToken,
+        dni,
+        fullName,
+        admissionDate,
+        phone: phone || null,
+        careModality,
+        hcPapel: hcPapel || null,
+        obraSocial: obraSocial || null
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      errorEl.textContent = data.error;
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    // Close modal and open HCE for the new patient
+    document.getElementById('add-hce-patient-modal').classList.add('hidden');
+    document.getElementById('add-hce-patient-form').reset();
+    openHCE(data.patient.id);
+  } catch (e) {
+    errorEl.textContent = 'Error de conexion. Intente nuevamente.';
+    errorEl.classList.remove('hidden');
+  }
+}
 
 // Init
 async function init() {

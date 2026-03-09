@@ -68,13 +68,16 @@ export default async (req: Request, context: Context) => {
 
       // Add new HDD patient
       if (action === "add_patient") {
-        const { dni, fullName, email, phone, admissionDate, notes } = body;
+        const { dni, fullName, email, phone, admissionDate, notes, careModality, hcPapel, obraSocial } = body;
 
         if (!dni || !fullName || !admissionDate) {
           return new Response(JSON.stringify({
             error: "DNI, nombre completo y fecha de ingreso son requeridos"
           }), { status: 400, headers: corsHeaders });
         }
+
+        const validModalities = ['internacion', 'hospital_de_dia', 'externo'];
+        const modality = validModalities.includes(careModality) ? careModality : 'hospital_de_dia';
 
         // Check if DNI already exists
         const [existing] = await sql`
@@ -89,13 +92,15 @@ export default async (req: Request, context: Context) => {
 
         const [patient] = await sql`
           INSERT INTO hdd_patients (
-            dni, full_name, email, phone, admission_date, notes, status, created_at
+            dni, full_name, email, phone, admission_date, notes,
+            status, care_modality, numero_hc_papel, obra_social, created_at
           )
           VALUES (
             ${dni}, ${fullName}, ${email || null}, ${phone || null},
-            ${admissionDate}, ${notes || null}, 'active', NOW()
+            ${admissionDate}, ${notes || null}, 'active', ${modality},
+            ${hcPapel || null}, ${obraSocial || null}, NOW()
           )
-          RETURNING id, dni, full_name, email, admission_date, status
+          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel, obra_social
         `;
 
         return new Response(JSON.stringify({
@@ -240,7 +245,7 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Bulk import patients (for initial setup or sync from external system)
+      // Bulk import patients (for initial setup, paper HC migration, or sync)
       if (action === "bulk_import") {
         const { patients } = body;
 
@@ -250,6 +255,14 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        // Limit batch size to prevent timeouts
+        if (patients.length > 500) {
+          return new Response(JSON.stringify({
+            error: "Máximo 500 pacientes por lote. Divida la importación en partes."
+          }), { status: 400, headers: corsHeaders });
+        }
+
+        const validModalities = ['internacion', 'hospital_de_dia', 'externo'];
         let imported = 0;
         let skipped = 0;
         const errors: string[] = [];
@@ -261,19 +274,25 @@ export default async (req: Request, context: Context) => {
             continue;
           }
 
+          const modality = validModalities.includes(p.careModality) ? p.careModality : 'externo';
+
           try {
             await sql`
               INSERT INTO hdd_patients (
-                dni, full_name, email, phone, admission_date, notes, status, created_at
+                dni, full_name, email, phone, admission_date, notes,
+                status, care_modality, numero_hc_papel, created_at
               )
               VALUES (
                 ${p.dni}, ${p.fullName}, ${p.email || null}, ${p.phone || null},
-                ${p.admissionDate || sql`CURRENT_DATE`}, ${p.notes || null}, 'active', NOW()
+                ${p.admissionDate || sql`CURRENT_DATE`}, ${p.notes || null},
+                'active', ${modality}, ${p.hcPapel || null}, NOW()
               )
               ON CONFLICT (dni) DO UPDATE SET
                 full_name = ${p.fullName},
                 email = COALESCE(${p.email || null}, hdd_patients.email),
                 phone = COALESCE(${p.phone || null}, hdd_patients.phone),
+                care_modality = COALESCE(${modality}, hdd_patients.care_modality),
+                numero_hc_papel = COALESCE(${p.hcPapel || null}, hdd_patients.numero_hc_papel),
                 updated_at = NOW()
             `;
             imported++;
@@ -602,7 +621,7 @@ export default async (req: Request, context: Context) => {
           patients = await sql`
             SELECT
               id, dni, full_name, email, phone, admission_date, discharge_date,
-              status, notes, created_at, last_login,
+              status, notes, created_at, last_login, care_modality,
               (password_hash IS NOT NULL) as has_password
             FROM hdd_patients
             ORDER BY status ASC, full_name ASC
@@ -611,7 +630,7 @@ export default async (req: Request, context: Context) => {
           patients = await sql`
             SELECT
               id, dni, full_name, email, phone, admission_date, discharge_date,
-              status, notes, created_at, last_login,
+              status, notes, created_at, last_login, care_modality,
               (password_hash IS NOT NULL) as has_password
             FROM hdd_patients
             WHERE status = ${status}
@@ -633,8 +652,60 @@ export default async (req: Request, context: Context) => {
             hasPassword: p.has_password,
             hasLoggedIn: !!p.last_login,
             lastLogin: p.last_login,
+            careModality: p.care_modality || 'hospital_de_dia',
             createdAt: p.created_at
           }))
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // HCE patients: grouped by care modality for HC app
+      if (action === "hce_patients") {
+        const patients = await sql`
+          SELECT
+            p.id, p.dni, p.full_name, p.admission_date, p.discharge_date,
+            p.status, p.care_modality, p.numero_historia_clinica, p.numero_hc_papel,
+            p.fecha_nacimiento, p.sexo, p.obra_social,
+            (SELECT COUNT(*) FROM hce_evoluciones e WHERE e.patient_id = p.id) AS total_evoluciones,
+            (SELECT COUNT(*) FROM hce_diagnosticos d WHERE d.patient_id = p.id AND d.estado = 'activo') AS diagnosticos_activos,
+            (SELECT fecha FROM hce_evoluciones e WHERE e.patient_id = p.id ORDER BY fecha DESC LIMIT 1) AS ultima_evolucion
+          FROM hdd_patients p
+          WHERE p.status = 'active'
+          ORDER BY p.care_modality ASC, p.full_name ASC
+        `;
+
+        const grouped: Record<string, any[]> = {
+          internacion: [],
+          hospital_de_dia: [],
+          externo: []
+        };
+
+        patients.forEach((p: any) => {
+          const modality = p.care_modality || 'hospital_de_dia';
+          const mapped = {
+            id: p.id,
+            dni: p.dni,
+            fullName: p.full_name,
+            admissionDate: p.admission_date,
+            hcNumber: p.numero_historia_clinica,
+            hcPapel: p.numero_hc_papel,
+            fechaNacimiento: p.fecha_nacimiento,
+            sexo: p.sexo,
+            obraSocial: p.obra_social,
+            totalEvoluciones: Number(p.total_evoluciones) || 0,
+            diagnosticosActivos: Number(p.diagnosticos_activos) || 0,
+            ultimaEvolucion: p.ultima_evolucion
+          };
+          if (grouped[modality]) {
+            grouped[modality].push(mapped);
+          } else {
+            grouped.hospital_de_dia.push(mapped);
+          }
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          groups: grouped,
+          total: patients.length
         }), { status: 200, headers: corsHeaders });
       }
 

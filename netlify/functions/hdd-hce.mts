@@ -64,7 +64,8 @@ export default async (req: Request, context: Context) => {
                direccion, localidad, provincia, codigo_postal,
                ocupacion, nivel_educativo,
                contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_relacion,
-               grupo_sanguineo, numero_historia_clinica
+               grupo_sanguineo, numero_historia_clinica, numero_hc_papel,
+               obra_social, obra_social_numero, care_modality
         FROM hdd_patients WHERE id = ${patientId}
       `;
 
@@ -92,7 +93,11 @@ export default async (req: Request, context: Context) => {
                e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
-               p.specialty AS profesional_especialidad
+               p.specialty AS profesional_especialidad,
+               COALESCE(e.firma_nombre, p.full_name) AS firma_nombre,
+               COALESCE(e.firma_especialidad, p.specialty) AS firma_especialidad,
+               e.firma_matricula,
+               COALESCE(e.firma_role, p.role) AS firma_role
         FROM hce_evoluciones e
         LEFT JOIN healthcare_professionals p ON p.id = e.profesional_id
         WHERE e.patient_id = ${patientId}
@@ -121,10 +126,12 @@ export default async (req: Request, context: Context) => {
         ORDER BY tipo, created_at DESC
       `;
 
-      // Vital signs (last 20)
+      // Vital signs (last 20) + ultimo registro destacado
       const vitals = await sql`
         SELECT id, fecha, peso_kg, talla_cm, ta_sistolica, ta_diastolica,
-               fc, fr, temperatura, saturacion, glucemia, notas, registrado_por,
+               fc, fr, temperatura, saturacion, glucemia, notas,
+               COALESCE(registrado_por_nombre, registrado_por::text) AS registrado_por,
+               registrado_por_role,
                created_at
         FROM hce_signos_vitales
         WHERE patient_id = ${patientId}
@@ -165,18 +172,28 @@ export default async (req: Request, context: Context) => {
           { status: 400, headers: corsHeaders });
       }
 
+      // Build firma/sello: matrícula provincial o nacional
+      const firmaMatricula = prof.matriculaProvincial
+        ? `MP ${prof.matriculaProvincial}`
+        : prof.matriculaNacional
+          ? `MN ${prof.matriculaNacional}`
+          : null;
+
       const [evolution] = await sql`
         INSERT INTO hce_evoluciones (
           patient_id, profesional_id, fecha, tipo, contenido,
           motivo_consulta, examen_mental, plan_terapeutico,
-          indicaciones, es_confidencial
+          indicaciones, es_confidencial,
+          firma_nombre, firma_especialidad, firma_matricula, firma_role
         ) VALUES (
           ${patientId}, ${prof.id}, NOW(), ${tipo || 'evolucion'},
           ${contenido}, ${motivoConsulta || null}, ${examenMental || null},
           ${planTerapeutico || null}, ${indicaciones || null},
-          ${esConfidencial || false}
+          ${esConfidencial || false},
+          ${prof.fullName}, ${prof.specialty || null},
+          ${firmaMatricula}, ${prof.role || 'profesional'}
         )
-        RETURNING id, fecha, created_at
+        RETURNING id, fecha, created_at, firma_nombre, firma_especialidad, firma_matricula, firma_role
       `;
 
       return new Response(JSON.stringify({ success: true, evolution }),
@@ -354,16 +371,19 @@ export default async (req: Request, context: Context) => {
       const [vital] = await sql`
         INSERT INTO hce_signos_vitales (
           patient_id, fecha, peso_kg, talla_cm, ta_sistolica, ta_diastolica,
-          fc, fr, temperatura, saturacion, glucemia, notas, registrado_por
+          fc, fr, temperatura, saturacion, glucemia, notas,
+          registrado_por_nombre, registrado_por_role
         ) VALUES (
           ${patientId}, NOW(),
           ${pesoKg || null}, ${tallaCm || null},
           ${taSistolica || null}, ${taDiastolica || null},
           ${fc || null}, ${fr || null},
           ${temperatura || null}, ${saturacion || null},
-          ${glucemia || null}, ${notas || null}, ${prof.fullName}
+          ${glucemia || null}, ${notas || null},
+          ${prof.fullName}, ${prof.role || 'profesional'}
         )
-        RETURNING id, created_at
+        RETURNING id, fecha, ta_sistolica, ta_diastolica, fc, fr,
+                  temperatura, saturacion, glucemia, peso_kg, created_at
       `;
 
       return new Response(JSON.stringify({ success: true, vital }),
@@ -385,7 +405,11 @@ export default async (req: Request, context: Context) => {
                e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
-               p.specialty AS profesional_especialidad
+               p.specialty AS profesional_especialidad,
+               COALESCE(e.firma_nombre, p.full_name) AS firma_nombre,
+               COALESCE(e.firma_especialidad, p.specialty) AS firma_especialidad,
+               e.firma_matricula,
+               COALESCE(e.firma_role, p.role) AS firma_role
         FROM hce_evoluciones e
         LEFT JOIN healthcare_professionals p ON p.id = e.profesional_id
         WHERE e.patient_id = ${patientId}
@@ -457,12 +481,23 @@ export default async (req: Request, context: Context) => {
           { status: 404, headers: corsHeaders });
       }
 
+      // Stamp firma y sello at commit time
+      const draftFirmaMatricula = prof.matriculaProvincial
+        ? `MP ${prof.matriculaProvincial}`
+        : prof.matriculaNacional
+          ? `MN ${prof.matriculaNacional}`
+          : null;
+
       await sql`
         UPDATE hce_evoluciones SET
           tipo = ${tipo || 'evolucion'},
           fecha = NOW(),
           editado = false,
-          editado_at = null
+          editado_at = null,
+          firma_nombre = ${prof.fullName},
+          firma_especialidad = ${prof.specialty || null},
+          firma_matricula = ${draftFirmaMatricula},
+          firma_role = ${prof.role || 'profesional'}
         WHERE id = ${draft.id}
       `;
 

@@ -40,11 +40,22 @@ export async function logProfessionalAction(sql: any, entry: AuditEntry): Promis
 }
 
 // Helper to extract professional info from session token
-export async function getProfessionalFromToken(sql: any, sessionToken: string): Promise<{ id: number; email: string; fullName: string } | null> {
+export async function getProfessionalFromToken(sql: any, sessionToken: string): Promise<{
+  id: number; email: string; fullName: string;
+  specialty?: string; role?: string;
+  matriculaProvincial?: string; matriculaNacional?: string;
+} | null> {
   const [prof] = await sql`
-    SELECT id, email, full_name FROM healthcare_professionals
+    SELECT id, email, full_name, specialty, role,
+           matricula_provincial, matricula_nacional
+    FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
   if (!prof) return null;
-  return { id: prof.id, email: prof.email, fullName: prof.full_name };
+  return {
+    id: prof.id, email: prof.email, fullName: prof.full_name,
+    specialty: prof.specialty, role: prof.role,
+    matriculaProvincial: prof.matricula_provincial,
+    matriculaNacional: prof.matricula_nacional,
+  };
 }

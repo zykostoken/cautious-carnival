@@ -90,6 +90,160 @@ body.hce-body {
   flex-wrap: wrap;
 }
 
+/* ── Signos vitales summary in header ── */
+.hce-sv-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  cursor: default;
+}
+.hce-sv-ok {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #15803d;
+}
+.hce-sv-stale {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+.hce-sv-missing {
+  background: rgba(156, 163, 175, 0.1);
+  border: 1px solid rgba(156, 163, 175, 0.25);
+  color: #6b7280;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+.hce-sv-values {
+  font-weight: 600;
+}
+.hce-sv-time {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+/* ── Sidebar SV card ── */
+.hce-sv-card {
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+}
+.hce-sv-card.hce-sv-ok {
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+}
+.hce-sv-card.hce-sv-stale {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.hce-sv-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+}
+.hce-sv-card-time {
+  font-size: 0.72rem;
+  color: var(--hce-muted, #6b7280);
+}
+.hce-sv-card-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem 0.5rem;
+}
+.hce-sv-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.1rem 0;
+}
+.hce-sv-label {
+  color: var(--hce-muted, #6b7280);
+  font-size: 0.75rem;
+}
+.hce-sv-val {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.hce-sv-card-footer {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--hce-muted, #6b7280);
+  border-top: 1px solid rgba(0,0,0,0.05);
+  padding-top: 0.25rem;
+}
+
+/* ── Sidebar SV history rows ── */
+.hce-sv-hist-row {
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  font-size: 0.75rem;
+}
+.hce-sv-hist-date {
+  font-weight: 600;
+  color: var(--hce-text, #1f2937);
+  font-size: 0.72rem;
+}
+.hce-sv-hist-vals {
+  color: var(--hce-text, #374151);
+}
+.hce-sv-hist-by {
+  color: var(--hce-muted, #9ca3af);
+  font-size: 0.68rem;
+}
+
+/* ── Inline SV fields in evolution form ── */
+.hce-sv-inline {
+  background: var(--hce-bg-alt, #f9fafb);
+  border: 1px solid var(--hce-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.hce-sv-inline-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--hce-muted, #6b7280);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.hce-sv-inline-fields {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hce-sv-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.hce-sv-inline-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--hce-text, #374151);
+  min-width: unset;
+}
+.hce-sv-inline-field input {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--hce-border, #d1d5db);
+  border-radius: 5px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+.hce-sv-inline-field input:focus {
+  border-color: var(--hce-accent, #2563eb);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
 .hce-alert-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
@@ -473,6 +627,37 @@ body.hce-body {
   margin-top: 0.5rem;
 }
 
+/* ── Firma y Sello Digital (HL7 / Ley 26.529) ── */
+.hce-firma-sello {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--hce-text-muted, #64748b);
+}
+.hce-firma-line {
+  width: 180px;
+  border-top: 1px solid var(--hce-border, #e2e8f0);
+  margin-left: auto;
+  margin-bottom: 0.35rem;
+}
+.hce-firma-nombre {
+  font-weight: 600;
+  color: var(--hce-text, #1e293b);
+  font-size: 0.82rem;
+}
+.hce-firma-detail {
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* Print: firma visible */
+@media print {
+  .hce-firma-sello {
+    page-break-inside: avoid;
+  }
+}
+
 .hce-evo-actions {
   display: flex;
   gap: 0.5rem;
@@ -693,13 +878,14 @@ body.hce-body {
   display: flex;
   border-bottom: 1px solid var(--hce-border);
   background: #f8fafc;
+  flex-wrap: wrap;
 }
 
 .hce-sidebar-tab {
-  flex: 1;
-  padding: 0.5rem;
+  flex: 1 1 auto;
+  padding: 0.4rem 0.3rem;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
   background: none;
@@ -708,6 +894,8 @@ body.hce-body {
   color: var(--hce-text-muted);
   border-bottom: 2px solid transparent;
   transition: all 0.15s;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .hce-sidebar-tab.active {

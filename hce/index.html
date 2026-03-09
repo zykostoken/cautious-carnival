@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historia Clinica Electronica - Clinica Jose Ingenieros</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#f8fafc;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--primary:#2563eb;--primary-light:#dbeafe;--red:#ef4444;--blue:#3b82f6;--green:#22c55e;--yellow:#f59e0b}
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+
+    /* Header */
+    .header{background:var(--surface);border-bottom:1px solid var(--border);padding:0.75rem 1.5rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+    .header-logo{display:flex;align-items:center;gap:0.75rem}
+    .header-logo h1{font-size:1.1rem;color:var(--primary)}
+    .header-logo span{font-size:0.75rem;color:var(--muted)}
+    .header-actions{display:flex;gap:0.75rem;align-items:center}
+    .header-actions .user-name{font-size:0.85rem;color:var(--muted)}
+
+    /* Login */
+    .login-container{max-width:400px;margin:4rem auto;padding:2rem}
+    .login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem}
+    .login-card h2{text-align:center;margin-bottom:1.5rem;color:var(--primary)}
+    .form-group{margin-bottom:1rem}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;color:var(--muted)}
+    .form-group input{width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:8px;font-size:0.95rem}
+    .form-group input:focus{outline:none;border-color:var(--primary)}
+    .form-error{color:var(--red);font-size:0.85rem;margin-bottom:0.75rem;display:none}
+    .btn{padding:0.7rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s}
+    .btn-primary{background:var(--primary);color:white;width:100%}
+    .btn-primary:hover{background:#1d4ed8}
+    .btn-sm{padding:0.4rem 0.75rem;font-size:0.82rem}
+    .btn-ghost{background:none;color:var(--muted);border:1px solid var(--border)}
+    .btn-ghost:hover{background:var(--bg)}
+
+    /* Main app */
+    .app-container{max-width:1200px;margin:0 auto;padding:1.25rem}
+    .search-bar{display:flex;gap:0.75rem;margin-bottom:1.25rem;align-items:center}
+    .search-bar input{flex:1;padding:0.6rem 1rem;border:1px solid var(--border);border-radius:8px;font-size:0.9rem}
+    .search-bar input:focus{outline:none;border-color:var(--primary)}
+
+    /* Groups */
+    .group{margin-bottom:1.75rem}
+    .group-header{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;padding-bottom:0.5rem}
+    .group-header h3{font-size:1rem;margin:0}
+    .group-count{font-size:0.75rem;padding:2px 10px;border-radius:12px;font-weight:600}
+    .group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0.75rem}
+
+    /* Patient card */
+    .pat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.85rem;cursor:pointer;transition:all 0.15s}
+    .pat-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(37,99,235,0.08);transform:translateY(-1px)}
+    .pat-name{font-weight:600;font-size:0.95rem}
+    .pat-meta{font-size:0.8rem;color:var(--muted);margin-top:0.15rem}
+    .pat-os{font-size:0.78rem;color:var(--primary);font-weight:500;margin-top:0.25rem}
+    .pat-stats{display:flex;gap:1rem;margin-top:0.4rem;font-size:0.78rem;color:var(--muted)}
+    .pat-stats strong{color:var(--text)}
+    .pat-last{font-size:0.72rem;color:var(--muted);margin-top:0.35rem;display:flex;align-items:center;gap:0.35rem}
+    .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+    .dot-green{background:var(--green)}
+    .dot-yellow{background:var(--yellow)}
+    .dot-red{background:var(--red)}
+    .dot-gray{background:#d1d5db}
+
+    .empty{text-align:center;padding:1rem;color:var(--muted);font-size:0.85rem}
+    .hidden{display:none!important}
+
+    /* Add patient modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:flex;align-items:center;justify-content:center}
+    .modal{background:var(--surface);border-radius:12px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto}
+    .modal-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .modal-header h2{font-size:1.05rem}
+    .modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted)}
+    .modal-body{padding:1.25rem}
+    .modal-body select{width:100%;padding:0.6rem;border:1px solid var(--border);border-radius:8px;font-size:0.9rem}
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN VIEW -->
+  <div id="login-view">
+    <div class="login-container">
+      <div class="login-card">
+        <h2>Historia Clinica Electronica</h2>
+        <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-bottom:1.5rem;">Clinica Jose Ingenieros — Acceso Profesional</p>
+        <form id="login-form" onsubmit="doLogin(event)">
+          <div class="form-group">
+            <label for="login-email">Email o usuario</label>
+            <input type="text" id="login-email" placeholder="usuario@clinicajoseingenieros.ar" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Contrasena</label>
+            <input type="password" id="login-password" required>
+          </div>
+          <div class="form-error" id="login-error"></div>
+          <button type="submit" class="btn btn-primary">Ingresar</button>
+        </form>
+        <p style="text-align:center;margin-top:1rem;font-size:0.8rem;color:var(--muted);">
+          <a href="/hdd/admin" style="color:var(--primary);">Ir al Panel Admin HDD</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW -->
+  <div id="app-view" class="hidden">
+    <div class="header">
+      <div class="header-logo">
+        <h1>Historia Clinica Electronica</h1>
+        <span>Clinica Jose Ingenieros</span>
+      </div>
+      <div class="header-actions">
+        <span class="user-name" id="user-name"></span>
+        <button class="btn btn-sm btn-ghost" id="btn-usuarios" style="display:none" onclick="window.location.href='/hce/usuarios'">Usuarios</button>
+        <button class="btn btn-sm btn-ghost" onclick="window.location.href='/hdd/admin'">Panel Admin</button>
+        <button class="btn btn-sm btn-ghost" onclick="doLogout()">Salir</button>
+      </div>
+    </div>
+
+    <div class="app-container">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Buscar por nombre, DNI u obra social..." oninput="filterPatients()">
+        <button class="btn btn-primary btn-sm" onclick="showAddModal()">+ Nuevo Paciente</button>
+      </div>
+
+      <div id="patients-container">
+        <div class="empty">Cargando pacientes...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD PATIENT MODAL -->
+  <div id="add-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeAddModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Nuevo Paciente</h2>
+        <button class="modal-close" onclick="closeAddModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-form" onsubmit="submitNewPatient(event)">
+          <div class="form-group">
+            <label>DNI</label>
+            <input type="text" id="add-dni" required pattern="[0-9]{7,8}" placeholder="Ej: 12345678">
+          </div>
+          <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" id="add-name" required placeholder="Apellido Nombre">
+          </div>
+          <div class="form-group">
+            <label>Modalidad de atencion</label>
+            <select id="add-modality">
+              <option value="externo">Consultorio Externo</option>
+              <option value="hospital_de_dia">Hospital de Dia</option>
+              <option value="internacion">Internacion</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Obra Social</label>
+            <select id="add-os" onchange="document.getElementById('add-os-otra').style.display=this.value==='otra'?'block':'none'">
+              <option value="">-- Seleccionar --</option>
+              <option value="IOMA">IOMA</option>
+              <option value="PAMI">PAMI</option>
+              <option value="OSDE">OSDE</option>
+              <option value="Swiss Medical">Swiss Medical</option>
+              <option value="Galeno">Galeno</option>
+              <option value="Medicus">Medicus</option>
+              <option value="OSECAC">OSECAC</option>
+              <option value="Accord Salud">Accord Salud</option>
+              <option value="Hospital Italiano">Hospital Italiano</option>
+              <option value="PARTICULAR">PARTICULAR</option>
+              <option value="otra">Otra...</option>
+            </select>
+            <input type="text" id="add-os-otra" placeholder="Nombre de la obra social" style="display:none;margin-top:0.5rem">
+          </div>
+          <div class="form-group">
+            <label>N° HC papel (si tiene)</label>
+            <input type="text" id="add-hcpapel" placeholder="Ej: 12345">
+          </div>
+          <div class="form-group">
+            <label>Fecha de ingreso</label>
+            <input type="date" id="add-date" required>
+          </div>
+          <div class="form-group">
+            <label>Telefono (opcional)</label>
+            <input type="text" id="add-phone" placeholder="Ej: 2262-123456">
+          </div>
+          <div class="form-error" id="add-error"></div>
+          <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
+            <button type="button" class="btn btn-ghost" onclick="closeAddModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;">Crear y Abrir HC</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+let sessionToken = null;
+let allGroups = null;
+
+// ── Check existing session ──
+function init() {
+  sessionToken = localStorage.getItem('hdd_admin_session') || sessionStorage.getItem('adminSessionToken');
+  if (sessionToken) {
+    verifyAndShow();
+  }
+}
+
+async function verifyAndShow() {
+  try {
+    const res = await fetch(`/api/hdd/admin?action=my_role&sessionToken=${sessionToken}`);
+    const data = await res.json();
+    if (data.role) {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('app-view').classList.remove('hidden');
+      document.getElementById('user-name').textContent = data.email || '';
+      if (data.role === 'super_admin' || data.role === 'limited_admin') {
+        document.getElementById('btn-usuarios').style.display = '';
+      }
+      loadPatients();
+    }
+  } catch(e) {
+    // Session invalid, show login
+  }
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById('login-error');
+  errorEl.style.display = 'none';
+
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const res = await fetch('/api/professionals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', email, password })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errorEl.textContent = data.error;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    if (data.sessionToken) {
+      sessionToken = data.sessionToken;
+      localStorage.setItem('hdd_admin_session', sessionToken);
+      sessionStorage.setItem('adminSessionToken', sessionToken);
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('app-view').classList.remove('hidden');
+      document.getElementById('user-name').textContent = email;
+      loadPatients();
+    }
+  } catch(err) {
+    errorEl.textContent = 'Error de conexion';
+    errorEl.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('hdd_admin_session');
+  sessionStorage.removeItem('adminSessionToken');
+  sessionToken = null;
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('login-view').classList.remove('hidden');
+}
+
+// ── Load patients ──
+async function loadPatients() {
+  try {
+    const res = await fetch(`/api/hdd/admin?action=hce_patients&sessionToken=${sessionToken}`);
+    const data = await res.json();
+    if (!data.success) {
+      document.getElementById('patients-container').innerHTML = '<div class="empty">Error cargando pacientes</div>';
+      return;
+    }
+    allGroups = data.groups;
+    renderGroups(allGroups);
+  } catch(e) {
+    document.getElementById('patients-container').innerHTML = '<div class="empty">Error de conexion</div>';
+  }
+}
+
+function renderGroups(groups) {
+  const container = document.getElementById('patients-container');
+  const sections = [
+    { key: 'internacion', label: 'Internacion', color: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
+    { key: 'hospital_de_dia', label: 'Hospital de Dia', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+    { key: 'externo', label: 'Consultorios Externos', color: '#22c55e', bg: 'rgba(34,197,94,0.08)' }
+  ];
+
+  container.innerHTML = sections.map(s => {
+    const patients = groups[s.key] || [];
+    return `
+      <div class="group">
+        <div class="group-header" style="border-bottom:2px solid ${s.color}">
+          <h3 style="color:${s.color}">${s.label}</h3>
+          <span class="group-count" style="background:${s.bg};color:${s.color}">${patients.length}</span>
+        </div>
+        <div class="group-grid">
+          ${patients.length === 0
+            ? '<div class="empty">Sin pacientes en esta modalidad</div>'
+            : patients.map(p => renderCard(p)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCard(p) {
+  const lastEvo = p.ultimaEvolucion
+    ? new Date(p.ultimaEvolucion).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'2-digit' })
+    : 'Sin evoluciones';
+  const days = p.ultimaEvolucion ? Math.floor((Date.now() - new Date(p.ultimaEvolucion).getTime()) / 86400000) : null;
+  const dotClass = days === null ? 'dot-gray' : days <= 7 ? 'dot-green' : days <= 30 ? 'dot-yellow' : 'dot-red';
+
+  return `
+    <div class="pat-card" onclick="openHCE(${p.id})">
+      <div class="pat-name">${esc(p.fullName)}</div>
+      <div class="pat-meta">DNI: ${p.dni}${p.hcNumber ? ' &middot; ' + p.hcNumber : ''}${p.hcPapel ? ' &middot; HC:' + p.hcPapel : ''}</div>
+      ${p.obraSocial ? `<div class="pat-os">${esc(p.obraSocial)}</div>` : ''}
+      <div class="pat-stats">
+        <span><strong>${p.totalEvoluciones}</strong> evoluciones</span>
+        <span><strong>${p.diagnosticosActivos}</strong> dx activos</span>
+      </div>
+      <div class="pat-last"><span class="dot ${dotClass}"></span>${lastEvo}</div>
+    </div>
+  `;
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function filterPatients() {
+  if (!allGroups) return;
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  if (!q) { renderGroups(allGroups); return; }
+
+  const filtered = {};
+  ['internacion', 'hospital_de_dia', 'externo'].forEach(k => {
+    filtered[k] = (allGroups[k] || []).filter(p =>
+      (p.fullName || '').toLowerCase().includes(q) ||
+      p.dni.includes(q) ||
+      (p.obraSocial || '').toLowerCase().includes(q) ||
+      (p.hcPapel || '').includes(q)
+    );
+  });
+  renderGroups(filtered);
+}
+
+// ── Open HCE ──
+function openHCE(patientId) {
+  sessionStorage.setItem('adminSessionToken', sessionToken);
+  window.location.href = '/hce/paciente?id=' + patientId;
+}
+
+// ── Add patient modal ──
+function showAddModal() {
+  document.getElementById('add-modal').classList.remove('hidden');
+  document.getElementById('add-error').style.display = 'none';
+  document.getElementById('add-date').value = new Date().toISOString().split('T')[0];
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+}
+
+async function submitNewPatient(e) {
+  e.preventDefault();
+  const errEl = document.getElementById('add-error');
+  errEl.style.display = 'none';
+
+  const osSelect = document.getElementById('add-os');
+  const obraSocial = osSelect.value === 'otra'
+    ? (document.getElementById('add-os-otra').value || '').trim()
+    : osSelect.value;
+
+  const payload = {
+    action: 'add_patient',
+    sessionToken,
+    dni: document.getElementById('add-dni').value.trim(),
+    fullName: document.getElementById('add-name').value.trim(),
+    careModality: document.getElementById('add-modality').value,
+    obraSocial: obraSocial || null,
+    hcPapel: document.getElementById('add-hcpapel').value.trim() || null,
+    admissionDate: document.getElementById('add-date').value,
+    phone: document.getElementById('add-phone').value.trim() || null
+  };
+
+  try {
+    const res = await fetch('/api/hdd/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) {
+      errEl.textContent = data.error;
+      errEl.style.display = 'block';
+      return;
+    }
+    closeAddModal();
+    document.getElementById('add-form').reset();
+    openHCE(data.patient.id);
+  } catch(err) {
+    errEl.textContent = 'Error de conexion';
+    errEl.style.display = 'block';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

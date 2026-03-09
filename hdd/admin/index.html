@@ -197,6 +197,7 @@
         <button class="tab" data-tab="resources" onclick="switchTab('resources')">Recursos</button>
         <button class="tab" data-tab="activities" onclick="switchTab('activities')">Actividades</button>
         <button class="tab" data-tab="reports" onclick="switchTab('reports')">Reportes</button>
+        <button class="tab" data-tab="hce" onclick="switchTab('hce')" style="background:var(--primary);color:white;font-weight:600;">Historia Clinica</button>
       </div>
 
       <!-- Patients Tab -->
@@ -650,6 +651,126 @@
           </div>
         </div>
       </div>
+
+      <!-- HCE Tab - Historia Clinica Electronica -->
+      <div id="tab-hce" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <h2>Historia Clinica Electronica</h2>
+            <div style="display:flex;gap:0.5rem;">
+              <input type="text" id="hce-search" placeholder="Buscar por nombre o DNI..." class="search-input" style="width:250px;" oninput="filterHCEPatients()">
+              <button class="btn btn-primary" onclick="showAddHCEPatientModal()">+ Nuevo Paciente HC</button>
+            </div>
+          </div>
+          <div class="card-body" id="hce-tab-body">
+            <div class="hce-groups-container" style="display:flex;flex-direction:column;gap:1.5rem;">
+
+              <!-- Internacion -->
+              <div class="hce-group">
+                <div class="hce-group-header" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #ef4444;">
+                  <span style="font-size:1.3rem;">🏥</span>
+                  <h3 style="margin:0;font-size:1.05rem;color:#ef4444;">Internacion</h3>
+                  <span class="badge-info" id="hce-count-internacion" style="background:rgba(239,68,68,0.1);color:#ef4444;">0</span>
+                </div>
+                <div class="hce-patient-grid" id="hce-grid-internacion" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;">
+                  <div class="empty-state">Cargando...</div>
+                </div>
+              </div>
+
+              <!-- Hospital de Dia -->
+              <div class="hce-group">
+                <div class="hce-group-header" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #3b82f6;">
+                  <span style="font-size:1.3rem;">🌅</span>
+                  <h3 style="margin:0;font-size:1.05rem;color:#3b82f6;">Hospital de Dia</h3>
+                  <span class="badge-info" id="hce-count-hospital_de_dia" style="background:rgba(59,130,246,0.1);color:#3b82f6;">0</span>
+                </div>
+                <div class="hce-patient-grid" id="hce-grid-hospital_de_dia" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;">
+                  <div class="empty-state">Cargando...</div>
+                </div>
+              </div>
+
+              <!-- Externos -->
+              <div class="hce-group">
+                <div class="hce-group-header" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:2px solid #22c55e;">
+                  <span style="font-size:1.3rem;">🚶</span>
+                  <h3 style="margin:0;font-size:1.05rem;color:#22c55e;">Consultorios Externos</h3>
+                  <span class="badge-info" id="hce-count-externo" style="background:rgba(34,197,94,0.1);color:#22c55e;">0</span>
+                </div>
+                <div class="hce-patient-grid" id="hce-grid-externo" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;">
+                  <div class="empty-state">Cargando...</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add HCE Patient Modal -->
+      <div id="add-hce-patient-modal" class="modal-overlay hidden" onclick="closeModal(event, 'add-hce-patient-modal')">
+        <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <h2>Nuevo Paciente - Historia Clinica</h2>
+            <button class="modal-close" onclick="document.getElementById('add-hce-patient-modal').classList.add('hidden')">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="add-hce-patient-form" onsubmit="submitHCEPatient(event)">
+              <div class="form-group">
+                <label for="hce-new-dni">DNI</label>
+                <input type="text" id="hce-new-dni" placeholder="Ej: 12345678" required pattern="[0-9]{7,8}">
+              </div>
+              <div class="form-group">
+                <label for="hce-new-name">Nombre completo</label>
+                <input type="text" id="hce-new-name" placeholder="Apellido Nombre" required>
+              </div>
+              <div class="form-group">
+                <label for="hce-new-modality">Modalidad de atencion</label>
+                <select id="hce-new-modality" required>
+                  <option value="hospital_de_dia">Hospital de Dia</option>
+                  <option value="internacion">Internacion</option>
+                  <option value="externo">Consultorio Externo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="hce-new-date">Fecha de ingreso</label>
+                <input type="date" id="hce-new-date" required>
+              </div>
+              <div class="form-group">
+                <label for="hce-new-os">Obra Social</label>
+                <select id="hce-new-os">
+                  <option value="">-- Seleccionar --</option>
+                  <option value="IOMA">IOMA</option>
+                  <option value="PAMI">PAMI</option>
+                  <option value="OSDE">OSDE</option>
+                  <option value="Swiss Medical">Swiss Medical</option>
+                  <option value="Galeno">Galeno</option>
+                  <option value="Medicus">Medicus</option>
+                  <option value="OSECAC">OSECAC</option>
+                  <option value="Accord Salud">Accord Salud</option>
+                  <option value="Hospital Italiano">Hospital Italiano</option>
+                  <option value="PARTICULAR">PARTICULAR</option>
+                  <option value="otra">Otra...</option>
+                </select>
+                <input type="text" id="hce-new-os-otra" placeholder="Escriba el nombre" style="display:none;margin-top:0.5rem;">
+              </div>
+              <div class="form-group">
+                <label for="hce-new-hcpapel">N° HC papel (si tiene)</label>
+                <input type="text" id="hce-new-hcpapel" placeholder="Ej: 12345, carpeta A-123...">
+              </div>
+              <div class="form-group">
+                <label for="hce-new-phone">Telefono (opcional)</label>
+                <input type="text" id="hce-new-phone" placeholder="Ej: 2262-123456">
+              </div>
+              <div id="hce-new-error" class="form-error hidden"></div>
+              <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('add-hce-patient-modal').classList.add('hidden')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Crear y Abrir HC</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 

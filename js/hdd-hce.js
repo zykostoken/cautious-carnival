@@ -57,7 +57,9 @@ function getSpecialtyLabel(specialty) {
 
 // ── Init ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  sessionToken = sessionStorage.getItem('adminSessionToken') || localStorage.getItem('adminSessionToken');
+  sessionToken = sessionStorage.getItem('adminSessionToken')
+    || localStorage.getItem('adminSessionToken')
+    || localStorage.getItem('hdd_admin_session');
   const params = new URLSearchParams(window.location.search);
   patientId = params.get('id');
 
@@ -94,11 +96,15 @@ async function loadPatientHCE() {
 
     hceData = result;
     renderPatientHeader(result.patient);
+    renderSidebarOS(result.patient);
+    renderDatosPersonales(result.patient);
     renderMedications(result.medications);
     renderDiagnoses(result.diagnoses);
     renderAntecedentes(result.antecedentes);
     renderEvolutions(result.evolutions);
     renderStudies(result.studies);
+    renderLastVitals(result.vitals);
+    loadConsent();
 
     document.getElementById('hce-loading').style.display = 'none';
     document.getElementById('hce-patient-header').style.display = 'flex';
@@ -134,8 +140,8 @@ function renderPatientHeader(p) {
     document.getElementById('hce-patient-age').textContent = '';
   }
 
-  // Obra social from notes or other field
-  document.getElementById('hce-patient-os').textContent = '';
+  // Obra social
+  document.getElementById('hce-patient-os').textContent = p.obra_social || '';
 
   // Alerts
   const alertsEl = document.getElementById('hce-patient-alerts');
@@ -155,6 +161,111 @@ function renderPatientHeader(p) {
   }
 
   alertsEl.innerHTML += '<span class="hce-alert-badge hce-alert-status">' + esc(p.status || 'active') + '</span>';
+}
+
+// ── Render OS in sidebar (always visible above plan farmacologico) ──
+function renderSidebarOS(p) {
+  const nameEl = document.getElementById('hce-os-name');
+  const numEl = document.getElementById('hce-os-numero');
+  const modEl = document.getElementById('hce-os-modality');
+  if (!nameEl) return;
+
+  nameEl.textContent = p.obra_social || 'Sin obra social';
+  numEl.textContent = p.obra_social_numero ? 'N° ' + p.obra_social_numero : '';
+
+  const modalityLabels = {
+    'internacion': 'Internacion',
+    'hospital_de_dia': 'Hospital de Dia',
+    'externo': 'Consultorio Externo'
+  };
+  modEl.textContent = modalityLabels[p.care_modality] || p.care_modality || '';
+}
+
+// ── Render Datos Personales tab ──────────────────────────
+function renderDatosPersonales(p) {
+  const datosEl = document.getElementById('hce-datos-personales');
+  const familiarEl = document.getElementById('hce-datos-familiar');
+  if (!datosEl) return;
+
+  const field = (label, value) => value
+    ? `<div><strong style="color:var(--hce-muted,#6b7280);font-size:0.75rem;">${label}:</strong> ${esc(value)}</div>`
+    : '';
+
+  const birthDate = p.fecha_nacimiento
+    ? new Date(p.fecha_nacimiento).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : null;
+
+  datosEl.innerHTML =
+    field('Nombre', p.full_name) +
+    field('DNI', p.dni) +
+    field('Fecha Nac.', birthDate) +
+    field('Sexo', p.sexo) +
+    field('Genero', p.genero) +
+    field('Estado Civil', p.estado_civil) +
+    field('Nacionalidad', p.nacionalidad) +
+    field('Direccion', [p.direccion, p.localidad, p.provincia, p.codigo_postal].filter(Boolean).join(', ')) +
+    field('Telefono', p.phone) +
+    field('Email', p.email) +
+    field('Ocupacion', p.ocupacion) +
+    field('Nivel Educativo', p.nivel_educativo) +
+    field('Grupo Sanguineo', p.grupo_sanguineo) +
+    field('N° HC Papel', p.numero_hc_papel) +
+    field('N° HC Digital', p.numero_historia_clinica) +
+    field('Obra Social', p.obra_social) +
+    field('N° Afiliado', p.obra_social_numero) +
+    field('Ingreso', p.admission_date ? new Date(p.admission_date).toLocaleDateString('es-AR') : null)
+  || '<div style="color:var(--hce-muted,#6b7280);">Sin datos cargados</div>';
+
+  if (familiarEl) {
+    familiarEl.innerHTML =
+      field('Contacto', p.contacto_emergencia_nombre) +
+      field('Telefono', p.contacto_emergencia_telefono) +
+      field('Relacion', p.contacto_emergencia_relacion)
+    || '<div style="color:var(--hce-muted,#6b7280);">Sin familiar/responsable cargado</div>';
+  }
+}
+
+// ── Consentimiento Informado ─────────────────────────────
+function saveConsent() {
+  // Save consent state to localStorage (per patient) - will persist until backend supports it
+  const consentData = {
+    tratamiento: document.getElementById('consent-tratamiento')?.checked || false,
+    hce: document.getElementById('consent-hce')?.checked || false,
+    medicacion: document.getElementById('consent-medicacion')?.checked || false,
+    estudios: document.getElementById('consent-estudios')?.checked || false,
+    internacion: document.getElementById('consent-internacion')?.checked || false,
+    observaciones: document.getElementById('consent-observaciones')?.value || '',
+    savedAt: new Date().toISOString()
+  };
+  localStorage.setItem('hce_consent_' + patientId, JSON.stringify(consentData));
+
+  const statusEl = document.getElementById('consent-status');
+  if (statusEl) {
+    const anyChecked = Object.values(consentData).some(v => v === true);
+    statusEl.textContent = anyChecked
+      ? 'Registrado ' + new Date().toLocaleDateString('es-AR')
+      : 'Sin registrar';
+    statusEl.style.color = anyChecked ? '#22c55e' : '#6b7280';
+  }
+}
+
+function loadConsent() {
+  const saved = localStorage.getItem('hce_consent_' + patientId);
+  if (!saved) return;
+  try {
+    const data = JSON.parse(saved);
+    if (data.tratamiento) document.getElementById('consent-tratamiento').checked = true;
+    if (data.hce) document.getElementById('consent-hce').checked = true;
+    if (data.medicacion) document.getElementById('consent-medicacion').checked = true;
+    if (data.estudios) document.getElementById('consent-estudios').checked = true;
+    if (data.internacion) document.getElementById('consent-internacion').checked = true;
+    if (data.observaciones) document.getElementById('consent-observaciones').value = data.observaciones;
+    const statusEl = document.getElementById('consent-status');
+    if (statusEl && data.savedAt) {
+      statusEl.textContent = 'Registrado ' + new Date(data.savedAt).toLocaleDateString('es-AR');
+      statusEl.style.color = '#22c55e';
+    }
+  } catch(e) {}
 }
 
 // ── Render medications ────────────────────────────────────
@@ -294,6 +405,13 @@ function renderEvolutions(evos) {
           ` : ''}
           ${e.indicaciones ? '<div style="margin-top:0.5rem;"><strong>Indicaciones:</strong> ' + esc(e.indicaciones) + '</div>' : ''}
           ${e.editado ? '<div class="hce-evo-edited">Editado el ' + formatDateTime(e.editado_at) + '</div>' : ''}
+          <div class="hce-firma-sello">
+            <div class="hce-firma-line"></div>
+            <div class="hce-firma-nombre">${esc(e.firma_nombre || e.profesional_nombre || '')}</div>
+            <div class="hce-firma-detail">${esc(e.firma_especialidad || e.profesional_especialidad || '')}</div>
+            ${e.firma_matricula ? '<div class="hce-firma-detail">' + esc(e.firma_matricula) + '</div>' : ''}
+            <div class="hce-firma-detail">${formatDateTime(e.fecha)}</div>
+          </div>
         </div>
       </div>
     `;
@@ -419,12 +537,19 @@ async function saveEvolution() {
 
   const result = await apiCall('add_evolution', data);
   if (result.success) {
+    // ── Save vitals from inline fields if valid ──
+    const svData = parseInlineVitals();
+    if (svData) {
+      await apiCall('add_vitals', svData);
+    }
+
     // Clear form
     document.getElementById('evo-contenido').value = '';
     document.getElementById('evo-motivo').value = '';
     document.getElementById('evo-examen').value = '';
     document.getElementById('evo-plan').value = '';
     document.getElementById('evo-indicaciones').value = '';
+    clearInlineVitals();
     document.getElementById('hce-autosave-status').textContent = '';
     lastSavedContent = '';
     toggleNewEvoForm();
@@ -437,6 +562,47 @@ async function saveEvolution() {
   } else {
     alert(result.error || 'Error al guardar evolucion');
   }
+}
+
+// ── Parse inline vitals — only returns data if at least one value is valid ──
+function parseInlineVitals() {
+  const taRaw = (document.getElementById('evo-sv-ta')?.value || '').trim();
+  const fcRaw = document.getElementById('evo-sv-fc')?.value;
+  const frRaw = document.getElementById('evo-sv-fr')?.value;
+  const tempRaw = document.getElementById('evo-sv-temp')?.value;
+  const satRaw = document.getElementById('evo-sv-sat')?.value;
+  const gluRaw = document.getElementById('evo-sv-glu')?.value;
+
+  let taSistolica = null, taDiastolica = null;
+  // Validate TA format: 2-3 digits / 2-3 digits (ej: 120/80, 100/50, 120/110)
+  if (taRaw) {
+    const taMatch = taRaw.match(/^(\d{2,3})\/(\d{2,3})$/);
+    if (taMatch) {
+      taSistolica = parseInt(taMatch[1]);
+      taDiastolica = parseInt(taMatch[2]);
+    }
+    // If format doesn't match, ignore TA silently
+  }
+
+  const fc = fcRaw ? parseInt(fcRaw) : null;
+  const fr = frRaw ? parseInt(frRaw) : null;
+  const temperatura = tempRaw ? parseFloat(tempRaw) : null;
+  const saturacion = satRaw ? parseInt(satRaw) : null;
+  const glucemia = gluRaw ? parseInt(gluRaw) : null;
+
+  // Only save if at least one value is present
+  if (!taSistolica && !fc && !fr && !temperatura && !saturacion && !glucemia) {
+    return null;
+  }
+
+  return { taSistolica, taDiastolica, fc, fr, temperatura, saturacion, glucemia };
+}
+
+function clearInlineVitals() {
+  ['evo-sv-ta','evo-sv-fc','evo-sv-fr','evo-sv-temp','evo-sv-sat','evo-sv-glu'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 
 // ── Save medication ───────────────────────────────────────
@@ -572,9 +738,97 @@ async function saveVitals() {
     ['vital-ta-s','vital-ta-d','vital-fc','vital-fr','vital-temp','vital-sat','vital-glu','vital-peso','vital-talla','vital-notas'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    alert('Signos vitales registrados.');
+    // Reload to show updated vitals
+    loadPatientHCE();
   } else {
     alert(result.error || 'Error al registrar signos vitales');
+  }
+}
+
+// ── Render vitals: header summary + sidebar tab ───────────
+function renderLastVitals(vitals) {
+  const alertsEl = document.getElementById('hce-patient-alerts');
+  const svCurrentEl = document.getElementById('hce-sv-current');
+  const svHistoryEl = document.getElementById('hce-sv-history');
+
+  if (!vitals || vitals.length === 0) {
+    alertsEl.innerHTML = '<span class="hce-sv-alert hce-sv-missing">SV: Sin registro</span>';
+    if (svCurrentEl) svCurrentEl.innerHTML = '<div style="color:#9ca3af;font-size:0.82rem;padding:0.5rem 0;">Sin signos vitales registrados</div>';
+    if (svHistoryEl) svHistoryEl.innerHTML = '';
+    return;
+  }
+
+  const last = vitals[0];
+  const lastTime = new Date(last.fecha);
+  const hoursAgo = Math.floor((Date.now() - lastTime.getTime()) / 3600000);
+  const isStale = hoursAgo >= 6;
+
+  // Build values for header
+  const parts = [];
+  if (last.ta_sistolica && last.ta_diastolica) parts.push(`TA ${last.ta_sistolica}/${last.ta_diastolica}`);
+  if (last.fc) parts.push(`FC ${last.fc}`);
+  if (last.temperatura) parts.push(`T ${last.temperatura}°`);
+  if (last.saturacion) parts.push(`Sat ${last.saturacion}%`);
+  if (last.fr) parts.push(`FR ${last.fr}`);
+  if (last.glucemia) parts.push(`Glu ${last.glucemia}`);
+
+  const timeLabel = hoursAgo < 1 ? 'hace < 1h' : hoursAgo < 24 ? `hace ${hoursAgo}h` : `hace ${Math.floor(hoursAgo/24)}d`;
+  const staleClass = isStale ? 'hce-sv-stale' : 'hce-sv-ok';
+  const registradoPor = last.registrado_por ? ` — ${last.registrado_por}` : '';
+
+  // Header badge
+  alertsEl.innerHTML = `
+    <div class="hce-sv-summary ${staleClass}" title="Registrado: ${formatDateTime(last.fecha)}${registradoPor}">
+      <span class="hce-sv-values">${parts.join(' | ') || 'Sin datos'}</span>
+      <span class="hce-sv-time">${timeLabel}${isStale ? ' — VENCIDO' : ''}</span>
+    </div>
+  `;
+
+  // ── Sidebar: ultimo registro destacado ──
+  if (svCurrentEl) {
+    svCurrentEl.innerHTML = `
+      <div class="hce-sv-card ${staleClass}">
+        <div class="hce-sv-card-header">
+          <strong>Ultimo control</strong>
+          <span class="hce-sv-card-time">${formatDateTime(last.fecha)}${isStale ? ' — VENCIDO' : ''}</span>
+        </div>
+        <div class="hce-sv-card-values">
+          ${last.ta_sistolica && last.ta_diastolica ? `<div class="hce-sv-row"><span class="hce-sv-label">TA</span><span class="hce-sv-val">${last.ta_sistolica}/${last.ta_diastolica} mmHg</span></div>` : ''}
+          ${last.fc ? `<div class="hce-sv-row"><span class="hce-sv-label">FC</span><span class="hce-sv-val">${last.fc} lpm</span></div>` : ''}
+          ${last.fr ? `<div class="hce-sv-row"><span class="hce-sv-label">FR</span><span class="hce-sv-val">${last.fr} rpm</span></div>` : ''}
+          ${last.temperatura ? `<div class="hce-sv-row"><span class="hce-sv-label">Temp</span><span class="hce-sv-val">${last.temperatura} °C</span></div>` : ''}
+          ${last.saturacion ? `<div class="hce-sv-row"><span class="hce-sv-label">SatO2</span><span class="hce-sv-val">${last.saturacion}%</span></div>` : ''}
+          ${last.glucemia ? `<div class="hce-sv-row"><span class="hce-sv-label">Glucemia</span><span class="hce-sv-val">${last.glucemia} mg/dL</span></div>` : ''}
+          ${last.peso_kg ? `<div class="hce-sv-row"><span class="hce-sv-label">Peso</span><span class="hce-sv-val">${last.peso_kg} kg</span></div>` : ''}
+          ${last.talla_cm ? `<div class="hce-sv-row"><span class="hce-sv-label">Talla</span><span class="hce-sv-val">${last.talla_cm} cm</span></div>` : ''}
+        </div>
+        ${last.registrado_por ? `<div class="hce-sv-card-footer">${last.registrado_por}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // ── Sidebar: historial (registros anteriores) ──
+  if (svHistoryEl && vitals.length > 1) {
+    const historyHtml = vitals.slice(1).map(v => {
+      const vParts = [];
+      if (v.ta_sistolica && v.ta_diastolica) vParts.push(`TA ${v.ta_sistolica}/${v.ta_diastolica}`);
+      if (v.fc) vParts.push(`FC ${v.fc}`);
+      if (v.temperatura) vParts.push(`T ${v.temperatura}°`);
+      if (v.saturacion) vParts.push(`Sat ${v.saturacion}%`);
+      return `
+        <div class="hce-sv-hist-row">
+          <span class="hce-sv-hist-date">${formatDateTime(v.fecha)}</span>
+          <span class="hce-sv-hist-vals">${vParts.join(' | ')}</span>
+          ${v.registrado_por ? `<span class="hce-sv-hist-by">${v.registrado_por}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+    svHistoryEl.innerHTML = `
+      <div style="font-size:0.75rem;font-weight:600;color:var(--hce-muted,#6b7280);margin-bottom:0.3rem;">Historial</div>
+      ${historyHtml}
+    `;
+  } else if (svHistoryEl) {
+    svHistoryEl.innerHTML = '';
   }
 }
 
@@ -594,7 +848,16 @@ function goBack() {
   if (content && content !== lastSavedContent) {
     if (!confirm('Tiene contenido sin guardar. Desea salir?')) return;
   }
-  window.location.href = '/hdd/admin';
+  // Go back to referrer or default
+  if (document.referrer && document.referrer.includes('/hce')) {
+    window.location.href = '/hce';
+  } else if (document.referrer && document.referrer.includes('/hdd/admin')) {
+    window.history.back();
+  } else if (window.location.pathname.startsWith('/hce')) {
+    window.location.href = '/hce';
+  } else {
+    window.location.href = '/hdd/admin';
+  }
 }
 
 // ── Utility functions ─────────────────────────────────────
