@@ -86,10 +86,23 @@
   status = 200
   force = true
 
-# HDD Admin HCE (Historia Clínica Electrónica)
+# HDD Admin HCE (Historia Clínica Electrónica) - legacy path
 [[redirects]]
   from = "/hdd/admin/hce"
   to = "/hdd/admin/hce.html"
+  status = 200
+  force = true
+
+# HCE — Historia Clínica Electrónica (standalone, no depende de HDD)
+[[redirects]]
+  from = "/hce"
+  to = "/hce/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/hce/paciente"
+  to = "/hce/paciente.html"
   status = 200
   force = true
 

@@ -704,9 +704,13 @@ function goBack() {
   if (content && content !== lastSavedContent) {
     if (!confirm('Tiene contenido sin guardar. Desea salir?')) return;
   }
-  // Go back to referrer or default to admin
-  if (document.referrer && document.referrer.includes('/hdd/admin')) {
+  // Go back to referrer or default
+  if (document.referrer && document.referrer.includes('/hce')) {
+    window.location.href = '/hce';
+  } else if (document.referrer && document.referrer.includes('/hdd/admin')) {
     window.history.back();
+  } else if (window.location.pathname.startsWith('/hce')) {
+    window.location.href = '/hce';
   } else {
     window.location.href = '/hdd/admin';
   }
