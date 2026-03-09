@@ -83,7 +83,7 @@
   force = true
 
 # HCE — Historia Clínica Electrónica
-# Un solo archivo: /hdd/admin/hce.html — ambas rutas apuntan al mismo
+# /hce → listado de pacientes, /hce/paciente → HC individual (archivo unico en /hdd/admin/hce.html)
 [[redirects]]
   from = "/hce"
   to = "/hce/index.html"
@@ -109,11 +109,6 @@
   status = 301
   force = true
 
-[[redirects]]
-  from = "/hdd/*"
-  to = "/hdd/:splat"
-  status = 200
-
 # =============================================
 # EXTERNAL GAMES PORTAL (separate from HDD)
 # =============================================
@@ -128,23 +123,6 @@
 [[redirects]]
   from = "/games/portal"
   to = "/games/portal/index.html"
-  status = 200
-
-# Individual Games
-[[redirects]]
-  from = "/games/play/*"
-  to = "/games/play/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/games/*"
-  to = "/games/:splat"
-  status = 200
-
-# Privacy policy
-[[redirects]]
-  from = "/privacidad"
-  to = "/privacidad.html"
   status = 200
 
 # Main SPA fallback
