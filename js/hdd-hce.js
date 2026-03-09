@@ -82,6 +82,10 @@ async function apiCall(action, data = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, sessionToken, patientId, ...data })
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    try { return JSON.parse(text); } catch { return { error: `Error ${res.status}` }; }
+  }
   return res.json();
 }
 
@@ -223,6 +227,11 @@ function renderDatosPersonales(p) {
       field('Relacion', p.contacto_emergencia_relacion)
     || '<div style="color:var(--hce-muted,#6b7280);">Sin familiar/responsable cargado</div>';
   }
+}
+
+// ── Toggle edit datos personales (placeholder) ──────────
+function toggleEditDatos() {
+  alert('Edicion de datos personales desde la HCE no disponible aun. Use el panel de administracion.');
 }
 
 // ── Consentimiento Informado ─────────────────────────────
@@ -535,32 +544,37 @@ async function saveEvolution() {
     indicaciones: document.getElementById('evo-indicaciones').value.trim() || null,
   };
 
-  const result = await apiCall('add_evolution', data);
-  if (result.success) {
-    // ── Save vitals from inline fields if valid ──
-    const svData = parseInlineVitals();
-    if (svData) {
-      await apiCall('add_vitals', svData);
+  try {
+    const result = await apiCall('add_evolution', data);
+    if (result.success) {
+      // ── Save vitals from inline fields if valid ──
+      const svData = parseInlineVitals();
+      if (svData) {
+        await apiCall('add_vitals', svData).catch(() => {});
+      }
+
+      // Clear form
+      document.getElementById('evo-contenido').value = '';
+      document.getElementById('evo-motivo').value = '';
+      document.getElementById('evo-examen').value = '';
+      document.getElementById('evo-plan').value = '';
+      document.getElementById('evo-indicaciones').value = '';
+      clearInlineVitals();
+      document.getElementById('hce-autosave-status').textContent = '';
+      lastSavedContent = '';
+      toggleNewEvoForm();
+
+      // Also delete draft if exists
+      apiCall('commit_draft', { tipo: data.tipo }).catch(() => {});
+
+      // Reload
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error al guardar evolucion');
     }
-
-    // Clear form
-    document.getElementById('evo-contenido').value = '';
-    document.getElementById('evo-motivo').value = '';
-    document.getElementById('evo-examen').value = '';
-    document.getElementById('evo-plan').value = '';
-    document.getElementById('evo-indicaciones').value = '';
-    clearInlineVitals();
-    document.getElementById('hce-autosave-status').textContent = '';
-    lastSavedContent = '';
-    toggleNewEvoForm();
-
-    // Also delete draft if exists
-    apiCall('commit_draft', { tipo: data.tipo }).catch(() => {});
-
-    // Reload
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error al guardar evolucion');
+  } catch (err) {
+    console.error('Error saving evolution:', err);
+    alert('Error de conexion al guardar evolucion');
   }
 }
 
@@ -616,41 +630,49 @@ async function saveMedication() {
     return;
   }
 
-  const result = await apiCall('add_medication', {
-    droga,
-    nombreComercial: document.getElementById('med-comercial').value.trim() || null,
-    dosis,
-    frecuencia,
-    via: document.getElementById('med-via').value,
-    fechaInicio: document.getElementById('med-fecha-inicio').value || null,
-  });
+  try {
+    const result = await apiCall('add_medication', {
+      droga,
+      nombreComercial: document.getElementById('med-comercial').value.trim() || null,
+      dosis,
+      frecuencia,
+      via: document.getElementById('med-via').value,
+      fechaInicio: document.getElementById('med-fecha-inicio').value || null,
+    });
 
-  if (result.success) {
-    closeModal('add-med');
-    // Clear fields
-    document.getElementById('med-droga').value = '';
-    document.getElementById('med-comercial').value = '';
-    document.getElementById('med-dosis').value = '';
-    document.getElementById('med-frecuencia').value = '';
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error al guardar medicacion');
+    if (result.success) {
+      closeModal('add-med');
+      document.getElementById('med-droga').value = '';
+      document.getElementById('med-comercial').value = '';
+      document.getElementById('med-dosis').value = '';
+      document.getElementById('med-frecuencia').value = '';
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error al guardar medicacion');
+    }
+  } catch (err) {
+    console.error('Error saving medication:', err);
+    alert('Error de conexion al guardar medicacion');
   }
 }
 
 // ── Suspend medication ────────────────────────────────────
 async function suspendMed(medId) {
   const motivo = prompt('Motivo de suspension (opcional):');
-  const result = await apiCall('update_medication', {
-    medicationId: medId,
-    estado: 'suspendido',
-    motivoSuspension: motivo || null
-  });
-
-  if (result.success) {
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error');
+  try {
+    const result = await apiCall('update_medication', {
+      medicationId: medId,
+      estado: 'suspendido',
+      motivoSuspension: motivo || null
+    });
+    if (result.success) {
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error');
+    }
+  } catch (err) {
+    console.error('Error suspending medication:', err);
+    alert('Error de conexion');
   }
 }
 
@@ -662,32 +684,42 @@ async function saveDiagnosis() {
     return;
   }
 
-  const result = await apiCall('add_diagnosis', {
-    codigo: document.getElementById('diag-codigo').value.trim() || null,
-    sistema: document.getElementById('diag-sistema').value,
-    descripcion,
-    tipo: document.getElementById('diag-tipo').value,
-    fechaDiagnostico: document.getElementById('diag-fecha').value || null,
-  });
+  try {
+    const result = await apiCall('add_diagnosis', {
+      codigo: document.getElementById('diag-codigo').value.trim() || null,
+      sistema: document.getElementById('diag-sistema').value,
+      descripcion,
+      tipo: document.getElementById('diag-tipo').value,
+      fechaDiagnostico: document.getElementById('diag-fecha').value || null,
+    });
 
-  if (result.success) {
-    closeModal('add-diag');
-    document.getElementById('diag-codigo').value = '';
-    document.getElementById('diag-descripcion').value = '';
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error al guardar diagnostico');
+    if (result.success) {
+      closeModal('add-diag');
+      document.getElementById('diag-codigo').value = '';
+      document.getElementById('diag-descripcion').value = '';
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error al guardar diagnostico');
+    }
+  } catch (err) {
+    console.error('Error saving diagnosis:', err);
+    alert('Error de conexion al guardar diagnostico');
   }
 }
 
 // ── Resolve diagnosis ─────────────────────────────────────
 async function resolveDiag(diagId) {
   if (!confirm('Marcar diagnostico como resuelto?')) return;
-  const result = await apiCall('update_diagnosis', {
-    diagnosisId: diagId,
-    estado: 'resuelto'
-  });
-  if (result.success) loadPatientHCE();
+  try {
+    const result = await apiCall('update_diagnosis', {
+      diagnosisId: diagId,
+      estado: 'resuelto'
+    });
+    if (result.success) loadPatientHCE();
+  } catch (err) {
+    console.error('Error resolving diagnosis:', err);
+    alert('Error de conexion');
+  }
 }
 
 // ── Save antecedente ──────────────────────────────────────
@@ -699,21 +731,26 @@ async function saveAntecedente() {
     return;
   }
 
-  const result = await apiCall('add_antecedente', {
-    tipo,
-    descripcion,
-    fechaAproximada: document.getElementById('ant-fecha').value.trim() || null,
-    observaciones: document.getElementById('ant-observaciones').value.trim() || null,
-  });
+  try {
+    const result = await apiCall('add_antecedente', {
+      tipo,
+      descripcion,
+      fechaAproximada: document.getElementById('ant-fecha').value.trim() || null,
+      observaciones: document.getElementById('ant-observaciones').value.trim() || null,
+    });
 
-  if (result.success) {
-    closeModal('add-ant');
-    document.getElementById('ant-descripcion').value = '';
-    document.getElementById('ant-fecha').value = '';
-    document.getElementById('ant-observaciones').value = '';
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error al guardar antecedente');
+    if (result.success) {
+      closeModal('add-ant');
+      document.getElementById('ant-descripcion').value = '';
+      document.getElementById('ant-fecha').value = '';
+      document.getElementById('ant-observaciones').value = '';
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error al guardar antecedente');
+    }
+  } catch (err) {
+    console.error('Error saving antecedente:', err);
+    alert('Error de conexion al guardar antecedente');
   }
 }
 
@@ -725,7 +762,14 @@ async function loadMetrics() {
   const contentEl = document.getElementById('hce-metrics-content');
   contentEl.innerHTML = '<div class="hce-empty">Cargando metricas...</div>';
 
-  const result = await apiCall('get_patient_metrics', {});
+  let result;
+  try {
+    result = await apiCall('get_patient_metrics', {});
+  } catch (err) {
+    console.error('Error loading metrics:', err);
+    contentEl.innerHTML = '<div class="hce-empty">Error de conexion al cargar metricas</div>';
+    return;
+  }
   if (!result.success) {
     contentEl.innerHTML = '<div class="hce-empty">No se pudieron cargar las metricas</div>';
     return;
@@ -796,10 +840,10 @@ async function loadMetrics() {
       const moodLabels = { 1: 'Muy mal', 2: 'Mal', 3: 'Regular', 4: 'Bien', 5: 'Muy bien' };
       html += `
         <div class="hce-mood-entry">
-          ${m.color_hex ? `<span class="hce-mood-dot" style="background:${m.color_hex}"></span>` : ''}
-          <span class="hce-mood-val">${moodLabels[m.mood_value] || m.mood_value || '-'}</span>
+          ${m.color_hex ? `<span class="hce-mood-dot" style="background:${esc(m.color_hex)}"></span>` : ''}
+          <span class="hce-mood-val">${moodLabels[m.mood_value] || esc(String(m.mood_value || '-'))}</span>
           <span class="hce-mood-date">${formatDateTime(m.created_at)}</span>
-          ${m.note ? `<span class="hce-mood-note">${m.note}</span>` : ''}
+          ${m.note ? `<span class="hce-mood-note">${esc(m.note)}</span>` : ''}
         </div>
       `;
     });
@@ -811,7 +855,7 @@ async function loadMetrics() {
     html += '<div class="hce-metrics-section"><h4>Selecciones de Color</h4>';
     html += '<div class="hce-color-timeline">';
     moodEntries.slice(0, 30).forEach(e => {
-      html += `<span class="hce-color-dot" style="background:${e.color_hex}" title="${e.source_activity || e.context_type} — ${formatDateTime(e.recorded_at)}"></span>`;
+      html += `<span class="hce-color-dot" style="background:${esc(e.color_hex || '#ccc')}" title="${esc(e.source_activity || e.context_type || '')} — ${formatDateTime(e.recorded_at)}"></span>`;
     });
     html += '</div></div>';
   }
@@ -928,29 +972,32 @@ function buildSparkline(scores) {
 
 // ── Save vitals ───────────────────────────────────────────
 async function saveVitals() {
-  const result = await apiCall('add_vitals', {
-    taSistolica: numOrNull('vital-ta-s'),
-    taDiastolica: numOrNull('vital-ta-d'),
-    fc: numOrNull('vital-fc'),
-    fr: numOrNull('vital-fr'),
-    temperatura: numOrNull('vital-temp'),
-    saturacion: numOrNull('vital-sat'),
-    glucemia: numOrNull('vital-glu'),
-    pesoKg: numOrNull('vital-peso'),
-    tallaCm: numOrNull('vital-talla'),
-    notas: document.getElementById('vital-notas').value.trim() || null,
-  });
-
-  if (result.success) {
-    closeModal('vitals');
-    // Clear fields
-    ['vital-ta-s','vital-ta-d','vital-fc','vital-fr','vital-temp','vital-sat','vital-glu','vital-peso','vital-talla','vital-notas'].forEach(id => {
-      document.getElementById(id).value = '';
+  try {
+    const result = await apiCall('add_vitals', {
+      taSistolica: numOrNull('vital-ta-s'),
+      taDiastolica: numOrNull('vital-ta-d'),
+      fc: numOrNull('vital-fc'),
+      fr: numOrNull('vital-fr'),
+      temperatura: numOrNull('vital-temp'),
+      saturacion: numOrNull('vital-sat'),
+      glucemia: numOrNull('vital-glu'),
+      pesoKg: numOrNull('vital-peso'),
+      tallaCm: numOrNull('vital-talla'),
+      notas: document.getElementById('vital-notas').value.trim() || null,
     });
-    // Reload to show updated vitals
-    loadPatientHCE();
-  } else {
-    alert(result.error || 'Error al registrar signos vitales');
+
+    if (result.success) {
+      closeModal('vitals');
+      ['vital-ta-s','vital-ta-d','vital-fc','vital-fr','vital-temp','vital-sat','vital-glu','vital-peso','vital-talla','vital-notas'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      loadPatientHCE();
+    } else {
+      alert(result.error || 'Error al registrar signos vitales');
+    }
+  } catch (err) {
+    console.error('Error saving vitals:', err);
+    alert('Error de conexion al registrar signos vitales');
   }
 }
 
@@ -960,8 +1007,11 @@ function renderLastVitals(vitals) {
   const svCurrentEl = document.getElementById('hce-sv-current');
   const svHistoryEl = document.getElementById('hce-sv-history');
 
+  // Remove any previous SV badge (preserve allergy/blood/status badges)
+  alertsEl.querySelectorAll('.hce-sv-summary, .hce-sv-missing').forEach(el => el.remove());
+
   if (!vitals || vitals.length === 0) {
-    alertsEl.innerHTML = '<span class="hce-sv-alert hce-sv-missing">SV: Sin registro</span>';
+    alertsEl.insertAdjacentHTML('beforeend', '<span class="hce-sv-missing">SV: Sin registro</span>');
     if (svCurrentEl) svCurrentEl.innerHTML = '<div style="color:#9ca3af;font-size:0.82rem;padding:0.5rem 0;">Sin signos vitales registrados</div>';
     if (svHistoryEl) svHistoryEl.innerHTML = '';
     return;
@@ -985,13 +1035,13 @@ function renderLastVitals(vitals) {
   const staleClass = isStale ? 'hce-sv-stale' : 'hce-sv-ok';
   const registradoPor = last.registrado_por ? ` — ${last.registrado_por}` : '';
 
-  // Header badge
-  alertsEl.innerHTML = `
+  // Header badge (append, don't overwrite allergy/blood/status alerts)
+  alertsEl.insertAdjacentHTML('beforeend', `
     <div class="hce-sv-summary ${staleClass}" title="Registrado: ${formatDateTime(last.fecha)}${registradoPor}">
       <span class="hce-sv-values">${parts.join(' | ') || 'Sin datos'}</span>
       <span class="hce-sv-time">${timeLabel}${isStale ? ' — VENCIDO' : ''}</span>
     </div>
-  `;
+  `);
 
   // ── Sidebar: ultimo registro destacado ──
   if (svCurrentEl) {

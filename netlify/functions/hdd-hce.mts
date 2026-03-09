@@ -186,10 +186,10 @@ export default async (req: Request, context: Context) => {
           indicaciones, es_confidencial,
           firma_nombre, firma_especialidad, firma_matricula, firma_role
         ) VALUES (
-          ${patientId}, ${prof.id}, NOW(), ${tipo || 'evolucion'},
-          ${contenido}, ${motivoConsulta || null}, ${examenMental || null},
-          ${planTerapeutico || null}, ${indicaciones || null},
-          ${esConfidencial || false},
+          ${patientId}, ${prof.id}, NOW(), ${tipo ?? 'evolucion'},
+          ${contenido}, ${motivoConsulta ?? null}, ${examenMental ?? null},
+          ${planTerapeutico ?? null}, ${indicaciones ?? null},
+          ${esConfidencial ?? false},
           ${prof.fullName}, ${prof.specialty || null},
           ${firmaMatricula}, ${prof.role || 'profesional'}
         )
@@ -228,10 +228,10 @@ export default async (req: Request, context: Context) => {
       await sql`
         UPDATE hce_evoluciones SET
           contenido = ${contenido},
-          motivo_consulta = ${motivoConsulta || null},
-          examen_mental = ${examenMental || null},
-          plan_terapeutico = ${planTerapeutico || null},
-          indicaciones = ${indicaciones || null},
+          motivo_consulta = ${motivoConsulta ?? null},
+          examen_mental = ${examenMental ?? null},
+          plan_terapeutico = ${planTerapeutico ?? null},
+          indicaciones = ${indicaciones ?? null},
           editado = true,
           editado_at = NOW()
         WHERE id = ${evolutionId}
@@ -256,10 +256,10 @@ export default async (req: Request, context: Context) => {
           patient_id, droga, nombre_comercial, dosis, frecuencia, via,
           fecha_inicio, fecha_fin, estado, prescripto_por
         ) VALUES (
-          ${patientId}, ${droga}, ${nombreComercial || null},
-          ${dosis}, ${frecuencia}, ${via || 'oral'},
-          ${fechaInicio || new Date().toISOString().split('T')[0]},
-          ${fechaFin || null}, 'activo', ${prof.fullName}
+          ${patientId}, ${droga}, ${nombreComercial ?? null},
+          ${dosis}, ${frecuencia}, ${via ?? 'oral'},
+          ${fechaInicio ?? new Date().toISOString().split('T')[0]},
+          ${fechaFin ?? null}, 'activo', ${prof.fullName}
         )
         RETURNING id, created_at
       `;
@@ -280,8 +280,8 @@ export default async (req: Request, context: Context) => {
       await sql`
         UPDATE hce_medicacion SET
           estado = ${estado},
-          motivo_suspension = ${motivoSuspension || null},
-          fecha_fin = ${fechaFin || (estado !== 'activo' ? new Date().toISOString().split('T')[0] : null)}
+          motivo_suspension = ${motivoSuspension ?? null},
+          fecha_fin = ${fechaFin ?? (estado !== 'activo' ? new Date().toISOString().split('T')[0] : null)}
         WHERE id = ${medicationId}
       `;
 
@@ -303,9 +303,9 @@ export default async (req: Request, context: Context) => {
           patient_id, codigo, sistema, descripcion, tipo,
           estado, fecha_diagnostico, diagnosticado_por
         ) VALUES (
-          ${patientId}, ${codigo || null}, ${sistema || 'CIE-10'},
-          ${descripcion}, ${tipo || 'principal'}, 'activo',
-          ${fechaDiagnostico || new Date().toISOString().split('T')[0]},
+          ${patientId}, ${codigo ?? null}, ${sistema ?? 'CIE-10'},
+          ${descripcion}, ${tipo ?? 'principal'}, 'activo',
+          ${fechaDiagnostico ?? new Date().toISOString().split('T')[0]},
           ${prof.fullName}
         )
         RETURNING id, created_at
@@ -327,7 +327,7 @@ export default async (req: Request, context: Context) => {
       await sql`
         UPDATE hce_diagnosticos SET
           estado = ${estado},
-          fecha_resolucion = ${fechaResolucion || (estado === 'resuelto' ? new Date().toISOString().split('T')[0] : null)}
+          fecha_resolucion = ${fechaResolucion ?? (estado === 'resuelto' ? new Date().toISOString().split('T')[0] : null)}
         WHERE id = ${diagnosisId}
       `;
 
@@ -349,7 +349,7 @@ export default async (req: Request, context: Context) => {
           patient_id, tipo, descripcion, fecha_aproximada, observaciones, registrado_por
         ) VALUES (
           ${patientId}, ${tipo}, ${descripcion},
-          ${fechaAproximada || null}, ${observaciones || null}, ${prof.fullName}
+          ${fechaAproximada ?? null}, ${observaciones ?? null}, ${prof.fullName}
         )
         RETURNING id, created_at
       `;
@@ -375,12 +375,12 @@ export default async (req: Request, context: Context) => {
           registrado_por_nombre, registrado_por_role
         ) VALUES (
           ${patientId}, NOW(),
-          ${pesoKg || null}, ${tallaCm || null},
-          ${taSistolica || null}, ${taDiastolica || null},
-          ${fc || null}, ${fr || null},
-          ${temperatura || null}, ${saturacion || null},
-          ${glucemia || null}, ${notas || null},
-          ${prof.fullName}, ${prof.role || 'profesional'}
+          ${pesoKg ?? null}, ${tallaCm ?? null},
+          ${taSistolica ?? null}, ${taDiastolica ?? null},
+          ${fc ?? null}, ${fr ?? null},
+          ${temperatura ?? null}, ${saturacion ?? null},
+          ${glucemia ?? null}, ${notas ?? null},
+          ${prof.fullName}, ${prof.role ?? 'profesional'}
         )
         RETURNING id, fecha, ta_sistolica, ta_diastolica, fc, fr,
                   temperatura, saturacion, glucemia, peso_kg, created_at
@@ -485,7 +485,7 @@ export default async (req: Request, context: Context) => {
         LEFT JOIN healthcare_professionals p ON p.id = e.profesional_id
         WHERE e.patient_id = ${patientId}
         ORDER BY e.fecha DESC, e.created_at DESC
-        OFFSET ${offset || 0}
+        OFFSET ${Math.max(0, parseInt(offset) || 0)}
         LIMIT 50
       `;
 
@@ -538,6 +538,10 @@ export default async (req: Request, context: Context) => {
     // ── COMMIT DRAFT (convert borrador to evolucion) ─────────────
     if (action === "commit_draft") {
       const { patientId, tipo } = body;
+      if (!patientId) {
+        return new Response(JSON.stringify({ error: "patientId requerido" }),
+          { status: 400, headers: corsHeaders });
+      }
 
       const [draft] = await sql`
         SELECT id FROM hce_evoluciones
@@ -561,14 +565,14 @@ export default async (req: Request, context: Context) => {
 
       await sql`
         UPDATE hce_evoluciones SET
-          tipo = ${tipo || 'evolucion'},
+          tipo = ${tipo ?? 'evolucion'},
           fecha = NOW(),
           editado = false,
           editado_at = null,
           firma_nombre = ${prof.fullName},
-          firma_especialidad = ${prof.specialty || null},
+          firma_especialidad = ${prof.specialty ?? null},
           firma_matricula = ${draftFirmaMatricula},
-          firma_role = ${prof.role || 'profesional'}
+          firma_role = ${prof.role ?? 'profesional'}
         WHERE id = ${draft.id}
       `;
 
