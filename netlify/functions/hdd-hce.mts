@@ -130,7 +130,7 @@ export default async (req: Request, context: Context) => {
       const vitals = await sql`
         SELECT id, fecha, peso_kg, talla_cm, ta_sistolica, ta_diastolica,
                fc, fr, temperatura, saturacion, glucemia, notas,
-               COALESCE(registrado_por_nombre, registrado_por) AS registrado_por,
+               COALESCE(registrado_por_nombre, registrado_por::text) AS registrado_por,
                registrado_por_role,
                created_at
         FROM hce_signos_vitales
