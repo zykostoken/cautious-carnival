@@ -537,12 +537,19 @@ async function saveEvolution() {
 
   const result = await apiCall('add_evolution', data);
   if (result.success) {
+    // ── Save vitals from inline fields if valid ──
+    const svData = parseInlineVitals();
+    if (svData) {
+      await apiCall('add_vitals', svData);
+    }
+
     // Clear form
     document.getElementById('evo-contenido').value = '';
     document.getElementById('evo-motivo').value = '';
     document.getElementById('evo-examen').value = '';
     document.getElementById('evo-plan').value = '';
     document.getElementById('evo-indicaciones').value = '';
+    clearInlineVitals();
     document.getElementById('hce-autosave-status').textContent = '';
     lastSavedContent = '';
     toggleNewEvoForm();
@@ -555,6 +562,47 @@ async function saveEvolution() {
   } else {
     alert(result.error || 'Error al guardar evolucion');
   }
+}
+
+// ── Parse inline vitals — only returns data if at least one value is valid ──
+function parseInlineVitals() {
+  const taRaw = (document.getElementById('evo-sv-ta')?.value || '').trim();
+  const fcRaw = document.getElementById('evo-sv-fc')?.value;
+  const frRaw = document.getElementById('evo-sv-fr')?.value;
+  const tempRaw = document.getElementById('evo-sv-temp')?.value;
+  const satRaw = document.getElementById('evo-sv-sat')?.value;
+  const gluRaw = document.getElementById('evo-sv-glu')?.value;
+
+  let taSistolica = null, taDiastolica = null;
+  // Validate TA format: 2-3 digits / 2-3 digits (ej: 120/80, 100/50, 120/110)
+  if (taRaw) {
+    const taMatch = taRaw.match(/^(\d{2,3})\/(\d{2,3})$/);
+    if (taMatch) {
+      taSistolica = parseInt(taMatch[1]);
+      taDiastolica = parseInt(taMatch[2]);
+    }
+    // If format doesn't match, ignore TA silently
+  }
+
+  const fc = fcRaw ? parseInt(fcRaw) : null;
+  const fr = frRaw ? parseInt(frRaw) : null;
+  const temperatura = tempRaw ? parseFloat(tempRaw) : null;
+  const saturacion = satRaw ? parseInt(satRaw) : null;
+  const glucemia = gluRaw ? parseInt(gluRaw) : null;
+
+  // Only save if at least one value is present
+  if (!taSistolica && !fc && !fr && !temperatura && !saturacion && !glucemia) {
+    return null;
+  }
+
+  return { taSistolica, taDiastolica, fc, fr, temperatura, saturacion, glucemia };
+}
+
+function clearInlineVitals() {
+  ['evo-sv-ta','evo-sv-fc','evo-sv-fr','evo-sv-temp','evo-sv-sat','evo-sv-glu'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 
 // ── Save medication ───────────────────────────────────────
