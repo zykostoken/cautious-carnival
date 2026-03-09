@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  command = "npm install && npm run setup-db"
+  command = "npm install && npm run setup-db && npm run migrate"
 
 [build.environment]
   SECRETS_SCAN_SMART_DETECTION_ENABLED = "true"
