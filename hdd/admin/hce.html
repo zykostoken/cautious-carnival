@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historia Clinica Electronica - HdD</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/css/hdd-hce.css">
+</head>
+<body class="hce-body">
+
+  <!-- Loading state -->
+  <div id="hce-loading" class="hce-loading">
+    <div class="hce-spinner"></div>
+    Cargando Historia Clinica...
+  </div>
+
+  <!-- ═══ STICKY PATIENT HEADER ═══ -->
+  <div id="hce-patient-header" class="hce-patient-header" style="display:none;">
+    <button class="hce-back-btn" onclick="goBack()">&#8592; Volver</button>
+
+    <div class="hce-patient-id">
+      <span class="hce-patient-name" id="hce-patient-name"></span>
+      <div class="hce-patient-meta">
+        <span id="hce-patient-dni"></span>
+        <span id="hce-patient-age"></span>
+        <span id="hce-patient-os"></span>
+        <span id="hce-patient-hc-number"></span>
+      </div>
+    </div>
+
+    <div class="hce-patient-alerts" id="hce-patient-alerts"></div>
+
+    <div class="hce-header-actions">
+      <button onclick="openModal('vitals')">Signos Vitales</button>
+      <button onclick="openModal('studies')">Estudios</button>
+      <button onclick="window.print()">Imprimir</button>
+      <span class="hce-prof-name" id="hce-prof-name"></span>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN LAYOUT ═══ -->
+  <div id="hce-main" class="hce-layout" style="display:none;">
+
+    <!-- LEFT SIDEBAR: Medication + Diagnoses + Antecedentes -->
+    <aside class="hce-sidebar">
+      <div class="hce-sidebar-tabs">
+        <button class="hce-sidebar-tab active" data-tab="meds">Medicacion</button>
+        <button class="hce-sidebar-tab" data-tab="diag">Diagnosticos</button>
+        <button class="hce-sidebar-tab" data-tab="ant">Antecedentes</button>
+      </div>
+
+      <!-- Medications -->
+      <div class="hce-sidebar-content active" id="sidebar-meds">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">
+            Plan Farmacologico Vigente
+            <button onclick="openModal('add-med')" title="Agregar medicacion">+</button>
+          </div>
+          <div id="hce-meds-active"></div>
+        </div>
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">Medicacion Suspendida / Anterior</div>
+          <div id="hce-meds-inactive"></div>
+        </div>
+      </div>
+
+      <!-- Diagnoses -->
+      <div class="hce-sidebar-content" id="sidebar-diag">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">
+            Diagnosticos
+            <button onclick="openModal('add-diag')" title="Agregar diagnostico">+</button>
+          </div>
+          <div id="hce-diagnoses"></div>
+        </div>
+      </div>
+
+      <!-- Antecedentes -->
+      <div class="hce-sidebar-content" id="sidebar-ant">
+        <div class="hce-sidebar-section">
+          <div class="hce-sidebar-title">
+            Antecedentes
+            <button onclick="openModal('add-ant')" title="Agregar antecedente">+</button>
+          </div>
+          <div id="hce-antecedentes"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER: Evoluciones -->
+    <main class="hce-center">
+      <!-- Filter toolbar -->
+      <div class="hce-evo-toolbar">
+        <button class="hce-filter-btn hce-filter-all active" data-filter="all">Todas</button>
+        <button class="hce-filter-btn hce-filter-psiquiatria" data-filter="psiquiatria">Psiquiatria</button>
+        <button class="hce-filter-btn hce-filter-psicologia" data-filter="psicologia">Psicologia</button>
+        <button class="hce-filter-btn hce-filter-enfermeria" data-filter="enfermeria">Enfermeria</button>
+        <button class="hce-filter-btn hce-filter-guardia" data-filter="guardia">Guardia</button>
+        <button class="hce-filter-btn hce-filter-otro" data-filter="otro">Otras</button>
+        <button class="hce-new-evo-btn" onclick="toggleNewEvoForm()">+ Nueva Evolucion</button>
+      </div>
+
+      <!-- New evolution form (inline) -->
+      <div class="hce-new-evo-form" id="hce-new-evo-form">
+        <div class="hce-new-evo-form-header">
+          <span>Nueva Evolucion</span>
+          <button onclick="toggleNewEvoForm()">&times;</button>
+        </div>
+        <div class="hce-new-evo-form-body">
+          <div class="hce-form-row">
+            <div class="hce-form-group" style="max-width:200px;">
+              <label for="evo-tipo">Tipo</label>
+              <select id="evo-tipo">
+                <option value="evolucion">Evolucion</option>
+                <option value="interconsulta">Interconsulta</option>
+                <option value="ingreso">Ingreso</option>
+                <option value="egreso">Egreso</option>
+                <option value="epicrisis">Epicrisis</option>
+              </select>
+            </div>
+            <div class="hce-form-group">
+              <label for="evo-motivo">Motivo de consulta</label>
+              <input type="text" id="evo-motivo" placeholder="Ej: Control, Guardia 12-18hs...">
+            </div>
+          </div>
+
+          <div class="hce-form-group">
+            <label for="evo-contenido">Evolucion</label>
+            <textarea id="evo-contenido" class="hce-main-textarea" placeholder="Escriba la evolucion clinica..."></textarea>
+          </div>
+
+          <div class="hce-form-row">
+            <div class="hce-form-group">
+              <label for="evo-examen">Examen mental</label>
+              <textarea id="evo-examen" rows="2" placeholder="Opcional"></textarea>
+            </div>
+            <div class="hce-form-group">
+              <label for="evo-plan">Plan terapeutico</label>
+              <textarea id="evo-plan" rows="2" placeholder="Opcional"></textarea>
+            </div>
+          </div>
+
+          <div class="hce-form-group">
+            <label for="evo-indicaciones">Indicaciones</label>
+            <input type="text" id="evo-indicaciones" placeholder="Opcional">
+          </div>
+
+          <div class="hce-form-actions">
+            <span class="hce-autosave-status" id="hce-autosave-status"></span>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="hce-cancel-btn" onclick="toggleNewEvoForm()">Cancelar</button>
+              <button class="hce-save-btn" onclick="saveEvolution()">Guardar Evolucion</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evolution list -->
+      <div class="hce-evo-list" id="hce-evo-list">
+        <div class="hce-empty">Cargando evoluciones...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ MODALS ═══ -->
+
+  <!-- Add Medication Modal -->
+  <div class="hce-modal-overlay hidden" id="modal-add-med">
+    <div class="hce-modal">
+      <div class="hce-modal-header">
+        <h3>Agregar Medicacion</h3>
+        <button class="hce-modal-close" onclick="closeModal('add-med')">&times;</button>
+      </div>
+      <div class="hce-modal-body">
+        <div class="hce-form-group">
+          <label>Droga (generico)</label>
+          <input type="text" id="med-droga" placeholder="Ej: Risperidona">
+        </div>
+        <div class="hce-form-group">
+          <label>Nombre comercial (opcional)</label>
+          <input type="text" id="med-comercial" placeholder="Ej: Risperdal">
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Dosis</label>
+            <input type="text" id="med-dosis" placeholder="Ej: 3mg">
+          </div>
+          <div class="hce-form-group">
+            <label>Frecuencia</label>
+            <input type="text" id="med-frecuencia" placeholder="Ej: 8-16-21hs">
+          </div>
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Via</label>
+            <select id="med-via">
+              <option value="oral">Oral</option>
+              <option value="sublingual">Sublingual</option>
+              <option value="intramuscular">Intramuscular</option>
+              <option value="endovenosa">Endovenosa</option>
+              <option value="topica">Topica</option>
+            </select>
+          </div>
+          <div class="hce-form-group">
+            <label>Fecha inicio</label>
+            <input type="date" id="med-fecha-inicio">
+          </div>
+        </div>
+      </div>
+      <div class="hce-modal-footer">
+        <button class="hce-btn hce-btn-secondary" onclick="closeModal('add-med')">Cancelar</button>
+        <button class="hce-btn hce-btn-primary" onclick="saveMedication()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Diagnosis Modal -->
+  <div class="hce-modal-overlay hidden" id="modal-add-diag">
+    <div class="hce-modal">
+      <div class="hce-modal-header">
+        <h3>Agregar Diagnostico</h3>
+        <button class="hce-modal-close" onclick="closeModal('add-diag')">&times;</button>
+      </div>
+      <div class="hce-modal-body">
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Codigo (CIE-10 / DSM-5)</label>
+            <input type="text" id="diag-codigo" placeholder="Ej: F20.0">
+          </div>
+          <div class="hce-form-group">
+            <label>Sistema</label>
+            <select id="diag-sistema">
+              <option value="CIE-10">CIE-10</option>
+              <option value="DSM-5">DSM-5</option>
+            </select>
+          </div>
+        </div>
+        <div class="hce-form-group">
+          <label>Descripcion</label>
+          <input type="text" id="diag-descripcion" placeholder="Ej: Esquizofrenia paranoide">
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Tipo</label>
+            <select id="diag-tipo">
+              <option value="principal">Principal</option>
+              <option value="secundario">Secundario</option>
+              <option value="diferencial">Diferencial</option>
+            </select>
+          </div>
+          <div class="hce-form-group">
+            <label>Fecha diagnostico</label>
+            <input type="date" id="diag-fecha">
+          </div>
+        </div>
+      </div>
+      <div class="hce-modal-footer">
+        <button class="hce-btn hce-btn-secondary" onclick="closeModal('add-diag')">Cancelar</button>
+        <button class="hce-btn hce-btn-primary" onclick="saveDiagnosis()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Antecedente Modal -->
+  <div class="hce-modal-overlay hidden" id="modal-add-ant">
+    <div class="hce-modal">
+      <div class="hce-modal-header">
+        <h3>Agregar Antecedente</h3>
+        <button class="hce-modal-close" onclick="closeModal('add-ant')">&times;</button>
+      </div>
+      <div class="hce-modal-body">
+        <div class="hce-form-group">
+          <label>Tipo</label>
+          <select id="ant-tipo">
+            <option value="personal">Personal</option>
+            <option value="familiar">Familiar</option>
+            <option value="quirurgico">Quirurgico</option>
+            <option value="alergico">Alergico</option>
+            <option value="habito">Habito (tabaco, alcohol, etc.)</option>
+            <option value="perinatal">Perinatal</option>
+            <option value="ginecologico">Ginecologico</option>
+          </select>
+        </div>
+        <div class="hce-form-group">
+          <label>Descripcion</label>
+          <textarea id="ant-descripcion" rows="3" placeholder="Describa el antecedente"></textarea>
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Fecha aproximada</label>
+            <input type="text" id="ant-fecha" placeholder="Ej: 2020, infancia, etc.">
+          </div>
+          <div class="hce-form-group">
+            <label>Observaciones</label>
+            <input type="text" id="ant-observaciones" placeholder="Opcional">
+          </div>
+        </div>
+      </div>
+      <div class="hce-modal-footer">
+        <button class="hce-btn hce-btn-secondary" onclick="closeModal('add-ant')">Cancelar</button>
+        <button class="hce-btn hce-btn-primary" onclick="saveAntecedente()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vitals Modal -->
+  <div class="hce-modal-overlay hidden" id="modal-vitals">
+    <div class="hce-modal">
+      <div class="hce-modal-header">
+        <h3>Registrar Signos Vitales</h3>
+        <button class="hce-modal-close" onclick="closeModal('vitals')">&times;</button>
+      </div>
+      <div class="hce-modal-body">
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>T/A (mmHg)</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="number" id="vital-ta-s" placeholder="Sist" style="width:80px;">
+              <span>/</span>
+              <input type="number" id="vital-ta-d" placeholder="Diast" style="width:80px;">
+            </div>
+          </div>
+          <div class="hce-form-group">
+            <label>FC (lpm)</label>
+            <input type="number" id="vital-fc" placeholder="Ej: 82">
+          </div>
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Temperatura (C)</label>
+            <input type="number" id="vital-temp" step="0.1" placeholder="Ej: 36.5">
+          </div>
+          <div class="hce-form-group">
+            <label>Saturacion (%)</label>
+            <input type="number" id="vital-sat" placeholder="Ej: 97">
+          </div>
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>FR (rpm)</label>
+            <input type="number" id="vital-fr" placeholder="Ej: 16">
+          </div>
+          <div class="hce-form-group">
+            <label>Glucemia (mg/dl)</label>
+            <input type="number" id="vital-glu" placeholder="Ej: 100">
+          </div>
+        </div>
+        <div class="hce-form-row">
+          <div class="hce-form-group">
+            <label>Peso (kg)</label>
+            <input type="number" id="vital-peso" step="0.1" placeholder="Ej: 75.5">
+          </div>
+          <div class="hce-form-group">
+            <label>Talla (cm)</label>
+            <input type="number" id="vital-talla" placeholder="Ej: 170">
+          </div>
+        </div>
+        <div class="hce-form-group">
+          <label>Notas</label>
+          <input type="text" id="vital-notas" placeholder="Observaciones">
+        </div>
+      </div>
+      <div class="hce-modal-footer">
+        <button class="hce-btn hce-btn-secondary" onclick="closeModal('vitals')">Cancelar</button>
+        <button class="hce-btn hce-btn-primary" onclick="saveVitals()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Studies info (read-only recent) -->
+  <div class="hce-modal-overlay hidden" id="modal-studies">
+    <div class="hce-modal">
+      <div class="hce-modal-header">
+        <h3>Estudios Complementarios</h3>
+        <button class="hce-modal-close" onclick="closeModal('studies')">&times;</button>
+      </div>
+      <div class="hce-modal-body" id="hce-studies-list">
+        <div class="hce-empty">Sin estudios registrados</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/hdd-hce.js"></script>
+</body>
+</html>

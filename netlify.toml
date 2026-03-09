@@ -86,6 +86,13 @@
   status = 200
   force = true
 
+# HDD Admin HCE (Historia Clínica Electrónica)
+[[redirects]]
+  from = "/hdd/admin/hce"
+  to = "/hdd/admin/hce.html"
+  status = 200
+  force = true
+
 # HDD Games — redirect old path to new /games/play/ location
 [[redirects]]
   from = "/hdd/portal/games/*"

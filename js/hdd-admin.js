@@ -168,6 +168,7 @@ function renderPatients() {
         <td>${sessionStatus}</td>
         <td>
           <div class="actions">
+            <button class="btn btn-primary btn-sm" onclick="openHCE(${p.id})" title="Historia Clinica">HC</button>
             <button class="btn btn-secondary btn-sm" onclick="showPatientDetail(${p.id})">Ver</button>
             <button class="btn btn-secondary btn-sm" onclick="showEditPatient(${p.id})">Editar</button>
             ${permissions.canDischargePatients && p.status === 'active' ?
@@ -402,6 +403,14 @@ async function addPatient() {
     errorEl.textContent = result.error || 'Error al agregar paciente';
     errorEl.classList.remove('hidden');
   }
+}
+
+// Open Historia Clínica Electrónica for a patient
+function openHCE(patientId) {
+  // Pass session token to HCE page via sessionStorage
+  sessionStorage.setItem('adminSessionToken', sessionToken);
+  sessionStorage.setItem('adminProfName', adminEmail || '');
+  window.location.href = '/hdd/admin/hce?id=' + patientId;
 }
 
 async function showPatientDetail(patientId) {
