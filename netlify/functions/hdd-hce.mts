@@ -87,10 +87,20 @@ export default async (req: Request, context: Context) => {
       `;
 
       // Recent evolutions (last 50)
+      // Confidential evolutions only visible to their author
       const evolutions = await sql`
-        SELECT e.id, e.profesional_id, e.fecha, e.tipo, e.contenido,
-               e.motivo_consulta, e.examen_mental, e.plan_terapeutico,
-               e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
+        SELECT e.id, e.profesional_id, e.fecha, e.tipo,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN '[Evolución confidencial]' ELSE e.contenido END AS contenido,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.motivo_consulta END AS motivo_consulta,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.examen_mental END AS examen_mental,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.plan_terapeutico END AS plan_terapeutico,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.indicaciones END AS indicaciones,
+               e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
                p.specialty AS profesional_especialidad,
@@ -270,7 +280,7 @@ export default async (req: Request, context: Context) => {
 
     // ── UPDATE MEDICATION STATUS ─────────────────────────────────
     if (action === "update_medication") {
-      const { medicationId, estado, motivoSuspension, fechaFin } = body;
+      const { medicationId, estado, motivoSuspension, fechaFin, patientId } = body;
 
       if (!medicationId || !estado) {
         return new Response(JSON.stringify({ error: "medicationId y estado son requeridos" }),
@@ -281,12 +291,21 @@ export default async (req: Request, context: Context) => {
           { status: 400, headers: corsHeaders });
       }
 
+      // Verify medication belongs to the specified patient
+      const [existingMed] = await sql`
+        SELECT id FROM hce_medicacion WHERE id = ${medicationId} AND patient_id = ${patientId}
+      `;
+      if (!existingMed) {
+        return new Response(JSON.stringify({ error: "Medicacion no encontrada" }),
+          { status: 404, headers: corsHeaders });
+      }
+
       await sql`
         UPDATE hce_medicacion SET
           estado = ${estado},
           motivo_suspension = ${motivoSuspension ?? null},
           fecha_fin = ${fechaFin ?? (estado !== 'activo' ? new Date().toISOString().split('T')[0] : null)}
-        WHERE id = ${medicationId}
+        WHERE id = ${medicationId} AND patient_id = ${patientId}
       `;
 
       return new Response(JSON.stringify({ success: true }),
@@ -321,7 +340,7 @@ export default async (req: Request, context: Context) => {
 
     // ── UPDATE DIAGNOSIS STATUS ──────────────────────────────────
     if (action === "update_diagnosis") {
-      const { diagnosisId, estado, fechaResolucion } = body;
+      const { diagnosisId, estado, fechaResolucion, patientId } = body;
 
       if (!diagnosisId || !estado) {
         return new Response(JSON.stringify({ error: "diagnosisId y estado son requeridos" }),
@@ -332,11 +351,20 @@ export default async (req: Request, context: Context) => {
           { status: 400, headers: corsHeaders });
       }
 
+      // Verify diagnosis belongs to the specified patient
+      const [existingDiag] = await sql`
+        SELECT id FROM hce_diagnosticos WHERE id = ${diagnosisId} AND patient_id = ${patientId}
+      `;
+      if (!existingDiag) {
+        return new Response(JSON.stringify({ error: "Diagnostico no encontrado" }),
+          { status: 404, headers: corsHeaders });
+      }
+
       await sql`
         UPDATE hce_diagnosticos SET
           estado = ${estado},
           fecha_resolucion = ${fechaResolucion ?? (estado === 'resuelto' ? new Date().toISOString().split('T')[0] : null)}
-        WHERE id = ${diagnosisId}
+        WHERE id = ${diagnosisId} AND patient_id = ${patientId}
       `;
 
       return new Response(JSON.stringify({ success: true }),
@@ -502,9 +530,18 @@ export default async (req: Request, context: Context) => {
       }
 
       const evolutions = await sql`
-        SELECT e.id, e.profesional_id, e.fecha, e.tipo, e.contenido,
-               e.motivo_consulta, e.examen_mental, e.plan_terapeutico,
-               e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
+        SELECT e.id, e.profesional_id, e.fecha, e.tipo,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN '[Evolución confidencial]' ELSE e.contenido END AS contenido,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.motivo_consulta END AS motivo_consulta,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.examen_mental END AS examen_mental,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.plan_terapeutico END AS plan_terapeutico,
+               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
+                    THEN NULL ELSE e.indicaciones END AS indicaciones,
+               e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
                p.specialty AS profesional_especialidad,

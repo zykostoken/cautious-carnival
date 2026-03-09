@@ -41,9 +41,27 @@ export async function getAdminRole(sql: any, sessionToken: string): Promise<{ ro
 }
 
 // Helper to check if session belongs to any admin (for basic access)
+// Also enforces 2-hour inactivity timeout and refreshes last_activity
 export async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
   const { role } = await getAdminRole(sql, sessionToken);
-  return role !== null;
+  if (role === null) return false;
+
+  // Check and update last_activity (2h timeout)
+  const [session] = await sql`
+    SELECT last_activity FROM healthcare_professionals
+    WHERE session_token = ${sessionToken} AND is_active = TRUE
+  `;
+  if (session?.last_activity) {
+    const elapsed = Date.now() - new Date(session.last_activity).getTime();
+    if (elapsed > 2 * 60 * 60 * 1000) {
+      // Session expired — clear token
+      await sql`UPDATE healthcare_professionals SET session_token = NULL WHERE session_token = ${sessionToken}`;
+      return false;
+    }
+  }
+  // Touch last_activity (non-blocking)
+  sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE session_token = ${sessionToken}`.catch(() => {});
+  return true;
 }
 
 // Helper to check if session belongs to super admin
