@@ -126,10 +126,12 @@ export default async (req: Request, context: Context) => {
         ORDER BY tipo, created_at DESC
       `;
 
-      // Vital signs (last 20)
+      // Vital signs (last 20) + ultimo registro destacado
       const vitals = await sql`
         SELECT id, fecha, peso_kg, talla_cm, ta_sistolica, ta_diastolica,
-               fc, fr, temperatura, saturacion, glucemia, notas, registrado_por,
+               fc, fr, temperatura, saturacion, glucemia, notas,
+               COALESCE(registrado_por_nombre, registrado_por) AS registrado_por,
+               registrado_por_role,
                created_at
         FROM hce_signos_vitales
         WHERE patient_id = ${patientId}
@@ -369,16 +371,19 @@ export default async (req: Request, context: Context) => {
       const [vital] = await sql`
         INSERT INTO hce_signos_vitales (
           patient_id, fecha, peso_kg, talla_cm, ta_sistolica, ta_diastolica,
-          fc, fr, temperatura, saturacion, glucemia, notas, registrado_por
+          fc, fr, temperatura, saturacion, glucemia, notas,
+          registrado_por_nombre, registrado_por_role
         ) VALUES (
           ${patientId}, NOW(),
           ${pesoKg || null}, ${tallaCm || null},
           ${taSistolica || null}, ${taDiastolica || null},
           ${fc || null}, ${fr || null},
           ${temperatura || null}, ${saturacion || null},
-          ${glucemia || null}, ${notas || null}, ${prof.fullName}
+          ${glucemia || null}, ${notas || null},
+          ${prof.fullName}, ${prof.role || 'profesional'}
         )
-        RETURNING id, created_at
+        RETURNING id, fecha, ta_sistolica, ta_diastolica, fc, fr,
+                  temperatura, saturacion, glucemia, peso_kg, created_at
       `;
 
       return new Response(JSON.stringify({ success: true, vital }),

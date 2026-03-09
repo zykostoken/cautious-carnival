@@ -103,6 +103,7 @@ async function loadPatientHCE() {
     renderAntecedentes(result.antecedentes);
     renderEvolutions(result.evolutions);
     renderStudies(result.studies);
+    renderLastVitals(result.vitals);
     loadConsent();
 
     document.getElementById('hce-loading').style.display = 'none';
@@ -689,10 +690,44 @@ async function saveVitals() {
     ['vital-ta-s','vital-ta-d','vital-fc','vital-fr','vital-temp','vital-sat','vital-glu','vital-peso','vital-talla','vital-notas'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    alert('Signos vitales registrados.');
+    // Reload to show updated vitals
+    loadPatientHCE();
   } else {
     alert(result.error || 'Error al registrar signos vitales');
   }
+}
+
+// ── Render last vitals in patient header ──────────────────
+function renderLastVitals(vitals) {
+  const alertsEl = document.getElementById('hce-patient-alerts');
+  if (!vitals || vitals.length === 0) {
+    alertsEl.innerHTML = '<span class="hce-sv-alert hce-sv-missing">SV: Sin registro</span>';
+    return;
+  }
+
+  const last = vitals[0];
+  const lastTime = new Date(last.fecha);
+  const hoursAgo = Math.floor((Date.now() - lastTime.getTime()) / 3600000);
+  const isStale = hoursAgo >= 6;
+
+  const parts = [];
+  if (last.ta_sistolica && last.ta_diastolica) parts.push(`TA ${last.ta_sistolica}/${last.ta_diastolica}`);
+  if (last.fc) parts.push(`FC ${last.fc}`);
+  if (last.temperatura) parts.push(`T ${last.temperatura}°`);
+  if (last.saturacion) parts.push(`Sat ${last.saturacion}%`);
+  if (last.fr) parts.push(`FR ${last.fr}`);
+  if (last.glucemia) parts.push(`Glu ${last.glucemia}`);
+
+  const timeLabel = hoursAgo < 1 ? 'hace < 1h' : hoursAgo < 24 ? `hace ${hoursAgo}h` : `hace ${Math.floor(hoursAgo/24)}d`;
+  const staleClass = isStale ? 'hce-sv-stale' : 'hce-sv-ok';
+  const registradoPor = last.registrado_por ? ` — ${last.registrado_por}` : '';
+
+  alertsEl.innerHTML = `
+    <div class="hce-sv-summary ${staleClass}" title="Registrado: ${formatDateTime(last.fecha)}${registradoPor}">
+      <span class="hce-sv-values">${parts.join(' | ') || 'Sin datos'}</span>
+      <span class="hce-sv-time">${timeLabel}${isStale ? ' — VENCIDO' : ''}</span>
+    </div>
+  `;
 }
 
 // ── Modal helpers ─────────────────────────────────────────

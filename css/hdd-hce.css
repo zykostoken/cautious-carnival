@@ -90,6 +90,42 @@ body.hce-body {
   flex-wrap: wrap;
 }
 
+/* ── Signos vitales summary in header ── */
+.hce-sv-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  cursor: default;
+}
+.hce-sv-ok {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #15803d;
+}
+.hce-sv-stale {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+.hce-sv-missing {
+  background: rgba(156, 163, 175, 0.1);
+  border: 1px solid rgba(156, 163, 175, 0.25);
+  color: #6b7280;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+.hce-sv-values {
+  font-weight: 600;
+}
+.hce-sv-time {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 .hce-alert-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
