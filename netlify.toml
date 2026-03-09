@@ -106,6 +106,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/hce/usuarios"
+  to = "/hce/usuarios.html"
+  status = 200
+  force = true
+
 # HDD Games — redirect old path to new /games/play/ location
 [[redirects]]
   from = "/hdd/portal/games/*"

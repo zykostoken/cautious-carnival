@@ -404,6 +404,13 @@ function renderEvolutions(evos) {
           ` : ''}
           ${e.indicaciones ? '<div style="margin-top:0.5rem;"><strong>Indicaciones:</strong> ' + esc(e.indicaciones) + '</div>' : ''}
           ${e.editado ? '<div class="hce-evo-edited">Editado el ' + formatDateTime(e.editado_at) + '</div>' : ''}
+          <div class="hce-firma-sello">
+            <div class="hce-firma-line"></div>
+            <div class="hce-firma-nombre">${esc(e.firma_nombre || e.profesional_nombre || '')}</div>
+            <div class="hce-firma-detail">${esc(e.firma_especialidad || e.profesional_especialidad || '')}</div>
+            ${e.firma_matricula ? '<div class="hce-firma-detail">' + esc(e.firma_matricula) + '</div>' : ''}
+            <div class="hce-firma-detail">${formatDateTime(e.fecha)}</div>
+          </div>
         </div>
       </div>
     `;

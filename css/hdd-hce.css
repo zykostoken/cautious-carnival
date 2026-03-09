@@ -473,6 +473,37 @@ body.hce-body {
   margin-top: 0.5rem;
 }
 
+/* ── Firma y Sello Digital (HL7 / Ley 26.529) ── */
+.hce-firma-sello {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--hce-text-muted, #64748b);
+}
+.hce-firma-line {
+  width: 180px;
+  border-top: 1px solid var(--hce-border, #e2e8f0);
+  margin-left: auto;
+  margin-bottom: 0.35rem;
+}
+.hce-firma-nombre {
+  font-weight: 600;
+  color: var(--hce-text, #1e293b);
+  font-size: 0.82rem;
+}
+.hce-firma-detail {
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* Print: firma visible */
+@media print {
+  .hce-firma-sello {
+    page-break-inside: avoid;
+  }
+}
+
 .hce-evo-actions {
   display: flex;
   gap: 0.5rem;

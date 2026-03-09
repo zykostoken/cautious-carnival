@@ -634,9 +634,10 @@ export default async (req: Request, context: Context) => {
         }), { status: 200, headers: corsHeaders });
       }
 
-      // Admin: Create a new professional (pre-approved)
+      // Admin: Create a new professional (pre-approved, no email verification needed)
       if (action === "admin_create_professional") {
-        const { sessionToken, email, password, fullName, specialty, whatsapp, dni } = body;
+        const { sessionToken, email, password, fullName, specialty, whatsapp, dni,
+                role, matriculaProvincial, matriculaNacional, licenseNumber } = body;
 
         if (!sessionToken) {
           return new Response(JSON.stringify({ error: "Token requerido" }),
@@ -651,7 +652,7 @@ export default async (req: Request, context: Context) => {
 
         if (!email || !password || !fullName) {
           return new Response(JSON.stringify({
-            error: "Email, contraseña y nombre son requeridos"
+            error: "Email/usuario, contraseña y nombre son requeridos"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -662,7 +663,7 @@ export default async (req: Request, context: Context) => {
 
         if (existing) {
           return new Response(JSON.stringify({
-            error: "El email ya está registrado"
+            error: "El email/usuario ya está registrado"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -671,14 +672,20 @@ export default async (req: Request, context: Context) => {
         const [professional] = await sql`
           INSERT INTO healthcare_professionals (
             email, password_hash, full_name, specialty, whatsapp, dni,
-            is_active, email_verified, created_at
+            role, matricula_provincial, matricula_nacional, license_number,
+            is_active, email_verified, created_by_admin, created_at
           )
           VALUES (
             ${email}, ${passwordHash}, ${fullName},
-            ${specialty || 'Psiquiatría'}, ${whatsapp || null}, ${dni || null},
-            TRUE, TRUE, NOW()
+            ${specialty || role || 'Profesional'},
+            ${whatsapp || null}, ${dni || null},
+            ${role || 'profesional'},
+            ${matriculaProvincial || null},
+            ${matriculaNacional || null},
+            ${licenseNumber || null},
+            TRUE, TRUE, TRUE, NOW()
           )
-          RETURNING id, email, full_name, specialty
+          RETURNING id, email, full_name, specialty, role
         `;
 
         return new Response(JSON.stringify({
@@ -687,10 +694,109 @@ export default async (req: Request, context: Context) => {
             id: professional.id,
             email: professional.email,
             fullName: professional.full_name,
-            specialty: professional.specialty
+            specialty: professional.specialty,
+            role: professional.role
           },
           message: "Profesional creado y activado exitosamente"
         }), { status: 201, headers: corsHeaders });
+      }
+
+      // Admin: Update professional (role, matrícula, specialty, etc.)
+      if (action === "admin_update_professional") {
+        const { sessionToken, professionalId, fullName, specialty, role,
+                matriculaProvincial, matriculaNacional, licenseNumber, whatsapp, dni } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        if (!professionalId) {
+          return new Response(JSON.stringify({ error: "ID de profesional requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const [updated] = await sql`
+          UPDATE healthcare_professionals
+          SET full_name = COALESCE(${fullName || null}, full_name),
+              specialty = COALESCE(${specialty || null}, specialty),
+              role = COALESCE(${role || null}, role),
+              matricula_provincial = COALESCE(${matriculaProvincial || null}, matricula_provincial),
+              matricula_nacional = COALESCE(${matriculaNacional || null}, matricula_nacional),
+              license_number = COALESCE(${licenseNumber || null}, license_number),
+              whatsapp = COALESCE(${whatsapp || null}, whatsapp),
+              dni = COALESCE(${dni || null}, dni)
+          WHERE id = ${professionalId}
+          RETURNING id, email, full_name, specialty, role, matricula_provincial, matricula_nacional
+        `;
+
+        if (!updated) {
+          return new Response(JSON.stringify({ error: "Profesional no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          professional: {
+            id: updated.id,
+            email: updated.email,
+            fullName: updated.full_name,
+            specialty: updated.specialty,
+            role: updated.role,
+            matriculaProvincial: updated.matricula_provincial,
+            matriculaNacional: updated.matricula_nacional
+          },
+          message: "Profesional actualizado"
+        }), { status: 200, headers: corsHeaders });
+      }
+
+      // Admin: Reset password for a professional
+      if (action === "admin_reset_password") {
+        const { sessionToken, professionalId, newPassword } = body;
+
+        if (!sessionToken) {
+          return new Response(JSON.stringify({ error: "Token requerido" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        if (!(await isAdminSession(sql, sessionToken))) {
+          return new Response(JSON.stringify({ error: "No autorizado" }),
+            { status: 403, headers: corsHeaders });
+        }
+
+        if (!professionalId || !newPassword) {
+          return new Response(JSON.stringify({ error: "ID y nueva contraseña requeridos" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        if (newPassword.length < 6) {
+          return new Response(JSON.stringify({ error: "La contraseña debe tener al menos 6 caracteres" }),
+            { status: 400, headers: corsHeaders });
+        }
+
+        const passwordHash = await hashPassword(newPassword);
+
+        const [updated] = await sql`
+          UPDATE healthcare_professionals
+          SET password_hash = ${passwordHash}
+          WHERE id = ${professionalId}
+          RETURNING id, full_name
+        `;
+
+        if (!updated) {
+          return new Response(JSON.stringify({ error: "Profesional no encontrado" }),
+            { status: 404, headers: corsHeaders });
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Contraseña de ${updated.full_name} actualizada`
+        }), { status: 200, headers: corsHeaders });
       }
 
       // Admin: Set DNI for a professional (for password recovery)
@@ -891,9 +997,10 @@ export default async (req: Request, context: Context) => {
 
         const professionals = await sql`
           SELECT id, email, full_name, specialty, is_active, is_available,
-                 created_at, last_login
+                 role, matricula_provincial, matricula_nacional, license_number, dni,
+                 whatsapp, created_by_admin, created_at, last_login
           FROM healthcare_professionals
-          ORDER BY is_active DESC, created_at DESC
+          ORDER BY is_active DESC, role, full_name ASC
         `;
 
         return new Response(JSON.stringify({
@@ -902,9 +1009,16 @@ export default async (req: Request, context: Context) => {
             email: p.email,
             fullName: p.full_name,
             specialty: p.specialty,
+            role: p.role || 'profesional',
+            matriculaProvincial: p.matricula_provincial,
+            matriculaNacional: p.matricula_nacional,
+            licenseNumber: p.license_number,
+            dni: p.dni,
+            whatsapp: p.whatsapp,
             isActive: p.is_active,
             isAvailable: p.is_available,
-            isPending: !p.is_active && !p.last_login, // Never logged in = pending approval
+            isPending: !p.is_active && !p.last_login,
+            createdByAdmin: p.created_by_admin,
             createdAt: p.created_at,
             lastLogin: p.last_login
           }))

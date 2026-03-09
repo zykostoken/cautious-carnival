@@ -85,8 +85,8 @@
         <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-bottom:1.5rem;">Clinica Jose Ingenieros — Acceso Profesional</p>
         <form id="login-form" onsubmit="doLogin(event)">
           <div class="form-group">
-            <label for="login-email">Email institucional</label>
-            <input type="email" id="login-email" placeholder="usuario@clinicajoseingenieros.ar" required>
+            <label for="login-email">Email o usuario</label>
+            <input type="text" id="login-email" placeholder="usuario@clinicajoseingenieros.ar" required>
           </div>
           <div class="form-group">
             <label for="login-password">Contrasena</label>
@@ -111,6 +111,7 @@
       </div>
       <div class="header-actions">
         <span class="user-name" id="user-name"></span>
+        <button class="btn btn-sm btn-ghost" id="btn-usuarios" style="display:none" onclick="window.location.href='/hce/usuarios'">Usuarios</button>
         <button class="btn btn-sm btn-ghost" onclick="window.location.href='/hdd/admin'">Panel Admin</button>
         <button class="btn btn-sm btn-ghost" onclick="doLogout()">Salir</button>
       </div>
@@ -213,6 +214,9 @@ async function verifyAndShow() {
       document.getElementById('login-view').classList.add('hidden');
       document.getElementById('app-view').classList.remove('hidden');
       document.getElementById('user-name').textContent = data.email || '';
+      if (data.role === 'super_admin' || data.role === 'limited_admin') {
+        document.getElementById('btn-usuarios').style.display = '';
+      }
       loadPatients();
     }
   } catch(e) {
@@ -229,7 +233,7 @@ async function doLogin(e) {
   const password = document.getElementById('login-password').value;
 
   try {
-    const res = await fetch('/api/hdd/admin', {
+    const res = await fetch('/api/professionals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'login', email, password })
