@@ -179,6 +179,18 @@ CREATE TABLE IF NOT EXISTS hdd_patients (
     last_login TIMESTAMP WITH TIME ZONE
 );
 
+-- Ensure hdd_patients has all required columns (table may pre-exist with different schema)
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS admission_date DATE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS discharge_date DATE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS status VARCHAR(32) DEFAULT 'active';
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS session_token VARCHAR(255);
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
+
 -- HDD Community Posts - Photos, experiences shared by patients
 CREATE TABLE IF NOT EXISTS hdd_community_posts (
     id SERIAL PRIMARY KEY,
@@ -243,6 +255,14 @@ CREATE INDEX IF NOT EXISTS idx_hdd_community_posts_approved ON hdd_community_pos
 CREATE INDEX IF NOT EXISTS idx_hdd_post_comments_post ON hdd_post_comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_attendance_patient ON hdd_attendance(patient_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_attendance_date ON hdd_attendance(attendance_date);
+
+-- Ensure hdd_activities has schedule columns (table may pre-exist with different schema)
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS name VARCHAR(100);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS day_of_week INTEGER;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS start_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS end_time TIME;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 
 -- Insert default HDD activities
 INSERT INTO hdd_activities (name, description, day_of_week, start_time, end_time)
@@ -457,6 +477,15 @@ CREATE TABLE IF NOT EXISTS hdd_login_tracking (
     interactions JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
+
+-- Ensure hdd_login_tracking has all columns (table may pre-exist with minimal schema)
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS logout_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS session_duration_minutes INTEGER;
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS ip_address VARCHAR(50);
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS user_agent TEXT;
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS pages_visited INTEGER DEFAULT 0;
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS activities_completed INTEGER DEFAULT 0;
+ALTER TABLE hdd_login_tracking ADD COLUMN IF NOT EXISTS interactions JSONB DEFAULT '{}';
 
 -- Indexes for HDD login tracking
 CREATE INDEX IF NOT EXISTS idx_hdd_login_patient ON hdd_login_tracking(patient_id);
