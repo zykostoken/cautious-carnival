@@ -40,18 +40,20 @@ export async function getAdminRole(sql: any, sessionToken: string): Promise<{ ro
   return { role: null, email };
 }
 
-// Helper to check if session belongs to any admin (for basic access)
+// Helper to check if session belongs to any authenticated professional
 // Also enforces 2-hour inactivity timeout and refreshes last_activity
 export async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
-  const { role } = await getAdminRole(sql, sessionToken);
-  if (role === null) return false;
-
-  // Check and update last_activity (2h timeout)
+  // Any active professional with a valid session can access admin operations
+  // Role-specific restrictions (super_admin only) are enforced per-action
   const [session] = await sql`
-    SELECT last_activity FROM healthcare_professionals
+    SELECT email, last_activity FROM healthcare_professionals
     WHERE session_token = ${sessionToken} AND is_active = TRUE
   `;
-  if (session?.last_activity) {
+
+  if (!session) return false;
+
+  // Check 2h inactivity timeout
+  if (session.last_activity) {
     const elapsed = Date.now() - new Date(session.last_activity).getTime();
     if (elapsed > 2 * 60 * 60 * 1000) {
       // Session expired — clear token
