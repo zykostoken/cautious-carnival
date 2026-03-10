@@ -82,8 +82,12 @@ WHERE a.patient_id IS NOT NULL
 GROUP BY a.professional_id, p_prof.full_name, a.patient_id, a.patient_name
 ORDER BY MAX(a.created_at) DESC;
 
--- Permissions
-GRANT SELECT, INSERT ON professional_audit_log TO anon, authenticated;
-GRANT USAGE ON SEQUENCE professional_audit_log_id_seq TO anon, authenticated;
-GRANT SELECT ON v_professional_usage_summary TO anon, authenticated;
-GRANT SELECT ON v_professional_patient_interactions TO anon, authenticated;
+-- Permissions (wrapped to avoid failure if roles don't exist)
+DO $$ BEGIN
+  GRANT SELECT, INSERT ON professional_audit_log TO anon, authenticated;
+  GRANT USAGE ON SEQUENCE professional_audit_log_id_seq TO anon, authenticated;
+  GRANT SELECT ON v_professional_usage_summary TO anon, authenticated;
+  GRANT SELECT ON v_professional_patient_interactions TO anon, authenticated;
+EXCEPTION WHEN undefined_object THEN
+  RAISE NOTICE 'Some roles do not exist — skipping GRANTs';
+END $$;

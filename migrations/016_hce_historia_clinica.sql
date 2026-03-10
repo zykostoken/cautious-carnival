@@ -205,9 +205,12 @@ BEGIN
       'hce_evoluciones', 'hce_estudios', 'hce_signos_vitales'
     ])
   LOOP
-    EXECUTE format('REVOKE ALL ON %I FROM anon', tbl);
-    EXECUTE format('REVOKE ALL ON %I FROM authenticated', tbl);
-    EXECUTE format('GRANT ALL ON %I TO service_role', tbl);
+    BEGIN
+      EXECUTE format('REVOKE ALL ON %I FROM anon', tbl);
+      EXECUTE format('REVOKE ALL ON %I FROM authenticated', tbl);
+      EXECUTE format('GRANT ALL ON %I TO service_role', tbl);
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
   END LOOP;
 END $$;
@@ -222,7 +225,10 @@ BEGIN
     WHERE sequence_schema = 'public'
     AND sequence_name LIKE 'hce_%_id_seq'
   LOOP
-    EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %I TO service_role', seq);
+    BEGIN
+      EXECUTE format('GRANT USAGE, SELECT ON SEQUENCE %I TO service_role', seq);
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
   END LOOP;
 END $$;
 
@@ -250,7 +256,10 @@ SELECT
   (SELECT hp.full_name FROM hce_evoluciones e JOIN healthcare_professionals hp ON hp.id = e.profesional_id WHERE e.patient_id = p.id ORDER BY e.fecha DESC LIMIT 1) AS ultimo_profesional
 FROM hdd_patients p;
 
-GRANT SELECT ON v_hce_resumen_paciente TO service_role;
+DO $$ BEGIN
+  GRANT SELECT ON v_hce_resumen_paciente TO service_role;
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
 
 COMMENT ON TABLE hce_antecedentes IS 'Antecedentes del paciente: personales, familiares, quirúrgicos, alérgicos, hábitos';
 COMMENT ON TABLE hce_diagnosticos IS 'Diagnósticos CIE-10/DSM-5: principal, secundarios, diferenciales';
