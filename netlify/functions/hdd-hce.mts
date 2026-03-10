@@ -87,20 +87,11 @@ export default async (req: Request, context: Context) => {
       `;
 
       // Recent evolutions (last 50)
-      // Confidential evolutions only visible to their author
+      // All institutional professionals can see all evolutions (HC belongs to the institution)
       const evolutions = await sql`
-        SELECT e.id, e.profesional_id, e.fecha, e.tipo,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN '[Evolución confidencial]' ELSE e.contenido END AS contenido,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.motivo_consulta END AS motivo_consulta,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.examen_mental END AS examen_mental,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.plan_terapeutico END AS plan_terapeutico,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.indicaciones END AS indicaciones,
-               e.es_confidencial, e.editado, e.editado_at,
+        SELECT e.id, e.profesional_id, e.fecha, e.tipo, e.contenido,
+               e.motivo_consulta, e.examen_mental, e.plan_terapeutico,
+               e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
                p.specialty AS profesional_especialidad,
@@ -530,18 +521,9 @@ export default async (req: Request, context: Context) => {
       }
 
       const evolutions = await sql`
-        SELECT e.id, e.profesional_id, e.fecha, e.tipo,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN '[Evolución confidencial]' ELSE e.contenido END AS contenido,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.motivo_consulta END AS motivo_consulta,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.examen_mental END AS examen_mental,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.plan_terapeutico END AS plan_terapeutico,
-               CASE WHEN e.es_confidencial = true AND e.profesional_id != ${prof.id}
-                    THEN NULL ELSE e.indicaciones END AS indicaciones,
-               e.es_confidencial, e.editado, e.editado_at,
+        SELECT e.id, e.profesional_id, e.fecha, e.tipo, e.contenido,
+               e.motivo_consulta, e.examen_mental, e.plan_terapeutico,
+               e.indicaciones, e.es_confidencial, e.editado, e.editado_at,
                e.created_at,
                p.full_name AS profesional_nombre,
                p.specialty AS profesional_especialidad,
