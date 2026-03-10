@@ -264,6 +264,17 @@ ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS start_time TIME;
 ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS end_time TIME;
 ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 
+-- Drop NOT NULL on activity_type if it exists (legacy column from 20260114000000)
+DO $$ BEGIN
+  ALTER TABLE hdd_activities ALTER COLUMN activity_type DROP NOT NULL;
+EXCEPTION WHEN undefined_column THEN NULL;
+END $$;
+-- Set default so INSERTs without activity_type don't fail
+DO $$ BEGIN
+  ALTER TABLE hdd_activities ALTER COLUMN activity_type SET DEFAULT 'taller';
+EXCEPTION WHEN undefined_column THEN NULL;
+END $$;
+
 -- Insert default HDD activities
 INSERT INTO hdd_activities (name, description, day_of_week, start_time, end_time)
 VALUES
