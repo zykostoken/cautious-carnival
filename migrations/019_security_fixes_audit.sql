@@ -210,22 +210,30 @@ BEGIN
     SELECT 1 FROM pg_policies
     WHERE schemaname = 'public' AND tablename = 'professional_audit_log'
   ) THEN
-    -- Allow service_role full access (already bypasses RLS, but explicit)
-    EXECUTE 'CREATE POLICY service_all_audit ON professional_audit_log FOR ALL TO service_role USING (true) WITH CHECK (true)';
-    -- Allow authenticated users to read their own audit entries
-    EXECUTE 'CREATE POLICY auth_select_own_audit ON professional_audit_log FOR SELECT TO authenticated USING (professional_email = current_setting(''request.jwt.claims'', true)::json->>''email'')';
+    BEGIN
+      EXECUTE 'CREATE POLICY service_all_audit ON professional_audit_log FOR ALL TO service_role USING (true) WITH CHECK (true)';
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
+    BEGIN
+      EXECUTE 'CREATE POLICY auth_select_own_audit ON professional_audit_log FOR SELECT TO authenticated USING (professional_email = current_setting(''request.jwt.claims'', true)::json->>''email'')';
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
   END IF;
 END $$;
 
 -- ===========================================
 -- 4. GRANT SELECT en vistas a service_role
 -- ===========================================
-GRANT SELECT ON v_patient_game_summary TO service_role;
-GRANT SELECT ON v_patient_clinical_profile TO service_role;
-GRANT SELECT ON v_hce_resumen_paciente TO service_role;
-GRANT SELECT ON v_hdd_session_analysis TO service_role;
-GRANT SELECT ON v_professional_patient_interactions TO service_role;
-GRANT SELECT ON v_professional_usage_summary TO service_role;
-GRANT SELECT ON hdd_game_biometrics TO service_role;
+DO $$ BEGIN
+  GRANT SELECT ON v_patient_game_summary TO service_role;
+  GRANT SELECT ON v_patient_clinical_profile TO service_role;
+  GRANT SELECT ON v_hce_resumen_paciente TO service_role;
+  GRANT SELECT ON v_hdd_session_analysis TO service_role;
+  GRANT SELECT ON v_professional_patient_interactions TO service_role;
+  GRANT SELECT ON v_professional_usage_summary TO service_role;
+  GRANT SELECT ON hdd_game_biometrics TO service_role;
+EXCEPTION WHEN undefined_object THEN
+  RAISE NOTICE 'service_role does not exist — skipping GRANTs';
+END $$;
 
 SELECT 'Migration 019: Security fixes from audit — complete';

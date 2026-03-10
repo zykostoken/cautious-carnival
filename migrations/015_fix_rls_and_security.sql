@@ -19,9 +19,12 @@ BEGIN
       'mood_alerts', 'mood_entries'
     )
   LOOP
-    EXECUTE format('REVOKE ALL ON %I FROM anon', tbl);
-    EXECUTE format('REVOKE ALL ON %I FROM authenticated', tbl);
-    RAISE NOTICE 'Revoked access on table: %', tbl;
+    BEGIN
+      EXECUTE format('REVOKE ALL ON %I FROM anon', tbl);
+      EXECUTE format('REVOKE ALL ON %I FROM authenticated', tbl);
+      RAISE NOTICE 'Revoked access on table: %', tbl;
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
   END LOOP;
 END $$;
 
@@ -34,8 +37,11 @@ BEGIN
     SELECT viewname FROM pg_views
     WHERE schemaname = 'public'
   LOOP
-    EXECUTE format('REVOKE ALL ON %I FROM anon', vw);
-    RAISE NOTICE 'Revoked access on view: %', vw;
+    BEGIN
+      EXECUTE format('REVOKE ALL ON %I FROM anon', vw);
+      RAISE NOTICE 'Revoked access on view: %', vw;
+    EXCEPTION WHEN undefined_object THEN NULL;
+    END;
   END LOOP;
 END $$;
 
@@ -69,6 +75,8 @@ BEGIN
   LOOP
     EXECUTE format('GRANT ALL ON %I TO service_role', tbl);
   END LOOP;
+EXCEPTION WHEN undefined_object THEN
+  RAISE NOTICE 'service_role does not exist — skipping GRANTs';
 END $$;
 
 COMMENT ON SCHEMA public IS 'H-060: anon/authenticated access revoked. All data access goes through service_role via Netlify functions.';

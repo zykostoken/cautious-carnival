@@ -327,12 +327,16 @@ FROM v_game_metrics_normalized n
 ORDER BY n.patient_id, n.game_slug, n.created_at;
 
 -- ----------------------------------------------------------------
--- 6. Permissions
+-- 6. Permissions (wrapped to avoid failure if roles don't exist)
 -- ----------------------------------------------------------------
-GRANT SELECT ON v_game_metrics_normalized   TO anon, authenticated;
-GRANT SELECT ON v_patient_game_summary      TO anon, authenticated;
-GRANT SELECT ON v_patient_clinical_profile  TO anon, authenticated;
-GRANT SELECT ON v_patient_longitudinal      TO anon, authenticated;
-GRANT ALL    ON hdd_game_metrics            TO anon, authenticated, service_role;
+DO $$ BEGIN
+  GRANT SELECT ON v_game_metrics_normalized   TO anon, authenticated;
+  GRANT SELECT ON v_patient_game_summary      TO anon, authenticated;
+  GRANT SELECT ON v_patient_clinical_profile  TO anon, authenticated;
+  GRANT SELECT ON v_patient_longitudinal      TO anon, authenticated;
+  GRANT ALL    ON hdd_game_metrics            TO anon, authenticated, service_role;
+EXCEPTION WHEN undefined_object THEN
+  RAISE NOTICE 'Some roles do not exist — skipping GRANTs';
+END $$;
 
 SELECT 'Migration 013: unified patient clinical profile complete';
