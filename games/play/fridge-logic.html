@@ -676,7 +676,7 @@ async function saveResults(metrics) {
         let { data: game } = await sb.from('hdd_games').select('id').eq('slug', 'fridge-logic').single();
         if (!game) {
             const { data: newGame } = await sb.from('hdd_games').insert({ 
-                slug: 'fridge-logic', name: 'Heladera Inteligente', category: 'avd',
+                slug: 'fridge-logic', name: 'Heladera Inteligente', therapeutic_areas: ['avd'],
                 description: 'Categorización de alimentos y productos - memoria semántica y juicio'
             }).select('id').single();
             game = newGame;

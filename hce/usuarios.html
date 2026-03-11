@@ -389,7 +389,7 @@ async function submitUser() {
 
   if (!fullName) { errEl.textContent = 'Nombre es requerido'; errEl.style.display = 'block'; return; }
   if (!isEdit && !email) { errEl.textContent = 'Email/usuario es requerido'; errEl.style.display = 'block'; return; }
-  if (!isEdit && (!password || password.length < 6)) { errEl.textContent = 'Contraseña minimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (!isEdit && (!password || password.length < 12)) { errEl.textContent = 'Contraseña minimo 12 caracteres'; errEl.style.display = 'block'; return; }
 
   const payload = isEdit
     ? { action: 'admin_update_professional', sessionToken, professionalId: parseInt(editId), fullName, specialty, role, matriculaProvincial, matriculaNacional, dni, whatsapp }

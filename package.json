@@ -14,7 +14,7 @@
   "dependencies": {
     "@netlify/blobs": "^8.0.0",
     "@netlify/functions": "^2.0.0",
-    "nodemailer": "^6.9.0",
+    "nodemailer": "^8.0.2",
     "postgres": "^3.4.8"
   },
   "devDependencies": {
