@@ -14,6 +14,8 @@ DROP POLICY IF EXISTS "anon_insert" ON hdd_patients;
 DROP POLICY IF EXISTS "anon_select" ON hdd_patients;
 DROP POLICY IF EXISTS "anon_update" ON hdd_patients;
 DROP POLICY IF EXISTS "auth_all_hdd_patients" ON hdd_patients;
+DROP POLICY IF EXISTS "hdd_patients_service_role" ON hdd_patients;
+DROP POLICY IF EXISTS "hdd_patients_anon_select_limited" ON hdd_patients;
 CREATE POLICY "hdd_patients_service_role" ON hdd_patients FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "hdd_patients_anon_select_limited" ON hdd_patients FOR SELECT TO anon
@@ -24,6 +26,8 @@ DROP POLICY IF EXISTS "anon_insert" ON healthcare_professionals;
 DROP POLICY IF EXISTS "anon_select" ON healthcare_professionals;
 DROP POLICY IF EXISTS "anon_update" ON healthcare_professionals;
 DROP POLICY IF EXISTS "auth_all_healthcare_professionals" ON healthcare_professionals;
+DROP POLICY IF EXISTS "hp_service_role" ON healthcare_professionals;
+DROP POLICY IF EXISTS "hp_anon_select_limited" ON healthcare_professionals;
 CREATE POLICY "hp_service_role" ON healthcare_professionals FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "hp_anon_select_limited" ON healthcare_professionals FOR SELECT TO anon
@@ -31,6 +35,7 @@ CREATE POLICY "hp_anon_select_limited" ON healthcare_professionals FOR SELECT TO
 
 -- hce_clinical_entries: service_role only
 DROP POLICY IF EXISTS "Allow all on hce_clinical_entries" ON hce_clinical_entries;
+DROP POLICY IF EXISTS "hce_clinical_entries_service_role" ON hce_clinical_entries;
 CREATE POLICY "hce_clinical_entries_service_role" ON hce_clinical_entries FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 
@@ -38,6 +43,9 @@ CREATE POLICY "hce_clinical_entries_service_role" ON hce_clinical_entries FOR AL
 DROP POLICY IF EXISTS "anon_insert" ON hdd_game_metrics;
 DROP POLICY IF EXISTS "anon_select" ON hdd_game_metrics;
 DROP POLICY IF EXISTS "auth_all_game_metrics" ON hdd_game_metrics;
+DROP POLICY IF EXISTS "game_metrics_service_role" ON hdd_game_metrics;
+DROP POLICY IF EXISTS "game_metrics_anon_insert" ON hdd_game_metrics;
+DROP POLICY IF EXISTS "game_metrics_anon_select" ON hdd_game_metrics;
 CREATE POLICY "game_metrics_service_role" ON hdd_game_metrics FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "game_metrics_anon_insert" ON hdd_game_metrics FOR INSERT TO anon WITH CHECK (true);
@@ -47,6 +55,10 @@ CREATE POLICY "game_metrics_anon_select" ON hdd_game_metrics FOR SELECT TO anon 
 DROP POLICY IF EXISTS "anon_insert" ON hdd_game_sessions;
 DROP POLICY IF EXISTS "anon_select" ON hdd_game_sessions;
 DROP POLICY IF EXISTS "anon_update" ON hdd_game_sessions;
+DROP POLICY IF EXISTS "game_sessions_service_role" ON hdd_game_sessions;
+DROP POLICY IF EXISTS "game_sessions_anon_insert" ON hdd_game_sessions;
+DROP POLICY IF EXISTS "game_sessions_anon_select" ON hdd_game_sessions;
+DROP POLICY IF EXISTS "game_sessions_anon_update" ON hdd_game_sessions;
 CREATE POLICY "game_sessions_service_role" ON hdd_game_sessions FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "game_sessions_anon_insert" ON hdd_game_sessions FOR INSERT TO anon WITH CHECK (true);
@@ -56,6 +68,9 @@ CREATE POLICY "game_sessions_anon_update" ON hdd_game_sessions FOR UPDATE TO ano
 -- hdd_mood_checkins/entries: service_role + anon insert/select
 DROP POLICY IF EXISTS "anon_insert" ON hdd_mood_checkins;
 DROP POLICY IF EXISTS "anon_select" ON hdd_mood_checkins;
+DROP POLICY IF EXISTS "mood_checkins_service_role" ON hdd_mood_checkins;
+DROP POLICY IF EXISTS "mood_checkins_anon_insert" ON hdd_mood_checkins;
+DROP POLICY IF EXISTS "mood_checkins_anon_select" ON hdd_mood_checkins;
 CREATE POLICY "mood_checkins_service_role" ON hdd_mood_checkins FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "mood_checkins_anon_insert" ON hdd_mood_checkins FOR INSERT TO anon WITH CHECK (true);
@@ -64,6 +79,9 @@ CREATE POLICY "mood_checkins_anon_select" ON hdd_mood_checkins FOR SELECT TO ano
 DROP POLICY IF EXISTS "anon_insert" ON hdd_mood_entries;
 DROP POLICY IF EXISTS "anon_select" ON hdd_mood_entries;
 DROP POLICY IF EXISTS "auth_all_mood_entries" ON hdd_mood_entries;
+DROP POLICY IF EXISTS "mood_entries_service_role" ON hdd_mood_entries;
+DROP POLICY IF EXISTS "mood_entries_anon_insert" ON hdd_mood_entries;
+DROP POLICY IF EXISTS "mood_entries_anon_select" ON hdd_mood_entries;
 CREATE POLICY "mood_entries_service_role" ON hdd_mood_entries FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "mood_entries_anon_insert" ON hdd_mood_entries FOR INSERT TO anon WITH CHECK (true);
@@ -73,6 +91,8 @@ CREATE POLICY "mood_entries_anon_select" ON hdd_mood_entries FOR SELECT TO anon 
 DROP POLICY IF EXISTS "anon_insert" ON hdd_crisis_alerts;
 DROP POLICY IF EXISTS "anon_select" ON hdd_crisis_alerts;
 DROP POLICY IF EXISTS "anon_update" ON hdd_crisis_alerts;
+DROP POLICY IF EXISTS "crisis_alerts_service_role" ON hdd_crisis_alerts;
+DROP POLICY IF EXISTS "crisis_alerts_anon_insert" ON hdd_crisis_alerts;
 CREATE POLICY "crisis_alerts_service_role" ON hdd_crisis_alerts FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 CREATE POLICY "crisis_alerts_anon_insert" ON hdd_crisis_alerts FOR INSERT TO anon WITH CHECK (true);
@@ -80,6 +100,7 @@ CREATE POLICY "crisis_alerts_anon_insert" ON hdd_crisis_alerts FOR INSERT TO ano
 -- hce_audit_log: service_role only
 DROP POLICY IF EXISTS "hce_audit_insert" ON hce_audit_log;
 DROP POLICY IF EXISTS "hce_audit_select" ON hce_audit_log;
+DROP POLICY IF EXISTS "hce_audit_service_role" ON hce_audit_log;
 CREATE POLICY "hce_audit_service_role" ON hce_audit_log FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 
@@ -87,18 +108,25 @@ CREATE POLICY "hce_audit_service_role" ON hce_audit_log FOR ALL
 -- 2. Add RLS policies to 7 unprotected HCE tables
 -- =============================================
 
+DROP POLICY IF EXISTS "hce_evoluciones_service_role" ON hce_evoluciones;
 CREATE POLICY "hce_evoluciones_service_role" ON hce_evoluciones FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "hce_diagnosticos_service_role" ON hce_diagnosticos;
 CREATE POLICY "hce_diagnosticos_service_role" ON hce_diagnosticos FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "hce_medicacion_service_role" ON hce_medicacion;
 CREATE POLICY "hce_medicacion_service_role" ON hce_medicacion FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "hce_antecedentes_service_role" ON hce_antecedentes;
 CREATE POLICY "hce_antecedentes_service_role" ON hce_antecedentes FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "hce_estudios_service_role" ON hce_estudios;
 CREATE POLICY "hce_estudios_service_role" ON hce_estudios FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "hce_signos_vitales_service_role" ON hce_signos_vitales;
 CREATE POLICY "hce_signos_vitales_service_role" ON hce_signos_vitales FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
+DROP POLICY IF EXISTS "professional_audit_log_service_role" ON professional_audit_log;
 CREATE POLICY "professional_audit_log_service_role" ON professional_audit_log FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 

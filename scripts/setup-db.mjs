@@ -803,6 +803,7 @@ CREATE TABLE IF NOT EXISTS hdd_mood_entries (
 ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS color_name VARCHAR(50);
 ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS entry_type VARCHAR(30) DEFAULT 'post_activity';
 ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS session_id VARCHAR(100);
+ALTER TABLE hdd_mood_entries ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_dni ON hdd_mood_entries(patient_dni);
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_id ON hdd_mood_entries(patient_id);
