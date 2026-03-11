@@ -310,6 +310,100 @@ CREATE TABLE IF NOT EXISTS hdd_activities (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+-- Add missing columns to hdd_activities (audit finding #4)
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS icon VARCHAR(10);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS location VARCHAR(200);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS professional VARCHAR(200);
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS max_capacity INTEGER;
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE hdd_activities ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- =============================================
+-- OBRAS SOCIALES & SERVICE PLANS (audit finding #3)
+-- =============================================
+CREATE TABLE IF NOT EXISTS obras_sociales (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(32) UNIQUE NOT NULL,
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(32),
+    billing_address TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS service_plans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(32) UNIQUE NOT NULL,
+    plan_type VARCHAR(32) NOT NULL,
+    description TEXT,
+    price_ars DECIMAL(12, 2) DEFAULT 0,
+    price_usd DECIMAL(10, 2) DEFAULT 0,
+    billing_period VARCHAR(16) DEFAULT 'monthly',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS plan_entitlements (
+    id SERIAL PRIMARY KEY,
+    plan_id INTEGER NOT NULL REFERENCES service_plans(id),
+    service_type VARCHAR(32) NOT NULL,
+    max_per_month INTEGER,
+    max_per_week INTEGER,
+    is_included BOOLEAN DEFAULT TRUE,
+    requires_prescription BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    UNIQUE(plan_id, service_type)
+);
+
+CREATE TABLE IF NOT EXISTS patient_plans (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    plan_id INTEGER NOT NULL REFERENCES service_plans(id),
+    obra_social_id INTEGER REFERENCES obras_sociales(id),
+    obra_social_member_number VARCHAR(64),
+    plan_type VARCHAR(32) NOT NULL,
+    status VARCHAR(32) DEFAULT 'active',
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    end_date DATE,
+    payment_reference TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS service_usage (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    service_type VARCHAR(32) NOT NULL,
+    usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    session_reference VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS doctor_prescriptions (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id),
+    prescribed_by INTEGER NOT NULL REFERENCES healthcare_professionals(id),
+    service_type VARCHAR(32) NOT NULL,
+    diagnosis TEXT,
+    indication TEXT NOT NULL,
+    frequency VARCHAR(64),
+    max_sessions INTEGER,
+    valid_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    valid_until DATE,
+    status VARCHAR(32) DEFAULT 'active',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_usage_monthly ON service_usage(patient_id, service_type, usage_date);
+
 -- HDD Activity Attendance
 CREATE TABLE IF NOT EXISTS hdd_attendance (
     id SERIAL PRIMARY KEY,

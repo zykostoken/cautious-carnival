@@ -1,4 +1,5 @@
 // Shared authentication utilities for serverless functions
+import bcrypt from 'bcryptjs';
 
 // Allowed origins for CORS (H-010)
 const ALLOWED_ORIGINS = [
@@ -51,13 +52,20 @@ export async function hashSessionToken(token: string): Promise<string> {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = process.env.PASSWORD_SALT;
-  if (!salt) {
-    throw new Error("PASSWORD_SALT environment variable is required for security. Set it in Netlify environment variables.");
+  // bcrypt with cost factor 12 (audit H-004)
+  return bcrypt.hash(password, 12);
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  // bcrypt hashes start with $2a$ or $2b$
+  if (hash.startsWith('$2')) {
+    return bcrypt.compare(password, hash);
   }
+
+  // Legacy support: multi-round SHA-256 (10000 iterations)
+  const salt = process.env.PASSWORD_SALT || '';
   const encoder = new TextEncoder();
   const data = encoder.encode(password + salt);
-  // PBKDF2-like: iterate SHA-256 multiple rounds for better resistance (H-004)
   let hashBuffer = await crypto.subtle.digest('SHA-256', data);
   for (let i = 0; i < 9999; i++) {
     const combined = new Uint8Array(hashBuffer.byteLength + data.byteLength);
@@ -65,26 +73,13 @@ export async function hashPassword(password: string): Promise<string> {
     combined.set(data, hashBuffer.byteLength);
     hashBuffer = await crypto.subtle.digest('SHA-256', combined);
   }
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+  const multiRoundHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (multiRoundHash === hash) return true;
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  // Support legacy single-round SHA-256 hashes during migration
-  const salt = process.env.PASSWORD_SALT || '';
-  const encoder = new TextEncoder();
-  const legacyData = encoder.encode(password + salt);
-  const legacyBuffer = await crypto.subtle.digest('SHA-256', legacyData);
+  // Legacy support: single-round SHA-256
+  const legacyBuffer = await crypto.subtle.digest('SHA-256', data);
   const legacyHash = Array.from(new Uint8Array(legacyBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-  if (legacyHash === hash) return true;
-
-  // Try new multi-round hash
-  try {
-    const newHash = await hashPassword(password);
-    return newHash === hash;
-  } catch {
-    return false;
-  }
+  return legacyHash === hash;
 }
 
 export function generateSessionToken(): string {
