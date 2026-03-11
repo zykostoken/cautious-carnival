@@ -339,9 +339,9 @@ export default async (req: Request, context: Context) => {
         }
 
         // Validate password length
-        if (password.length < 6) {
+        if (password.length < 12) {
           return new Response(JSON.stringify({
-            error: "La contraseña debe tener al menos 6 caracteres"
+            error: "La contraseña debe tener al menos 12 caracteres"
           }), { status: 400, headers: corsHeaders });
         }
 

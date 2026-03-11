@@ -933,8 +933,8 @@ document.getElementById('register-form').addEventListener('submit', async functi
   const errorEl = document.getElementById('register-error');
   errorEl.classList.add('hidden');
 
-  if (password.length < 6) {
-    errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+  if (password.length < 12) {
+    errorEl.textContent = 'La contraseña debe tener al menos 12 caracteres';
     errorEl.classList.remove('hidden');
     return;
   }

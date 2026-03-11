@@ -799,8 +799,8 @@ async function resetPassword(event) {
         return;
     }
 
-    if (newPassword.length < 6) {
-        errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+    if (newPassword.length < 12) {
+        errorEl.textContent = 'La contraseña debe tener al menos 12 caracteres';
         errorEl.classList.add('visible');
         return;
     }
@@ -903,8 +903,8 @@ async function registerProfessional(event) {
         return;
     }
 
-    if (password.length < 6) {
-        errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+    if (password.length < 12) {
+        errorEl.textContent = 'La contraseña debe tener al menos 12 caracteres';
         errorEl.classList.add('visible');
         return;
     }

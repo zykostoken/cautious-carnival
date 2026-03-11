@@ -323,9 +323,9 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
-        if (newPassword.length < 6) {
+        if (newPassword.length < 12) {
           return new Response(JSON.stringify({
-            error: "La contraseña debe tener al menos 6 caracteres"
+            error: "La contraseña debe tener al menos 12 caracteres"
           }), { status: 400, headers: corsHeaders });
         }
 
@@ -774,8 +774,8 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
-        if (newPassword.length < 6) {
-          return new Response(JSON.stringify({ error: "La contraseña debe tener al menos 6 caracteres" }),
+        if (newPassword.length < 12) {
+          return new Response(JSON.stringify({ error: "La contraseña debe tener al menos 12 caracteres" }),
             { status: 400, headers: corsHeaders });
         }
 

@@ -10,8 +10,8 @@ const ALLOWED_ORIGINS = [
 function getAllowedOrigin(requestOrigin?: string | null): string {
   if (!requestOrigin) return ALLOWED_ORIGINS[0];
   if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
-  // Allow localhost in development
-  if (requestOrigin.startsWith('http://localhost:')) return requestOrigin;
+  // Allow localhost only in development (NETLIFY_DEV is set by netlify dev)
+  if (process.env.NETLIFY_DEV === 'true' && requestOrigin.startsWith('http://localhost:')) return requestOrigin;
   return ALLOWED_ORIGINS[0];
 }
 

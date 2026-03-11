@@ -1,7 +1,33 @@
-node_modules
-.netlify
+node_modules/
+.netlify/
 *.log
 .env
-.env.local
+.env.*
 .DS_Store
 *.bak
+
+# Secrets and credentials
+credentials.json
+*.pem
+*.key
+*.cert
+serviceAccountKey.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+dist/
+build/
+*.tgz
+
+# Coverage
+coverage/
+.nyc_output/

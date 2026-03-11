@@ -2209,8 +2209,8 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     return;
   }
 
-  if (password.length < 6) {
-    errorEl.textContent = 'La contrasena debe tener al menos 6 caracteres';
+  if (password.length < 12) {
+    errorEl.textContent = 'La contrasena debe tener al menos 12 caracteres';
     errorEl.classList.remove('hidden');
     return;
   }
@@ -2293,7 +2293,7 @@ document.getElementById('reset-form').addEventListener('submit', async function(
   errorEl.classList.add('hidden');
 
   if (newPassword.length < 6) {
-    errorEl.textContent = 'La contrasena debe tener al menos 6 caracteres';
+    errorEl.textContent = 'La contrasena debe tener al menos 12 caracteres';
     errorEl.classList.remove('hidden');
     return;
   }
