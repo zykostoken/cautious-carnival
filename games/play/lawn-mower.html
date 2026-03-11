@@ -1224,10 +1224,8 @@
   let metricsHistory = JSON.parse(localStorage.getItem('lawnmower_metrics_history') || '[]');
 
   // ---- SUPABASE LONGITUDINAL SAVE ----
-  const LM_SUPABASE_URL = 'https://buzblnkpfydeheingzgn.supabase.co';
-  const LM_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
   let lmSupa = null;
-  try { if (window.supabase) lmSupa = window.supabase.createClient(LM_SUPABASE_URL, LM_SUPABASE_KEY); } catch(e) {}
+  try { lmSupa = getSupabaseClient(); } catch(e) {}
 
   // Get patient DNI from URL params or localStorage
   const lmParams = new URLSearchParams(window.location.search);
@@ -4611,6 +4609,9 @@
 
   <!-- Mood modals v4: self-contained overlay system -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script src="/js/sanitize.js"></script>
   <script src="/games/shared/mood-modals.js"></script>
   <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 

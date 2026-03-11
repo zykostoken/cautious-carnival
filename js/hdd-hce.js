@@ -235,22 +235,39 @@ function toggleEditDatos() {
 }
 
 // ── Consentimiento Informado ─────────────────────────────
-function saveConsent() {
-  // Save consent state to localStorage (per patient) - will persist until backend supports it
-  const consentData = {
-    tratamiento: document.getElementById('consent-tratamiento')?.checked || false,
-    hce: document.getElementById('consent-hce')?.checked || false,
-    medicacion: document.getElementById('consent-medicacion')?.checked || false,
-    estudios: document.getElementById('consent-estudios')?.checked || false,
-    internacion: document.getElementById('consent-internacion')?.checked || false,
-    observaciones: document.getElementById('consent-observaciones')?.value || '',
-    savedAt: new Date().toISOString()
-  };
+async function saveConsent() {
+  const tipos = ['tratamiento', 'hce', 'medicacion', 'estudios', 'internacion'];
+  const observaciones = document.getElementById('consent-observaciones')?.value || '';
+
+  const consents = tipos.map(tipo => ({
+    tipo,
+    otorgado: document.getElementById('consent-' + tipo)?.checked || false,
+    observaciones: observaciones || null
+  }));
+
+  // Save to localStorage as cache
+  const consentData = {};
+  tipos.forEach(t => consentData[t] = document.getElementById('consent-' + t)?.checked || false);
+  consentData.observaciones = observaciones;
+  consentData.savedAt = new Date().toISOString();
   localStorage.setItem('hce_consent_' + patientId, JSON.stringify(consentData));
+
+  // Persist to backend
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_consent', sessionToken, patientId, consents })
+    });
+    const result = await res.json();
+    if (!result.success) console.warn('Error saving consent to backend:', result.error);
+  } catch (e) {
+    console.warn('Could not save consent to backend, localStorage used as fallback:', e);
+  }
 
   const statusEl = document.getElementById('consent-status');
   if (statusEl) {
-    const anyChecked = Object.values(consentData).some(v => v === true);
+    const anyChecked = consents.some(c => c.otorgado);
     statusEl.textContent = anyChecked
       ? 'Registrado ' + new Date().toLocaleDateString('es-AR')
       : 'Sin registrar';
@@ -258,7 +275,38 @@ function saveConsent() {
   }
 }
 
-function loadConsent() {
+async function loadConsent() {
+  // Try backend first, fall back to localStorage
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_consent', sessionToken, patientId })
+    });
+    const result = await res.json();
+    if (result.success && result.consents && result.consents.length > 0) {
+      let observaciones = '';
+      for (const c of result.consents) {
+        const el = document.getElementById('consent-' + c.tipo);
+        if (el) el.checked = !!c.otorgado;
+        if (c.observaciones) observaciones = c.observaciones;
+      }
+      if (observaciones) document.getElementById('consent-observaciones').value = observaciones;
+      const statusEl = document.getElementById('consent-status');
+      if (statusEl) {
+        const anyChecked = result.consents.some(c => c.otorgado);
+        if (anyChecked) {
+          statusEl.textContent = 'Registrado ' + new Date(result.consents[0].created_at).toLocaleDateString('es-AR');
+          statusEl.style.color = '#22c55e';
+        }
+      }
+      return; // Backend data loaded successfully
+    }
+  } catch (e) {
+    console.warn('Could not load consent from backend, using localStorage fallback:', e);
+  }
+
+  // Fallback to localStorage
   const saved = localStorage.getItem('hce_consent_' + patientId);
   if (!saved) return;
   try {
