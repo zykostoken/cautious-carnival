@@ -34,7 +34,6 @@ export const CORS_HEADERS = {
 };
 
 // Session expiry durations by context (H-005)
-export const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // legacy default fallback
 
 // Granular session TTLs
 export const SESSION_TTL = {
@@ -43,6 +42,13 @@ export const SESSION_TTL = {
   GAMING_DAILY_LIMIT_MS: 60 * 60 * 1000, // 1 hr/day total across all games
   PROFESSIONAL_IDLE: 2 * 60 * 60 * 1000, // 2 hrs of inactivity
 } as const;
+
+export async function hashSessionToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = process.env.PASSWORD_SALT;
@@ -94,7 +100,7 @@ export function generateVerificationCode(): string {
 export function isSessionExpired(lastLogin: Date | string | null, ttlMs?: number): boolean {
   if (!lastLogin) return true;
   const loginTime = new Date(lastLogin).getTime();
-  return Date.now() - loginTime > (ttlMs ?? SESSION_EXPIRY_MS);
+  return Date.now() - loginTime > (ttlMs ?? SESSION_TTL.PATIENT);
 }
 
 // Check professional session expiry based on inactivity (2hr idle)
@@ -170,9 +176,11 @@ export async function requireAdminSession(sql: any, req: Request): Promise<{ aut
     return { authorized: false, error: 'Token de sesion requerido' };
   }
 
+  const hashedToken = await hashSessionToken(sessionToken);
+
   const [professional] = await sql`
     SELECT email, last_login, last_activity FROM healthcare_professionals
-    WHERE session_token = ${sessionToken} AND is_active = TRUE
+    WHERE session_token = ${hashedToken} AND is_active = TRUE
   `;
 
   if (!professional) {

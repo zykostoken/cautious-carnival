@@ -6,6 +6,9 @@
     <title>Desafío Milanesas - Supermercado | CJI HDD</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+    <script src="/js/sanitize.js"></script>
     <style>
         :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; --gold: #eab308; }
         body { background: var(--bg); color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; margin: 0; min-height: 100vh; }
@@ -180,9 +183,7 @@
 
 <script>
 // ========== CONFIG ==========
-var supabaseUrl = 'https://buzblnkpfydeheingzgn.supabase.co';
-var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA';
-var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+var supabase = getSupabaseClient();
 
 // ========== PRODUCT DATABASE ==========
 // priceRange: [min, max] — each game randomizes a price within range

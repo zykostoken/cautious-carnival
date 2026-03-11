@@ -652,12 +652,8 @@ function save(extra_data) {
     if (extra_data) Object.assign(result, extra_data);
 
     try {
-        var sb = window.supabase;
-        if (!sb) return result;
-        var client = sb.createClient(
-            'https://buzblnkpfydeheingzgn.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emJsbmtwZnlkZWhlaW5nemduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzNTY2NDcsImV4cCI6MjA4MzkzMjY0N30.yE7r59S_FDLCoYvWJOXLPzW1E5sqyw63Kl1hZDTtBtA'
-        );
+        var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : window.supabase?.createClient('https://buzblnkpfydeheingzgn.supabase.co', SUPABASE_ANON_KEY);
+        if (!client) return result;
 
         // Guardar en hdd_game_metrics con metric_type = 'session_biomet'
         client.from('hdd_game_metrics').insert({

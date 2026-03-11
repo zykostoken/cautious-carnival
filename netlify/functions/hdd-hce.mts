@@ -630,6 +630,78 @@ export default async (req: Request, context: Context) => {
         { status: 200, headers: corsHeaders });
     }
 
+    // ── SAVE CONSENT ────────────────────────────────────────────
+    if (action === "save_consent") {
+      const { patientId, consents } = body;
+
+      if (!patientId || !Array.isArray(consents)) {
+        return new Response(JSON.stringify({ error: "patientId y consents (array) son requeridos" }),
+          { status: 400, headers: corsHeaders });
+      }
+
+      const validTipos = ['tratamiento', 'hce', 'medicacion', 'estudios', 'internacion', 'telemedicina'];
+      const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null;
+      const userAgent = req.headers.get('user-agent') || null;
+
+      for (const c of consents) {
+        if (!c.tipo || !validTipos.includes(c.tipo)) continue;
+
+        // Check if a consent record already exists for this patient+tipo
+        const [existing] = await sql`
+          SELECT id FROM hce_consentimientos
+          WHERE patient_id = ${patientId} AND tipo = ${c.tipo} AND revocado_at IS NULL
+          ORDER BY created_at DESC LIMIT 1
+        `;
+
+        if (existing) {
+          await sql`
+            UPDATE hce_consentimientos SET
+              otorgado = ${c.otorgado ?? false},
+              observaciones = ${c.observaciones ?? null},
+              profesional_id = ${prof.id},
+              ip_address = ${ipAddress},
+              user_agent = ${userAgent}
+            WHERE id = ${existing.id}
+          `;
+        } else {
+          await sql`
+            INSERT INTO hce_consentimientos (
+              patient_id, tipo, otorgado, observaciones,
+              profesional_id, ip_address, user_agent
+            ) VALUES (
+              ${patientId}, ${c.tipo}, ${c.otorgado ?? false},
+              ${c.observaciones ?? null},
+              ${prof.id}, ${ipAddress}, ${userAgent}
+            )
+          `;
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }),
+        { status: 200, headers: corsHeaders });
+    }
+
+    // ── GET CONSENT ─────────────────────────────────────────────
+    if (action === "get_consent") {
+      const { patientId } = body;
+
+      if (!patientId) {
+        return new Response(JSON.stringify({ error: "patientId requerido" }),
+          { status: 400, headers: corsHeaders });
+      }
+
+      const consents = await sql`
+        SELECT id, tipo, otorgado, observaciones, otorgado_por,
+               profesional_id, created_at, revocado_at, revocado_motivo
+        FROM hce_consentimientos
+        WHERE patient_id = ${patientId} AND revocado_at IS NULL
+        ORDER BY tipo
+      `;
+
+      return new Response(JSON.stringify({ success: true, consents }),
+        { status: 200, headers: corsHeaders });
+    }
+
     return new Response(JSON.stringify({ error: `Acción desconocida: ${action}` }),
       { status: 400, headers: corsHeaders });
 

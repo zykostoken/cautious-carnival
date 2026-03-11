@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, getCorsHeaders, checkRateLimit, isSessionExpired, escapeHtml } from "./lib/auth.mts";
+import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, hashSessionToken, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, getCorsHeaders, checkRateLimit, isSessionExpired, escapeHtml } from "./lib/auth.mts";
 
 // Fetch patient plan info for login responses
 async function getPatientPlanInfo(sql: ReturnType<typeof import("postgres")>, patientId: number) {
@@ -100,11 +100,12 @@ export default async (req: Request, context: Context) => {
         if (!patient.password_hash) {
           const passwordHash = await hashPassword(password);
           const sessionToken = generateSessionToken();
+          const hashedSessionToken = await hashSessionToken(sessionToken);
 
           await sql`
             UPDATE hdd_patients
             SET password_hash = ${passwordHash},
-                session_token = ${sessionToken},
+                session_token = ${hashedSessionToken},
                 last_login = NOW(),
                 updated_at = NOW()
             WHERE id = ${patient.id}
@@ -144,10 +145,11 @@ export default async (req: Request, context: Context) => {
         }
 
         const sessionToken = generateSessionToken();
+        const hashedSessionToken = await hashSessionToken(sessionToken);
 
         await sql`
           UPDATE hdd_patients
-          SET session_token = ${sessionToken},
+          SET session_token = ${hashedSessionToken},
               last_login = NOW()
           WHERE id = ${patient.id}
         `;
@@ -185,10 +187,12 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedLogoutToken = await hashSessionToken(sessionToken);
+
         await sql`
           UPDATE hdd_patients
           SET session_token = NULL
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedLogoutToken}
         `;
 
         return new Response(JSON.stringify({
@@ -206,12 +210,14 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedProfileToken = await hashSessionToken(sessionToken);
+
         const [patient] = await sql`
           UPDATE hdd_patients
           SET email = COALESCE(${email}, email),
               phone = COALESCE(${phone}, phone),
               updated_at = NOW()
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedProfileToken}
           RETURNING id, full_name, email, phone
         `;
 
@@ -241,9 +247,11 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        const hashedPwChangeToken = await hashSessionToken(sessionToken);
+
         const [patient] = await sql`
           SELECT id, password_hash FROM hdd_patients
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedPwChangeToken}
         `;
 
         if (!patient) {
@@ -280,8 +288,10 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedActivityToken = await hashSessionToken(sessionToken);
+
         const [patient] = await sql`
-          SELECT id FROM hdd_patients WHERE session_token = ${sessionToken} AND status = 'active'
+          SELECT id FROM hdd_patients WHERE session_token = ${hashedActivityToken} AND status = 'active'
         `;
 
         if (!patient) {
@@ -373,6 +383,7 @@ export default async (req: Request, context: Context) => {
         // Cuenta existente sin contraseña - actualizar datos y activar
         const passwordHash = await hashPassword(password);
         const sessionToken = generateSessionToken();
+        const hashedRegToken = await hashSessionToken(sessionToken);
 
         await sql`
           UPDATE hdd_patients
@@ -380,7 +391,7 @@ export default async (req: Request, context: Context) => {
               email = ${email},
               password_hash = ${passwordHash},
               email_verified = TRUE,
-              session_token = ${sessionToken},
+              session_token = ${hashedRegToken},
               last_login = NOW(),
               updated_at = NOW()
           WHERE id = ${existing.id}
@@ -457,10 +468,12 @@ export default async (req: Request, context: Context) => {
     // Verify session
     if (action === "verify" && sessionToken) {
       try {
+        const hashedVerifyToken = await hashSessionToken(sessionToken);
+
         const [patient] = await sql`
           SELECT id, dni, full_name, email, phone, photo_url, status, patient_type, last_login
           FROM hdd_patients
-          WHERE session_token = ${sessionToken} AND status = 'active'
+          WHERE session_token = ${hashedVerifyToken} AND status = 'active'
         `;
 
         if (!patient) {
