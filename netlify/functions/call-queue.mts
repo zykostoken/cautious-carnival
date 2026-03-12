@@ -234,10 +234,10 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
-        const hashedToken2 = await hashSessionToken(sessionToken);
+        const hashedTokenComplete = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${hashedToken2}
+          WHERE session_token = ${hashedTokenComplete}
         `;
 
         if (!professional) {
@@ -283,10 +283,10 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
-        const hashedToken3 = await hashSessionToken(sessionToken);
+        const hashedTokenTransfer = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${hashedToken3}
+          WHERE session_token = ${hashedTokenTransfer}
         `;
 
         if (!professional) {
@@ -430,10 +430,10 @@ export default async (req: Request, context: Context) => {
 
       // If professional session provided, verify it
       if (sessionToken) {
-        const hashedToken4 = await hashSessionToken(sessionToken);
+        const hashedTokenGet = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id, full_name FROM healthcare_professionals
-          WHERE session_token = ${hashedToken4}
+          WHERE session_token = ${hashedTokenGet}
         `;
 
         if (!professional) {
@@ -461,9 +461,9 @@ export default async (req: Request, context: Context) => {
         `;
       } else if (status === "assigned" && sessionToken) {
         // Get calls assigned to this professional
-        const hashedToken5 = await hashSessionToken(sessionToken);
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
-          SELECT id FROM healthcare_professionals WHERE session_token = ${hashedToken5}
+          SELECT id FROM healthcare_professionals WHERE session_token = ${hashedToken}
         `;
 
         queue = await sql`

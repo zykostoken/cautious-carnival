@@ -1,12 +1,13 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { getCorsHeaders } from "./lib/auth.mts";
+import { getCorsHeaders, hashSessionToken } from "./lib/auth.mts";
 
 // Helper to verify patient session
 async function verifyPatientSession(sql: any, sessionToken: string): Promise<{ id: number; fullName: string } | null> {
+  const hashedToken = await hashSessionToken(sessionToken);
   const [patient] = await sql`
     SELECT id, full_name FROM hdd_patients
-    WHERE session_token = ${sessionToken} AND status = 'active'
+    WHERE session_token = ${hashedToken} AND status = 'active'
   `;
   return patient ? { id: patient.id, fullName: patient.full_name } : null;
 }

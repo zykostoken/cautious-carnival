@@ -2,15 +2,16 @@ import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
 import { checkEntitlement, recordUsage } from "./lib/entitlements.mts";
-import { getCorsHeaders, isSessionExpired, escapeHtml, SESSION_TTL, checkDailyGamingLimit } from "./lib/auth.mts";
+import { getCorsHeaders, isSessionExpired, escapeHtml, SESSION_TTL, checkDailyGamingLimit, hashSessionToken } from "./lib/auth.mts";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 
 async function getPatientBySession(sql: any, sessionToken: string) {
+  const hashedToken = await hashSessionToken(sessionToken);
   const [patient] = await sql`
     SELECT id, dni, full_name, status, last_login
     FROM hdd_patients
-    WHERE session_token = ${sessionToken} AND status = 'active'
+    WHERE session_token = ${hashedToken} AND status = 'active'
   `;
   if (!patient) return null;
   // Enforce session expiry (H-005: 60min therapy TTL)

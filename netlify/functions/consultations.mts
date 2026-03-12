@@ -244,10 +244,10 @@ export default async (req: Request, context: Context) => {
     try {
       // Verify professional session for accessing the list
       if (sessionToken) {
-        const hashedToken4 = await hashSessionToken(sessionToken);
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${hashedToken4} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
         `;
 
         if (!professional) {
