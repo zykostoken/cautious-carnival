@@ -236,7 +236,7 @@ function toggleEditDatos() {
 
 // ── Consentimiento Informado ─────────────────────────────
 async function saveConsent() {
-  const tipos = ['tratamiento', 'hce', 'medicacion', 'estudios', 'internacion'];
+  const tipos = ['tratamiento', 'hce', 'medicacion', 'estudios', 'internacion', 'telemedicina'];
   const observaciones = document.getElementById('consent-observaciones')?.value || '';
 
   const consents = tipos.map(tipo => ({
@@ -316,6 +316,7 @@ async function loadConsent() {
     if (data.medicacion) document.getElementById('consent-medicacion').checked = true;
     if (data.estudios) document.getElementById('consent-estudios').checked = true;
     if (data.internacion) document.getElementById('consent-internacion').checked = true;
+    if (data.telemedicina) document.getElementById('consent-telemedicina').checked = true;
     if (data.observaciones) document.getElementById('consent-observaciones').value = data.observaciones;
     const statusEl = document.getElementById('consent-status');
     if (statusEl && data.savedAt) {
