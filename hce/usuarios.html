@@ -448,8 +448,8 @@ async function submitResetPassword() {
   errEl.style.display = 'none';
   const id = parseInt(document.getElementById('reset-id').value);
   const newPassword = document.getElementById('reset-password').value;
-  if (!newPassword || newPassword.length < 6) {
-    errEl.textContent = 'Minimo 6 caracteres';
+  if (!newPassword || newPassword.length < 12) {
+    errEl.textContent = 'Minimo 12 caracteres';
     errEl.style.display = 'block';
     return;
   }
