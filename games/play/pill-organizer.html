@@ -782,6 +782,11 @@
 
                 sessionState.movements.push(movement);
 
+                // RENDER PRIMERO — nunca bloquear UI por telemetría
+                renderPillInSlot(slot, medType, isCorrect);
+                updateRealTimeMetrics();
+
+                // Fire-and-forget a Supabase (con .then() para que .catch() funcione en v2)
                 if (sb) {
                     sb.from('hdd_game_metrics').insert({
                         patient_id: sessionState.patientId,
@@ -790,11 +795,10 @@
                         metric_type: 'pill_placement',
                         metric_value: tremorIndex,
                         metric_data: movement
+                    }).then(function(res) {
+                        if (res.error) console.warn('Metric save error:', res.error.message);
                     }).catch(function(e) { console.warn('Metric save:', e.message); });
                 }
-
-                renderPillInSlot(slot, medType, isCorrect);
-                updateRealTimeMetrics();
             }
 
             // ---- Soltar (drag drop) ----
@@ -1149,46 +1153,51 @@
             // === GUARDAR EN SUPABASE ===
             const _dni = sessionState.patientDni && sessionState.patientDni !== 'HDD-DEMO' ? sessionState.patientDni : null;
             if (sb && _dni) {
-                await sb.from('hdd_game_metrics').insert({
-                    patient_dni: _dni,
-                    game_slug: 'pill-organizer',
-                    metric_type: 'session_summary',
-                    metric_value: finalScore,
-                    metric_data: {
-                        game_name: 'Organizador de Medicación',
-                        score: finalScore,
-                        max_score: expected * 100 + 700,
-                        accuracy_pct: accuracy,
-                        completeness_pct: completeness,
-                        errors: sessionState.totalErrors,
-                        correct_placements: sessionState.correctPlacements,
-                        expected_placements: expected,
-                        duration_sec: duration,
-                        tremor_index: avgTremor,
-                        mean_rt_ms: finalMetrics.avg_hesitation_ms,
-                        movement_efficiency: avgPathEff,
-                        avg_abrupt_redirections: sessionState.movements.length > 0
-                            ? parseFloat((sessionState.movements.reduce((s, m) => s + (m.abruptRedirections||0), 0) / sessionState.movements.length).toFixed(2))
-                            : 0,
-                        input_device: sessionState.inputDevice || 'unknown',
-                        level: LEVELS[sessionState.currentLevelIndex].id,
-                        completed: true
-                    }
-                }).catch(e => console.warn('Longitudinal metric save:', e.message));
+                try {
+                    const { error: metricErr } = await sb.from('hdd_game_metrics').insert({
+                        patient_dni: _dni,
+                        game_slug: 'pill-organizer',
+                        metric_type: 'session_summary',
+                        metric_value: finalScore,
+                        metric_data: {
+                            game_name: 'Organizador de Medicación',
+                            score: finalScore,
+                            max_score: expected * 100 + 700,
+                            accuracy_pct: accuracy,
+                            completeness_pct: completeness,
+                            errors: sessionState.totalErrors,
+                            correct_placements: sessionState.correctPlacements,
+                            expected_placements: expected,
+                            duration_sec: duration,
+                            tremor_index: avgTremor,
+                            mean_rt_ms: finalMetrics.avg_hesitation_ms,
+                            movement_efficiency: avgPathEff,
+                            avg_abrupt_redirections: sessionState.movements.length > 0
+                                ? parseFloat((sessionState.movements.reduce((s, m) => s + (m.abruptRedirections||0), 0) / sessionState.movements.length).toFixed(2))
+                                : 0,
+                            input_device: sessionState.inputDevice || 'unknown',
+                            level: LEVELS[sessionState.currentLevelIndex].id,
+                            completed: true
+                        }
+                    });
+                    if (metricErr) console.warn('Longitudinal metric save:', metricErr.message);
+                } catch(e) { console.warn('Longitudinal metric save:', e.message); }
             }
 
             if (sb && sessionState.sessionId) {
-                await sb.from('hdd_game_sessions')
-                    .update({
-                        completed_at: new Date().toISOString(),
-                        completed: true,
-                        score: finalScore,
-                        max_score: expected * 100 + 700,
-                        duration_seconds: duration,
-                        metrics: finalMetrics
-                    })
-                    .eq('id', sessionState.sessionId)
-                    .catch(e => console.warn('Session update:', e.message));
+                try {
+                    const { error: sessErr } = await sb.from('hdd_game_sessions')
+                        .update({
+                            completed_at: new Date().toISOString(),
+                            completed: true,
+                            score: finalScore,
+                            max_score: expected * 100 + 700,
+                            duration_seconds: duration,
+                            metrics: finalMetrics
+                        })
+                        .eq('id', sessionState.sessionId);
+                    if (sessErr) console.warn('Session update:', sessErr.message);
+                } catch(e) { console.warn('Session update:', e.message); }
             }
 
             if (sessionState.patientId) {
