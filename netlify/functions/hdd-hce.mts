@@ -180,28 +180,37 @@ export default async (req: Request, context: Context) => {
           ? `MN ${prof.matriculaNacional}`
           : null;
 
+      // Compute firma digital hash (Ley 25.506 - firma electronica simple)
+      const firmaContent = `${contenido}|${prof.fullName}|${firmaMatricula}|${patientId}|${new Date().toISOString()}`;
+      const firmaEncoder = new TextEncoder();
+      const firmaBuffer = await crypto.subtle.digest('SHA-256', firmaEncoder.encode(firmaContent));
+      const firmaDigitalHash = Array.from(new Uint8Array(firmaBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const firmaIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null;
+
       const [evolution] = await sql`
         INSERT INTO hce_evoluciones (
           patient_id, profesional_id, fecha, tipo, contenido,
           motivo_consulta, examen_mental, plan_terapeutico,
           indicaciones, es_confidencial,
-          firma_nombre, firma_especialidad, firma_matricula, firma_role
+          firma_nombre, firma_especialidad, firma_matricula, firma_role,
+          firma_digital_hash, firma_digital_timestamp, firma_ip_address
         ) VALUES (
           ${patientId}, ${prof.id}, NOW(), ${tipo ?? 'evolucion'},
           ${contenido}, ${motivoConsulta ?? null}, ${examenMental ?? null},
           ${planTerapeutico ?? null}, ${indicaciones ?? null},
           ${esConfidencial ?? false},
           ${prof.fullName}, ${prof.specialty ?? null},
-          ${firmaMatricula}, ${prof.role ?? 'profesional'}
+          ${firmaMatricula}, ${prof.role ?? 'profesional'},
+          ${firmaDigitalHash}, NOW(), ${firmaIp}
         )
-        RETURNING id, fecha, created_at, firma_nombre, firma_especialidad, firma_matricula, firma_role
+        RETURNING id, fecha, created_at, firma_nombre, firma_especialidad, firma_matricula, firma_role, firma_digital_hash
       `;
 
       return new Response(JSON.stringify({ success: true, evolution }),
         { status: 201, headers: corsHeaders });
     }
 
-    // ── UPDATE EVOLUTION ─────────────────────────────────────────
+    // ── UPDATE EVOLUTION (addendum pattern - Ley 26.529 immutability) ──
     if (action === "update_evolution") {
       const { evolutionId, contenido, motivoConsulta, examenMental,
               planTerapeutico, indicaciones } = body;
@@ -211,9 +220,8 @@ export default async (req: Request, context: Context) => {
           { status: 400, headers: corsHeaders });
       }
 
-      // Only the author can edit their own evolutions
       const [existing] = await sql`
-        SELECT profesional_id FROM hce_evoluciones WHERE id = ${evolutionId}
+        SELECT id, profesional_id, tipo, patient_id FROM hce_evoluciones WHERE id = ${evolutionId}
       `;
 
       if (!existing) {
@@ -221,25 +229,62 @@ export default async (req: Request, context: Context) => {
           { status: 404, headers: corsHeaders });
       }
 
-      if (existing.profesional_id !== prof.id) {
-        return new Response(JSON.stringify({ error: "Solo puede editar sus propias evoluciones" }),
-          { status: 403, headers: corsHeaders });
+      // Drafts can be edited directly
+      if (existing.tipo === 'borrador') {
+        if (existing.profesional_id !== prof.id) {
+          return new Response(JSON.stringify({ error: "Solo puede editar sus propios borradores" }),
+            { status: 403, headers: corsHeaders });
+        }
+        await sql`
+          UPDATE hce_evoluciones SET
+            contenido = ${contenido},
+            motivo_consulta = ${motivoConsulta ?? null},
+            examen_mental = ${examenMental ?? null},
+            plan_terapeutico = ${planTerapeutico ?? null},
+            indicaciones = ${indicaciones ?? null},
+            editado_at = NOW()
+          WHERE id = ${evolutionId}
+        `;
+        return new Response(JSON.stringify({ success: true }),
+          { status: 200, headers: corsHeaders });
       }
 
-      await sql`
-        UPDATE hce_evoluciones SET
-          contenido = ${contenido},
-          motivo_consulta = ${motivoConsulta ?? null},
-          examen_mental = ${examenMental ?? null},
-          plan_terapeutico = ${planTerapeutico ?? null},
-          indicaciones = ${indicaciones ?? null},
-          editado = true,
-          editado_at = NOW()
-        WHERE id = ${evolutionId}
+      // Committed evolutions: create addendum instead of editing (Ley 26.529)
+      const addendumMatricula = prof.matriculaProvincial
+        ? `MP ${prof.matriculaProvincial}`
+        : prof.matriculaNacional
+          ? `MN ${prof.matriculaNacional}`
+          : null;
+
+      const addendumContent = `[Addendum a evolución #${evolutionId}]\n${contenido}`;
+      const addFirmaContent = `${addendumContent}|${prof.fullName}|${addendumMatricula}|${existing.patient_id}|${new Date().toISOString()}`;
+      const addFirmaEncoder = new TextEncoder();
+      const addFirmaBuffer = await crypto.subtle.digest('SHA-256', addFirmaEncoder.encode(addFirmaContent));
+      const addFirmaHash = Array.from(new Uint8Array(addFirmaBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const addFirmaIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null;
+
+      const [addendum] = await sql`
+        INSERT INTO hce_evoluciones (
+          patient_id, profesional_id, fecha, tipo, contenido,
+          motivo_consulta, examen_mental, plan_terapeutico,
+          indicaciones, es_confidencial,
+          is_addendum, parent_evolution_id,
+          firma_nombre, firma_especialidad, firma_matricula, firma_role,
+          firma_digital_hash, firma_digital_timestamp, firma_ip_address
+        ) VALUES (
+          ${existing.patient_id}, ${prof.id}, NOW(), 'addendum',
+          ${addendumContent}, ${motivoConsulta ?? null}, ${examenMental ?? null},
+          ${planTerapeutico ?? null}, ${indicaciones ?? null}, false,
+          true, ${evolutionId},
+          ${prof.fullName}, ${prof.specialty ?? null},
+          ${addendumMatricula}, ${prof.role ?? 'profesional'},
+          ${addFirmaHash}, NOW(), ${addFirmaIp}
+        )
+        RETURNING id, fecha, created_at
       `;
 
-      return new Response(JSON.stringify({ success: true }),
-        { status: 200, headers: corsHeaders });
+      return new Response(JSON.stringify({ success: true, addendum, isAddendum: true }),
+        { status: 201, headers: corsHeaders });
     }
 
     // ── ADD MEDICATION ───────────────────────────────────────────
@@ -613,6 +658,14 @@ export default async (req: Request, context: Context) => {
           ? `MN ${prof.matriculaNacional}`
           : null;
 
+      // Get draft content for firma digital hash
+      const [draftData] = await sql`SELECT contenido FROM hce_evoluciones WHERE id = ${draft.id}`;
+      const commitFirmaContent = `${draftData?.contenido || ''}|${prof.fullName}|${draftFirmaMatricula}|${patientId}|${new Date().toISOString()}`;
+      const commitEncoder = new TextEncoder();
+      const commitBuffer = await crypto.subtle.digest('SHA-256', commitEncoder.encode(commitFirmaContent));
+      const commitFirmaHash = Array.from(new Uint8Array(commitBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const commitFirmaIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null;
+
       await sql`
         UPDATE hce_evoluciones SET
           tipo = ${tipo ?? 'evolucion'},
@@ -622,7 +675,10 @@ export default async (req: Request, context: Context) => {
           firma_nombre = ${prof.fullName},
           firma_especialidad = ${prof.specialty ?? null},
           firma_matricula = ${draftFirmaMatricula},
-          firma_role = ${prof.role ?? 'profesional'}
+          firma_role = ${prof.role ?? 'profesional'},
+          firma_digital_hash = ${commitFirmaHash},
+          firma_digital_timestamp = NOW(),
+          firma_ip_address = ${commitFirmaIp}
         WHERE id = ${draft.id}
       `;
 

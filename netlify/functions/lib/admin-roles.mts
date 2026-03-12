@@ -1,4 +1,7 @@
+import { hashSessionToken } from "./auth.mts";
+
 // Shared admin role utilities for serverless functions
+import { hashSessionToken } from './auth.mts';
 
 // Super Admin - Only direccionmedica has full control
 // Configured via SUPER_ADMIN_EMAILS env var (comma-separated)
@@ -18,9 +21,10 @@ export type AdminRole = 'super_admin' | 'limited_admin' | null;
 
 // Helper to get admin role from session
 export async function getAdminRole(sql: any, sessionToken: string): Promise<{ role: AdminRole; email: string | null }> {
+  const hashedToken = await hashSessionToken(sessionToken);
   const [professional] = await sql`
     SELECT email FROM healthcare_professionals
-    WHERE session_token = ${sessionToken} AND is_active = TRUE
+    WHERE session_token = ${hashedToken} AND is_active = TRUE
   `;
 
   if (!professional) {
@@ -47,20 +51,21 @@ export async function isAdminSession(sql: any, sessionToken: string): Promise<bo
   if (role === null) return false;
 
   // Check and update last_activity (2h timeout)
+  const hashedToken = await hashSessionToken(sessionToken);
   const [session] = await sql`
     SELECT last_activity FROM healthcare_professionals
-    WHERE session_token = ${sessionToken} AND is_active = TRUE
+    WHERE session_token = ${hashedToken} AND is_active = TRUE
   `;
   if (session?.last_activity) {
     const elapsed = Date.now() - new Date(session.last_activity).getTime();
     if (elapsed > 2 * 60 * 60 * 1000) {
       // Session expired — clear token
-      await sql`UPDATE healthcare_professionals SET session_token = NULL WHERE session_token = ${sessionToken}`;
+      await sql`UPDATE healthcare_professionals SET session_token = NULL WHERE session_token = ${hashedToken}`;
       return false;
     }
   }
   // Touch last_activity (non-blocking)
-  sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE session_token = ${sessionToken}`.catch(() => {});
+  sql`UPDATE healthcare_professionals SET last_activity = NOW() WHERE session_token = ${hashedToken}`.catch(() => {});
   return true;
 }
 

@@ -1,5 +1,5 @@
 import type { Context, Config } from "@netlify/functions";
-import { getCorsHeaders } from "./lib/auth.mts";
+import { getCorsHeaders, hashSessionToken } from "./lib/auth.mts";
 import { getDatabase } from "./lib/db.mts";
 
 // Biometricas - Supabase Storage bucket handler
@@ -20,7 +20,8 @@ async function verifyAccess(req: Request): Promise<{ ok: boolean; patientId?: nu
     const sql = getDatabase();
     const [patient] = await sql`SELECT id FROM hdd_patients WHERE session_token = ${token} AND status = 'active'`;
     if (patient) return { ok: true, patientId: patient.id };
-    const [prof] = await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${token} AND is_active = TRUE`;
+    const hashedToken = await hashSessionToken(token);
+    const [prof] = await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${hashedToken} AND is_active = TRUE`;
     if (prof) return { ok: true };
   } catch (e) { console.error('Auth check failed:', e); }
   return { ok: false };

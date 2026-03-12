@@ -28,8 +28,10 @@ export default async (req: Request, context: Context) => {
   try {
     const { getDatabase } = await import("./lib/db.mts");
     const sql = getDatabase();
-    const [patient] = await sql`SELECT id FROM hdd_patients WHERE session_token = ${sessionToken} AND status = 'active'`;
-    const [prof] = patient ? [null] : await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+    const { hashSessionToken } = await import("./lib/auth.mts");
+    const hashedToken = await hashSessionToken(sessionToken);
+    const [patient] = await sql`SELECT id FROM hdd_patients WHERE session_token = ${hashedToken} AND status = 'active'`;
+    const [prof] = patient ? [null] : await sql`SELECT id FROM healthcare_professionals WHERE session_token = ${hashedToken} AND is_active = TRUE`;
     if (!patient && !prof) {
       return new Response(JSON.stringify({ error: "Sesion invalida" }),
         { status: 403, headers: corsHeaders });

@@ -170,6 +170,34 @@ ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS email_verified BOO
 ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
 ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS verification_expires TIMESTAMP WITH TIME ZONE;
 
+-- MFA/TOTP columns (ReNaPDiS compliance)
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS totp_verified_at TIMESTAMPTZ;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS totp_backup_codes TEXT[];
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS mfa_required BOOLEAN DEFAULT TRUE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS last_activity TIMESTAMPTZ;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS refeps_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS refeps_verification_date TIMESTAMPTZ;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS sisa_id VARCHAR(32);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS matricula_provincial VARCHAR(32);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS matricula_nacional VARCHAR(32);
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
+ALTER TABLE healthcare_professionals ADD COLUMN IF NOT EXISTS session_created_at TIMESTAMPTZ;
+
+-- MFA challenge log
+CREATE TABLE IF NOT EXISTS mfa_challenge_log (
+    id SERIAL PRIMARY KEY,
+    professional_id INTEGER NOT NULL REFERENCES healthcare_professionals(id),
+    challenge_type VARCHAR(16) NOT NULL DEFAULT 'totp',
+    success BOOLEAN NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mfa_challenge_professional ON mfa_challenge_log(professional_id, created_at DESC);
+
 -- Call queue for managing incoming call requests
 CREATE TABLE IF NOT EXISTS call_queue (
     id SERIAL PRIMARY KEY,
@@ -903,6 +931,58 @@ CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_dni ON hdd_mood_entries(
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_patient_id ON hdd_mood_entries(patient_id);
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_context ON hdd_mood_entries(context_type);
 CREATE INDEX IF NOT EXISTS idx_hdd_mood_entries_recorded_at ON hdd_mood_entries(recorded_at);
+
+-- =============================================
+-- RENAPDIS COMPLIANCE TABLES (migration 028)
+-- =============================================
+
+-- Electronic prescriptions (CUIR)
+CREATE TABLE IF NOT EXISTS electronic_prescriptions (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER NOT NULL REFERENCES hdd_patients(id) ON DELETE RESTRICT,
+    professional_id INTEGER NOT NULL REFERENCES healthcare_professionals(id),
+    cuir_code VARCHAR(64) UNIQUE,
+    prescription_type VARCHAR(32) NOT NULL DEFAULT 'general',
+    medications JSONB NOT NULL,
+    diagnosis_text TEXT,
+    diagnosis_snomed VARCHAR(20),
+    instructions TEXT,
+    valid_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    valid_until DATE,
+    dispensed BOOLEAN DEFAULT FALSE,
+    dispensed_at TIMESTAMPTZ,
+    dispensed_by VARCHAR(255),
+    pharmacy_name VARCHAR(255),
+    firma_digital_hash VARCHAR(128),
+    firma_nombre VARCHAR(255),
+    firma_matricula VARCHAR(64),
+    status VARCHAR(16) DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_patient ON electronic_prescriptions(patient_id);
+CREATE INDEX IF NOT EXISTS idx_prescriptions_cuir ON electronic_prescriptions(cuir_code);
+
+-- HCE evoluciones immutability columns
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS firma_digital_hash VARCHAR(128);
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS firma_digital_timestamp TIMESTAMPTZ;
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS firma_ip_address VARCHAR(45);
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS is_addendum BOOLEAN DEFAULT FALSE;
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS parent_evolution_id INTEGER;
+ALTER TABLE hce_evoluciones ADD COLUMN IF NOT EXISTS original_contenido TEXT;
+
+-- SNOMED CT columns
+ALTER TABLE hce_diagnosticos ADD COLUMN IF NOT EXISTS snomed_code VARCHAR(20);
+ALTER TABLE hce_diagnosticos ADD COLUMN IF NOT EXISTS snomed_display TEXT;
+ALTER TABLE hce_medicacion ADD COLUMN IF NOT EXISTS snomed_code VARCHAR(20);
+ALTER TABLE hce_medicacion ADD COLUMN IF NOT EXISTS snomed_display TEXT;
+
+-- Patient data protection columns (Ley 25.326)
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS session_created_at TIMESTAMPTZ;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS data_processing_consent BOOLEAN DEFAULT FALSE;
+ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS data_processing_consent_date TIMESTAMPTZ;
 
 -- =============================================
 -- LONGITUDINAL VIEWS FOR PROFESSIONAL PANEL

@@ -39,8 +39,10 @@ export default async (req: Request, context: Context) => {
         return new Response(JSON.stringify({ error: "Autenticacion requerida" }), { status: 401, headers: corsHeaders });
       }
       const { getDatabase: getDb } = await import("./lib/db.mts");
+      const { hashSessionToken } = await import("./lib/auth.mts");
       const sql = getDb();
-      const [prof] = await sql`SELECT id, email FROM healthcare_professionals WHERE session_token = ${sessionToken} AND is_active = TRUE`;
+      const hashedToken = await hashSessionToken(sessionToken);
+      const [prof] = await sql`SELECT id, email FROM healthcare_professionals WHERE session_token = ${hashedToken} AND is_active = TRUE`;
       if (!prof) {
         return new Response(JSON.stringify({ error: "Sesion profesional invalida" }), { status: 403, headers: corsHeaders });
       }

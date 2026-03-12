@@ -2292,7 +2292,7 @@ document.getElementById('reset-form').addEventListener('submit', async function(
   const errorEl = document.getElementById('reset-error');
   errorEl.classList.add('hidden');
 
-  if (newPassword.length < 6) {
+  if (newPassword.length < 12) {
     errorEl.textContent = 'La contrasena debe tener al menos 12 caracteres';
     errorEl.classList.remove('hidden');
     return;
