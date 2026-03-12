@@ -1,3 +1,6 @@
+// XSS sanitization helper (H-003)
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // ========== STARS ANIMATION ==========
 const canvas = document.getElementById('stars-canvas');
 const ctx = canvas.getContext('2d');

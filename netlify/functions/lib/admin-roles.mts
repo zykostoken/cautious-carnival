@@ -1,7 +1,6 @@
 import { hashSessionToken } from "./auth.mts";
 
 // Shared admin role utilities for serverless functions
-import { hashSessionToken } from './auth.mts';
 
 // Super Admin - Only direccionmedica has full control
 // Configured via SUPER_ADMIN_EMAILS env var (comma-separated)

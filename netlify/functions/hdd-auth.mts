@@ -71,7 +71,7 @@ export default async (req: Request, context: Context) => {
         }
 
         // Rate limit login attempts by DNI (H-006)
-        if (!checkRateLimit(`login:${dni}`, 5, 15 * 60 * 1000)) {
+        if (!(await checkRateLimit(sql, `login:${dni}`, 5, 15 * 60 * 1000))) {
           return new Response(JSON.stringify({
             error: "Demasiados intentos. Intente nuevamente en 15 minutos."
           }), { status: 429, headers: corsHeaders });

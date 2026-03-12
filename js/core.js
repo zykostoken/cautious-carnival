@@ -1,3 +1,6 @@
+// XSS sanitization helper (H-003)
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // ==================== SISTEMA i18n ====================
 const i18n = {
     es: {

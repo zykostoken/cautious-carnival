@@ -131,24 +131,34 @@ export function errorResponse(error: string, status = 400, requestOrigin?: strin
   return new Response(JSON.stringify({ error }), { status, headers: getCorsHeaders(requestOrigin) });
 }
 
-// Simple in-memory rate limiter (H-006)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-export function checkRateLimit(key: string, maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+// Persistent DB-based rate limiter (H-006)
+// Uses rate_limit_entries table — survives cold starts unlike in-memory Map
+export async function checkRateLimit(sql: any, key: string, maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000): Promise<boolean> {
+  try {
+    const windowStart = new Date(Date.now() - windowMs).toISOString();
+    
+    // Clean old entries and count recent attempts in one go
+    await sql`DELETE FROM rate_limit_entries WHERE attempt_at < ${windowStart}`;
+    
+    const [result] = await sql`
+      SELECT COUNT(*)::int AS attempts 
+      FROM rate_limit_entries 
+      WHERE limit_key = ${key} AND attempt_at >= ${windowStart}
+    `;
+    
+    if ((result?.attempts || 0) >= maxAttempts) {
+      return false; // blocked
+    }
+    
+    // Record this attempt
+    await sql`INSERT INTO rate_limit_entries (limit_key, attempt_at) VALUES (${key}, NOW())`;
     return true; // allowed
+  } catch (err) {
+    // If rate_limit_entries table doesn't exist or DB error, allow the request
+    // (fail-open to not block legitimate users)
+    console.error('Rate limit check error:', err);
+    return true;
   }
-
-  if (entry.count >= maxAttempts) {
-    return false; // blocked
-  }
-
-  entry.count++;
-  return true; // allowed
 }
 
 // HTML escape to prevent XSS in email templates (H-056)

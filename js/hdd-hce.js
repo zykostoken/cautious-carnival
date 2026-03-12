@@ -2,6 +2,9 @@
 // HCE — Historia Clínica Electrónica - Frontend Logic
 // ═══════════════════════════════════════════════════════════
 
+// XSS sanitization helper (H-003)
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 const API = '/api/hdd-hce';
 let sessionToken = null;
 let patientId = null;
@@ -1156,15 +1159,11 @@ function goBack() {
   if (content && content !== lastSavedContent) {
     if (!confirm('Tiene contenido sin guardar. Desea salir?')) return;
   }
-  // Go back to referrer or default
-  if (document.referrer && document.referrer.includes('/hce')) {
-    window.location.href = '/hce';
-  } else if (document.referrer && document.referrer.includes('/hdd/admin')) {
+  // Go back to admin panel (single entry point for HCE)
+  if (document.referrer && document.referrer.includes('/hdd/admin')) {
     window.history.back();
-  } else if (window.location.pathname.startsWith('/hce')) {
-    window.location.href = '/hce';
   } else {
-    window.location.href = '/hdd/admin';
+    window.location.href = '/hdd/admin/index.html#hce';
   }
 }
 

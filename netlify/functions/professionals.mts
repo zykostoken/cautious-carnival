@@ -309,7 +309,7 @@ export default async (req: Request, context: Context) => {
         const { email, dniLast4, newPassword } = body;
 
         // Rate limit password reset attempts - critical! Only 10k combinations (H-022)
-        if (!checkRateLimit(`pwd_reset:${email}`, 3, 30 * 60 * 1000)) {
+        if (!(await checkRateLimit(sql, `pwd_reset:${email}`, 3, 30 * 60 * 1000))) {
           return new Response(JSON.stringify({
             error: "Demasiados intentos. Intente nuevamente en 30 minutos."
           }), { status: 429, headers: corsHeaders });
@@ -456,7 +456,7 @@ export default async (req: Request, context: Context) => {
         }
 
         // Rate limit login attempts (H-006)
-        if (!checkRateLimit(`prof_login:${email}`, 5, 15 * 60 * 1000)) {
+        if (!(await checkRateLimit(sql, `prof_login:${email}`, 5, 15 * 60 * 1000))) {
           return new Response(JSON.stringify({
             error: "Demasiados intentos. Intente nuevamente en 15 minutos."
           }), { status: 429, headers: corsHeaders });

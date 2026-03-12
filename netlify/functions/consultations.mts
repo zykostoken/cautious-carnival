@@ -41,7 +41,7 @@ export default async (req: Request, context: Context) => {
 
         // Rate limit submissions by IP/session (H-006)
         const clientKey = sessionId || req.headers.get('x-forwarded-for') || 'unknown';
-        if (!checkRateLimit(`consultation:${clientKey}`, 3, 60 * 60 * 1000)) {
+        if (!(await checkRateLimit(sql, `consultation:${clientKey}`, 3, 60 * 60 * 1000))) {
           return new Response(JSON.stringify({
             error: "Demasiadas consultas enviadas. Intente nuevamente más tarde."
           }), { status: 429, headers: corsHeaders });

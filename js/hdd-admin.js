@@ -5,6 +5,9 @@ let adminEmail = null;
 let permissions = {};
 let patients = [];
 
+// XSS sanitization helper (H-003)
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // API
 async function api(endpoint, options = {}) {
   const response = await fetch(endpoint, {

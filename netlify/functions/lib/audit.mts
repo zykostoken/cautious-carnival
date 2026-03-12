@@ -2,7 +2,6 @@ import { hashSessionToken } from "./auth.mts";
 
 // Professional audit log utility
 // Tracks resource usage per professional per patient for compliance and analytics
-import { hashSessionToken } from './auth.mts';
 
 interface AuditEntry {
   professionalId: number;

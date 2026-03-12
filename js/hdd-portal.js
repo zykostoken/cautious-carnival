@@ -1,3 +1,6 @@
+// XSS sanitization helper (H-003)
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // State
 let currentUser = null;
 let sessionToken = null;
