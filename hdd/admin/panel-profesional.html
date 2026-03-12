@@ -248,7 +248,7 @@ async function init() {
     document.getElementById('loading-state').style.display = 'none';
     showAllPatients();
   } catch(e) {
-    document.getElementById('loading-state').innerHTML = `<p style="color:#f87171">Error conectando con base de datos: ${e.message}</p>`;
+    document.getElementById('loading-state').innerHTML = DOMPurify.sanitize(`<p style="color:#f87171">Error conectando con base de datos: ${e.message}</p>`);
   }
 }
 
@@ -276,7 +276,7 @@ async function showAllPatients() {
 
     const card = document.createElement('div');
     card.className = 'pat-card';
-    card.innerHTML = `
+    card.innerHTML = DOMPurify.sanitize(`
       <div class="pname">${p.full_name || '—'}</div>
       <div class="pdni">DNI: ${p.dni}</div>
       <div class="pmeta">
@@ -287,7 +287,7 @@ async function showAllPatients() {
       <button class="video-btn" onclick="event.stopPropagation();startVideoConsult('${p.id}','${(p.full_name||'Paciente').replace(/'/g,"\\'")}')">
         📹 Iniciar videoconsulta
       </button>
-    `;
+    `);
     card.onclick = () => selectPatientFromGrid(p.id);
     grid.appendChild(card);
   });
@@ -326,9 +326,9 @@ async function loadPatient(patientId) {
   const p = allPatients.find(x => x.id === patientId);
   if (p) {
     const since = p.admission_date ? new Date(p.admission_date).toLocaleDateString('es-AR') : 'N/D';
-    document.getElementById('patient-meta').innerHTML = `
+    document.getElementById('patient-meta').innerHTML = DOMPurify.sanitize(`
       <strong>${p.full_name || 'Sin nombre'}</strong> &nbsp;·&nbsp; DNI: ${p.dni} &nbsp;·&nbsp; Ingreso: ${since}
-    `;
+    `);
   }
 
   // Fetch session metrics
@@ -370,20 +370,20 @@ function renderDashboard(metrics, colors) {
   const firstDate = metrics.length ? new Date(metrics[0].created_at) : null;
   const daysSinceStart = firstDate ? Math.floor((Date.now() - firstDate) / 86400000) : 0;
 
-  document.getElementById('summary-grid').innerHTML = `
+  document.getElementById('summary-grid').innerHTML = DOMPurify.sanitize(`
     <div class="scard"><div class="val">${total}</div><div class="lbl">Sesiones totales</div></div>
     <div class="scard"><div class="val">${gameCount}</div><div class="lbl">Juegos jugados</div></div>
     <div class="scard"><div class="val">${avgScore}</div><div class="lbl">Puntaje promedio</div></div>
     <div class="scard"><div class="val">${daysSinceStart}</div><div class="lbl">Días en seguimiento</div></div>
     <div class="scard"><div class="val">${lastDate ? lastDate.toLocaleDateString('es-AR', {day:'2-digit',month:'short'}) : '—'}</div><div class="lbl">Última sesión</div></div>
-  `;
+  `);
 
   // Game tabs
   const tabs = document.getElementById('game-tabs');
   tabs.innerHTML = '<div class="tab active" onclick="showGameSection(\'all\', this)" data-game="all">🎮 Todos</div>';
   Object.keys(byGame).forEach(slug => {
     const g = GAMES[slug] || { name: slug, icon: '🎮' };
-    tabs.innerHTML += `<div class="tab" onclick="showGameSection('${slug}', this)" data-game="${slug}">${g.icon} ${g.name} <span class="cnt">${byGame[slug].length}</span></div>`;
+    tabs.innerHTML += DOMPurify.sanitize(`<div class="tab" onclick="showGameSection('${slug}', this)" data-game="${slug}">${g.icon} ${g.name} <span class="cnt">${byGame[slug].length}</span></div>`);
   });
 
   // Game sections
@@ -391,11 +391,11 @@ function renderDashboard(metrics, colors) {
   sections.innerHTML = '';
 
   // All-games overview section
-  sections.innerHTML += buildAllGamesSection(byGame);
+  sections.innerHTML += DOMPurify.sanitize(buildAllGamesSection(byGame));
 
   // Per-game sections
   Object.entries(byGame).forEach(([slug, data]) => {
-    sections.innerHTML += buildGameSection(slug, data, colors);
+    sections.innerHTML += DOMPurify.sanitize(buildGameSection(slug, data, colors));
   });
 
   // Render all charts
@@ -821,7 +821,7 @@ function renderHCEAppGroups(groups) {
     { key: 'externo', label: 'Consultorios Externos', icon: '🚶', color: '#34d399' }
   ];
 
-  container.innerHTML = sections.map(s => {
+  container.innerHTML = DOMPurify.sanitize(sections.map(s => {
     const patients = groups[s.key] || [];
     return `
       <div>
@@ -836,7 +836,7 @@ function renderHCEAppGroups(groups) {
         </div>
       </div>
     `;
-  }).join('');
+  }).join(''));
 }
 
 function renderHCEPatientCard(p) {

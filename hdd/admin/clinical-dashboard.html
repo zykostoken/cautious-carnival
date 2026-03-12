@@ -144,7 +144,7 @@ async function loadPatients() {
         <div class="view-tab" id="tabHoy" onclick="setView('hoy')">📅 Sesión de hoy</div>
     </div>
     <div id="dashContent"><div class="no-data">Seleccioná un paciente.</div></div>`;
-    document.getElementById('content').innerHTML = html;
+    document.getElementById('content').innerHTML = DOMPurify.sanitize(html);
     document.getElementById('pSel').addEventListener('change', function(){ if(this.value) loadPatientData(this.value); });
     const urlPid = new URLSearchParams(window.location.search).get('patient_id');
     if (urlPid) { document.getElementById('pSel').value = urlPid; loadPatientData(urlPid); }
@@ -334,7 +334,7 @@ function renderDashboard() {
     if (!sorted.length) html += `<tr><td colspan="26" class="no-data">Sin sesiones${view==='hoy'?' hoy':''}</td></tr>`;
     html += `</tbody></table></div>`;
 
-    document.getElementById('dashContent').innerHTML = html;
+    document.getElementById('dashContent').innerHTML = DOMPurify.sanitize(html);
     requestAnimationFrame(() => buildCharts(bm));
 }
 

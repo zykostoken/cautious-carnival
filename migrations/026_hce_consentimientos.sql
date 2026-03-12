@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS hce_consentimientos (
 
 ALTER TABLE hce_consentimientos ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "hce_consentimientos_service_role" ON hce_consentimientos;
 CREATE POLICY "hce_consentimientos_service_role" ON hce_consentimientos FOR ALL
   USING ((current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role');
 
-CREATE INDEX idx_hce_consentimientos_patient ON hce_consentimientos(patient_id, tipo);
+CREATE INDEX IF NOT EXISTS idx_hce_consentimientos_patient ON hce_consentimientos(patient_id, tipo);

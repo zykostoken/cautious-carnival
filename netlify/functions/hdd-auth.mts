@@ -144,6 +144,12 @@ export default async (req: Request, context: Context) => {
           }), { status: 401, headers: corsHeaders });
         }
 
+        // Upgrade legacy hash to bcrypt on successful login (H-004)
+        if (!patient.password_hash.startsWith('$2')) {
+          const bcryptHash = await hashPassword(password);
+          await sql`UPDATE hdd_patients SET password_hash = ${bcryptHash} WHERE id = ${patient.id}`;
+        }
+
         const sessionToken = generateSessionToken();
         const hashedSessionToken = await hashSessionToken(sessionToken);
 

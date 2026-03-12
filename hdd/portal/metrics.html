@@ -372,14 +372,14 @@
 
       sessionsData.forEach(session => {
         const row = document.createElement('tr');
-        row.innerHTML = `
+        row.innerHTML = DOMPurify.sanitize(`
           <td>${new Date(session.completed_at).toLocaleString('es-AR')}</td>
           <td>${session.game_type || '-'}</td>
           <td>${Math.floor((session.session_duration_seconds || 0) / 60)} min</td>
           <td>${session.post_intensity || '-'}</td>
           <td><div style="width: 30px; height: 30px; background: ${session.post_color_hex || '#ccc'}; border-radius: 6px;"></div></td>
           <td>${session.game_metrics ? JSON.stringify(session.game_metrics).substring(0, 50) + '...' : '-'}</td>
-        `;
+        `);
         tbody.appendChild(row);
       });
     }

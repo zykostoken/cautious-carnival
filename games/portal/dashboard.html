@@ -289,7 +289,7 @@ async function loadDashboard() {
         document.getElementById('dashboard').style.display = 'block';
     } catch(err) {
         console.error('[dashboard] Load failed:', err);
-        document.getElementById('loading').innerHTML = '<p style="color:var(--danger);">Error cargando datos: ' + err.message + '</p>';
+        document.getElementById('loading').innerHTML = DOMPurify.sanitize('<p style="color:var(--danger);">Error cargando datos: ' + err.message + '</p>');
     }
 }
 
@@ -412,7 +412,7 @@ function renderMoodColors(moods) {
             '<span style="font-size:0.65rem;color:var(--muted);">' + count + '</span></div>';
     });
     html += '</div>';
-    container.innerHTML = html;
+    container.innerHTML = DOMPurify.sanitize(html);
 }
 
 // ========== SESSIONS TABLE ==========
@@ -437,13 +437,13 @@ function renderSessionsTable(sessions, patients, gameMap) {
         const score = s.score != null ? s.score : (s.total_score != null ? s.total_score : '—');
         
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + date + '</td>' +
+        tr.innerHTML = DOMPurify.sanitize('<td>' + date + '</td>' +
             '<td>' + (patient ? (patient.full_name || patient.dni) : (s.patient_id || '—')).substring(0, 25) + '</td>' +
             '<td>' + (game ? (game.name || game.slug) : '—') + '</td>' +
             '<td>' + (s.level || '—') + '</td>' +
             '<td>' + timeStr + '</td>' +
             '<td>' + score + '</td>' +
-            '<td>' + (s.clinical_flags ? '<span class="badge badge-bad">' + s.clinical_flags + '</span>' : '<span class="badge badge-ok">OK</span>') + '</td>';
+            '<td>' + (s.clinical_flags ? '<span class="badge badge-bad">' + s.clinical_flags + '</span>' : '<span class="badge badge-ok">OK</span>') + '</td>');
         tbody.appendChild(tr);
     });
     
@@ -470,15 +470,15 @@ function renderBiometricsTable(biometrics, patients, gameMap) {
             : '<span class="badge badge-ok">—</span>';
         
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + date + '</td>' +
+        tr.innerHTML = DOMPurify.sanitize('<td>' + date + '</td>' +
             '<td>' + (patient ? (patient.full_name || patient.dni) : (b.patient_id || '—')).substring(0, 25) + '</td>' +
             '<td>' + (game ? (game.name || game.slug) : '—') + '</td>' +
             '<td>' + (b.metric_type || b.metric || '—') + '</td>' +
             '<td>' + (b.value != null ? b.value : (b.data ? JSON.stringify(b.data).substring(0, 40) : '—')) + '</td>' +
-            '<td>' + flagBadge + '</td>';
+            '<td>' + flagBadge + '</td>');
         tbody.appendChild(tr);
     });
-    
+
     if (biometrics.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;">Sin biométricos registrados</td></tr>';
     }
@@ -511,7 +511,7 @@ function renderClinicalMetrics(metrics, patients) {
         const metColor = d.meticulousness_score != null ? (d.meticulousness_score > 0.7 ? 'var(--success)' : d.meticulousness_score > 0.4 ? 'var(--warn)' : 'var(--danger)') : '';
 
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + date + '</td>' +
+        tr.innerHTML = DOMPurify.sanitize('<td>' + date + '</td>' +
             '<td>' + gameSlug + '</td>' +
             '<td>' + level + '</td>' +
             '<td>' + tremor + '</td>' +
@@ -520,7 +520,7 @@ function renderClinicalMetrics(metrics, patients) {
             '<td style="color:' + metColor + ';font-weight:600;">' + meticulousness + '</td>' +
             '<td>' + planEff + '</td>' +
             '<td>' + neatness + '</td>' +
-            '<td>' + startDelay + '</td>';
+            '<td>' + startDelay + '</td>');
         tbody.appendChild(tr);
     });
 
@@ -576,7 +576,7 @@ function renderMotorProfile(metrics) {
         return metricCard(label, pct + '/100', color);
     }
 
-    panel.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">' +
+    panel.innerHTML = DOMPurify.sanitize('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">' +
         metricCard('RT Media', fmt(avgRT, ' ms'), '#3b82f6') +
         metricCard('Temblor Prom', fmt(avgTremor, ' px', 2), avgTremor != null && avgTremor > 5 ? 'var(--danger)' : 'var(--success)') +
         barInverse(avgClumsiness, 'Torpeza Motora') +
@@ -590,7 +590,7 @@ function renderMotorProfile(metrics) {
         barInverse(avgImpulsivity, 'Impulsividad') +
         metricCard('Reinicios Total', totalResets, totalResets > 10 ? 'var(--warn)' : 'var(--text)') +
     '</div>' +
-    '<p style="color:var(--muted);font-size:0.72rem;margin-top:10px;text-align:center;">Promedio de ' + motorData.length + ' sesiones</p>';
+    '<p style="color:var(--muted);font-size:0.72rem;margin-top:10px;text-align:center;">Promedio de ' + motorData.length + ' sesiones</p>');
 }
 
 // ========== INIT ==========
