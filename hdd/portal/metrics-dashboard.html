@@ -414,18 +414,18 @@ function updateSessionsTable(sessions) {
     sessions.forEach(session => {
         const row = document.createElement('tr');
         row.className = 'border-b hover:bg-gray-50';
-        row.innerHTML = `
+        row.innerHTML = DOMPurify.sanitize(`
             <td class="px-4 py-3">${new Date(session.completed_at).toLocaleString('es-AR')}</td>
             <td class="px-4 py-3">${session.game_type.replace('_', ' ')}</td>
             <td class="px-4 py-3">${session.post_intensity || 'N/A'}</td>
             <td class="px-4 py-3">
-                ${session.post_color_hex ? 
-                    `<span class="color-dot" style="background: ${session.post_color_hex}"></span>${session.post_color_hex}` 
+                ${session.post_color_hex ?
+                    `<span class="color-dot" style="background: ${session.post_color_hex}"></span>${session.post_color_hex}`
                     : 'N/A'}
             </td>
             <td class="px-4 py-3">${Math.round(session.session_duration_seconds / 60)} min</td>
             <td class="px-4 py-3 text-sm">${session.psychological_tags ? session.psychological_tags.join(', ') : 'N/A'}</td>
-        `;
+        `);
         tbody.appendChild(row);
     });
 }
