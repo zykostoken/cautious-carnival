@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { getCorsHeaders } from "./lib/auth.mts";
+import { getCorsHeaders, hashSessionToken } from "./lib/auth.mts";
 
 // Call queue management system
 // Payment is processed when professional takes the call
@@ -87,10 +87,11 @@ export default async (req: Request, context: Context) => {
         }
 
         // Verify professional session
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id, full_name, current_calls, max_concurrent_calls
           FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -233,9 +234,10 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken2 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken2}
         `;
 
         if (!professional) {
@@ -281,9 +283,10 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken3 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken3}
         `;
 
         if (!professional) {
@@ -427,9 +430,10 @@ export default async (req: Request, context: Context) => {
 
       // If professional session provided, verify it
       if (sessionToken) {
+        const hashedToken4 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id, full_name FROM healthcare_professionals
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken4}
         `;
 
         if (!professional) {
@@ -457,8 +461,9 @@ export default async (req: Request, context: Context) => {
         `;
       } else if (status === "assigned" && sessionToken) {
         // Get calls assigned to this professional
+        const hashedToken5 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
-          SELECT id FROM healthcare_professionals WHERE session_token = ${sessionToken}
+          SELECT id FROM healthcare_professionals WHERE session_token = ${hashedToken5}
         `;
 
         queue = await sql`

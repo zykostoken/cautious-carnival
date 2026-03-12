@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { hashPassword, verifyPassword, generateSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, checkRateLimit, isSessionExpired } from "./lib/auth.mts";
+import { hashPassword, verifyPassword, generateSessionToken, hashSessionToken, generateVerificationCode, CORS_HEADERS, corsResponse, jsonResponse, errorResponse, checkRateLimit, isSessionExpired } from "./lib/auth.mts";
 import { isAdminEmail, isValidProfessionalEmail } from "./lib/admin-roles.mts";
 
 // Flag to track if migration has been run
@@ -49,9 +49,10 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADDITIONAL_ADMIN_E
 
 // Helper to check if session belongs to admin
 async function isAdminSession(sql: any, sessionToken: string): Promise<boolean> {
+  const hashedToken = await hashSessionToken(sessionToken);
   const [professional] = await sql`
     SELECT email FROM healthcare_professionals
-    WHERE session_token = ${sessionToken} AND is_active = TRUE
+    WHERE session_token = ${hashedToken} AND is_active = TRUE
   `;
   return professional && (isAdminEmail(professional.email) || ADMIN_EMAILS.some(a => a.toLowerCase() === professional.email.toLowerCase()));
 }
@@ -104,6 +105,7 @@ export default async (req: Request, context: Context) => {
           if (existing.email_verified && !existing.password_hash) {
             const passwordHash = await hashPassword(password);
             const sessionToken = generateSessionToken();
+            const hashedToken = await hashSessionToken(sessionToken);
 
             await sql`
               UPDATE healthcare_professionals
@@ -113,7 +115,7 @@ export default async (req: Request, context: Context) => {
                   phone = COALESCE(${phone}, phone),
                   whatsapp = COALESCE(${whatsapp}, whatsapp),
                   dni = COALESCE(${dni || null}, dni),
-                  session_token = ${sessionToken},
+                  session_token = ${hashedToken},
                   last_login = NOW(),
                   last_activity = NOW()
               WHERE id = ${existing.id}
@@ -133,13 +135,14 @@ export default async (req: Request, context: Context) => {
           } else if (isAdmin) {
             // Admin email exists but not verified - activate it directly
             const sessionToken = generateSessionToken();
+            const hashedToken = await hashSessionToken(sessionToken);
             await sql`
               UPDATE healthcare_professionals
               SET email_verified = TRUE,
                   is_active = TRUE,
                   verification_code = NULL,
                   verification_expires = NULL,
-                  session_token = ${sessionToken},
+                  session_token = ${hashedToken},
                   last_login = NOW(),
                   last_activity = NOW()
               WHERE id = ${existing.id}
@@ -188,6 +191,7 @@ export default async (req: Request, context: Context) => {
         // Admin emails are pre-approved and skip verification
         if (isAdmin) {
           const sessionToken = generateSessionToken();
+          const hashedToken = await hashSessionToken(sessionToken);
 
           const [professional] = await sql`
             INSERT INTO healthcare_professionals (
@@ -199,7 +203,7 @@ export default async (req: Request, context: Context) => {
               ${email}, ${passwordHash}, ${fullName},
               ${specialty || 'Psiquiatría'}, ${licenseNumber || null},
               ${phone || null}, ${whatsapp || null}, ${dni || null}, TRUE, TRUE,
-              ${sessionToken}, NOW(), NOW()
+              ${hashedToken}, NOW(), NOW()
             )
             RETURNING id, email, full_name, specialty
           `;
@@ -357,6 +361,7 @@ export default async (req: Request, context: Context) => {
 
         const passwordHash = await hashPassword(newPassword);
         const sessionToken = generateSessionToken();
+        const hashedToken = await hashSessionToken(sessionToken);
 
         await sql`
           UPDATE healthcare_professionals
@@ -365,7 +370,7 @@ export default async (req: Request, context: Context) => {
               verification_expires = NULL,
               email_verified = TRUE,
               is_active = TRUE,
-              session_token = ${sessionToken},
+              session_token = ${hashedToken},
               last_login = NOW(),
               last_activity = NOW()
           WHERE id = ${professional.id}
@@ -419,6 +424,7 @@ export default async (req: Request, context: Context) => {
         }
 
         const sessionToken = generateSessionToken();
+        const hashedToken = await hashSessionToken(sessionToken);
 
         await sql`
           UPDATE healthcare_professionals
@@ -426,7 +432,7 @@ export default async (req: Request, context: Context) => {
               is_active = TRUE,
               verification_code = NULL,
               verification_expires = NULL,
-              session_token = ${sessionToken},
+              session_token = ${hashedToken},
               last_login = NOW(),
               last_activity = NOW()
           WHERE id = ${professional.id}
@@ -490,10 +496,11 @@ export default async (req: Request, context: Context) => {
         }
 
         const sessionToken = generateSessionToken();
+        const hashedToken = await hashSessionToken(sessionToken);
 
         await sql`
           UPDATE healthcare_professionals
-          SET session_token = ${sessionToken}, last_login = NOW(), last_activity = NOW()
+          SET session_token = ${hashedToken}, last_login = NOW(), last_activity = NOW()
           WHERE id = ${professional.id}
         `;
 
@@ -519,10 +526,11 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken = await hashSessionToken(sessionToken);
         await sql`
           UPDATE healthcare_professionals
           SET session_token = NULL, is_available = FALSE
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken}
         `;
 
         return new Response(JSON.stringify({
@@ -540,10 +548,11 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           UPDATE healthcare_professionals
           SET is_available = ${isAvailable}
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken}
           RETURNING id, full_name, is_available
         `;
 
@@ -570,12 +579,13 @@ export default async (req: Request, context: Context) => {
             { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           UPDATE healthcare_professionals
           SET notify_email = ${notifyEmail ?? true},
               notify_whatsapp = ${notifyWhatsapp ?? true},
               whatsapp = ${whatsapp || null}
-          WHERE session_token = ${sessionToken}
+          WHERE session_token = ${hashedToken}
           RETURNING id, notify_email, notify_whatsapp, whatsapp
         `;
 
@@ -872,10 +882,11 @@ export default async (req: Request, context: Context) => {
           }), { status: 400, headers: corsHeaders });
         }
 
+        const hashedToken = await hashSessionToken(sessionToken);
         const [updated] = await sql`
           UPDATE healthcare_professionals
           SET dni = ${dni}
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
           RETURNING id, full_name, dni
         `;
 
@@ -909,11 +920,12 @@ export default async (req: Request, context: Context) => {
     // Verify session and get professional info
     if (action === "verify" && sessionToken) {
       try {
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id, email, full_name, specialty, is_available,
                  notify_email, notify_whatsapp, whatsapp, last_activity, last_login
           FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
         `;
 
         if (!professional) {

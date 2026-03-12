@@ -1,6 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
-import { getCorsHeaders, escapeHtml } from "./lib/auth.mts";
+import { getCorsHeaders, escapeHtml, hashSessionToken } from "./lib/auth.mts";
 
 // Announcements / Bulletin board management
 
@@ -20,9 +20,10 @@ export default async (req: Request, context: Context) => {
       // Verify professional session for admin operations
       let professionalId: number | null = null;
       if (sessionToken) {
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
         `;
         if (professional) {
           professionalId = professional.id;

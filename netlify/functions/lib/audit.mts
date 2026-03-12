@@ -1,5 +1,6 @@
 // Professional audit log utility
 // Tracks resource usage per professional per patient for compliance and analytics
+import { hashSessionToken } from './auth.mts';
 
 interface AuditEntry {
   professionalId: number;
@@ -45,11 +46,12 @@ export async function getProfessionalFromToken(sql: any, sessionToken: string): 
   specialty?: string; role?: string;
   matriculaProvincial?: string; matriculaNacional?: string;
 } | null> {
+  const hashedToken = await hashSessionToken(sessionToken);
   const [prof] = await sql`
     SELECT id, email, full_name, specialty, role,
            matricula_provincial, matricula_nacional
     FROM healthcare_professionals
-    WHERE session_token = ${sessionToken} AND is_active = TRUE
+    WHERE session_token = ${hashedToken} AND is_active = TRUE
   `;
   if (!prof) return null;
   return {

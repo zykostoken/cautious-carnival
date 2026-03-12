@@ -1,7 +1,7 @@
 import type { Context, Config } from "@netlify/functions";
 import { getDatabase } from "./lib/db.mts";
 import { sendEmailNotification } from "./lib/notifications.mts";
-import { getCorsHeaders, escapeHtml, checkRateLimit } from "./lib/auth.mts";
+import { getCorsHeaders, escapeHtml, checkRateLimit, hashSessionToken } from "./lib/auth.mts";
 
 // Admin email for consultation notifications
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
@@ -137,9 +137,10 @@ export default async (req: Request, context: Context) => {
         }
 
         // Verify professional session
+        const hashedToken = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -166,9 +167,10 @@ export default async (req: Request, context: Context) => {
             { status: 401, headers: corsHeaders });
         }
 
+        const hashedToken2 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken2} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -199,9 +201,10 @@ export default async (req: Request, context: Context) => {
             { status: 401, headers: corsHeaders });
         }
 
+        const hashedToken3 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken3} AND is_active = TRUE
         `;
 
         if (!professional) {
@@ -241,9 +244,10 @@ export default async (req: Request, context: Context) => {
     try {
       // Verify professional session for accessing the list
       if (sessionToken) {
+        const hashedToken4 = await hashSessionToken(sessionToken);
         const [professional] = await sql`
           SELECT id FROM healthcare_professionals
-          WHERE session_token = ${sessionToken} AND is_active = TRUE
+          WHERE session_token = ${hashedToken4} AND is_active = TRUE
         `;
 
         if (!professional) {
