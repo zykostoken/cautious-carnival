@@ -1120,3 +1120,37 @@ body.hce-body {
   .hce-center { overflow: visible; }
   .hce-evo-list { overflow: visible; }
 }
+
+/* ═══ MEMBRETE INSTITUCIONAL ═══ */
+.hce-membrete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 24px;
+  border-bottom: 3px solid #1a1a2e;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  font-size: 0.75rem;
+  color: #333;
+  line-height: 1.4;
+}
+.hce-membrete-left, .hce-membrete-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hce-membrete-left strong { font-size: 0.85rem; color: #1a1a2e; }
+.hce-membrete-right { text-align: right; }
+.hce-membrete-hc-label {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #1a1a2e;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* Print: membrete always visible, dark backgrounds disabled */
+@media print {
+  .hce-membrete { display: flex !important; background: white !important; border-bottom: 2px solid #000 !important; }
+  .hce-membrete-hc-label { color: #000 !important; }
+  .hce-back-btn, .hce-header-actions button:not(:last-child) { display: none !important; }
+}

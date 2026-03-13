@@ -85,11 +85,32 @@ document.addEventListener('DOMContentLoaded', () => {
   window._hcePatientDni = patientDni;
   // If we only have DNI, patientId will be resolved by the backend
 
+  loadEstablishmentConfig(); // membrete institucional
   loadPatientHCE();
   setupSidebarTabs();
   setupFilterButtons();
   setupAutosave();
 });
+
+// ── Establishment config (membrete) ──────────────────────
+async function loadEstablishmentConfig() {
+  try {
+    const res = await fetch('/api/establishment-config');
+    const data = await res.json();
+    if (data.flat) {
+      const f = data.flat;
+      const el = document.getElementById('hce-membrete');
+      if (el) el.style.display = 'flex';
+      const set = (id, val) => { const e = document.getElementById(id); if (e && val) e.textContent = val; };
+      set('membrete-nombre', f.nombre_legal);
+      set('membrete-direccion', (f.direccion_internacion || '') + ' / ' + (f.direccion_consultorios || '').replace('Calle 52 N° ','') + ' — ' + (f.localidad || '') + ', ' + (f.provincia || ''));
+      set('membrete-director', 'Director Médico: ' + (f.director_medico || ''));
+      set('membrete-contacto', [f.telefono, f.email, f.web].filter(Boolean).join(' · '));
+      const hab = [f.numero_habilitacion_provincial, f.numero_habilitacion_municipal].filter(Boolean).join(' / ');
+      if (hab) set('membrete-habilitacion', 'Hab. ' + hab);
+    }
+  } catch(e) { /* config unavailable — static fallback in HTML */ }
+}
 
 // ── API call helper ───────────────────────────────────────
 async function apiCall(action, data = {}) {
