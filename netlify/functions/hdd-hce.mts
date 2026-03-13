@@ -500,40 +500,38 @@ export default async (req: Request, context: Context) => {
           { status: 404, headers: corsHeaders });
       }
 
-      // Game session summaries (last 90 days)
+      // Game session summaries (last 90 days) — from hdd_game_metrics
       const gameSessions = await sql`
-        SELECT game_slug, metric_type, metric_value, metric_data,
-               duration_seconds, score, completed, level_reached, session_date
+        SELECT game_slug, metric_type, metric_value, metric_data, session_date, created_at
         FROM hdd_game_metrics
         WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
-          AND session_date > NOW() - INTERVAL '90 days'
-        ORDER BY session_date DESC
+          AND created_at > NOW() - INTERVAL '90 days'
+        ORDER BY created_at DESC
         LIMIT 100
       `;
 
-      // Game progress aggregates
+      // Game progress aggregates — include all session metric types
       const gameProgress = await sql`
         SELECT game_slug,
                COUNT(*) AS total_sessions,
-               AVG(score) AS avg_score,
-               MAX(score) AS best_score,
-               MAX(level_reached) AS max_level,
-               SUM(duration_seconds) AS total_time_seconds,
-               MIN(session_date) AS first_session,
-               MAX(session_date) AS last_session
+               AVG(metric_value) AS avg_score,
+               MAX(metric_value) AS best_score,
+               SUM((metric_data->>'duration_ms')::numeric / 1000) AS total_time_seconds,
+               MIN(created_at) AS first_session,
+               MAX(created_at) AS last_session
         FROM hdd_game_metrics
         WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
-          AND metric_type = 'session_summary'
+          AND (metric_type IN ('session_summary', 'session_complete') OR metric_type LIKE 'level_%')
         GROUP BY game_slug
       `;
 
       // Mood entries (last 90 days)
       const moodEntries = await sql`
-        SELECT color_hex, color_id, context_type, source_activity, recorded_at
+        SELECT color_hex, color_id, context_type, source_activity, created_at
         FROM hdd_mood_entries
         WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
-          AND recorded_at > NOW() - INTERVAL '90 days'
-        ORDER BY recorded_at DESC
+          AND created_at > NOW() - INTERVAL '90 days'
+        ORDER BY created_at DESC
         LIMIT 100
       `;
 
