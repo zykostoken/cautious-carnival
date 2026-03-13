@@ -1060,12 +1060,29 @@ function goToPortal() {
 }
 
 // ========== SUPABASE ==========
-async function saveResults(metrics) {
+// FIX: Function was called as saveSupermarketResult but defined as saveResults
+async function saveSupermarketResult(metrics) {
     try {
-        const dni = (patientId && patientId !== 'DEMO') ? patientId : null;
-        if (!dni || !supabase) return;
-        await supabase.from('hdd_game_metrics').insert({
-            patient_dni: dni,
+        var supabaseClient = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+        if (!supabaseClient) { console.warn('[super-market] No Supabase client'); return; }
+
+        // patient_id comes from URL — portal now sends numeric id
+        var numericId = parseInt(patientId);
+        var urlParams = new URLSearchParams(window.location.search);
+        var dni = urlParams.get('dni') || ((!isNaN(numericId) && numericId > 0) ? null : patientId);
+
+        if (!numericId || isNaN(numericId) || numericId <= 0) {
+            // Try to resolve from localStorage
+            var storedId = localStorage.getItem('hdd_patient_id');
+            if (storedId) numericId = parseInt(storedId);
+        }
+
+        var validPatientId = (!isNaN(numericId) && numericId > 0) ? numericId : null;
+        if (!validPatientId) { console.warn('[super-market] No valid patient_id, skipping save'); return; }
+
+        await supabaseClient.from('hdd_game_metrics').insert({
+            patient_id: validPatientId,
+            patient_dni: dni || null,
             game_slug: 'super-market',
             metric_type: 'session_summary',
             metric_value: metrics.score,
@@ -1073,30 +1090,17 @@ async function saveResults(metrics) {
                 ...metrics,
                 game_name: 'Desafío Milanesas',
                 mean_rt_ms: metrics.avg_hesitation_ms,
-                hesitation_count: metrics.hesitations || 0,
-                commission_errors: metrics.errors || 0,
+                commission_errors: metrics.errors_got ? metrics.errors_got.length : 0,
                 movement_efficiency: metrics.scan_score || null,
                 input_device: (navigator.maxTouchPoints > 0 && 'ontouchstart' in window) ? 'touch' : 'mouse',
                 completed: true,
                 duration_ms: Date.now() - startTime,
                 session_date: new Date().toISOString()
             }
-        }).catch(e => console.warn('[super-market] save error:', e.message));
+        }).then(function(){ console.log('[super-market] Metrics saved OK'); })
+          .catch(function(e){ console.warn('[super-market] save error:', e.message); });
 
-        // Save full biometric data to Supabase Storage bucket 'biometricas'
-        if (dni) {
-            fetch('/api/biometricas', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    patient_id: dni,
-                    session_id: 'supermarket-' + Date.now(),
-                    game_slug: 'super-market',
-                    biometric_data: { ...metrics, game_name: 'Supermercado' }
-                })
-            }).catch(e => console.warn('[super-market] Bucket save fail:', e.message));
-        }
-    } catch (err) { console.error('Save error:', err); }
+    } catch (err) { console.error('[super-market] Save error:', err); }
 }
 
 // ========== SMART BACK ==========

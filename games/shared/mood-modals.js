@@ -59,11 +59,16 @@ function _moodSaveToSupabase(type, data, context) {
         var pid = _moodState.patientId;
         var pDni = _moodState.patientDni || null;
 
+        // Resolve numeric patient_id — pid may be string from URL
+        var numPid = parseInt(pid);
+        if (isNaN(numPid) || numPid <= 0) {
+            try { numPid = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e){}
+        }
+        var validPid = (!isNaN(numPid) && numPid > 0) ? numPid : null;
+
         // Guardar en hdd_mood_entries — registro clínico puro
-        // Columnas reales: patient_id(int), patient_dni, color_hex, color_id, color_name,
-        //   context_type, source_activity, session_id, session_ordinal, entry_type, created_at
         var entryRow = {
-            patient_id: (typeof pid === 'number' && pid > 0) ? pid : null,
+            patient_id: validPid,
             patient_dni: pDni,
             color_hex: (data && data.color) ? data.color : null,
             color_id: (data && data.color_name) ? data.color_name : null,
@@ -82,7 +87,7 @@ function _moodSaveToSupabase(type, data, context) {
         // La secuencia de colores en el tiempo es el dato; la interpretación es clínica.
         if (data && data.color && !data.skipped) {
             client.from('hdd_game_metrics').insert({
-                patient_id: (typeof pid === 'number' && pid > 0) ? pid : null,
+                patient_id: validPid,
                 patient_dni: pDni,
                 game_slug: ctx === 'game' ? (gameSlug + '_color') : (ctx + '_color'),
                 metric_type: 'color_eleccion',
@@ -109,6 +114,7 @@ function showPreGameChat() {
 
     var urlParams = new URLSearchParams(window.location.search);
     _moodState.patientId = urlParams.get('patient_id') || _moodStorageGet('hdd_patient_id') || 'DEMO';
+    _moodState.patientDni = urlParams.get('dni') || _moodStorageGet('hdd_patient_dni') || null;
     _moodState.gameSlug = window.location.pathname.split('/').pop().replace('.html','');
     _moodState.step = 0;
     _moodState.responses = [];
@@ -288,7 +294,17 @@ function showSatisfactionColor(opts, onDone) {
 }
 
 // Alias para compatibilidad con llamadas existentes desde los juegos
-function showPostGameColorModal() { showSatisfactionColor({ context: 'game' }); }
+// FIX: Pass window.showMetricsModal as onDone callback so game flow continues
+// after color selection. Without this, games freeze after FINALIZAR.
+function showPostGameColorModal(customCallback) {
+    showSatisfactionColor({ context: 'game' }, function(result) {
+        if (typeof customCallback === 'function') {
+            customCallback(result);
+        } else if (typeof window.showMetricsModal === 'function') {
+            window.showMetricsModal(result);
+        }
+    });
+}
 
 // ====================================================================
 // initMoodModals — ya no hace nada automatico. 

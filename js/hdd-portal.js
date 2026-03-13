@@ -356,7 +356,7 @@ async function login(dni, password) {
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
     // hdd_patient_id es leído por mood-modals.js en los juegos para asociar datos al paciente correcto
-    if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
+    if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
     showApp();
     loadFeed();
   }
@@ -390,7 +390,7 @@ async function verifySession() {
     if (result.valid) {
       sessionToken = stored;
       currentUser = result.patient;
-      if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
+      if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
       return true;
     }
   }
@@ -446,7 +446,7 @@ async function register(dni, fullName, email, password) {
     currentUser = result.patient;
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
-    if (result.patient?.id) localStorage.setItem('hdd_patient_id', result.patient.id);
+    if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
     showApp();
     loadFeed();
   }
@@ -1534,10 +1534,11 @@ async function loadGames() {
 }
 
 function openGame(slug) {
-  // Juegos en /games/play/ — pasamos DNI del paciente
-  const dni = (currentUser && currentUser.dni) ? currentUser.dni : (function(){ try { return localStorage.getItem('hdd_patient_id') || ''; } catch(e) { return ''; } })();
+  // Pass both numeric patient_id (for DB FK) and dni (for display/lookup)
+  const numericId = (currentUser && currentUser.id) ? currentUser.id : localStorage.getItem('hdd_patient_id') || '';
+  const dni = (currentUser && currentUser.dni) ? currentUser.dni : '';
   const demoParam = isPreviewMode ? '&demo=true' : '';
-  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(dni) + demoParam, '_blank');
+  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(numericId) + '&dni=' + encodeURIComponent(dni) + demoParam, '_blank');
 }
 
 // Init

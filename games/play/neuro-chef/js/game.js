@@ -88,9 +88,11 @@ async function getOrCreatePatient(dni, name) {
     try {
         const { data: existing } = await sb.from('hdd_patients').select('id, full_name').eq('dni', dni).single();
         if (existing) { document.getElementById('patient-display').textContent = existing.full_name || `Pac: ${dni}`; return existing.id; }
-        const { data: np } = await sb.from('hdd_patients').insert({ dni, full_name: name || `Paciente ${dni}`, admission_date: new Date().toISOString().split('T')[0] }).select('id').single();
-        return np?.id || 'offline-' + dni;
-    } catch(e) { console.error('[Neuro-Chef] Patient error:', e); return 'offline-' + dni; }
+        // Patient not found — do NOT auto-create (was creating garbage DEMO patients)
+        console.warn('[neuro-chef] Patient not found for DNI:', dni);
+        document.getElementById('patient-display').textContent = `DNI: ${dni} (no registrado)`;
+        return null;
+    } catch(e) { console.error('[Neuro-Chef] Patient error:', e); return null; }
 }
 
 // ========== PRE-GAME MODAL ==========
