@@ -52,10 +52,12 @@
 - High risk of breaking existing HTML pages
 - Recommended for next major refactor cycle
 
-### SEC-003: Session tokens in URL → Headers — TODO
-- 24+ instances across frontend need refactoring
-- Backend already supports Authorization header (upload.mts pattern)
-- Recommended as dedicated PR to avoid regression
+### SEC-003: Session tokens in URL → Headers — COMPLETADO ✅
+- **Frontend**: api() helpers in hdd-admin.js, hdd-portal.js intercept sessionToken
+  from URL and redirect to Authorization: Bearer header
+- **Frontend**: Direct fetch calls in core.js, telemedicine.js migrated
+- **Backend**: hdd-admin.mts, consultations.mts, professionals.mts, call-queue.mts
+  accept Authorization header with fallback to query param
 
 ### SEC-013: localStorage → httpOnly cookies — TODO
 - Requires backend cookie-setting logic

@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+// =============================================================================
+// SEC-012 NOTE: This file is BOOTSTRAP-ONLY for initial DB setup.
+// For schema changes, ALWAYS create a new migration in migrations/ directory.
+// The build command (npm run build) runs: setup-db.mjs THEN migrate.mjs
+// setup-db.mjs = CREATE IF NOT EXISTS (idempotent bootstrap)
+// migrate.mjs  = Versioned migrations with checksum tracking (source of truth)
+// =============================================================================
 // Database setup script for Clinica Jose Ingenieros
 // Run this script during build to create tables if they don't exist
 // Uses Supabase PostgreSQL

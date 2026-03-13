@@ -2,6 +2,12 @@
 // Include DOMPurify CDN before this script:
 // <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 
+// SEC-007: Canonical XSS sanitization helper
+// This is the single source of truth. All JS files that define their own
+// `const S = ...` inline are using a copy of this logic for backward compat.
+// Future refactor: remove inline copies and load this file before other scripts.
+const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 /**
  * Sanitize HTML string before inserting into DOM.
  * Falls back to text-only if DOMPurify is not loaded.
