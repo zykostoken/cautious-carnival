@@ -1983,12 +1983,12 @@
       var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
       if (client) {
         var pid = parseInt(new URLSearchParams(window.location.search).get('patient_id'));
-        if (isNaN(pid)) try { pid = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e2){}
+        if (isNaN(pid)) try { pid = parseInt(localStorage.getItem('hdd_patient_dni')); } catch(e2){}
         var dni = new URLSearchParams(window.location.search).get('dni') || null;
         if (!dni) try { dni = localStorage.getItem('hdd_patient_dni'); } catch(e2){}
         if (pid && !isNaN(pid) && pid > 0) {
           client.from('hdd_game_metrics').insert({
-            patient_id: pid,
+            patient_dni: pid,
             patient_dni: dni,
             game_slug: 'medication-memory',
             metric_type: 'level_' + levelId,
@@ -3454,11 +3454,11 @@
 if (typeof registerAutoSave === 'function') {
   registerAutoSave(function() {
     var pid = null;
-    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    try { pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null; } catch(e) {}
     var dni = null;
     try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
     return {
-      patient_id: pid,
+      patient_dni: pid,
       patient_dni: dni,
       game_slug: 'medication-memory',
       partial_data: {

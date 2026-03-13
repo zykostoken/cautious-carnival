@@ -404,7 +404,7 @@ var priceCheckCount = 0;  // times user removed items to fit budget
 function initGame() {
     startTime = Date.now();
     var urlParams = new URLSearchParams(window.location.search);
-    patientId = urlParams.get('patient_id') || localStorage.getItem('hdd_patient_id') || 'DEMO';
+    patientId = urlParams.get('dni') || localStorage.getItem('hdd_patient_dni') || 'DEMO';
 
     // === SELECT RANDOM RECIPE ===
     var recipeKeys = Object.keys(RECIPES);
@@ -1068,22 +1068,13 @@ async function saveSupermarketResult(metrics) {
         if (!supabaseClient) { console.warn('[super-market] No Supabase client'); return; }
 
         // patient_id comes from URL — portal now sends numeric id
-        var numericId = parseInt(patientId);
-        var urlParams = new URLSearchParams(window.location.search);
-        var dni = urlParams.get('dni') || ((!isNaN(numericId) && numericId > 0) ? null : patientId);
-
-        if (!numericId || isNaN(numericId) || numericId <= 0) {
-            // Try to resolve from localStorage
-            var storedId = localStorage.getItem('hdd_patient_id');
-            if (storedId) numericId = parseInt(storedId);
-        }
-
-        var validPatientId = (!isNaN(numericId) && numericId > 0) ? numericId : null;
-        if (!validPatientId) { console.warn('[super-market] No valid patient_id, skipping save'); return; }
+        // DNI is the universal identifier
+        var dni = patientId !== 'DEMO' ? patientId : null;
+        if (!dni) { console.warn('[super-market] No DNI, skipping save'); return; }
 
         await supabaseClient.from('hdd_game_metrics').insert({
-            patient_id: validPatientId,
-            patient_dni: dni || null,
+            patient_id: null,
+            patient_dni: dni,
             game_slug: 'super-market',
             metric_type: 'session_summary',
             metric_value: metrics.score,
@@ -1124,11 +1115,11 @@ document.addEventListener('DOMContentLoaded', function() { initGame(); updateUI(
 if (typeof registerAutoSave === 'function') {
   registerAutoSave(function() {
     var pid = null;
-    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    try { pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null; } catch(e) {}
     var dni = null;
     try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
     return {
-      patient_id: pid,
+      patient_dni: pid,
       patient_dni: dni,
       game_slug: 'super-market',
       partial_data: {

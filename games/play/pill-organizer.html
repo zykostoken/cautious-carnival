@@ -528,7 +528,6 @@
             try {
                 var urlParams = new URLSearchParams(window.location.search);
                 sessionState.patientDni = urlParams.get('dni') || (function(){try{return localStorage.getItem('hdd_patient_dni')}catch(e){return null}})() || 'HDD-DEMO';
-                sessionState.patientId = parseInt(urlParams.get('patient_id')) || parseInt((function(){try{return localStorage.getItem('hdd_patient_id')}catch(e){return null}})()) || null;
                 document.getElementById('patient-display').textContent = 'Paciente: ' + sessionState.patientDni;
 
                 if (sb) {
@@ -1449,11 +1448,11 @@
 if (typeof registerAutoSave === 'function') {
   registerAutoSave(function() {
     var pid = null;
-    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    try { pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null; } catch(e) {}
     var dni = null;
     try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
     return {
-      patient_id: pid,
+      patient_dni: pid,
       patient_dni: dni,
       game_slug: 'pill-organizer',
       partial_data: {

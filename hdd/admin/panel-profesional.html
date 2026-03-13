@@ -847,7 +847,7 @@ function renderHCEPatientCard(p) {
   const dotColor = daysSince === null ? 'var(--muted)' : daysSince <= 7 ? 'var(--green)' : daysSince <= 30 ? 'var(--yellow)' : 'var(--red)';
 
   return `
-    <div class="pat-card" onclick="openHCEFromPanel(${p.id})" style="position:relative">
+    <div class="pat-card" onclick="openHCEFromPanel('${p.dni}')" style="position:relative">
       <div class="pname">${p.fullName}</div>
       <div class="pdni">DNI: ${p.dni}${p.hcNumber ? ' · ' + p.hcNumber : ''}${p.hcPapel ? ' · HC:' + p.hcPapel : ''}</div>
       ${p.obraSocial ? `<div style="font-size:.72rem;color:var(--accent);margin-bottom:.25rem">${p.obraSocial}</div>` : ''}
@@ -860,13 +860,13 @@ function renderHCEPatientCard(p) {
   `;
 }
 
-function openHCEFromPanel(patientId) {
+function openHCEFromPanel(patientDni) {
   const sessionToken = localStorage.getItem('hdd_admin_session');
   if (sessionToken) {
     sessionStorage.setItem('adminSessionToken', sessionToken);
   }
   sessionStorage.setItem('adminProfName', '');
-  window.location.href = '/hdd/admin/hce?id=' + patientId;
+  window.location.href = '/hce/paciente?dni=' + encodeURIComponent(patientDni);
 }
 
 function filterHCEApp(q) {

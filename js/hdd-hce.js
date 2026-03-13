@@ -67,13 +67,23 @@ document.addEventListener('DOMContentLoaded', () => {
     || localStorage.getItem('adminSessionToken')
     || localStorage.getItem('hdd_admin_session');
   const params = new URLSearchParams(window.location.search);
-  patientId = params.get('id');
-
-  if (!sessionToken || !patientId) {
-    alert('Sesion no valida o paciente no especificado.');
+  // Accept DNI or id — DNI is the universal identifier
+  const patientDni = params.get('dni');
+  patientId = params.get('id') || null;
+  // If we got DNI but no id, we'll send DNI to backend and let it resolve
+  if (!patientDni && !patientId) {
+    alert('Paciente no especificado. Use ?dni=XXXXXXXX');
     window.location.href = '/hdd/admin';
     return;
   }
+  if (!sessionToken) {
+    alert('Sesion no valida.');
+    window.location.href = '/hdd/admin';
+    return;
+  }
+  // Store DNI for use in API calls
+  window._hcePatientDni = patientDni;
+  // If we only have DNI, patientId will be resolved by the backend
 
   loadPatientHCE();
   setupSidebarTabs();
@@ -86,7 +96,7 @@ async function apiCall(action, data = {}) {
   const res = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, sessionToken, patientId, ...data })
+    body: JSON.stringify({ action, sessionToken, patientId, patientDni: window._hcePatientDni || null, ...data })
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');

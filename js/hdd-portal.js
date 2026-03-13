@@ -355,8 +355,8 @@ async function login(dni, password) {
     currentUser = result.patient;
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
-    // hdd_patient_id es leído por mood-modals.js en los juegos para asociar datos al paciente correcto
-    if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
+    // DNI stored in localStorage for game access
+    if (result.patient?.dni) { localStorage.setItem('hdd_patient_dni', result.patient.dni); }
     showApp();
     loadFeed();
   }
@@ -376,7 +376,7 @@ async function logout() {
   currentUser = null;
   localStorage.removeItem('hdd_session');
   localStorage.removeItem('hdd_user');
-  localStorage.removeItem('hdd_patient_id');
+  localStorage.removeItem('hdd_patient_dni');
   showLoginForm();
 }
 
@@ -390,14 +390,14 @@ async function verifySession() {
     if (result.valid) {
       sessionToken = stored;
       currentUser = result.patient;
-      if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
+      if (result.patient?.dni) { localStorage.setItem('hdd_patient_dni', result.patient.dni); }
       return true;
     }
   }
 
   localStorage.removeItem('hdd_session');
   localStorage.removeItem('hdd_user');
-  localStorage.removeItem('hdd_patient_id');
+  localStorage.removeItem('hdd_patient_dni');
   return false;
 }
 
@@ -446,7 +446,7 @@ async function register(dni, fullName, email, password) {
     currentUser = result.patient;
     localStorage.setItem('hdd_session', sessionToken);
     localStorage.setItem('hdd_user', JSON.stringify(currentUser));
-    if (result.patient?.id) { localStorage.setItem('hdd_patient_id', result.patient.id); localStorage.setItem('hdd_patient_dni', result.patient.dni || ''); }
+    if (result.patient?.dni) { localStorage.setItem('hdd_patient_dni', result.patient.dni); }
     showApp();
     loadFeed();
   }
@@ -1534,12 +1534,11 @@ async function loadGames() {
 }
 
 function openGame(slug) {
-  // Pass numeric patient_id, dni, and session token for games using backend API
-  const numericId = (currentUser && currentUser.id) ? currentUser.id : localStorage.getItem('hdd_patient_id') || '';
+  // DNI is the universal patient identifier. No internal id exposed.
   const dni = (currentUser && currentUser.dni) ? currentUser.dni : '';
   const tok = sessionToken || '';
   const demoParam = isPreviewMode ? '&demo=true' : '';
-  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(numericId) + '&dni=' + encodeURIComponent(dni) + '&token=' + encodeURIComponent(tok) + demoParam, '_blank');
+  window.open('/games/play/' + slug + '.html?dni=' + encodeURIComponent(dni) + '&token=' + encodeURIComponent(tok) + demoParam, '_blank');
 }
 
 // Init

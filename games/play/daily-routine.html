@@ -339,7 +339,7 @@ function beginGame() {
 
     const params = new URLSearchParams(window.location.search);
     state.patientDni = params.get('dni') || params.get('patient_id')
-        || (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
+        || (function(){try{return localStorage.getItem('hdd_patient_dni')||localStorage.getItem('hdd_patient_dni')}catch(e){return null}})()
         || 'DEMO';
     document.getElementById('patient-display').textContent = state.patientDni;
 
@@ -795,7 +795,7 @@ async function saveResults(metrics, biometData) {
         // Use numeric ID from URL/localStorage (portal now passes it)
         let dailyPatientId = state.patientNumericId || null;
         if (!dailyPatientId) {
-            try { dailyPatientId = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+            try { dailyPatientId = parseInt(localStorage.getItem('hdd_patient_dni')); } catch(e) {}
         }
         // Fallback: lookup by DNI if still no numeric ID
         if (!dailyPatientId && state.patientDni && state.patientDni !== 'HDD-DEMO') {
@@ -854,11 +854,11 @@ async function saveResults(metrics, biometData) {
 if (typeof registerAutoSave === 'function') {
   registerAutoSave(function() {
     var pid = null;
-    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    try { pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null; } catch(e) {}
     var dni = null;
     try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
     return {
-      patient_id: pid,
+      patient_dni: pid,
       patient_dni: dni,
       game_slug: 'daily-routine',
       partial_data: {

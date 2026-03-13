@@ -56,19 +56,13 @@ function _moodSaveToSupabase(type, data, context) {
         var ctx = context || 'game';
         var gameSlug = _moodState.gameSlug || window.location.pathname.split('/').pop().replace('.html','');
         var now = new Date().toISOString();
-        var pid = _moodState.patientId;
-        var pDni = _moodState.patientDni || null;
-
-        // Resolve numeric patient_id — pid may be string from URL
-        var numPid = parseInt(pid);
-        if (isNaN(numPid) || numPid <= 0) {
-            try { numPid = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e){}
-        }
-        var validPid = (!isNaN(numPid) && numPid > 0) ? numPid : null;
+        // DNI is the universal identifier
+        var pDni = _moodState.patientDni || _moodState.patientId || null;
+        if (!pDni || pDni === 'DEMO') { try { pDni = localStorage.getItem('hdd_patient_dni'); } catch(e){} }
 
         // Guardar en hdd_mood_entries — registro clínico puro
         var entryRow = {
-            patient_id: validPid,
+            patient_id: null,
             patient_dni: pDni,
             color_hex: (data && data.color) ? data.color : null,
             color_id: (data && data.color_name) ? data.color_name : null,
@@ -87,7 +81,7 @@ function _moodSaveToSupabase(type, data, context) {
         // La secuencia de colores en el tiempo es el dato; la interpretación es clínica.
         if (data && data.color && !data.skipped) {
             client.from('hdd_game_metrics').insert({
-                patient_id: validPid,
+                patient_id: null,
                 patient_dni: pDni,
                 game_slug: ctx === 'game' ? (gameSlug + '_color') : (ctx + '_color'),
                 metric_type: 'color_eleccion',
@@ -113,7 +107,7 @@ function showPreGameChat() {
     if (document.getElementById('mood-pre-overlay')) return;
 
     var urlParams = new URLSearchParams(window.location.search);
-    _moodState.patientId = urlParams.get('patient_id') || _moodStorageGet('hdd_patient_id') || 'DEMO';
+    _moodState.patientId = urlParams.get('dni') || _moodStorageGet('hdd_patient_dni') || 'DEMO';
     _moodState.patientDni = urlParams.get('dni') || _moodStorageGet('hdd_patient_dni') || null;
     _moodState.gameSlug = window.location.pathname.split('/').pop().replace('.html','');
     _moodState.step = 0;

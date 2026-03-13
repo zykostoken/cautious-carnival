@@ -8,6 +8,20 @@ export default async (req: Request, context: Context) => {
   const sql = getDatabase();
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
 
+  // Helper: resolve patient by DNI (preferred) or by id (legacy)
+  // DNI is the universal identifier — id is internal DB only
+  async function resolvePatientId(body: any): Promise<number | null> {
+    if (body.patientDni) {
+      const [p] = await sql`SELECT id FROM hdd_patients WHERE dni = ${body.patientDni} LIMIT 1`;
+      return p?.id || null;
+    }
+    if (body.patientId) {
+      const numId = parseInt(body.patientId);
+      if (!isNaN(numId) && numId > 0) return numId;
+    }
+    return null;
+  }
+
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -51,28 +65,42 @@ export default async (req: Request, context: Context) => {
 
     // ── GET PATIENT HCE (full view) ──────────────────────────────
     if (action === "get_patient_hce") {
-      const { patientId } = body;
-      if (!patientId) {
-        return new Response(JSON.stringify({ error: "patientId requerido" }),
+      const { patientId, patientDni } = body;
+      if (!patientId && !patientDni) {
+        return new Response(JSON.stringify({ error: "DNI o ID de paciente requerido" }),
           { status: 400, headers: corsHeaders });
       }
 
-      // Patient demographics
-      const [patient] = await sql`
-        SELECT id, dni, full_name, email, phone, admission_date, status, notes,
-               fecha_nacimiento, sexo, genero, nacionalidad, estado_civil,
-               direccion, localidad, provincia, codigo_postal,
-               ocupacion, nivel_educativo,
-               contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_relacion,
-               grupo_sanguineo, numero_historia_clinica, numero_hc_papel,
-               obra_social, obra_social_numero, care_modality
-        FROM hdd_patients WHERE id = ${patientId}
-      `;
+      // Patient demographics — resolve by DNI first, fallback to id
+      const [patient] = patientDni
+        ? await sql`
+            SELECT id, dni, full_name, email, phone, admission_date, status, notes,
+                   fecha_nacimiento, sexo, genero, nacionalidad, estado_civil,
+                   direccion, localidad, provincia, codigo_postal,
+                   ocupacion, nivel_educativo,
+                   contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_relacion,
+                   grupo_sanguineo, numero_historia_clinica, numero_hc_papel,
+                   obra_social, obra_social_numero, care_modality
+            FROM hdd_patients WHERE dni = ${patientDni}
+          `
+        : await sql`
+            SELECT id, dni, full_name, email, phone, admission_date, status, notes,
+                   fecha_nacimiento, sexo, genero, nacionalidad, estado_civil,
+                   direccion, localidad, provincia, codigo_postal,
+                   ocupacion, nivel_educativo,
+                   contacto_emergencia_nombre, contacto_emergencia_telefono, contacto_emergencia_relacion,
+                   grupo_sanguineo, numero_historia_clinica, numero_hc_papel,
+                   obra_social, obra_social_numero, care_modality
+            FROM hdd_patients WHERE id = ${patientId}
+          `;
 
       if (!patient) {
         return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
           { status: 404, headers: corsHeaders });
       }
+
+      // Use resolved patient.id for all subsequent queries (DNI→id resolved above)
+      const resolvedPatientId = patient.id;
 
       // Active medications
       const medications = await sql`
@@ -80,7 +108,7 @@ export default async (req: Request, context: Context) => {
                fecha_inicio, fecha_fin, estado, motivo_suspension, prescripto_por,
                created_at
         FROM hce_medicacion
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${resolvedPatientId}
         ORDER BY
           CASE estado WHEN 'activo' THEN 0 WHEN 'suspendido' THEN 1 ELSE 2 END,
           created_at DESC
@@ -101,7 +129,7 @@ export default async (req: Request, context: Context) => {
                COALESCE(e.firma_role, p.role) AS firma_role
         FROM hce_evoluciones e
         LEFT JOIN healthcare_professionals p ON p.id = e.profesional_id
-        WHERE e.patient_id = ${patientId}
+        WHERE e.patient_id = ${resolvedPatientId}
         ORDER BY e.fecha DESC, e.created_at DESC
         LIMIT 50
       `;
@@ -112,7 +140,7 @@ export default async (req: Request, context: Context) => {
                fecha_diagnostico, fecha_resolucion, diagnosticado_por,
                created_at
         FROM hce_diagnosticos
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${resolvedPatientId}
         ORDER BY
           CASE estado WHEN 'activo' THEN 0 WHEN 'en_estudio' THEN 1 ELSE 2 END,
           created_at DESC
@@ -123,7 +151,7 @@ export default async (req: Request, context: Context) => {
         SELECT id, tipo, descripcion, fecha_aproximada, observaciones,
                registrado_por, created_at
         FROM hce_antecedentes
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${resolvedPatientId}
         ORDER BY tipo, created_at DESC
       `;
 
@@ -135,7 +163,7 @@ export default async (req: Request, context: Context) => {
                registrado_por_role,
                created_at
         FROM hce_signos_vitales
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${resolvedPatientId}
         ORDER BY fecha DESC
         LIMIT 20
       `;
@@ -146,7 +174,7 @@ export default async (req: Request, context: Context) => {
                resultado_texto, archivo_url, archivo_nombre, subido_por,
                created_at
         FROM hce_estudios
-        WHERE patient_id = ${patientId}
+        WHERE patient_id = ${resolvedPatientId}
         ORDER BY fecha_estudio DESC
         LIMIT 20
       `;
@@ -165,9 +193,10 @@ export default async (req: Request, context: Context) => {
 
     // ── ADD EVOLUTION ────────────────────────────────────────────
     if (action === "add_evolution") {
-      const { patientId, tipo, contenido, motivoConsulta, examenMental,
+      const { patientId: rawPatientId, patientDni, tipo, contenido, motivoConsulta, examenMental,
               planTerapeutico, indicaciones, esConfidencial } = body;
 
+      const patientId = await resolvePatientId({ patientId: rawPatientId, patientDni });
       if (!patientId || !contenido) {
         return new Response(JSON.stringify({ error: "patientId y contenido son requeridos" }),
           { status: 400, headers: corsHeaders });
@@ -289,9 +318,10 @@ export default async (req: Request, context: Context) => {
 
     // ── ADD MEDICATION ───────────────────────────────────────────
     if (action === "add_medication") {
-      const { patientId, droga, nombreComercial, dosis, frecuencia, via,
+      const { patientId: rawPidMed, patientDni: dniMed, droga, nombreComercial, dosis, frecuencia, via,
               fechaInicio, fechaFin } = body;
 
+      const patientId = await resolvePatientId({ patientId: rawPidMed, patientDni: dniMed });
       if (!patientId || !droga || !dosis || !frecuencia) {
         return new Response(JSON.stringify({ error: "droga, dosis y frecuencia son requeridos" }),
           { status: 400, headers: corsHeaders });
@@ -316,7 +346,8 @@ export default async (req: Request, context: Context) => {
 
     // ── UPDATE MEDICATION STATUS ─────────────────────────────────
     if (action === "update_medication") {
-      const { medicationId, estado, motivoSuspension, fechaFin, patientId } = body;
+      const { medicationId, estado, motivoSuspension, fechaFin, patientId: rawPidUpMed, patientDni: dniUpMed } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidUpMed, patientDni: dniUpMed });
 
       if (!medicationId || !estado) {
         return new Response(JSON.stringify({ error: "medicationId y estado son requeridos" }),
@@ -350,7 +381,8 @@ export default async (req: Request, context: Context) => {
 
     // ── ADD DIAGNOSIS ────────────────────────────────────────────
     if (action === "add_diagnosis") {
-      const { patientId, codigo, sistema, descripcion, tipo, fechaDiagnostico } = body;
+      const { patientId: rawPidDx, patientDni: dniDx, codigo, sistema, descripcion, tipo, fechaDiagnostico } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidDx, patientDni: dniDx });
 
       if (!patientId || !descripcion) {
         return new Response(JSON.stringify({ error: "descripcion es requerida" }),
@@ -376,7 +408,8 @@ export default async (req: Request, context: Context) => {
 
     // ── UPDATE DIAGNOSIS STATUS ──────────────────────────────────
     if (action === "update_diagnosis") {
-      const { diagnosisId, estado, fechaResolucion, patientId } = body;
+      const { diagnosisId, estado, fechaResolucion, patientId: rawPidUpDx, patientDni: dniUpDx } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidUpDx, patientDni: dniUpDx });
 
       if (!diagnosisId || !estado) {
         return new Response(JSON.stringify({ error: "diagnosisId y estado son requeridos" }),
@@ -494,7 +527,10 @@ export default async (req: Request, context: Context) => {
       }
 
       // Get patient DNI for cross-reference with game metrics
-      const [patient] = await sql`SELECT dni FROM hdd_patients WHERE id = ${patientId}`;
+      const resolvedPid = await resolvePatientId(body);
+      const [patient] = resolvedPid 
+        ? await sql`SELECT id, dni FROM hdd_patients WHERE id = ${resolvedPid}`
+        : [null];
       if (!patient) {
         return new Response(JSON.stringify({ error: "Paciente no encontrado" }),
           { status: 404, headers: corsHeaders });
@@ -504,7 +540,7 @@ export default async (req: Request, context: Context) => {
       const gameSessions = await sql`
         SELECT game_slug, metric_type, metric_value, metric_data, session_date, created_at
         FROM hdd_game_metrics
-        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+        WHERE (patient_id = ${resolvedPid} OR patient_dni = ${patient.dni})
           AND created_at > NOW() - INTERVAL '90 days'
         ORDER BY created_at DESC
         LIMIT 100
@@ -520,7 +556,7 @@ export default async (req: Request, context: Context) => {
                MIN(created_at) AS first_session,
                MAX(created_at) AS last_session
         FROM hdd_game_metrics
-        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+        WHERE (patient_id = ${resolvedPid} OR patient_dni = ${patient.dni})
           AND (metric_type IN ('session_summary', 'session_complete') OR metric_type LIKE 'level_%')
         GROUP BY game_slug
       `;
@@ -529,7 +565,7 @@ export default async (req: Request, context: Context) => {
       const moodEntries = await sql`
         SELECT color_hex, color_id, context_type, source_activity, created_at
         FROM hdd_mood_entries
-        WHERE (patient_id = ${patientId} OR patient_dni = ${patient.dni})
+        WHERE (patient_id = ${resolvedPid} OR patient_dni = ${patient.dni})
           AND created_at > NOW() - INTERVAL '90 days'
         ORDER BY created_at DESC
         LIMIT 100
@@ -636,6 +672,9 @@ export default async (req: Request, context: Context) => {
 
     // ── COMMIT DRAFT (convert borrador to evolucion) ─────────────
     if (action === "commit_draft") {
+        // Resolve DNI → id
+        const pid_commit = await resolvePatientId(body);
+        if (pid_commit) body.patientId = pid_commit;
       const { patientId, tipo } = body;
       if (!patientId) {
         return new Response(JSON.stringify({ error: "patientId requerido" }),
@@ -743,6 +782,9 @@ export default async (req: Request, context: Context) => {
 
     // ── GET CONSENT ─────────────────────────────────────────────
     if (action === "get_consent") {
+        // Resolve DNI → id
+        const pid_get_consent = await resolvePatientId(body);
+        if (pid_get_consent) body.patientId = pid_get_consent;
       const { patientId } = body;
 
       if (!patientId) {

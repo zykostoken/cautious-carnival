@@ -27,24 +27,19 @@
   var INACTIVITY_MS = 5 * 60 * 1000; // 5 min sin actividad = timeout
 
   function getPatientInfo() {
-    var pid = null, dni = null;
-    try {
-      var p = new URLSearchParams(window.location.search);
-      pid = parseInt(p.get('patient_id'));
-      dni = p.get('dni');
-    } catch(e) {}
-    if (!pid || isNaN(pid)) try { pid = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    var dni = null;
+    try { dni = new URLSearchParams(window.location.search).get('dni'); } catch(e) {}
     if (!dni) try { dni = localStorage.getItem('hdd_patient_dni'); } catch(e) {}
-    return { pid: (!isNaN(pid) && pid > 0) ? pid : null, dni: dni || null };
+    return { dni: dni || null };
   }
 
   function saveEvent(eventType, extraData) {
     var info = getPatientInfo();
-    if (!info.pid) return; // sin paciente no guardamos
+    if (!info.dni) return; // sin DNI no guardamos
 
     var state = _cb ? _cb() : {};
     var payload = {
-      patient_id: info.pid,
+      patient_id: null,
       patient_dni: info.dni,
       game_slug: state.game_slug || window.location.pathname.split('/').pop().replace('.html',''),
       metric_type: 'event_' + eventType,

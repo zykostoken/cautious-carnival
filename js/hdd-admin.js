@@ -423,7 +423,10 @@ function openHCE(patientId) {
   // Pass session token to HCE page via sessionStorage
   sessionStorage.setItem('adminSessionToken', sessionToken);
   sessionStorage.setItem('adminProfName', adminEmail || '');
-  window.location.href = '/hdd/admin/hce?id=' + patientId;
+  // Find DNI for this patient — DNI is the universal identifier
+  const patient = patients.find(p => p.id === patientId);
+  const dni = patient ? patient.dni : patientId;
+  window.location.href = '/hce/paciente?dni=' + encodeURIComponent(dni);
 }
 
 async function showPatientDetail(patientId) {

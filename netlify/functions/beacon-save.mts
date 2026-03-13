@@ -19,17 +19,24 @@ export default async (req: Request, context: Context) => {
       return new Response(null, { status: 400 });
     }
 
-    // Validate required fields
-    if (!data || !data.patient_id || !data.game_slug) {
+    // Validate: need at least DNI and game_slug
+    if (!data || (!data.patient_dni && !data.patient_id) || !data.game_slug) {
       return new Response(null, { status: 400 });
     }
 
     const sql = getDatabase();
 
+    // Resolve DNI → patient_id (integer) for DB FK
+    let patientId = data.patient_id || null;
+    if (!patientId && data.patient_dni) {
+      const [patient] = await sql`SELECT id FROM hdd_patients WHERE dni = ${data.patient_dni} LIMIT 1`;
+      patientId = patient?.id || null;
+    }
+
     await sql`
       INSERT INTO hdd_game_metrics (patient_id, patient_dni, game_slug, metric_type, metric_value, metric_data, session_date, created_at)
       VALUES (
-        ${data.patient_id},
+        ${patientId},
         ${data.patient_dni || null},
         ${data.game_slug},
         ${data.metric_type || 'partial_interrupted'},

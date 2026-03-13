@@ -1229,9 +1229,8 @@
 
   // Get patient DNI from URL params or localStorage
   const lmParams = new URLSearchParams(window.location.search);
-  // Read both numeric id and DNI from URL (portal sends both)
-  const lmPatientNumericId = parseInt(lmParams.get('patient_id')) || parseInt((function(){ try { return localStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })()) || null;
-  const lmPatientDni = lmParams.get('dni') || (function(){ try { return localStorage.getItem('hdd_patient_dni') || localStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })() || 'HDD-DEMO';
+  // DNI is the universal identifier
+  const lmPatientDni = lmParams.get('dni') || (function(){ try { return localStorage.getItem('hdd_patient_dni'); } catch(e){ return null; } })() || 'HDD-DEMO';
 
   async function lmGetOrCreatePatient(dni) {
     if (!lmSupa) return null;
@@ -1246,13 +1245,9 @@
   async function lmSaveToSupabase(completed, finalScore, clinicalStats) {
     if (!lmSupa) return;
     try {
-      // Use numeric patient_id directly (from URL or localStorage)
-      var patientId = lmPatientNumericId;
-      if (!patientId) {
-        // Fallback: lookup by DNI
-        patientId = await lmGetOrCreatePatient(lmPatientDni);
-      }
-      if (!patientId) { console.warn('[lawn-mower] No valid patient_id, skipping save'); return; }
+      // DNI is the identifier — resolve to id for DB FK
+      var patientId = await lmGetOrCreatePatient(lmPatientDni);
+      // patientId may be null if patient not found — still save with DNI
       await lmSupa.from('hdd_game_metrics').insert({
         patient_id: patientId,
         game_slug: 'lawn-mower',
@@ -4628,11 +4623,11 @@
 if (typeof registerAutoSave === 'function') {
   registerAutoSave(function() {
     var pid = null;
-    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    try { pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null; } catch(e) {}
     var dni = null;
     try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
     return {
-      patient_id: pid,
+      patient_dni: pid,
       patient_dni: dni,
       game_slug: 'lawn-mower',
       partial_data: {

@@ -655,19 +655,14 @@ function save(extra_data) {
         var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : window.supabase?.createClient('https://buzblnkpfydeheingzgn.supabase.co', SUPABASE_ANON_KEY);
         if (!client) return result;
 
-        // Resolve patient_id: try numeric first, then from localStorage
-        var pid = parseInt(BM.patientId);
-        if (isNaN(pid) || pid <= 0) {
-            var stored = null;
-            try { stored = localStorage.getItem('hdd_patient_id'); } catch(e){}
-            if (stored) pid = parseInt(stored);
-        }
-        var validPid = (!isNaN(pid) && pid > 0) ? pid : null;
+        // DNI is the universal identifier — no internal id needed
+        var dni = (BM.patientDni && BM.patientDni !== 'DEMO') ? BM.patientDni : null;
+        if (!dni) { try { dni = localStorage.getItem('hdd_patient_dni'); } catch(e){} }
+        if (!dni) { console.warn('[biomet] No DNI, skipping save'); return result; }
 
-        // Always save with DNI as primary identifier
         client.from('hdd_game_metrics').insert({
-            patient_id:   validPid,
-            patient_dni:  (BM.patientDni && BM.patientDni !== 'DEMO') ? BM.patientDni : null,
+            patient_id:   null,
+            patient_dni:  dni,
             game_slug:    result.game_slug,
             session_id:   BM.sessionId || null,
             metric_type:  'session_biomet',
