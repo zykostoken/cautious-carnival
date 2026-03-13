@@ -793,7 +793,7 @@ async function saveResults(metrics, biometData) {
     if (!sb) return;
     try {
         // Use numeric ID from URL/localStorage (portal now passes it)
-        let dailyPatientId = state.patientNumericId || null;
+        let dailyPatientId = null;
         if (!dailyPatientId) {
             try { dailyPatientId = parseInt(localStorage.getItem('hdd_patient_dni')); } catch(e) {}
         }

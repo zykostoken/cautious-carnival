@@ -442,7 +442,8 @@ export default async (req: Request, context: Context) => {
 
     // ── ADD ANTECEDENTE ──────────────────────────────────────────
     if (action === "add_antecedente") {
-      const { patientId, tipo, descripcion, fechaAproximada, observaciones } = body;
+      const { patientId: rawPidAnt, patientDni: dniAnt, tipo, descripcion, fechaAproximada, observaciones } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidAnt, patientDni: dniAnt });
 
       if (!patientId || !tipo || !descripcion) {
         return new Response(JSON.stringify({ error: "tipo y descripcion son requeridos" }),
@@ -465,11 +466,12 @@ export default async (req: Request, context: Context) => {
 
     // ── ADD VITAL SIGNS ──────────────────────────────────────────
     if (action === "add_vitals") {
-      const { patientId, pesoKg, tallaCm, taSistolica, taDiastolica,
+      const { patientId: rawPidVit, patientDni: dniVit, pesoKg, tallaCm, taSistolica, taDiastolica,
               fc, fr, temperatura, saturacion, glucemia, notas } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidVit, patientDni: dniVit });
 
       if (!patientId) {
-        return new Response(JSON.stringify({ error: "patientId requerido" }),
+        return new Response(JSON.stringify({ error: "DNI o paciente requerido" }),
           { status: 400, headers: corsHeaders });
       }
 
@@ -598,7 +600,8 @@ export default async (req: Request, context: Context) => {
 
     // ── LOAD MORE EVOLUTIONS ─────────────────────────────────────
     if (action === "load_more_evolutions") {
-      const { patientId, offset } = body;
+      const { patientId: rawPidMore, patientDni: dniMore, offset } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidMore, patientDni: dniMore });
 
       if (!patientId) {
         return new Response(JSON.stringify({ error: "patientId requerido" }),
@@ -630,13 +633,11 @@ export default async (req: Request, context: Context) => {
 
     // ── AUTOSAVE DRAFT ───────────────────────────────────────────
     if (action === "autosave_draft") {
-      const { patientId, draftContent, draftType } = body;
-      // Store in evolution as draft (not yet committed)
-      // We use a simple approach: upsert a draft row
-      // Drafts are identified by profesional_id + patient_id + tipo='borrador'
+      const { patientId: rawPidDraft, patientDni: dniDraft, draftContent, draftType } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidDraft, patientDni: dniDraft });
 
       if (!patientId || !draftContent) {
-        return new Response(JSON.stringify({ error: "patientId y draftContent requeridos" }),
+        return new Response(JSON.stringify({ error: "DNI/paciente y draftContent requeridos" }),
           { status: 400, headers: corsHeaders });
       }
 
@@ -731,7 +732,8 @@ export default async (req: Request, context: Context) => {
 
     // ── SAVE CONSENT ────────────────────────────────────────────
     if (action === "save_consent") {
-      const { patientId, consents } = body;
+      const { patientId: rawPidCon, patientDni: dniCon, consents } = body;
+      const patientId = await resolvePatientId({ patientId: rawPidCon, patientDni: dniCon });
 
       if (!patientId || !Array.isArray(consents)) {
         return new Response(JSON.stringify({ error: "patientId y consents (array) son requeridos" }),

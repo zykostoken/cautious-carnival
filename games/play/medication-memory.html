@@ -1982,8 +1982,8 @@
     try {
       var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
       if (client) {
-        var pid = parseInt(new URLSearchParams(window.location.search).get('patient_id'));
-        if (isNaN(pid)) try { pid = parseInt(localStorage.getItem('hdd_patient_dni')); } catch(e2){}
+        var pid = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni') || null;
+        // DNI resolved above
         var dni = new URLSearchParams(window.location.search).get('dni') || null;
         if (!dni) try { dni = localStorage.getItem('hdd_patient_dni'); } catch(e2){}
         if (pid && !isNaN(pid) && pid > 0) {

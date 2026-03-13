@@ -181,7 +181,7 @@ function renderPatients() {
         <td>${sessionStatus}</td>
         <td>
           <div class="actions">
-            <button class="btn btn-primary btn-sm" onclick="openHCE(${p.id})" title="Historia Clinica">HC</button>
+            <button class="btn btn-primary btn-sm" onclick="openHCE('${p.dni}')" title="Historia Clinica">HC</button>
             <button class="btn btn-secondary btn-sm" onclick="showPatientDetail(${p.id})">Ver</button>
             <button class="btn btn-secondary btn-sm" onclick="showEditPatient(${p.id})">Editar</button>
             ${permissions.canDischargePatients && p.status === 'active' ?
@@ -419,14 +419,11 @@ async function addPatient() {
 }
 
 // Open Historia Clínica Electrónica for a patient
-function openHCE(patientId) {
-  // Pass session token to HCE page via sessionStorage
+function openHCE(patientDni) {
+  // DNI is the universal identifier
   sessionStorage.setItem('adminSessionToken', sessionToken);
   sessionStorage.setItem('adminProfName', adminEmail || '');
-  // Find DNI for this patient — DNI is the universal identifier
-  const patient = patients.find(p => p.id === patientId);
-  const dni = patient ? patient.dni : patientId;
-  window.location.href = '/hce/paciente?dni=' + encodeURIComponent(dni);
+  window.location.href = '/hce/paciente?dni=' + encodeURIComponent(patientDni);
 }
 
 async function showPatientDetail(patientId) {
@@ -2400,11 +2397,11 @@ function renderHCEGroup(modality, patients) {
       : '#ef4444';
 
     return `
-      <div class="hce-patient-card" onclick="openHCE(${p.id})" style="background:var(--bg-tertiary, #f8f9fa);border:1px solid var(--border, #e5e7eb);border-radius:10px;padding:0.85rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary, #3b82f6)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--border, #e5e7eb)';this.style.transform='none'">
+      <div class="hce-patient-card" onclick="openHCE('${p.dni}')" style="background:var(--bg-tertiary, #f8f9fa);border:1px solid var(--border, #e5e7eb);border-radius:10px;padding:0.85rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary, #3b82f6)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--border, #e5e7eb)';this.style.transform='none'">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
             <div style="font-weight:600;font-size:0.95rem;">${p.fullName}</div>
-            <div style="font-size:0.8rem;color:var(--text-muted, #6b7280);">DNI: ${p.dni} ${p.hcNumber ? ' · ' + p.hcNumber : ''}${p.hcPapel ? ' · HC:' + p.hcPapel : ''}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted, #6b7280);">DNI: ${p.dni} ${p.hcNumber ? ' · ' + p.hcNumber : ''}</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:0.75rem;font-weight:600;color:${evoColor};">${lastEvo}</div>
@@ -2494,7 +2491,7 @@ async function submitHCEPatient(event) {
     // Close modal and open HCE for the new patient
     document.getElementById('add-hce-patient-modal').classList.add('hidden');
     document.getElementById('add-hce-patient-form').reset();
-    openHCE(data.patient.id);
+    openHCE(data.patient.dni);
   } catch (e) {
     errorEl.textContent = 'Error de conexion. Intente nuevamente.';
     errorEl.classList.remove('hidden');

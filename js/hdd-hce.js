@@ -229,7 +229,7 @@ function renderDatosPersonales(p) {
     field('Ocupacion', p.ocupacion) +
     field('Nivel Educativo', p.nivel_educativo) +
     field('Grupo Sanguineo', p.grupo_sanguineo) +
-    field('N° HC Papel', p.numero_hc_papel) +
+    // numero_hc_papel deprecated (no hay HC papel) +
     field('N° HC Digital', p.numero_historia_clinica) +
     field('Obra Social', p.obra_social) +
     field('N° Afiliado', p.obra_social_numero) +
