@@ -179,6 +179,11 @@ export default async (req: Request, context: Context) => {
         LIMIT 20
       `;
 
+      // Log HC access (ministerial requirement: trazabilidad de lectura)
+      sql`INSERT INTO hce_access_log (patient_id, patient_dni, professional_id, professional_email, professional_name, action_type)
+          VALUES (${resolvedPatientId}, ${patient.dni}, ${prof.id}, ${prof.email}, ${prof.fullName}, 'view_hce')
+      `.catch(() => {}); // fire-and-forget, don't block response
+
       return new Response(JSON.stringify({
         success: true,
         patient,
