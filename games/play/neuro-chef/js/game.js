@@ -338,21 +338,64 @@ function verifyLevel1() {
 
 // ========== NIVEL 2: HELADERA ==========
 function loadLevel2_Heladera() {
-    document.getElementById('level-title').textContent = 'Nivel 2: Heladera';
-    document.getElementById('level-description').innerHTML = 'Guardá las compras organizando por <strong>tipo y temperatura</strong>';
+    document.getElementById('level-title').textContent = 'Nivel 2: Heladera y Alacena';
+    document.getElementById('level-description').innerHTML = 'Guardá las compras organizando por <strong>tipo y temperatura</strong>. Arrastrá cada alimento a su lugar.';
     const gameArea = document.getElementById('game-area');
     const selected = shuffleArray(Object.values(ALIMENTOS)).slice(0, 20);
     
-    gameArea.innerHTML = `<div class="heladera-container">
-        <div class="bolsa-compras"><h3>🛍️ Bolsa de Compras</h3><div class="bolsa-grid" id="bolsa">
-            ${selected.map(f=>`<div class="food-item" draggable="true" data-id="${f.id}"><img src="${f.imagen}" alt="${f.nombre}" loading="lazy"><div class="label">${f.nombre}</div></div>`).join('')}
-        </div></div>
-        <div class="heladera">
-            <div class="heladera-zone" data-zone="freezer"><h4>FREEZER (-18°C)</h4><div class="zone-grid" id="zone-freezer" data-zone="freezer">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone" data-zone="fria"><h4>ZONA FRÍA (2-4°C) — Lácteos, carnes, huevos</h4><div class="zone-grid" id="zone-fria" data-zone="fria">${Array(8).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone" data-zone="verduras"><h4>CAJÓN VERDURAS (5-8°C)</h4><div class="zone-grid" id="zone-verduras" data-zone="verduras">${Array(6).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-            <div class="heladera-zone" data-zone="afuera"><h4>ALACENA — No va en heladera</h4><div class="zone-grid" id="zone-afuera" data-zone="afuera">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div></div>
-        </div></div>`;
+    // Layout: bolsa arriba, heladera y alacena lado a lado abajo
+    gameArea.innerHTML = `
+        <div style="max-width:1100px; margin:0 auto; padding:1rem;">
+            <!-- BOLSA DE COMPRAS (arriba, centrada) -->
+            <div class="bolsa-compras" style="margin-bottom:1.2rem;">
+                <h3>🛍️ Bolsa de Compras — arrastrá cada producto a su lugar</h3>
+                <div class="bolsa-grid" id="bolsa">
+                    ${selected.map(f=>`<div class="food-item" draggable="true" data-id="${f.id}"><img src="${f.imagen}" alt="${f.nombre}" loading="lazy" onerror="this.style.display='none';this.parentElement.querySelector('.label').style.padding='18px 6px';"><div class="label">${f.nombre}</div></div>`).join('')}
+                </div>
+            </div>
+
+            <!-- MUEBLES: heladera y alacena lado a lado -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; align-items:start;">
+                
+                <!-- HELADERA (izquierda) -->
+                <div style="background:linear-gradient(180deg,#c8d6e0 0%,#a8b8c8 5%,#e8eef2 6%,#d0dce4 100%); border-radius:14px; border:3px solid #8a9aa8; box-shadow:4px 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5); overflow:hidden; position:relative;">
+                    <!-- Manija heladera -->
+                    <div style="position:absolute; right:8px; top:20%; height:60%; width:6px; background:linear-gradient(180deg,#bbb,#999,#bbb); border-radius:3px; box-shadow:1px 1px 3px rgba(0,0,0,0.3);"></div>
+                    
+                    <!-- FREEZER -->
+                    <div class="heladera-zone" data-zone="freezer" style="background:linear-gradient(135deg,rgba(180,210,240,0.3),rgba(200,225,250,0.15)); border-bottom:4px solid #8a9aa8; border-radius:10px 10px 0 0; margin:4px; padding:0.6rem 0.75rem; min-height:90px;">
+                        <h4 style="color:#1e40af; font-size:0.7rem; font-weight:700; margin-bottom:0.4rem; letter-spacing:0.5px; text-transform:uppercase;">❄️ FREEZER (-18°C)</h4>
+                        <div class="zone-grid" id="zone-freezer" data-zone="freezer">${Array(4).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div>
+                    </div>
+                    
+                    <!-- ZONA FRIA -->
+                    <div class="heladera-zone" data-zone="fria" style="background:linear-gradient(135deg,rgba(200,225,250,0.2),rgba(220,235,250,0.1)); border-bottom:3px solid rgba(140,160,180,0.4); margin:0 4px; padding:0.6rem 0.75rem; min-height:100px;">
+                        <h4 style="color:#2563eb; font-size:0.7rem; font-weight:700; margin-bottom:0.4rem; letter-spacing:0.5px; text-transform:uppercase;">🥛 ZONA FRÍA (2-4°C) — Lácteos, carnes, huevos</h4>
+                        <div class="zone-grid" id="zone-fria" data-zone="fria">${Array(8).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div>
+                    </div>
+                    
+                    <!-- CAJON VERDURAS -->
+                    <div class="heladera-zone" data-zone="verduras" style="background:linear-gradient(135deg,rgba(74,222,128,0.12),rgba(180,240,200,0.08)); border-radius:0 0 10px 10px; margin:0 4px 4px; padding:0.6rem 0.75rem; min-height:80px; border-top:2px solid rgba(74,222,128,0.2);">
+                        <h4 style="color:#16a34a; font-size:0.7rem; font-weight:700; margin-bottom:0.4rem; letter-spacing:0.5px; text-transform:uppercase;">🥬 CAJÓN VERDURAS (5-8°C)</h4>
+                        <div class="zone-grid" id="zone-verduras" data-zone="verduras">${Array(6).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}"></div>`).join('')}</div>
+                    </div>
+                </div>
+
+                <!-- ALACENA (derecha) -->
+                <div style="background:linear-gradient(180deg,#8B6914 0%,#A0782C 3%,#C4A265 5%,#D4B47A 50%,#BFA060 95%,#8B6914 100%); border-radius:12px; border:3px solid #7A5A10; box-shadow:4px 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,200,0.3); overflow:hidden; position:relative;">
+                    <!-- Puertitas de alacena simuladas -->
+                    <div style="position:absolute; top:3px; left:3px; right:3px; bottom:3px; border:2px solid rgba(139,105,20,0.4); border-radius:9px; pointer-events:none;"></div>
+                    <!-- Manija alacena -->
+                    <div style="position:absolute; right:10px; top:45%; width:6px; height:40px; background:linear-gradient(180deg,#d4a853,#aa8030,#d4a853); border-radius:3px; box-shadow:1px 1px 3px rgba(0,0,0,0.4);"></div>
+                    
+                    <div class="heladera-zone" data-zone="afuera" style="background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)); margin:8px; padding:1rem; min-height:240px; border-radius:8px; border:1px solid rgba(139,105,20,0.3);">
+                        <h4 style="color:#3d2800; font-size:0.75rem; font-weight:700; margin-bottom:0.6rem; letter-spacing:0.5px; text-transform:uppercase; text-shadow:0 1px 0 rgba(255,255,200,0.3);">🏠 ALACENA — No va en heladera</h4>
+                        <p style="color:#5a4010; font-size:0.65rem; margin:0 0 0.6rem; opacity:0.8;">Productos secos, conservas, especias</p>
+                        <div class="zone-grid" id="zone-afuera" data-zone="afuera">${Array(6).fill(0).map((_,i)=>`<div class="zone-slot" data-slot="${i}" style="border-color:rgba(139,105,20,0.3);"></div>`).join('')}</div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     setupDragAndDrop();
     document.getElementById('btn-verify').onclick = () => { Biometrics.logVerify(); verifyLevel2(); };
 }
