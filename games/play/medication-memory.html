@@ -1254,6 +1254,9 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <script src="/js/sanitize.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/games/shared/auto-save.js"></script>
 </head>
 <body>
 
@@ -1974,6 +1977,30 @@
     try {
       localStorage.setItem('medmemory_metrics_history', JSON.stringify(metricsHistory));
     } catch(e) {}
+
+    // Also save to Supabase for dashboard visibility
+    try {
+      var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+      if (client) {
+        var pid = parseInt(new URLSearchParams(window.location.search).get('patient_id'));
+        if (isNaN(pid)) try { pid = parseInt(localStorage.getItem('hdd_patient_id')); } catch(e2){}
+        var dni = new URLSearchParams(window.location.search).get('dni') || null;
+        if (!dni) try { dni = localStorage.getItem('hdd_patient_dni'); } catch(e2){}
+        if (pid && !isNaN(pid) && pid > 0) {
+          client.from('hdd_game_metrics').insert({
+            patient_id: pid,
+            patient_dni: dni,
+            game_slug: 'medication-memory',
+            metric_type: 'level_' + levelId,
+            metric_value: entry.score,
+            metric_data: entry,
+            session_date: new Date().toISOString().slice(0, 10),
+            created_at: new Date().toISOString()
+          }).then(function(){ console.log('[med-memory] Metrics saved to Supabase'); })
+            .catch(function(e3){ console.warn('[med-memory] Supabase save error:', e3); });
+        }
+      }
+    } catch(e) { console.warn('[med-memory] Supabase fallback error:', e); }
   }
 
   // ==================== INTRA-SESSION TIME SERIES ====================
@@ -3422,6 +3449,28 @@
   <!-- Mood modals v4: self-contained overlay system -->
   <script src="/games/shared/mood-modals.js"></script>
   <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
+
+<script>
+if (typeof registerAutoSave === 'function') {
+  registerAutoSave(function() {
+    var pid = null;
+    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    var dni = null;
+    try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
+    return {
+      patient_id: pid,
+      patient_dni: dni,
+      game_slug: 'medication-memory',
+      partial_data: {
+        score: typeof state !== 'undefined' ? state.score : 0,
+        current_level: typeof state !== 'undefined' ? state.currentLevel : 0,
+        time_played_ms: typeof state !== 'undefined' && state.startTime ? Date.now() - state.startTime : 0,
+        completed: false
+      }
+    };
+  });
+}
+</script>
 
 </body>
 </html>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neuro-Chef | Evaluación Cognitiva HDD</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="/games/shared/auto-save.js"></script>
 </head>
 <body>
     <!-- Header con métricas en tiempo real -->
@@ -146,5 +147,25 @@
     <!-- Mood modals v4 -->
     <script src="/games/shared/mood-modals.js"></script>
     <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
+<script>
+if (typeof registerAutoSave === 'function') {
+  registerAutoSave(function() {
+    var gs = typeof gameState !== 'undefined' ? gameState : {};
+    return {
+      patient_id: gs.patientId || null,
+      patient_dni: gs.patientDni || null,
+      game_slug: 'neuro-chef-v2',
+      partial_data: {
+        score: (gs.totalCorrect || 0) - (gs.totalErrors || 0),
+        current_level: gs.currentLevel || 0,
+        total_correct: gs.totalCorrect || 0,
+        total_errors: gs.totalErrors || 0,
+        time_played_ms: gs.startTime ? Date.now() - gs.startTime : 0,
+        completed: false
+      }
+    };
+  });
+}
+</script>
 </body>
 </html>

@@ -1534,11 +1534,12 @@ async function loadGames() {
 }
 
 function openGame(slug) {
-  // Pass both numeric patient_id (for DB FK) and dni (for display/lookup)
+  // Pass numeric patient_id, dni, and session token for games using backend API
   const numericId = (currentUser && currentUser.id) ? currentUser.id : localStorage.getItem('hdd_patient_id') || '';
   const dni = (currentUser && currentUser.dni) ? currentUser.dni : '';
+  const tok = sessionToken || '';
   const demoParam = isPreviewMode ? '&demo=true' : '';
-  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(numericId) + '&dni=' + encodeURIComponent(dni) + demoParam, '_blank');
+  window.open('/games/play/' + slug + '.html?patient_id=' + encodeURIComponent(numericId) + '&dni=' + encodeURIComponent(dni) + '&token=' + encodeURIComponent(tok) + demoParam, '_blank');
 }
 
 // Init

@@ -9,6 +9,7 @@
     <script src="/js/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <script src="/js/sanitize.js"></script>
+    <script src="/games/shared/auto-save.js"></script>
     <style>
         :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; --gold: #eab308; }
         body { background: var(--bg); color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; margin: 0; min-height: 100vh; }
@@ -1007,7 +1008,7 @@ function finishGame() {
 
             // Buttons
             '<div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">' +
-                '<button onclick="location.reload()" style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.85rem;">🔄 Jugar de nuevo</button>' +
+                '<button onclick="if(typeof gameEvent===&quot;function&quot;)gameEvent(&quot;game_reset&quot;);setTimeout(function(){location.reload()},200)" style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.85rem;">🔄 Jugar de nuevo</button>' +
                 '<button onclick="goToPortal()" style="padding: 12px 24px; border-radius: 12px; border: none; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600;">🏠 Volver al portal</button>' +
             '</div>' +
         '</div>';
@@ -1117,5 +1118,28 @@ document.addEventListener('DOMContentLoaded', function() { initGame(); updateUI(
 <script src="/games/shared/mood-modals.js"></script>
 <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
+
+<script>
+// Auto-save partial progress on exit
+if (typeof registerAutoSave === 'function') {
+  registerAutoSave(function() {
+    var pid = null;
+    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    var dni = null;
+    try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
+    return {
+      patient_id: pid,
+      patient_dni: dni,
+      game_slug: 'super-market',
+      partial_data: {
+        score: typeof gameState !== 'undefined' && gameState.score ? gameState.score : 
+               typeof state !== 'undefined' && state.score ? state.score : 0,
+        time_played_ms: Date.now() - (typeof startTime !== 'undefined' && startTime ? startTime : Date.now()),
+        completed: false
+      }
+    };
+  });
+}
+</script>
 </body>
 </html>

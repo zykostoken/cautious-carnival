@@ -9,6 +9,7 @@
     <script src="/js/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <script src="/js/sanitize.js"></script>
+    <script src="/games/shared/auto-save.js"></script>
     <script>window.onerror=function(m,s,l,c,e){document.title='ERROR';var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;padding:16px;z-index:99999;font-size:14px';d.textContent='JS Error: '+m+' (line '+l+')';document.body.appendChild(d);console.error('[fridge-logic]',m,s,l,e);};</script>
     <style>
         :root { --bg: #0f172a; --surface: #1e293b; --card: #334155; --accent: #3b82f6; --success: #22c55e; --danger: #ef4444; --warn: #f59e0b; }
@@ -253,10 +254,9 @@ function beginGame() {
 function initGame() {
     gameState.startTime = Date.now();
     const _p = new URLSearchParams(window.location.search);
-    gameState.patientId = _p.get('dni') || _p.get('patient_id')
-        || (function(){ try{return localStorage.getItem('hdd_patient_id')}catch(e){return null} })()
-        || (function(){ try{return sessionStorage.getItem('hdd_patient_id')}catch(e){return null} })()
-        || 'DEMO';
+    // Read numeric ID and DNI separately  
+    gameState.patientNumericId = parseInt(_p.get('patient_id')) || parseInt((function(){try{return localStorage.getItem('hdd_patient_id')}catch(e){return null}})()) || null;
+    gameState.patientId = _p.get('dni') || (function(){try{return localStorage.getItem('hdd_patient_dni')}catch(e){return null}})() || 'DEMO';
     
     // Shuffle items
     const shuffled = [...ITEMS].sort(() => Math.random() - 0.5);
@@ -604,7 +604,7 @@ function finishGame() {
             ` : ''}
 
             <div style="text-align: center; margin-top: 16px;">
-                <button onclick="window.location.reload()" style="padding: 10px 24px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; margin-right: 8px;">Jugar de nuevo</button>
+                <button onclick="if(typeof gameEvent===&quot;function&quot;)gameEvent(&quot;game_reset&quot;);setTimeout(function(){location.reload()},200)" style="padding: 10px 24px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; margin-right: 8px;">Jugar de nuevo</button>
                 <button onclick="goToPortal()" style="padding: 10px 24px; border-radius: 10px; border: none; background: var(--accent); color: #fff; cursor: pointer;">Volver al portal</button>
             </div>
         </div>
@@ -682,10 +682,12 @@ async function saveResults(metrics) {
             game = newGame;
         }
         
-        // Save to hdd_game_metrics with patient_dni (primary key for dashboard)
+        // Save to hdd_game_metrics with numeric patient_id (FK) and patient_dni
         const patientDni = (gameState.patientId && gameState.patientId !== 'DEMO') ? gameState.patientId : null;
-        if (patientDni) {
+        const numericPid = gameState.patientNumericId || parseInt((function(){try{return localStorage.getItem('hdd_patient_id')}catch(e){return null}})()) || null;
+        if (numericPid) {
             await sb.from('hdd_game_metrics').insert({
+                patient_id: numericPid,
                 patient_dni: patientDni,
                 game_slug: 'fridge-logic',
                 metric_type: 'session_summary',
@@ -732,5 +734,28 @@ async function saveResults(metrics) {
 <script src="/games/shared/mood-modals.js"></script>
 <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
+
+<script>
+// Auto-save partial progress on exit
+if (typeof registerAutoSave === 'function') {
+  registerAutoSave(function() {
+    var pid = null;
+    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    var dni = null;
+    try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
+    return {
+      patient_id: pid,
+      patient_dni: dni,
+      game_slug: 'fridge-logic',
+      partial_data: {
+        score: typeof gameState !== 'undefined' && gameState.score ? gameState.score : 
+               typeof state !== 'undefined' && state.score ? state.score : 0,
+        time_played_ms: Date.now() - (typeof startTime !== 'undefined' && startTime ? startTime : Date.now()),
+        completed: false
+      }
+    };
+  });
+}
+</script>
 </body>
 </html>

@@ -1229,8 +1229,9 @@
 
   // Get patient DNI from URL params or localStorage
   const lmParams = new URLSearchParams(window.location.search);
-  const lmPatientDni = lmParams.get('dni') || lmParams.get('patient_id') || 
-    (function(){ try { return localStorage.getItem('hdd_patient_id') || sessionStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })() || 'HDD-DEMO';
+  // Read both numeric id and DNI from URL (portal sends both)
+  const lmPatientNumericId = parseInt(lmParams.get('patient_id')) || parseInt((function(){ try { return localStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })()) || null;
+  const lmPatientDni = lmParams.get('dni') || (function(){ try { return localStorage.getItem('hdd_patient_dni') || localStorage.getItem('hdd_patient_id'); } catch(e){ return null; } })() || 'HDD-DEMO';
 
   async function lmGetOrCreatePatient(dni) {
     if (!lmSupa) return null;
@@ -1245,8 +1246,13 @@
   async function lmSaveToSupabase(completed, finalScore, clinicalStats) {
     if (!lmSupa) return;
     try {
-      const patientId = await lmGetOrCreatePatient(lmPatientDni);
-      if (!patientId) return;
+      // Use numeric patient_id directly (from URL or localStorage)
+      var patientId = lmPatientNumericId;
+      if (!patientId) {
+        // Fallback: lookup by DNI
+        patientId = await lmGetOrCreatePatient(lmPatientDni);
+      }
+      if (!patientId) { console.warn('[lawn-mower] No valid patient_id, skipping save'); return; }
       await lmSupa.from('hdd_game_metrics').insert({
         patient_id: patientId,
         game_slug: 'lawn-mower',
@@ -4612,8 +4618,32 @@
   <script src="/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <script src="/js/sanitize.js"></script>
+    <script src="/games/shared/auto-save.js"></script>
   <script src="/games/shared/mood-modals.js"></script>
   <script>if (typeof initMoodModals === 'function') initMoodModals();</script>
 
+
+<script>
+// Auto-save partial progress on exit
+if (typeof registerAutoSave === 'function') {
+  registerAutoSave(function() {
+    var pid = null;
+    try { pid = parseInt(new URLSearchParams(window.location.search).get('patient_id')) || parseInt(localStorage.getItem('hdd_patient_id')); } catch(e) {}
+    var dni = null;
+    try { dni = new URLSearchParams(window.location.search).get('dni') || localStorage.getItem('hdd_patient_dni'); } catch(e) {}
+    return {
+      patient_id: pid,
+      patient_dni: dni,
+      game_slug: 'lawn-mower',
+      partial_data: {
+        score: typeof gameState !== 'undefined' && gameState.score ? gameState.score : 
+               typeof state !== 'undefined' && state.score ? state.score : 0,
+        time_played_ms: Date.now() - (typeof startTime !== 'undefined' && startTime ? startTime : Date.now()),
+        completed: false
+      }
+    };
+  });
+}
+</script>
 </body>
 </html>
