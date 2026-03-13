@@ -31,7 +31,10 @@ export default async (req: Request, context: Context) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
-    const sessionToken = url.searchParams.get("sessionToken");
+    // SEC-003: Accept token from Authorization header, sessionToken, or token param
+    const sessionToken = req.headers.get('Authorization')?.replace('Bearer ', '')
+      || url.searchParams.get("sessionToken")
+      || url.searchParams.get("token");
 
     if (!sessionToken) {
       return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });
@@ -208,7 +211,10 @@ export default async (req: Request, context: Context) => {
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      const { action, sessionToken } = body;
+      const { action } = body;
+      // SEC-003: Accept token from body, header, or alternate field name
+      const sessionToken = body.sessionToken || body.token
+        || req.headers.get('Authorization')?.replace('Bearer ', '');
 
       if (!sessionToken) {
         return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: corsHeaders });

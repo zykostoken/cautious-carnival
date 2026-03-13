@@ -3,21 +3,36 @@
 
 // ========== INITIALIZATION ==========
 async function initGame() {
-    console.log('[Neuro-Chef] Initializing - sin DNI...');
+    console.log('[Neuro-Chef] Initializing...');
     const urlParams = new URLSearchParams(window.location.search);
-    const playerDni = urlParams.get('dni') || urlParams.get('patient_id') ||
-        (function(){try{return localStorage.getItem('hdd_patient_id')||sessionStorage.getItem('hdd_patient_id')}catch(e){return null}})()
-        || ('DEMO-' + Date.now());
+    // Portal sends both: patient_id=22 (numeric) and dni=31682090
+    const playerDni = urlParams.get('dni') ||
+        (function(){try{return localStorage.getItem('hdd_patient_dni')}catch(e){return null}})() ||
+        ('DEMO-' + Date.now());
+    const numericId = parseInt(urlParams.get('patient_id')) ||
+        parseInt((function(){try{return localStorage.getItem('hdd_patient_id')}catch(e){return null}})()) || null;
     gameState.patientDni = playerDni;
+    if (numericId) gameState.patientId = numericId; // Use directly if available
     // Ocultar modal de login — no se usa mas
     const loginModal = document.getElementById('player-login-modal');
     if (loginModal) loginModal.style.display = 'none';
-    // Supabase en background, no bloquea el juego
-    getOrCreatePatient(playerDni, 'Demo').then(id => { gameState.patientId = id; }).catch(() => {});
+    // Resolve patient: use numeric ID if available, otherwise lookup by DNI
+    if (!gameState.patientId) {
+        getOrCreatePatient(playerDni, 'Demo').then(id => { if (id) gameState.patientId = id; }).catch(() => {});
+    } else {
+        // We have numeric ID — just display the name
+        try {
+            if (sb) {
+                const { data } = await sb.from('hdd_patients').select('full_name').eq('id', gameState.patientId).single();
+                if (data) document.getElementById('patient-display').textContent = data.full_name;
+            }
+        } catch(e) {}
+    }
     // Ocultar pre-game modal y arrancar directo
     var preModal = document.getElementById('pre-game-modal');
     if (preModal) preModal.classList.add('hidden');
-    document.getElementById('patient-display').textContent = playerDni;
+    if (!document.getElementById('patient-display').textContent || document.getElementById('patient-display').textContent === playerDni)
+        document.getElementById('patient-display').textContent = playerDni;
     startGame();
 }
 
