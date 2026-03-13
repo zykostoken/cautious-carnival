@@ -1267,7 +1267,14 @@ export default async (req: Request, context: Context) => {
               colorDistribution: s.color_distribution,
               gamePerformance: s.game_performance,
               interactionSummary: s.interaction_summary
-            }))
+            })),
+            // Full clinical analysis — ALL metrics processed and interpreted
+            clinicalAnalysis: await (async () => {
+              try {
+                const { analyzeAllMetrics } = await import("./lib/clinical-analysis.mts");
+                return analyzeAllMetrics(gameMetrics, allColors, moodHistory);
+              } catch(e) { console.warn('Clinical analysis error:', e); return null; }
+            })()
           }), { status: 200, headers: corsHeaders });
 
         } catch (err) {

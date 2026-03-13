@@ -545,12 +545,18 @@ export default async (req: Request, context: Context) => {
         LIMIT 50
       `;
 
+      // ── CLINICAL ANALYSIS — process ALL metrics ──
+      const { analyzeAllMetrics } = await import("./lib/clinical-analysis.mts");
+      const analysis = analyzeAllMetrics(gameSessions, moodEntries, moodCheckins);
+
       return new Response(JSON.stringify({
         success: true,
         gameSessions,
         gameProgress,
         moodEntries,
-        moodCheckins
+        moodCheckins,
+        // Full clinical analysis — all metrics processed and interpreted
+        clinicalAnalysis: analysis
       }), { status: 200, headers: corsHeaders });
     }
 
