@@ -98,13 +98,22 @@
     </div>
 </header>
 
-<!-- FLASH OVERLAY — recipe memorization phase -->
-<div id="flash-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9998; align-items:center; justify-content:center; flex-direction:column; backdrop-filter:blur(8px); animation:mfadeIn .3s ease">
-    <div style="text-align:center; color:#e2e8f0; font-family:system-ui,sans-serif;">
-        <p style="font-size:1rem; opacity:0.6; margin:0 0 12px;">🧠 Memorizá la receta...</p>
-        <p id="flash-recipe-name" style="font-size:3rem; font-weight:800; margin:0 0 20px; text-shadow:0 0 30px rgba(59,130,246,0.5);"></p>
-        <p style="font-size:0.85rem; opacity:0.4; margin:0 0 8px;">Después tenés que comprar los ingredientes</p>
-        <div id="flash-countdown" style="font-size:2.5rem; font-weight:700; color:#3b82f6; margin-top:12px;"></div>
+<!-- RECIPE READING OVERLAY — comprensión lectora phase -->
+<div id="flash-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9998; align-items:center; justify-content:center; flex-direction:column; backdrop-filter:blur(8px); animation:mfadeIn .3s ease; overflow-y:auto; padding:24px;">
+    <div style="text-align:center; color:#e2e8f0; font-family:system-ui,sans-serif; max-width:640px; width:100%;">
+        <p style="font-size:0.85rem; opacity:0.5; margin:0 0 8px;">📖 COMPRENSIÓN LECTORA</p>
+        <p id="flash-recipe-name" style="font-size:2rem; font-weight:800; margin:0 0 16px; text-shadow:0 0 30px rgba(59,130,246,0.5);"></p>
+        <div id="recipe-reading-box" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:24px 28px; text-align:left; margin:0 auto 20px; line-height:1.75; font-size:1.05rem; color:rgba(255,255,255,0.88); letter-spacing:0.01em;">
+            <p id="recipe-narrative-text" style="margin:0;"></p>
+        </div>
+        <p style="font-size:0.8rem; opacity:0.4; margin:0 0 8px;">Leé con atención — después tenés que elegir los ingredientes correctos</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:16px;">
+            <div id="flash-countdown" style="font-size:2rem; font-weight:700; color:#3b82f6;"></div>
+            <button id="recipe-ready-btn" onclick="skipRecipeReading()" style="display:none; padding:10px 28px; border-radius:10px; border:2px solid #22c55e; background:rgba(34,197,94,0.15); color:#22c55e; font-weight:700; font-size:0.95rem; cursor:pointer; transition:all 0.2s;">✓ Ya la leí, ¡empezar!</button>
+        </div>
+        <div id="reading-progress" style="width:100%; max-width:400px; margin:12px auto 0; height:4px; border-radius:2px; background:rgba(255,255,255,0.08); overflow:hidden;">
+            <div id="reading-progress-fill" style="height:100%; width:0%; background:linear-gradient(90deg,#3b82f6,#22c55e); border-radius:2px; transition:width 1s linear;"></div>
+        </div>
     </div>
 </div>
 
@@ -254,8 +263,11 @@ var PRODUCTS = [
 var RECIPES = {
     milanesas: {
         name: 'Milanesas', emoji: '🥩',
-        consigna: 'Comprá todo lo necesario para hacer <strong>milanesas</strong>.',
+        consigna: 'Comprá todo lo necesario para hacer <strong>milanesas</strong> según la receta que leíste.',
         flash: '🥩 MILANESAS',
+        // Receta narrativa para comprensión lectora (NO es una lista de ingredientes)
+        recipeText: 'Para preparar unas buenas milanesas al estilo argentino, lo primero es conseguir bifes de nalga o cuadrada bien finitos. Si no encontrás, el pollo funciona igual de bien. Se arma una estación de empanizado: en un plato hondo batí los huevos con un poco de ajo picado, sal, pimienta y una pizca de nuez moscada que es el secreto de la abuela. En otro plato poné el pan rallado mezclado con perejil picado. Pasá cada bife primero por el huevo y después por el pan rallado, apretando bien para que se adhiera. Calentá bastante aceite en una sartén grande y cuando esté bien caliente, dorá las milanesas de ambos lados. Servilas con un chorrito de limón y acompañalas con unas papas fritas crocantes.',
+        recipeReadTime: 45, // seconds to read
         essential: {
             'bife':        { altGroup: 'carne', desc: 'Carne clásica para milanesas' },
             'pollo':       { altGroup: 'carne', desc: 'Alternativa válida — milanesa de pollo' },
@@ -277,8 +289,10 @@ var RECIPES = {
     },
     fideos_con_tuco: {
         name: 'Fideos con tuco', emoji: '🍝',
-        consigna: 'Comprá todo lo necesario para hacer <strong>fideos con tuco</strong>.',
+        consigna: 'Comprá todo lo necesario para hacer <strong>fideos con tuco</strong> según la receta que leíste.',
         flash: '🍝 FIDEOS CON TUCO',
+        recipeText: 'Los fideos con tuco son un clásico de los domingos. Empezá picando una cebolla bien finita y unos dientes de ajo. Poné una olla con un buen chorro de aceite y cuando esté caliente dorá la cebolla hasta que quede transparente, después agregá el ajo. Si querés que el tuco tenga más cuerpo, sumale carne picada y cocinala hasta que pierda el color rosado. Después volcá los tomates triturados, una pizca de sal, pimienta y dejá que hierva a fuego lento unos veinte minutos para que se concentren los sabores. Algunos le agregan un chorrito de vino tinto que le da un toque especial. Mientras tanto, cociná los fideos en agua con sal. Cuando estén al dente, servilos con el tuco por encima y una lluvia generosa de queso rallado. Si tenés perejil fresco, picalo y ponelo arriba de todo.',
+        recipeReadTime: 45,
         essential: {
             'fideos':  { desc: 'La base del plato' },
             'tomate':  { desc: 'Base de la salsa' },
@@ -296,8 +310,10 @@ var RECIPES = {
     },
     tortilla_de_papas: {
         name: 'Tortilla de papas', emoji: '🥔',
-        consigna: 'Comprá todo lo necesario para hacer una <strong>tortilla de papas</strong>.',
+        consigna: 'Comprá todo lo necesario para hacer una <strong>tortilla de papas</strong> según la receta que leíste.',
         flash: '🥔 TORTILLA DE PAPAS',
+        recipeText: 'La tortilla de papas es más sencilla de lo que parece. Pelá y cortá las papas en rodajas finas, y hacé lo mismo con una cebolla grande. Poné un buen chorro de aceite en una sartén profunda y cuando esté caliente sumergí las papas y la cebolla. No las frías, confitalas a fuego medio hasta que estén tiernas pero sin dorarse demasiado. Mientras tanto, batí varios huevos en un bowl grande con sal y pimienta. Cuando las papas estén listas, escurrilas bien del aceite y mezclalas con los huevos batidos. Dejá reposar la mezcla cinco minutos para que se integre todo. Después volcá toda la preparación en la sartén con un poquito de aceite y cociná a fuego bajo. El truco está en darla vuelta con un plato cuando la base esté firme y dorar del otro lado. Si te animás, ponele queso rallado adentro o acompañala con un buen chorro de mayonesa.',
+        recipeReadTime: 45,
         essential: {
             'papa':    { desc: 'Ingrediente estrella' },
             'huevos':  { desc: 'La base que une todo' },
@@ -349,6 +365,29 @@ var timerInterval = null;
 var productPrices = {};  // id → randomized price this session
 var BUDGET = 0;
 var overBudgetAttempts = 0;
+var recipeReadStartTime = null;  // track how long they actually read
+
+// Helper: close recipe reading overlay and start shopping
+function closeRecipeOverlay() {
+    var flashOverlay = document.getElementById('flash-overlay');
+    if (!flashOverlay) return;
+    var readDuration = recipeReadStartTime ? Math.round((Date.now() - recipeReadStartTime) / 1000) : 0;
+    // Log reading duration as cognitive metric
+    actionLog.push({ t: Date.now() - (startTime || Date.now()), type: 'recipe_read_complete', readSeconds: readDuration });
+    flashOverlay.style.animation = 'mfadeOut .4s ease forwards';
+    setTimeout(function() {
+        flashOverlay.style.display = 'none';
+        flashOverlay.style.animation = '';
+        flashPhase = false;
+        startTime = Date.now(); // Shopping timer starts NOW
+    }, 400);
+}
+
+// Skip button handler
+function skipRecipeReading() {
+    if (window._recipeFlashTimer) clearInterval(window._recipeFlashTimer);
+    closeRecipeOverlay();
+}
 // ========== COGNITIVE METRICS ==========
 var gondolaVisitOrder = [];   // tracks which gondolas were browsed first
 var firstClickTime = null;    // latency to first action (initiative)
@@ -379,31 +418,52 @@ function initGame() {
             ' ¡Pero ojo con el presupuesto! Tocá los productos para agregarlos al carrito.';
     }
 
-    // === FLASH PHASE: show recipe big for memorization ===
+    // === RECIPE READING PHASE: show narrative text for comprehension ===
     flashPhase = true;
     var flashOverlay = document.getElementById('flash-overlay');
     if (flashOverlay) {
         var flashText = document.getElementById('flash-recipe-name');
         flashText.textContent = activeRecipe.flash;
+
+        // Show narrative recipe text (prose, not a list)
+        var narrativeEl = document.getElementById('recipe-narrative-text');
+        if (narrativeEl && activeRecipe.recipeText) {
+            narrativeEl.textContent = activeRecipe.recipeText;
+        }
+
         flashOverlay.style.display = 'flex';
+        recipeReadStartTime = Date.now();
 
         var flashCountEl = document.getElementById('flash-countdown');
-        var flashSecs = 5;
-        flashCountEl.textContent = flashSecs;
+        var readyBtn = document.getElementById('recipe-ready-btn');
+        var progressFill = document.getElementById('reading-progress-fill');
+        var readTime = activeRecipe.recipeReadTime || 45;
+        var flashSecs = readTime;
+        var minReadTime = 10; // minimum seconds before "skip" button appears
+        flashCountEl.textContent = flashSecs + 's';
+        if (progressFill) progressFill.style.width = '0%';
+
         var flashTimer = setInterval(function() {
             flashSecs--;
-            flashCountEl.textContent = flashSecs;
+            flashCountEl.textContent = flashSecs + 's';
+
+            // Update progress bar
+            var pct = Math.min(100, ((readTime - flashSecs) / readTime) * 100);
+            if (progressFill) progressFill.style.width = pct + '%';
+
+            // Show "ready" button after minimum read time
+            if (flashSecs <= (readTime - minReadTime) && readyBtn) {
+                readyBtn.style.display = 'inline-block';
+            }
+
             if (flashSecs <= 0) {
                 clearInterval(flashTimer);
-                flashOverlay.style.animation = 'mfadeOut .4s ease forwards';
-                setTimeout(function() {
-                    flashOverlay.style.display = 'none';
-                    flashOverlay.style.animation = '';
-                    flashPhase = false;
-                    startTime = Date.now(); // Shopping timer starts NOW
-                }, 400);
+                closeRecipeOverlay();
             }
         }, 1000);
+
+        // Store timer ref for skip button
+        window._recipeFlashTimer = flashTimer;
     }
 
     // Randomize budget: $7000 - $14000
