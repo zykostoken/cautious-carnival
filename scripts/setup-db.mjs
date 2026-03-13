@@ -1016,6 +1016,14 @@ SELECT
     ROW_NUMBER() OVER (PARTITION BY patient_dni ORDER BY recorded_at) AS global_ordinal
 FROM hdd_mood_entries
 ORDER BY patient_dni, recorded_at;
+
+-- SEC-001 FIX: Rate limiting table (required by lib/auth.mts checkRateLimit)
+CREATE TABLE IF NOT EXISTS rate_limit_entries (
+    id SERIAL PRIMARY KEY,
+    limit_key VARCHAR(255) NOT NULL,
+    attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_key_time ON rate_limit_entries (limit_key, attempt_at DESC);
 `;
 
 async function runMigration() {
@@ -1073,5 +1081,11 @@ async function runMigration() {
     process.exit(0);
   }
 }
+
+// SEC-011: Health check — warn if critical env vars are missing
+const criticalVars = ['SUPABASE_DATABASE_URL', 'DAILY_API_KEY', 'SUPER_ADMIN_EMAILS'];
+const recommendedVars = ['ZOHO_SMTP_USER', 'ZOHO_SMTP_PASS', 'MP_ACCESS_TOKEN'];
+criticalVars.forEach(v => { if (!process.env[v]) console.error(`🚨 CRITICAL: ${v} is NOT configured!`); });
+recommendedVars.forEach(v => { if (!process.env[v]) console.warn(`⚠️  WARNING: ${v} not configured — related features will be disabled.`); });
 
 runMigration();

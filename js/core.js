@@ -584,9 +584,9 @@ async function loadAnnouncements() {
                     <div class="announcement-item ${a.isPinned ? 'pinned' : ''}">
                         <span class="announcement-type">${typeEmoji}</span>
                         <div class="announcement-content">
-                            <h4>${a.title}</h4>
-                            <p>${a.content}</p>
-                            <span class="announcement-meta">${date}</span>
+                            <h4>${S(a.title)}</h4>
+                            <p>${S(a.content)}</p>
+                            <span class="announcement-meta">${S(date)}</span>
                         </div>
                     </div>
                 `;
@@ -619,11 +619,11 @@ function closeNeonBanner() {
 }
 
 // ========== ADMIN FUNCTIONS ==========
-// Admin emails - can be configured via environment or hardcoded
-const ADMIN_EMAILS = ['gonzaloperezcortizo@gmail.com', 'gerencia@clinicajoseingenieros.ar'];
+// SEC-010: Admin check is now server-side only via admin-roles.mts
+// The professionalData.isAdmin flag comes from the backend /api/professionals verify response
 
 function isAdmin() {
-    return professionalData && ADMIN_EMAILS.includes(professionalData.email);
+    return professionalData && (professionalData.isAdmin === true || professionalData.role === 'super_admin' || professionalData.role === 'limited_admin');
 }
 
 function toggleAddProfessionalForm() {
@@ -825,23 +825,23 @@ async function loadConsultations(statusFilter) {
             return `
                 <div style="background: var(--bg-card); border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid ${statusColor};">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <strong style="font-size: 0.9rem; color: var(--text-primary);">${c.name}</strong>
-                        <span style="font-size: 0.7rem; color: ${statusColor}; font-weight: bold;">${statusLabel}</span>
+                        <strong style="font-size: 0.9rem; color: var(--text-primary);">${S(c.name)}</strong>
+                        <span style="font-size: 0.7rem; color: ${statusColor}; font-weight: bold;">${S(statusLabel)}</span>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
-                        ${typeLabel} · ${date}
+                        ${S(typeLabel)} · ${S(date)}
                     </div>
-                    ${c.email ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📧 <a href="mailto:${c.email}" style="color: var(--accent-green);">${c.email}</a></div>` : ''}
-                    ${c.phone ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📞 <a href="tel:${c.phone}" style="color: var(--accent-green);">${c.phone}</a></div>` : ''}
-                    ${c.subject ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;"><em>${c.subject}</em></div>` : ''}
-                    <div style="font-size: 0.85rem; color: var(--text-primary); background: var(--bg-primary); padding: 8px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; word-break: break-word;">${c.message}</div>
-                    ${c.respondedByName ? `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Respondida por: ${c.respondedByName}</div>` : ''}
-                    ${c.notes ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; padding: 6px; background: var(--bg-primary); border-radius: 4px;"><strong>Notas:</strong> ${c.notes}</div>` : ''}
+                    ${c.email ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📧 <a href="mailto:${S(c.email)}" style="color: var(--accent-green);">${S(c.email)}</a></div>` : ''}
+                    ${c.phone ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">📞 <a href="tel:${S(c.phone)}" style="color: var(--accent-green);">${S(c.phone)}</a></div>` : ''}
+                    ${c.subject ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;"><em>${S(c.subject)}</em></div>` : ''}
+                    <div style="font-size: 0.85rem; color: var(--text-primary); background: var(--bg-primary); padding: 8px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; word-break: break-word;">${S(c.message)}</div>
+                    ${c.respondedByName ? `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">Respondida por: ${S(c.respondedByName)}</div>` : ''}
+                    ${c.notes ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; padding: 6px; background: var(--bg-primary); border-radius: 4px;"><strong>Notas:</strong> ${S(c.notes)}</div>` : ''}
                     <div style="display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;">
-                        ${c.status === 'pending' ? `<button onclick="markConsultation(${c.id}, 'mark_read')" style="font-size: 0.7rem; padding: 3px 8px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Leída</button>` : ''}
-                        ${c.status !== 'responded' && c.status !== 'archived' ? `<button onclick="respondConsultation(${c.id})" style="font-size: 0.7rem; padding: 3px 8px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Respondida</button>` : ''}
-                        ${c.status !== 'archived' ? `<button onclick="markConsultation(${c.id}, 'archive')" style="font-size: 0.7rem; padding: 3px 8px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Archivar</button>` : ''}
-                        ${c.email ? `<a href="mailto:${c.email}?subject=Re: ${encodeURIComponent(c.subject || typeLabel)}" style="font-size: 0.7rem; padding: 3px 8px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none;">Responder por Email</a>` : ''}
+                        ${c.status === 'pending' ? `<button onclick="markConsultation(${parseInt(c.id)}, 'mark_read')" style="font-size: 0.7rem; padding: 3px 8px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Leída</button>` : ''}
+                        ${c.status !== 'responded' && c.status !== 'archived' ? `<button onclick="respondConsultation(${parseInt(c.id)})" style="font-size: 0.7rem; padding: 3px 8px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">Marcar Respondida</button>` : ''}
+                        ${c.status !== 'archived' ? `<button onclick="markConsultation(${parseInt(c.id)}, 'archive')" style="font-size: 0.7rem; padding: 3px 8px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Archivar</button>` : ''}
+                        ${c.email ? `<a href="mailto:${S(c.email)}?subject=Re: ${encodeURIComponent(c.subject || typeLabel)}" style="font-size: 0.7rem; padding: 3px 8px; background: var(--accent-green); color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none;">Responder por Email</a>` : ''}
                     </div>
                 </div>
             `;

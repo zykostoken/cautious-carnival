@@ -8,6 +8,9 @@ const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || 
 const API = '/api/hdd-hce';
 let sessionToken = null;
 let patientId = null;
+
+// SEC-017: Centralized game names (was duplicated at lines 840 and 954)
+const GAME_NAMES = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera', 'neuro-chef': 'NeuroChef' };
 let hceData = null;
 let currentFilter = 'all';
 let autosaveTimer = null;
@@ -837,8 +840,8 @@ async function loadMetrics() {
     html += '<div class="hce-metrics-section"><h4>Juegos Terapeuticos (ultimos 90 dias)</h4>';
     html += '<div class="hce-metrics-grid">';
     gameProgress.forEach(g => {
-      const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
-      const name = gameNames[g.game_slug] || g.game_slug;
+      // Using centralized GAME_NAMES constant
+      const name = GAME_NAMES[g.game_slug] || g.game_slug;
       const totalMin = Math.round((g.total_time_seconds || 0) / 60);
 
       // Build sparkline from session data
@@ -951,13 +954,13 @@ function insertMetricsInEvolution() {
   const { gameProgress, moodCheckins } = lastMetricsData;
 
   let text = '=== METRICAS TERAPEUTICAS ===\n';
-  const gameNames = { 'lawn-mower': 'Cortadora de Cesped', 'medication-memory': 'Memoria de Medicacion', 'pill-organizer': 'Pastillero', 'super-market': 'Supermercado', 'daily-routine': 'Rutina Diaria', 'fridge-logic': 'Logica de Heladera' };
+  // Using centralized GAME_NAMES constant
 
   if (gameProgress && gameProgress.length > 0) {
     const { gameSessions: gs } = lastMetricsData;
     text += '\nJuegos terapeuticos (90 dias):\n';
     gameProgress.forEach(g => {
-      const name = gameNames[g.game_slug] || g.game_slug;
+      const name = GAME_NAMES[g.game_slug] || g.game_slug;
       // Calculate trend
       const sessions = (gs || []).filter(s => s.game_slug === g.game_slug && s.score != null)
         .sort((a, b) => new Date(a.session_date) - new Date(b.session_date));

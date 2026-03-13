@@ -411,7 +411,7 @@ function telemedStartVideoCall() {
     // Usar URL con token privado (guardada al confirmar el pago)
     // Si no está disponible, fallback a URL pública (sala puede rechazar sin token)
     const roomUrl = window.telemedPatientRoomUrl
-        || `https://${window.DAILY_DOMAIN || 'hdd-jose-ingenieros'}.daily.co/cji-${(telemedSessionToken||'').substring(0, 12)}`;
+        || `https://${window.DAILY_DOMAIN || 'zykos'}.daily.co/cji-${(telemedSessionToken||'').substring(0, 12)}`;
     container.innerHTML = `<iframe id="telemed-daily-iframe" src="${roomUrl}" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>`;
     window.telemedDailyIframe = container.querySelector('#telemed-daily-iframe');
 }
@@ -610,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Daily.co: 2,000 min/month free, no 5-min limit, works in browser
 
 function iniciarVideollamadaDaily(sessionToken) {
-    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+    const dailyDomain = window.DAILY_DOMAIN || 'zykos';
     const roomName = `ClinicaJoseIngenieros-${sessionToken.substring(0, 12)}`;
     const roomUrl = window.telemedRoomUrl || `https://${dailyDomain}.daily.co/${roomName}`;
 
@@ -1302,7 +1302,7 @@ function joinCall(roomName, queueId, profUrl) {
     document.body.appendChild(videoModal);
 
     // Load Daily.co room — usar URL con token si está disponible
-    const dailyDomain = window.DAILY_DOMAIN || 'hdd-jose-ingenieros';
+    const dailyDomain = window.DAILY_DOMAIN || 'zykos';
     const roomUrl = profUrl
         || `https://${dailyDomain}.daily.co/${roomName}`;
     const iframe = document.getElementById('daily-prof-iframe');
