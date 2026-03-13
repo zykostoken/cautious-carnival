@@ -996,21 +996,39 @@ ALTER TABLE hdd_patients ADD COLUMN IF NOT EXISTS data_processing_consent_date T
 -- =============================================
 
 CREATE OR REPLACE VIEW v_patient_game_summary AS
-SELECT
-    patient_dni,
+SELECT patient_id,
     game_slug,
-    COUNT(*) AS total_sessions,
-    MIN(session_date) AS first_session,
-    MAX(session_date) AS last_session,
-    AVG(score) AS avg_score,
-    MAX(score) AS best_score,
-    MIN(score) AS baseline_score,
-    AVG(metric_value) AS avg_metric_value,
-    COUNT(CASE WHEN completed THEN 1 END) AS completed_sessions,
-    MAX(level_reached) AS max_level_reached
-FROM hdd_game_metrics
-WHERE metric_type = 'session_summary'
-GROUP BY patient_dni, game_slug;
+    count(*) FILTER (WHERE metric_type IN ('session_summary', 'session_complete') 
+        OR metric_type LIKE 'level_%') AS total_sessions,
+    min(created_at) AS first_session_at,
+    max(created_at) AS last_session_at,
+    avg(metric_value) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%') AS avg_score,
+    min(metric_value) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%') AS min_score,
+    max(metric_value) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%') AS max_score,
+    (array_agg(metric_value ORDER BY created_at) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%'))[1] AS baseline_score,
+    (array_agg(metric_value ORDER BY created_at DESC) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%'))[1] AS latest_score,
+    (array_agg(metric_value ORDER BY created_at DESC) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%'))[1]
+    - (array_agg(metric_value ORDER BY created_at) FILTER (WHERE metric_type IN ('session_summary', 'session_complete')
+        OR metric_type LIKE 'level_%'))[1] AS score_progress,
+    avg((metric_data->>'reaction_time_ms')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_rt_ms,
+    avg((metric_data->>'tremor_avg')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_tremor,
+    avg((metric_data->>'false_alarms')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_commission_errors,
+    avg((metric_data->>'misses')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_omission_errors,
+    avg((metric_data->>'hesitation_count')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_hesitations,
+    avg((metric_data->>'tremor_speed_var')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_movement_eff,
+    avg((metric_data->>'d_prime')::numeric) FILTER (WHERE metric_type LIKE 'biometric_%' OR metric_type = 'session_biomet') AS avg_d_prime,
+    count(*) FILTER (WHERE metric_type LIKE 'event_%') AS total_events,
+    count(*) FILTER (WHERE metric_type = 'event_game_reset') AS reset_count,
+    count(*) FILTER (WHERE metric_type = 'event_tab_close' OR metric_type = 'event_tab_hidden') AS interruption_count
+FROM hdd_game_metrics gm
+WHERE patient_id IS NOT NULL
+GROUP BY patient_id, game_slug;
 
 CREATE OR REPLACE VIEW v_patient_color_timeline AS
 SELECT
