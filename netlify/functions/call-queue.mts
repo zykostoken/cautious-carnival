@@ -383,7 +383,8 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === "GET") {
     const url = new URL(req.url);
-    const sessionToken = url.searchParams.get("sessionToken");
+    // SEC-003: Accept token from header OR query param
+    const sessionToken = req.headers.get("Authorization")?.replace("Bearer ", "") || url.searchParams.get("sessionToken");
     const videoSessionToken = url.searchParams.get("videoSessionToken");
     const status = url.searchParams.get("status") || "waiting";
 

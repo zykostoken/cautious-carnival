@@ -914,7 +914,8 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === "GET") {
     const url = new URL(req.url);
-    const sessionToken = url.searchParams.get("sessionToken");
+    // SEC-003: Accept token from header OR query param
+    const sessionToken = req.headers.get("Authorization")?.replace("Bearer ", "") || url.searchParams.get("sessionToken");
     const action = url.searchParams.get("action");
 
     // Verify session and get professional info

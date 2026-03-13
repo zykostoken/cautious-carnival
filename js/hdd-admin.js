@@ -9,11 +9,21 @@ let patients = [];
 const S = (str) => typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str || '') : (str || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // API
+// SEC-003: Send session token as Authorization header instead of URL param
 async function api(endpoint, options = {}) {
-  const response = await fetch(endpoint, {
+  // Strip sessionToken from URL and send as header instead
+  const url = new URL(endpoint, window.location.origin);
+  const urlToken = url.searchParams.get('sessionToken');
+  if (urlToken) {
+    url.searchParams.delete('sessionToken');
+  }
+  const authToken = urlToken || sessionToken;
+
+  const response = await fetch(url.pathname + url.search, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
       ...options.headers
     }
   });
@@ -2342,7 +2352,9 @@ let hcePatientData = null;
 
 async function loadHCEPatients() {
   try {
-    const res = await fetch(`/api/hdd/admin?action=hce_patients&sessionToken=${sessionToken}`);
+    const res = await fetch(`/api/hdd/admin?action=hce_patients`, {
+      headers: { 'Authorization': `Bearer ${sessionToken}` }
+    });
     const data = await res.json();
 
     if (!data.success) {

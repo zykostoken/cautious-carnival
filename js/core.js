@@ -640,7 +640,9 @@ async function loadAdminProfessionalList() {
     if (!listEl) return;
 
     try {
-        const res = await fetch(`/api/professionals?action=admin_list&sessionToken=${professionalSession}`);
+        const res = await fetch(`/api/professionals?action=admin_list`, {
+            headers: { 'Authorization': `Bearer ${professionalSession}` }
+        });
         const data = await res.json();
 
         if (data.professionals && data.professionals.length > 0) {
@@ -791,10 +793,12 @@ async function loadConsultations(statusFilter) {
     });
 
     try {
-        let url = `/api/consultations?sessionToken=${professionalSession}`;
-        if (statusFilter) url += `&status=${statusFilter}`;
+        let url = `/api/consultations`;
+        if (statusFilter) url += `?status=${statusFilter}`;
 
-        const res = await fetch(url);
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${professionalSession}` }
+        });
         const data = await res.json();
 
         if (!data.consultations) {

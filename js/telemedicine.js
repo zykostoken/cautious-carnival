@@ -1033,7 +1033,7 @@ async function verifyProfessionalSession() {
     if (!professionalSession) return;
 
     try {
-        const res = await fetch(`/api/professionals?action=verify&sessionToken=${professionalSession}`);
+        const res = await fetch(`/api/professionals?action=verify`, { headers: { 'Authorization': `Bearer ${professionalSession}` } });
         const data = await res.json();
 
         if (data.valid) {
@@ -1179,7 +1179,7 @@ async function updateNotificationSettings() {
 
 async function loadCallQueue() {
     try {
-        const res = await fetch(`/api/call-queue?sessionToken=${professionalSession}&status=waiting`);
+        const res = await fetch(`/api/call-queue?status=waiting`, { headers: { 'Authorization': `Bearer ${professionalSession}` } });
         const data = await res.json();
 
         const queueList = document.getElementById('call-queue-list');
@@ -1212,7 +1212,7 @@ async function loadCallQueue() {
 
 async function loadActiveCalls() {
     try {
-        const res = await fetch(`/api/call-queue?sessionToken=${professionalSession}&status=assigned`);
+        const res = await fetch(`/api/call-queue?status=assigned`, { headers: { 'Authorization': `Bearer ${professionalSession}` } });
         const data = await res.json();
 
         const activeList = document.getElementById('active-calls-list');

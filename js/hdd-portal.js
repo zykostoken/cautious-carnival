@@ -13,11 +13,13 @@ const isPreviewMode = new URLSearchParams(window.location.search).get('preview')
 // API helpers
 const API_BASE = '/api/hdd';
 
+// SEC-003: Send session token as Authorization header
 async function api(endpoint, options = {}) {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
       ...options.headers
     }
   });
