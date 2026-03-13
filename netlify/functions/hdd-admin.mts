@@ -100,7 +100,7 @@ export default async (req: Request, context: Context) => {
             ${admissionDate}, ${notes || null}, 'active', ${modality},
             ${hcPapel || null}, ${obraSocial || null}, NOW()
           )
-          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel, obra_social
+          RETURNING id, dni, full_name, email, admission_date, status, care_modality, numero_hc_papel, obra_social, numero_historia_clinica
         `;
 
         return new Response(JSON.stringify({
